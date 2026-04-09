@@ -925,30 +925,180 @@ const Dashboard = () => {
   return activeShow ? <MissionControl /> : <AllShowsView />;
 };
 
-// ─── Add Show Form ────────────────────────────────────────────────────────────
+// ─── Add Show Form (replace existing AddShowForm in App.jsx) ──────────────────
 const AddShowForm = () => {
-  const [open, setOpen] = useState(false);
-  const [f, setF] = useState({ date:"", venue:"", city:"", artist:"bbno$", status:"TBD" });
-  const { S, mob, update, showToast } = useApp();
-  if (!open) return <div style={{ textAlign:"center", marginTop:12 }}><button style={S.btn(C.accent)} onClick={() => setOpen(true)}>+ Add Show</button></div>;
+  const [open, setOpen]         = useState(false);
+  const [f, setF]               = useState({ date:"", venue:"", city:"", artist:"bbno$", status:"TBD" });
+  const [parsing, setParsing]   = useState(false);
+  const [parsed, setParsed]     = useState(null); // { contacts, dealTerms, documentType }
+  const [parseErr, setParseErr] = useState(null);
+  const fileRef                 = useRef(null);
+  const { S, mob, update, showToast, session } = useApp();
+
+  const handlePDF = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setParsing(true);
+    setParsed(null);
+    setParseErr(null);
+
+    try {
+      const base64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(",")[1]);
+        r.onerror = () => rej(new Error("Read failed"));
+        r.readAsDataURL(file);
+      });
+
+      const { data: { session: s } } = await supabase.auth.getSession();
+      const resp = await fetch("/api/parse-pdf", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${s.access_token}`,
+        },
+        body: JSON.stringify({ pdfBase64: base64, filename: file.name }),
+      });
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      const p = data.parsed;
+
+      // Auto-fill show fields from parsed data
+      setF(prev => ({
+        ...prev,
+        date:   p.show?.date   || prev.date,
+        venue:  p.show?.venue  || prev.venue,
+        city:   p.show?.city   || prev.city,
+        artist: p.show?.artist || prev.artist,
+      }));
+
+      setParsed({ contacts: p.contacts || [], dealTerms: p.dealTerms || {}, documentType: p.documentType || "OTHER" });
+      showToast(`Parsed: ${p.documentType || "document"}`);
+    } catch (err) {
+      setParseErr(err.message);
+      showToast(`Parse failed: ${err.message}`);
+    }
+    setParsing(false);
+    e.target.value = "";
+  };
+
   const submit = () => {
     if (!f.date || !f.venue) return;
-    update(s => { s.shows.push({ ...f, id:uid() }); return s; });
+    const newShow = { ...f, id: uid() };
+    update(s => {
+      s.shows.push(newShow);
+      // Seed contacts into missionControl if parsed
+      if (parsed?.contacts?.length) {
+        if (!s.missionControl) s.missionControl = {};
+        if (!s.missionControl[newShow.id]) s.missionControl[newShow.id] = { threads:[], flights:[], schedule:[], followUps:[], showContacts:[], refreshHistory:[] };
+        const existing = new Set(s.missionControl[newShow.id].showContacts.map(c => c.email || c.name));
+        parsed.contacts.forEach(c => {
+          const key = c.email || c.name;
+          if (key && !existing.has(key)) {
+            s.missionControl[newShow.id].showContacts.push({ name: c.name, role: c.role || c.company || "", email: c.email || "", phone: c.phone || "" });
+            existing.add(key);
+          }
+        });
+      }
+      return s;
+    });
     showToast("Show added");
     setF({ date:"", venue:"", city:"", artist:"bbno$", status:"TBD" });
+    setParsed(null);
+    setParseErr(null);
     setOpen(false);
   };
+
+  if (!open) return (
+    <div style={{ textAlign:"center", marginTop:12 }}>
+      <button style={S.btn(C.accent)} onClick={() => setOpen(true)}>+ Add Show</button>
+    </div>
+  );
+
+  const hasDeal = parsed?.dealTerms && Object.values(parsed.dealTerms).some(v => v && v !== "null");
+
   return (
-    <div style={{ ...S.card, marginTop:12 }}>
-      <div style={{ display:"grid", gridTemplateColumns:mob?"1fr 1fr":"1fr 1fr 1fr 1fr auto", gap:8, alignItems:"end" }}>
-        {[["date","Date","date"],["venue","Venue","text"],["city","City","text"],["artist","Artist","text"]].map(([k,l,t]) => (
-          <div key={k}><div style={{ fontSize:10, color:C.textDim, marginBottom:3 }}>{l}</div><input type={t} value={f[k]} onChange={e=>setF({...f,[k]:e.target.value})} style={S.input} /></div>
-        ))}
-        <button onClick={submit} style={S.btn(C.green)}>Save</button>
+    <div style={{ ...S.card, marginTop:12, borderColor: parsed ? C.accent+"55" : C.border }}>
+      {/* Header */}
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+        <div style={{ fontSize:11, color:C.textDim, letterSpacing:1, textTransform:"uppercase" }}>
+          Add Show {parsed && <span style={S.badge(C.accent)}>{parsed.documentType}</span>}
+        </div>
+        <div style={{ display:"flex", gap:8 }}>
+          <input ref={fileRef} type="file" accept="application/pdf" onChange={handlePDF} style={{ display:"none" }} />
+          <button onClick={() => fileRef.current?.click()} disabled={parsing} style={{ ...S.btn(parsing ? C.textDim : C.yellow), fontSize:10, opacity:parsing?0.5:1 }}>
+            {parsing ? "Parsing..." : "Import PDF"}
+          </button>
+          <button onClick={() => { setOpen(false); setParsed(null); setParseErr(null); }} style={{ ...S.btn(), fontSize:10 }}>Cancel</button>
+        </div>
       </div>
+
+      {/* Parse error */}
+      {parseErr && (
+        <div style={{ fontSize:11, color:C.red, marginBottom:10, padding:"6px 8px", background:C.red+"11", borderRadius:4 }}>
+          Parse error: {parseErr}
+        </div>
+      )}
+
+      {/* Form fields */}
+      <div style={{ display:"grid", gridTemplateColumns:mob?"1fr 1fr":"1fr 1fr 1fr 1fr auto", gap:8, alignItems:"end", marginBottom:12 }}>
+        {[["date","Date","date"],["venue","Venue","text"],["city","City","text"],["artist","Artist","text"]].map(([k,l,t]) => (
+          <div key={k}>
+            <div style={{ fontSize:10, color:C.textDim, marginBottom:3 }}>{l}</div>
+            <input type={t} value={f[k]} onChange={e=>setF({...f,[k]:e.target.value})} style={{ ...S.input, borderColor: parsed?.show?.[k] ? C.accent+"88" : C.border }} />
+          </div>
+        ))}
+        <button onClick={submit} disabled={!f.date || !f.venue} style={{ ...S.btn(C.green), opacity:(!f.date||!f.venue)?0.4:1 }}>Save</button>
+      </div>
+
+      {/* Parsed contacts */}
+      {parsed?.contacts?.length > 0 && (
+        <div style={{ marginBottom:12 }}>
+          <div style={{ fontSize:10, color:C.textDim, letterSpacing:1, textTransform:"uppercase", marginBottom:6 }}>
+            Contacts ({parsed.contacts.length}) — will be imported to Mission Control
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:mob?"1fr":"1fr 1fr", gap:4 }}>
+            {parsed.contacts.map((c, i) => (
+              <div key={i} style={{ fontSize:11, padding:"5px 8px", background:C.bg, borderRadius:3, border:`1px solid ${C.border}` }}>
+                <span style={{ fontWeight:600, color:C.text }}>{c.name}</span>
+                {c.role && <span style={{ color:C.textDim }}> · {c.role}</span>}
+                {c.company && <span style={{ color:C.textMuted }}> · {c.company}</span>}
+                {c.email && <div style={{ fontSize:10, color:C.accent, marginTop:1 }}>{c.email}</div>}
+                {c.phone && <div style={{ fontSize:10, color:C.textDim }}>{c.phone}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Deal terms */}
+      {hasDeal && (
+        <div>
+          <div style={{ fontSize:10, color:C.textDim, letterSpacing:1, textTransform:"uppercase", marginBottom:6 }}>Deal Terms</div>
+          <div style={{ display:"grid", gridTemplateColumns:mob?"1fr 1fr":"repeat(3,1fr)", gap:6 }}>
+            {Object.entries(parsed.dealTerms).filter(([k, v]) => v && v !== "null" && k !== "notes").map(([k, v]) => (
+              <div key={k} style={{ fontSize:11, padding:"5px 8px", background:C.bg, borderRadius:3, border:`1px solid ${C.border}` }}>
+                <div style={{ fontSize:9, color:C.textDim, textTransform:"uppercase", letterSpacing:0.5, marginBottom:2 }}>{k}</div>
+                <div style={{ color:C.text }}>{v}</div>
+              </div>
+            ))}
+          </div>
+          {parsed.dealTerms.notes && (
+            <div style={{ fontSize:11, color:C.textDim, marginTop:8, padding:"6px 8px", background:C.bg, borderRadius:3 }}>
+              <span style={{ color:C.textMuted, fontSize:10, textTransform:"uppercase" }}>Notes: </span>{parsed.dealTerms.notes}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
+
 
 // ─── Advance Tab ──────────────────────────────────────────────────────────────
 const Advance = () => {
