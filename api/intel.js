@@ -174,22 +174,47 @@ Return this exact JSON:
     .map((b) => b.text)
     .join("\n");
 
+  console.log("[intel] stop_reason:", anthropicData.stop_reason, "| text length:", textContent.length);
+  console.log("[intel] raw (first 600):", textContent.slice(0, 600));
+
   let intel = null;
+
+  // Strip common Claude formatting and parse
+  const stripped = textContent
+    .replace(/^[\s\S]*?(\{)/m, "$1")   // drop any preamble before first {
+    .replace(/\}\s*[\s\S]*$/, "}")      // drop any trailing text after last }
+    .trim();
+
   try {
-    intel = JSON.parse(textContent.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim());
+    intel = JSON.parse(stripped);
   } catch {
+    // Fallback: find largest JSON object containing "threads"
     const m = textContent.match(/\{[\s\S]*"threads"[\s\S]*\}/);
-    if (m) { try { intel = JSON.parse(m[0]); } catch {} }
+    if (m) { try { intel = JSON.parse(m[0]); } catch (e2) { console.error("[intel] fallback parse failed:", e2.message); } }
   }
 
-  if (intel) {
-    await supabase.from("intel_cache").upsert({
-      show_id: showId,
-      intel,
-      gmail_threads_found: threads.length,
-      cached_at: new Date().toISOString(),
+  // Validate shape
+  if (intel && !Array.isArray(intel.threads)) {
+    console.error("[intel] parsed but missing threads array, keys:", Object.keys(intel));
+    intel = null;
+  }
+
+  if (!intel) {
+    console.error("[intel] parse failed. stop_reason:", anthropicData.stop_reason, "| raw:", textContent.slice(0, 1000));
+    return res.json({
+      intel: null,
+      gmailThreadsFound: threads.length,
+      fromCache: false,
+      debug: { stopReason: anthropicData.stop_reason, rawText: textContent.slice(0, 800) },
     });
   }
+
+  await supabase.from("intel_cache").upsert({
+    show_id: showId,
+    intel,
+    gmail_threads_found: threads.length,
+    cached_at: new Date().toISOString(),
+  });
 
   return res.json({ intel, gmailThreadsFound: threads.length, fromCache: false });
 };

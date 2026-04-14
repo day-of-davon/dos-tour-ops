@@ -333,7 +333,12 @@ export default function App(){
       const resp=await fetch("/api/intel",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({show,googleToken,forceRefresh:force})});
       if(!resp.ok){const err=await resp.json().catch(()=>({}));setRefreshMsg(err.error==="gmail_token_expired"?"Gmail token expired — re-sign in":`Error: ${resp.status}`);return;}
       const data=await resp.json();const ni=data.intel;
-      if(!ni||!ni.threads){setRefreshMsg("No structured intel returned");return;}
+      if(!ni||!ni.threads){
+        const hint=data.debug?.stopReason==="max_tokens"?" (response truncated — too many threads)":data.debug?.rawText?` — raw: ${data.debug.rawText.slice(0,120)}`:"";
+        setRefreshMsg(`No structured intel returned${hint}`);
+        console.error("[intel] debug:",data.debug);
+        return;
+      }
       setIntel(p=>{
         const existing=p[sid]||{};
         const seenT=new Set();
