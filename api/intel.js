@@ -77,24 +77,46 @@ module.exports = async function handler(req, res) {
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ error: "Invalid token" });
 
-  const { show, googleToken, forceRefresh } = req.body || {};
-  if (!show || !googleToken) return res.status(400).json({ error: "Missing show or googleToken" });
+  const { show, googleToken, forceRefresh, userEmail, action, isShared } = req.body || {};
+  if (!show) return res.status(400).json({ error: "Missing show" });
 
   const showId = `${show.venue}__${show.date}`.toLowerCase().replace(/\s+/g, "_");
 
+  // ── Toggle share without re-scraping ────────────────────────────────────────
+  if (action === "toggleShare") {
+    await supabase
+      .from("intel_cache")
+      .update({ is_shared: !!isShared })
+      .eq("user_id", user.id)
+      .eq("show_id", showId);
+    return res.json({ ok: true, isShared: !!isShared });
+  }
+
+  if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
+
+  // ── Fetch user's own cache ───────────────────────────────────────────────────
   if (!forceRefresh) {
     const { data: cached } = await supabase
       .from("intel_cache")
-      .select("intel, gmail_threads_found, cached_at")
+      .select("intel, gmail_threads_found, cached_at, is_shared")
+      .eq("user_id", user.id)
       .eq("show_id", showId)
       .single();
 
     if (cached) {
       const ageMinutes = (Date.now() - new Date(cached.cached_at).getTime()) / 60000;
       if (ageMinutes < CACHE_TTL_MINUTES) {
+        const { data: sharedByOthers } = await supabase
+          .from("intel_cache")
+          .select("intel, user_email, cached_at")
+          .eq("show_id", showId)
+          .eq("is_shared", true)
+          .neq("user_id", user.id);
         return res.json({
           intel: cached.intel,
           gmailThreadsFound: cached.gmail_threads_found,
+          isShared: cached.is_shared,
+          sharedByOthers: sharedByOthers || [],
           fromCache: true,
           cachedAt: cached.cached_at,
         });
@@ -254,12 +276,39 @@ Return this exact JSON:
     });
   }
 
-  await supabase.from("intel_cache").upsert({
-    show_id: showId,
-    intel,
-    gmail_threads_found: threads.length,
-    cached_at: new Date().toISOString(),
-  });
+  // Preserve existing is_shared flag on refresh
+  const { data: existing } = await supabase
+    .from("intel_cache")
+    .select("is_shared")
+    .eq("user_id", user.id)
+    .eq("show_id", showId)
+    .single();
 
-  return res.json({ intel, gmailThreadsFound: threads.length, fromCache: false });
+  await supabase.from("intel_cache").upsert(
+    {
+      user_id: user.id,
+      show_id: showId,
+      intel,
+      gmail_threads_found: threads.length,
+      cached_at: new Date().toISOString(),
+      is_shared: existing?.is_shared ?? false,
+      user_email: userEmail || null,
+    },
+    { onConflict: "user_id,show_id" }
+  );
+
+  const { data: sharedByOthers } = await supabase
+    .from("intel_cache")
+    .select("intel, user_email, cached_at")
+    .eq("show_id", showId)
+    .eq("is_shared", true)
+    .neq("user_id", user.id);
+
+  return res.json({
+    intel,
+    gmailThreadsFound: threads.length,
+    isShared: existing?.is_shared ?? false,
+    sharedByOthers: sharedByOthers || [],
+    fromCache: false,
+  });
 };

@@ -81,11 +81,34 @@ create policy "delete own or team"
     or team_id = 'dos-bbno-eu-2026'
   );
 
--- ── Intel cache (server-side, service key only, no RLS needed) ─────────────
--- Keyed by show_id (venue__date). Accessed only from api/intel.js via service key.
+-- ── Intel cache: user-scoped, optional team sharing ──────────────────────────
+-- Migration: drop old single-key table if user_id column is absent
+do $$
+begin
+  if exists (select 1 from information_schema.tables where table_name = 'intel_cache')
+     and not exists (select 1 from information_schema.columns
+                     where table_name = 'intel_cache' and column_name = 'user_id')
+  then
+    drop table intel_cache;
+  end if;
+end $$;
+
 create table if not exists intel_cache (
-  show_id     text        primary key,
-  intel       jsonb       not null,
-  gmail_threads_found int not null default 0,
-  cached_at   timestamptz not null default now()
+  id                  uuid        default gen_random_uuid() primary key,
+  user_id             uuid        references auth.users on delete cascade not null,
+  show_id             text        not null,
+  intel               jsonb       not null,
+  gmail_threads_found int         not null default 0,
+  cached_at           timestamptz not null default now(),
+  is_shared           boolean     not null default false,
+  user_email          text,
+  unique (user_id, show_id)
 );
+
+-- RLS: direct client access sees only own rows; service key bypasses for API use
+alter table intel_cache enable row level security;
+
+drop policy if exists "own intel" on intel_cache;
+create policy "own intel"
+  on intel_cache
+  using (auth.uid() = user_id);

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { useAuth } from "./components/AuthGate.jsx";
 import { supabase } from "./lib/supabase";
 
@@ -15,6 +15,8 @@ const CLIENTS=[
   {id:"elm",name:"Elements",type:"festival",status:"active",color:"#92400E",short:"ELM"},
 ];
 const CM=CLIENTS.reduce((a,c)=>{a[c.id]=c;return a},{});
+// Only these users can see festival clients in the selector
+const FESTIVAL_ACCESS_EMAILS=["d.johnson@dayofshow.net","olivia@dayofshow.net"];
 const ROLES=[{id:"tm",label:"TM",c:"#5B21B6"},{id:"production",label:"PROD",c:"#92400E"},{id:"hospitality",label:"HOSPO",c:"#065F46"},{id:"transport",label:"TRANSPORT",c:"#1E40AF"}];
 const TABS=[{id:"dashboard",label:"Dashboard",icon:"◉"},{id:"advance",label:"Advance",icon:"◎"},{id:"ros",label:"Show Day",icon:"▦"},{id:"transport",label:"Transport",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"}];
 const DEFAULT_CREW=[
@@ -43,6 +45,13 @@ const DEFAULT_CREW=[
   {id:"td", name:"TBD",                    role:"Truck Driver",               email:""},
 ];
 const AB=new Set(["bus_arrive","doors_early","doors_ga","clear","bus_depart"]);
+
+const UI={
+  expandPanel:{background:"#faf9f6",borderLeft:"3px solid #5B21B6",padding:"10px 14px 12px"},
+  expandBtn:(open,accent="#5B21B6")=>({background:open?"#0f172a":accent,border:"none",borderRadius:6,color:"#fff",fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700}),
+  sectionLabel:{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:6},
+  input:{background:"#fff",border:"1px solid #d6d3cd",borderRadius:5,fontSize:10,padding:"4px 6px",outline:"none",fontFamily:"'Outfit',system-ui"},
+};
 
 const DEPTS=[
   {id:"all",label:"All",color:"#475569",bg:"#f1f5f9"},
@@ -123,6 +132,10 @@ const SC={
   // Back-compat
   responded:{l:"In Progress",c:"#1E40AF",b:"#DBEAFE"},
 };
+const TEAM_MEMBERS=[
+  {id:"davon",label:"Davon",initials:"DJ"},
+  {id:"olivia",label:"Olivia",initials:"OM"},
+];
 const SC_CYCLE=["pending","in_progress","confirmed"];
 const SC_ORDER=["pending","in_progress","sent","received","respond","follow_up","escalate","confirmed","na"];
 const PRE_STAGES=[{id:"contract_received",l:"Contract Received"},{id:"estimate_received",l:"Pre-Show Estimate"},{id:"guarantee_confirmed",l:"Guarantee Confirmed"}];
@@ -289,16 +302,25 @@ const FIELD_KEYS=[
   {field:"mgTime",keys:["meet & greet","m&g","meet and greet"," mg "],label:"M&G"},
 ];
 function parseAllTimes(str){
-  const out=[];const s=String(str||"");
+  const s=String(str||"");
   const re=/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)?\b/g;
-  let m;while((m=re.exec(s))){
+  let m;const raw=[];
+  while((m=re.exec(s))){
     let h=parseInt(m[1],10);const min=parseInt(m[2]||"0",10);const ap=(m[3]||"").toLowerCase();
     if(ap==="pm"&&h<12)h+=12;if(ap==="am"&&h===12)h=0;
     if(h<0||h>23||min<0||min>59)continue;
     if(!ap&&!m[2]&&(h<5||h>23))continue;
-    out.push({minutes:h*60+min,index:m.index,token:m[0]});
+    raw.push({minutes:h*60+min,index:m.index,end:m.index+m[0].length,token:m[0],rangeRole:null});
   }
-  return out;
+  // Detect grouped ranges: TIME [-–—/to] TIME (gap ≤ 8 chars)
+  for(let i=0;i<raw.length-1;i++){
+    if(raw[i].rangeRole!==null)continue;
+    const gap=s.slice(raw[i].end,raw[i+1].index);
+    if(gap.length<=8&&(/^\s*[-–—\/]\s*$/.test(gap)||/^\s+to\s+$/i.test(gap))){
+      raw[i].rangeRole="start";raw[i+1].rangeRole="end";
+    }
+  }
+  return raw;
 }
 function parseTimeStr(s){const t=parseAllTimes(s);return t.length?t[0].minutes:null;}
 function fmtMin(m){if(m==null||m===0)return"—";const h=Math.floor(m/60),mm=m%60;const ap=h>=12?"PM":"AM";const h12=((h+11)%12)+1;return `${h12}:${String(mm).padStart(2,"0")} ${ap}`;}
@@ -327,6 +349,7 @@ export default function App(){
   const[refreshMsg,setRefreshMsg]=useState("");
   const[exp,setExp]=useState(false);
   const[undoToast,setUndoToast]=useState(null);
+  const[dateMenu,setDateMenu]=useState(false);
   const mobile=useMobile();
   const st=useRef(null);const stp=useRef(null);
 
@@ -358,7 +381,7 @@ export default function App(){
       if(!session){setRefreshMsg("No active session");return;}
       const googleToken=session.provider_token;
       if(!googleToken){setRefreshMsg("Gmail token missing — sign out and back in");return;}
-      const resp=await fetch("/api/intel",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({show,googleToken,forceRefresh:force})});
+      const resp=await fetch("/api/intel",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({show,googleToken,forceRefresh:force,userEmail:session.user?.email})});
       if(!resp.ok){const err=await resp.json().catch(()=>({}));setRefreshMsg(err.error==="gmail_token_expired"?"Gmail token expired — re-sign in":`Error: ${resp.status}`);return;}
       const data=await resp.json();const ni=data.intel;
       if(!ni||!ni.threads){
@@ -376,13 +399,21 @@ export default function App(){
         const newTodos=(ni.followUps||[]).map(f=>({id:`t${Date.now()}_${Math.random().toString(36).slice(2,7)}`,text:f.action,owner:f.owner,priority:f.priority,deadline:f.deadline,threadTid:null,done:false,ts:Date.now()}));
         const existingTexts=new Set((existing.todos||[]).map(t=>t.text));
         const todos=[...(existing.todos||[]),...newTodos.filter(t=>!existingTexts.has(t.text))];
-        return{...p,[sid]:{threads,followUps:ni.followUps||[],showContacts:contacts,schedule:ni.schedule||existing.schedule||[],todos,matches:existing.matches||[],dismissedFlags:existing.dismissedFlags||[],lastRefreshed:new Date().toISOString()}};
+        return{...p,[sid]:{threads,followUps:ni.followUps||[],showContacts:contacts,schedule:ni.schedule||existing.schedule||[],todos,matches:existing.matches||[],dismissedFlags:existing.dismissedFlags||[],lastRefreshed:new Date().toISOString(),isShared:data.isShared||false,sharedByOthers:data.sharedByOthers||[]}};
       });
       setRefreshMsg(`${show.venue}: ${data.gmailThreadsFound||0} threads`);
       setTimeout(()=>setRefreshMsg(""),3500);
     }catch(e){setRefreshMsg(`Refresh failed: ${e.message}`);}
     finally{setRefreshing(null);}
   },[refreshing]);
+
+  const toggleIntelShare=useCallback(async(show,share)=>{
+    const sid=showIdFor(show);
+    const{data:{session}}=await supabase.auth.getSession();
+    if(!session)return;
+    await fetch("/api/intel",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({action:"toggleShare",show,isShared:share})});
+    setIntel(p=>({...p,[sid]:{...(p[sid]||{}),isShared:share}}));
+  },[]);
 
   const save=useCallback(()=>{
     if(!loaded)return;if(st.current)clearTimeout(st.current);
@@ -395,7 +426,7 @@ export default function App(){
   const uRos=useCallback((d,b)=>setRos(p=>{const n={...p};if(b)n[d]=b;else delete n[d];return n;}),[]);
   const uAdv=useCallback((d,u)=>setAdvances(p=>({...p,[d]:{...(p[d]||{}),...u}})),[]);
   const uFin=useCallback((d,u)=>setFinance(p=>({...p,[d]:{...(p[d]||{}),...u}})),[]);
-  const gRos=useCallback(d=>{if(ros[d])return ros[d];if(CUSTOM_ROS_MAP[d])return CUSTOM_ROS_MAP[d]();return DEFAULT_ROS();},[ros]);
+  const gRos=useCallback(d=>{if(ros[d])return ros[d];if(CUSTOM_ROS_MAP[d])return CUSTOM_ROS_MAP[d]();const sh=shows?.[d];if(sh?.type==="off"||sh?.type==="travel")return [];return DEFAULT_ROS();},[ros,shows]);
   const sorted=useMemo(()=>shows?Object.values(shows).sort((a,b)=>a.date.localeCompare(b.date)):[], [shows]);
   const next=useMemo(()=>{const t=new Date().toISOString().slice(0,10);return sorted.find(s=>s.date>=t)||sorted[0];},[sorted]);
   const cShows=useMemo(()=>sorted.filter(s=>s.clientId===aC),[sorted,aC]);
@@ -403,7 +434,7 @@ export default function App(){
   if(!loaded||!shows)return(<div style={{background:"#F5F3EF",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"#64748b",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
   return(
-    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew}}>
+    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu}}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:#F5F3EF}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:3px}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#f0ede8!important}.rh:hover{background:#f8f7f5!important}`}</style>
       <div style={{fontFamily:"'Outfit',system-ui",background:"#F5F3EF",color:"#0f172a",minHeight:"100vh",width:"100%",maxWidth:"100vw",overflowX:"hidden",display:"flex",flexDirection:"column"}}>
@@ -413,6 +444,7 @@ export default function App(){
         </div>
         {cmd&&<CmdP/>}
         {exp&&<ExportModal onClose={()=>setExp(false)}/>}
+        {dateMenu&&<DateDrawer onClose={()=>setDateMenu(false)}/>}
         {undoToast&&<div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",background:"#0f172a",color:"#fff",borderRadius:8,padding:"8px 14px",display:"flex",alignItems:"center",gap:10,fontSize:11,boxShadow:"0 8px 24px rgba(0,0,0,.2)",zIndex:90}}>
           <span>{undoToast.label}</span>
           <button onClick={()=>{undoToast.undo();setUndoToast(null);}} style={{background:"#5B21B6",border:"none",borderRadius:5,color:"#fff",fontSize:10,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>Undo</button>
@@ -467,12 +499,36 @@ function StatusBtn({status,setStatus,mobile}){
   </div>;
 }
 
+function IntelSection({title,count,children,actions}){
+  const[open,setOpen]=useState(true);
+  return(
+    <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,overflow:"hidden"}}>
+      <div onClick={()=>setOpen(v=>!v)} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",cursor:"pointer",borderBottom:open?"1px solid #ebe8e3":"none"}}>
+        <span style={{fontSize:10,color:"#64748b",width:10}}>{open?"▾":"▸"}</span>
+        <span style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em"}}>{title}</span>
+        {count!=null&&<span style={{fontSize:9,color:"#94a3b8",fontFamily:MN}}>({count})</span>}
+        <span style={{marginLeft:"auto",display:"flex",gap:6}} onClick={e=>e.stopPropagation()}>{actions}</span>
+      </div>
+      {open&&<div style={{padding:"8px 12px 10px"}}>{children}</div>}
+    </div>
+  );
+}
+
 function IntelPanel(){
-  const{sel,shows,intel,refreshIntel,refreshing,refreshMsg,setIntel}=useContext(Ctx);
+  const{sel,shows,intel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,setIntel,uShow}=useContext(Ctx);
   const show=shows[sel];const sid=show?showIdFor(show):"";const data=intel[sid]||{};
-  const toggleTodo=id=>setIntel(p=>({...p,[sid]:{...(p[sid]||{}),todos:(p[sid]?.todos||[]).map(t=>t.id===id?{...t,done:!t.done}:t)}}));
-  const delTodo=id=>setIntel(p=>({...p,[sid]:{...(p[sid]||{}),todos:(p[sid]?.todos||[]).filter(t=>t.id!==id)}}));
-  const dismissFlag=k=>setIntel(p=>({...p,[sid]:{...(p[sid]||{}),dismissedFlags:[...((p[sid]||{}).dismissedFlags||[]),k]}}));
+  const upd=patch=>setIntel(p=>({...p,[sid]:{...(p[sid]||{}),...patch}}));
+  const toggleTodo=id=>upd({todos:(data.todos||[]).map(t=>t.id===id?{...t,done:!t.done}:t)});
+  const delTodo=id=>upd({todos:(data.todos||[]).filter(t=>t.id!==id)});
+  const dismissFlag=k=>upd({dismissedFlags:[...(data.dismissedFlags||[]),k]});
+  const addTodo=()=>upd({todos:[...(data.todos||[]),{id:`t${Date.now()}`,text:"New action item",priority:"MED",done:false,ts:Date.now()}]});
+  const addThread=()=>upd({threads:[...(data.threads||[]),{tid:`m${Date.now()}`,subject:"New thread",from:"",intent:"manual",date:new Date().toISOString().slice(0,10),manual:true}]});
+  const delThread=tid=>upd({threads:(data.threads||[]).filter(t=>t.tid!==tid)});
+  const addFollowUp=()=>upd({followUps:[...(data.followUps||[]),{action:"New follow-up",owner:"",priority:"MED",deadline:"",manual:true}]});
+  const delFollowUp=i=>upd({followUps:(data.followUps||[]).filter((_,idx)=>idx!==i)});
+  const addManualFlag=()=>upd({manualFlags:[...(data.manualFlags||[]),{key:`m${Date.now()}`,label:"New inconsistency",severity:"UNCONFIRMED",platform:"",emailVal:"",snippet:""}]});
+  const delManualFlag=k=>upd({manualFlags:(data.manualFlags||[]).filter(f=>f.key!==k)});
+  const updManualFlag=(k,patch)=>upd({manualFlags:(data.manualFlags||[]).map(f=>f.key===k?{...f,...patch}:f)});
   const scheduleFlags=useMemo(()=>{
     if(!show)return[];const out=[];const dismissed=new Set(data.dismissedFlags||[]);const seen=new Set();
     const addFlag=(key,fld,emailVal,snippet,threadTid)=>{
@@ -483,16 +539,24 @@ function IntelPanel(){
       else if(cur!==emailVal)severity="CONFLICT";
       if(!severity)return;
       seen.add(key);
-      out.push({key,field:fld.field,label:fld.label,platform:cur?fmtMin(cur):"(not set)",emailVal:fmtMin(emailVal),snippet,threadTid,severity});
+      out.push({key,field:fld.field,label:fld.label,platform:cur?fmtMin(cur):"(not set)",emailVal:fmtMin(emailVal),emailValMinutes:emailVal,snippet,threadTid,severity});
     };
     const fldByName=Object.fromEntries(FIELD_KEYS.map(f=>[f.field,f]));
+    const isEndField=fld=>fld&&(fld.field==="curfew"||fld.field==="busArrive");
     (data.schedule||[]).forEach((s,i)=>{
       const fld=fldByName[s.field];const corpus=`${s.time||""} ${s.item||""}`;const times=parseAllTimes(corpus);
       if(fld&&times.length){
-        times.forEach(t=>addFlag(`sch_${fld.field}_${t.minutes}_${i}`,fld,t.minutes,corpus.trim(),s.tid||null));
+        // For a grouped range, end-fields (curfew) use the end time; start-fields use the start time
+        const relevant=times.filter(t=>t.rangeRole===null||(isEndField(fld)?t.rangeRole==="end":t.rangeRole==="start"));
+        const use=relevant.length?relevant:times.filter(t=>t.rangeRole!=="end");
+        use.forEach(t=>addFlag(`sch_${fld.field}_${t.minutes}_${i}`,fld,t.minutes,corpus.trim(),s.tid||null));
       } else if(times.length){
         const text=String(s.item||"").toLowerCase();const guess=FIELD_KEYS.find(f=>f.keys.some(k=>text.includes(k)));
-        if(guess)times.forEach(t=>addFlag(`sch_${guess.field}_${t.minutes}_${i}`,guess,t.minutes,corpus.trim(),s.tid||null));
+        if(guess){
+          const relevant=times.filter(t=>t.rangeRole===null||(isEndField(guess)?t.rangeRole==="end":t.rangeRole==="start"));
+          const use=relevant.length?relevant:times.filter(t=>t.rangeRole!=="end");
+          use.forEach(t=>addFlag(`sch_${guess.field}_${t.minutes}_${i}`,guess,t.minutes,corpus.trim(),s.tid||null));
+        }
       }
     });
     (data.threads||[]).forEach(t=>{
@@ -501,46 +565,63 @@ function IntelPanel(){
       times.forEach(tm=>{
         let best=null,bestDist=Infinity;
         FIELD_KEYS.forEach(fld=>{
+          // Range role filtering: end-of-range times only match end-fields; start-of-range times skip end-fields
+          if(tm.rangeRole==="end"&&!isEndField(fld))return;
+          if(tm.rangeRole==="start"&&isEndField(fld))return;
           fld.keys.forEach(k=>{const idx=lower.indexOf(k);if(idx<0)return;const d=Math.abs(idx-tm.index);if(d<bestDist){bestDist=d;best=fld;}});
         });
         if(!best||bestDist>80)return;
-        const start=Math.max(0,tm.index-30),end=Math.min(corpus.length,tm.index+60);
-        addFlag(`th_${best.field}_${tm.minutes}_${t.tid}_${tm.index}`,best,tm.minutes,corpus.slice(start,end).trim(),t.tid);
+        const s=Math.max(0,tm.index-30),e=Math.min(corpus.length,tm.index+60);
+        addFlag(`th_${best.field}_${tm.minutes}_${t.tid}_${tm.index}`,best,tm.minutes,corpus.slice(s,e).trim(),t.tid);
       });
     });
     return out;
   },[data,show]);
-  if(!show)return null;const busy=refreshing===sid;
+  if(!show)return null;const busy=refreshing===sid;const shared=data.isShared||false;
   return <div style={{display:"flex",flexDirection:"column",gap:8}}>
     <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
       <span style={{fontSize:10,fontWeight:800,color:"#5B21B6",letterSpacing:"0.06em"}}>GMAIL INTEL</span>
+      <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"#f1f5f9",color:"#64748b",fontWeight:600,letterSpacing:"0.04em"}}>PRIVATE</span>
       {data.lastRefreshed&&<span style={{fontSize:9,color:"#94a3b8",fontFamily:MN}}>last: {new Date(data.lastRefreshed).toLocaleString()}</span>}
       <span style={{marginLeft:"auto",fontSize:9,color:"#64748b"}}>{(data.threads||[]).length} threads · {(data.todos||[]).length} to-dos</span>
+      <button onClick={()=>toggleIntelShare(show,!shared)} style={{background:shared?"#D1FAE5":"#f1f5f9",color:shared?"#065F46":"#475569",border:`1px solid ${shared?"#6EE7B7":"#d6d3cd"}`,borderRadius:6,fontSize:9,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>{shared?"Shared with team":"Share with team"}</button>
       <button onClick={()=>refreshIntel(show,true)} disabled={!!refreshing} style={{background:refreshing?"#ebe8e3":"#5B21B6",color:refreshing?"#64748b":"#fff",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:refreshing?"default":"pointer",fontWeight:700}}>{busy?"Scanning…":"Refresh Intel"}</button>
     </div>
     {refreshMsg&&<div style={{fontSize:10,color:"#5B21B6",fontFamily:MN}}>{refreshMsg}</div>}
-    {scheduleFlags.length>0&&<div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"10px 12px"}}>
-      <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em",marginBottom:8}}>SCHEDULE INCONSISTENCIES ({scheduleFlags.length})</div>
+    <IntelSection title="SCHEDULE INCONSISTENCIES" count={scheduleFlags.length+(data.manualFlags||[]).length} actions={<button onClick={addManualFlag} style={{...UI.expandBtn(false,"#92400E"),fontSize:9}}>+ Add</button>}>
+      {scheduleFlags.length===0&&(data.manualFlags||[]).length===0?<div style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>No inconsistencies.</div>:
       <div style={{display:"flex",flexDirection:"column",gap:6}}>
         {scheduleFlags.map(f=>{const isC=f.severity==="CONFLICT";const col=isC?"#B91C1C":"#92400E";const bg=isC?"#FEE2E2":"#FEF3C7";
+          const confirmPlatform=()=>dismissFlag(f.key);
+          const confirmEmail=()=>{uShow(sel,{[f.field]:f.emailValMinutes,[f.field+"Confirmed"]:true});dismissFlag(f.key);};
+          const markBadMatch=()=>dismissFlag(f.key);
           return <div key={f.key} style={{border:`1px solid ${col}40`,background:bg,borderRadius:7,padding:"7px 9px",display:"flex",flexDirection:"column",gap:4}}>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
               <span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:col,color:"#fff",fontWeight:800}}>{f.severity}</span>
               <span style={{fontSize:11,fontWeight:700,color:"#0f172a"}}>{f.label}</span>
-              <span style={{marginLeft:"auto",display:"flex",gap:5}}>
+              <span style={{marginLeft:"auto",display:"flex",gap:5,alignItems:"center"}}>
                 {f.threadTid&&<a href={gmailUrl(f.threadTid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:col,textDecoration:"none",fontWeight:600}}>open ↗</a>}
-                <button onClick={()=>dismissFlag(f.key)} style={{background:"none",border:"none",cursor:"pointer",color:col,fontSize:14,padding:0}}>×</button>
               </span>
             </div>
             <div style={{fontSize:10,fontFamily:MN,color:"#0f172a"}}>platform: <span style={{fontWeight:600}}>{f.platform}</span> · email: <span style={{fontWeight:600}}>{f.emailVal}</span></div>
             <div style={{fontSize:9,color:"#64748b",fontStyle:"italic"}}>{f.snippet}</div>
+            <div style={{display:"flex",gap:5,marginTop:2}}>
+              <button onClick={confirmPlatform} title="Platform time is correct — dismiss flag" style={{fontSize:8,padding:"2px 8px",borderRadius:4,border:"1px solid #CBD5E1",background:"#f1f5f9",color:"#334155",cursor:"pointer",fontWeight:700}}>Platform correct</button>
+              <button onClick={confirmEmail} title="Email time is correct — update show and dismiss" style={{fontSize:8,padding:"2px 8px",borderRadius:4,border:`1px solid ${col}60`,background:isC?"#FEE2E2":"#FEF3C7",color:col,cursor:"pointer",fontWeight:700}}>Use email time</button>
+              <button onClick={markBadMatch} title="Low confidence — comparison is improperly formed or imprecise" style={{fontSize:8,padding:"2px 8px",borderRadius:4,border:"1px solid #e2e8f0",background:"#f8fafc",color:"#94a3b8",cursor:"pointer",fontWeight:600}}>Bad match</button>
+            </div>
           </div>;
         })}
-      </div>
-    </div>}
-    <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"10px 12px"}}>
-      <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em",marginBottom:6}}>TO-DOS (PRIVATE)</div>
-      {(data.todos||[]).length===0?<div style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>No action items yet. Refresh Intel.</div>:
+        {(data.manualFlags||[]).map(f=><div key={f.key} style={{border:"1px solid #d6d3cd",background:"#faf9f6",borderRadius:7,padding:"7px 9px",display:"grid",gridTemplateColumns:"1fr 1fr 1fr 28px",gap:6,alignItems:"center"}}>
+          <input value={f.label} onChange={e=>updManualFlag(f.key,{label:e.target.value})} placeholder="Label" style={UI.input}/>
+          <input value={f.platform} onChange={e=>updManualFlag(f.key,{platform:e.target.value})} placeholder="Platform" style={UI.input}/>
+          <input value={f.emailVal} onChange={e=>updManualFlag(f.key,{emailVal:e.target.value})} placeholder="Email value" style={UI.input}/>
+          <button onClick={()=>delManualFlag(f.key)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:14}}>×</button>
+        </div>)}
+      </div>}
+    </IntelSection>
+    <IntelSection title="TO-DOS (PRIVATE)" count={(data.todos||[]).length} actions={<button onClick={addTodo} style={{...UI.expandBtn(false,"#5B21B6"),fontSize:9}}>+ Add</button>}>
+      {(data.todos||[]).length===0?<div style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>No action items yet.</div>:
         (data.todos||[]).map(t=><div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid #f5f3ef"}}>
           <input type="checkbox" checked={!!t.done} onChange={()=>toggleTodo(t.id)}/>
           <span style={{fontSize:10,flex:1,color:t.done?"#94a3b8":"#0f172a",textDecoration:t.done?"line-through":"none"}}>{t.text}</span>
@@ -548,23 +629,27 @@ function IntelPanel(){
           {t.threadTid&&<a href={gmailUrl(t.threadTid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#5B21B6",textDecoration:"none"}}>↗</a>}
           <button onClick={()=>delTodo(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12}}>×</button>
         </div>)}
-    </div>
-    {(data.threads||[]).length>0&&<div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"10px 12px"}}>
-      <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em",marginBottom:6}}>THREADS</div>
-      {data.threads.map(t=><a key={t.tid} href={gmailUrl(t.tid)} target="_blank" rel="noopener noreferrer" style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:8,padding:"5px 0",borderBottom:"1px solid #f5f3ef",fontSize:10,color:"#0f172a",textDecoration:"none"}}>
-        <span><span style={{fontWeight:600}}>{t.subject||"(no subject)"}</span> <span style={{color:"#64748b",fontSize:9}}>· {t.from}</span></span>
-        <span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>{t.intent||"?"}</span>
-        <span style={{fontSize:8,color:"#94a3b8",fontFamily:MN}}>{t.date}</span>
-      </a>)}
-    </div>}
-    {(data.followUps||[]).length>0&&<div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"10px 12px"}}>
-      <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em",marginBottom:6}}>FOLLOW-UPS</div>
-      {data.followUps.map((f,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr auto auto auto",gap:8,padding:"5px 0",borderBottom:"1px solid #f5f3ef",fontSize:10}}>
-        <span>{f.action}</span><span style={{fontSize:8,color:"#64748b"}}>{f.owner}</span>
-        <span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:f.priority==="CRITICAL"?"#FEE2E2":"#f1f5f9",color:f.priority==="CRITICAL"?"#B91C1C":"#64748b",fontWeight:700}}>{f.priority}</span>
-        <span style={{fontSize:8,color:"#94a3b8",fontFamily:MN}}>{f.deadline}</span>
-      </div>)}
-    </div>}
+    </IntelSection>
+    <IntelSection title="THREADS (PRIVATE)" count={(data.threads||[]).length} actions={<button onClick={addThread} style={{...UI.expandBtn(false,"#5B21B6"),fontSize:9}}>+ Add</button>}>
+      {(data.threads||[]).length===0?<div style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>No threads.</div>:
+        data.threads.map(t=><div key={t.tid} style={{display:"grid",gridTemplateColumns:"1fr auto auto 28px",gap:8,padding:"5px 0",borderBottom:"1px solid #f5f3ef",fontSize:10,alignItems:"center"}}>
+          {t.manual?<input value={t.subject||""} onChange={e=>upd({threads:data.threads.map(x=>x.tid===t.tid?{...x,subject:e.target.value}:x)})} placeholder="Subject" style={UI.input}/>:
+            <a href={gmailUrl(t.tid)} target="_blank" rel="noopener noreferrer" style={{color:"#0f172a",textDecoration:"none",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{fontWeight:600}}>{t.subject||"(no subject)"}</span> <span style={{color:"#64748b",fontSize:9}}>· {t.from}</span></a>}
+          <span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>{t.intent||"?"}</span>
+          <span style={{fontSize:8,color:"#94a3b8",fontFamily:MN}}>{t.date}</span>
+          <button onClick={()=>delThread(t.tid)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12}}>×</button>
+        </div>)}
+    </IntelSection>
+    <IntelSection title="FOLLOW-UPS" count={(data.followUps||[]).length} actions={<button onClick={addFollowUp} style={{...UI.expandBtn(false,"#5B21B6"),fontSize:9}}>+ Add</button>}>
+      {(data.followUps||[]).length===0?<div style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>No follow-ups.</div>:
+        data.followUps.map((f,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 100px 80px 100px 28px",gap:8,padding:"5px 0",borderBottom:"1px solid #f5f3ef",fontSize:10,alignItems:"center"}}>
+          {f.manual?<input value={f.action||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,action:e.target.value}:x)})} placeholder="Action" style={UI.input}/>:<span>{f.action}</span>}
+          {f.manual?<input value={f.owner||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,owner:e.target.value}:x)})} placeholder="Owner" style={UI.input}/>:<span style={{fontSize:8,color:"#64748b"}}>{f.owner}</span>}
+          {f.manual?<select value={f.priority||"MED"} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,priority:e.target.value}:x)})} style={UI.input}><option>CRITICAL</option><option>HIGH</option><option>MED</option><option>LOW</option></select>:<span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:f.priority==="CRITICAL"?"#FEE2E2":"#f1f5f9",color:f.priority==="CRITICAL"?"#B91C1C":"#64748b",fontWeight:700}}>{f.priority}</span>}
+          {f.manual?<input value={f.deadline||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,deadline:e.target.value}:x)})} placeholder="YYYY-MM-DD" style={UI.input}/>:<span style={{fontSize:8,color:"#94a3b8",fontFamily:MN}}>{f.deadline}</span>}
+          <button onClick={()=>delFollowUp(i)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12}}>×</button>
+        </div>)}
+    </IntelSection>
     {(data.showContacts||[]).length>0&&<div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"10px 12px"}}>
       <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em",marginBottom:6}}>CONTACTS</div>
       {data.showContacts.map((c,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 1fr auto",gap:8,padding:"4px 0",borderBottom:"1px solid #f5f3ef",fontSize:10}}>
@@ -572,6 +657,21 @@ function IntelPanel(){
         {c.email&&<a href={`mailto:${c.email}`} style={{color:"#5B21B6",fontSize:9,textDecoration:"none"}}>{c.email}</a>}
       </div>)}
     </div>}
+    {(data.sharedByOthers||[]).map((s,i)=>{
+      const label=s.user_email||"teammate";const d=s.intel||{};
+      return <div key={i} style={{border:"1px solid #6EE7B7",borderRadius:10,padding:"10px 12px",background:"#F0FDF4"}}>
+        <div style={{fontSize:9,fontWeight:800,color:"#065F46",letterSpacing:"0.06em",marginBottom:8}}>SHARED BY {label.toUpperCase()} · {new Date(s.cached_at).toLocaleDateString()}</div>
+        {(d.followUps||[]).length>0&&<div>
+          <div style={{fontSize:8,fontWeight:700,color:"#64748b",marginBottom:4}}>FOLLOW-UPS ({d.followUps.length})</div>
+          {d.followUps.map((f,fi)=><div key={fi} style={{display:"grid",gridTemplateColumns:"1fr 80px 70px 80px",gap:8,padding:"4px 0",borderBottom:"1px solid #D1FAE5",fontSize:10,alignItems:"center"}}>
+            <span>{f.action}</span>
+            <span style={{fontSize:8,color:"#64748b"}}>{f.owner}</span>
+            <span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:f.priority==="CRITICAL"?"#FEE2E2":"#f1f5f9",color:f.priority==="CRITICAL"?"#B91C1C":"#64748b",fontWeight:700}}>{f.priority}</span>
+            <span style={{fontSize:8,color:"#94a3b8",fontFamily:MN}}>{f.deadline}</span>
+          </div>)}
+        </div>}
+      </div>;
+    })}
   </div>;
 }
 
@@ -614,8 +714,14 @@ function SignOut(){
 }
 
 function TopBar({ss}){
-  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sorted,sel,setSel}=useContext(Ctx);
-  const activeClients=CLIENTS.filter(c=>c.status==="active");
+  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sorted,sel,setSel,setDateMenu,shows}=useContext(Ctx);
+  const a=useAuth();const userEmail=(a?.user?.email||"").toLowerCase();
+  const curShow=shows?.[sel];
+  const curClient=CM[aC];
+  const canSeeFestivals=FESTIVAL_ACCESS_EMAILS.some(e=>e.toLowerCase()===userEmail);
+  const activeClients=CLIENTS.filter(c=>c.status==="active"&&(c.type!=="festival"||canSeeFestivals));
+  // Guard: if current active client isn't in the visible list, reset to bbn
+  React.useEffect(()=>{if(!activeClients.find(c=>c.id===aC))setAC("bbn");},[canSeeFestivals]);
   return(
     <div style={{borderBottom:"1px solid #d6d3cd",background:"#fff",width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px 5px",minWidth:0,gap:8,width:"100%",maxWidth:900}}>
@@ -623,9 +729,9 @@ function TopBar({ss}){
           <span style={{fontSize:16,fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em",flexShrink:0}}>DOS</span>
           <span style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>v7.0</span>
           {next&&<span style={{fontSize:10,fontFamily:MN,color:"#5B21B6",fontWeight:600,marginLeft:4}}>{next.city} {fD(next.date)} · {dU(next.date)}d</span>}
-          <select value={sel} onChange={e=>setSel(e.target.value)} title="Jump to show" style={{fontSize:9,padding:"3px 6px",borderRadius:5,border:"1px solid #d6d3cd",background:"#f5f3ef",color:"#0f172a",fontFamily:MN,fontWeight:600,cursor:"pointer",maxWidth:200}}>
-            {sorted.map(s=><option key={s.date} value={s.date}>{fD(s.date)} · {s.city} · {s.venue}</option>)}
-          </select>
+          <button onClick={()=>setDateMenu(true)} title="Open dates menu" style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid #d6d3cd",background:"#f5f3ef",color:"#0f172a",fontFamily:MN,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+            <span style={{fontSize:11}}>☰</span>{curShow?`${fD(curShow.date)} · ${curShow.city||curShow.venue||"—"}`:"Dates"}
+          </button>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,minWidth:0,maxWidth:"100%"}}>
           {ss&&<span style={{fontSize:9,color:ss==="saved"?"#047857":"#94a3b8",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
@@ -637,11 +743,54 @@ function TopBar({ss}){
           <SignOut/>
         </div>
       </div>
-      <div style={{display:"flex",gap:2,padding:"3px 20px 4px",overflowX:"auto",width:"100%",maxWidth:900}}>
-        {activeClients.map(c=>{const isA=c.id===aC;return(<button key={c.id} onClick={()=>setAC(c.id)} style={{flexShrink:0,padding:"2px 10px",borderRadius:20,border:isA?`1.5px solid ${c.color}`:"1px solid #d6d3cd",background:isA?`${c.color}14`:"transparent",color:isA?c.color:"#64748b",fontSize:9,fontWeight:isA?700:500,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}><div style={{width:5,height:5,borderRadius:"50%",background:isA?c.color:"#d6d3cd"}}/>{c.name}<span style={{fontSize:7,opacity:0.5}}>{c.type==="festival"?"FEST":"ARTIST"}</span></button>);})}
+      <div style={{padding:"3px 20px 5px"}}>
+        <select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:10,padding:"3px 9px",borderRadius:20,border:`1.5px solid ${curClient?.color||"#d6d3cd"}`,background:curClient?`${curClient.color}14`:"#fff",color:curClient?.color||"#475569",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer"}}>
+          {activeClients.map(c=><option key={c.id} value={c.id} style={{color:"#0f172a",fontWeight:500}}>● {c.name} · {c.type==="festival"?"FEST":"ARTIST"}</option>)}
+        </select>
       </div>
       <div style={{display:"flex",padding:"0 20px",width:"100%",maxWidth:900}}>
         {TABS.map(t=><button key={t.id} onClick={()=>!t.disabled&&setTab(t.id)} style={{padding:"6px 12px",fontSize:11,fontWeight:tab===t.id?700:500,color:t.disabled?"#c4bfb6":tab===t.id?"#0f172a":"#64748b",background:"none",border:"none",cursor:t.disabled?"default":"pointer",borderBottom:tab===t.id?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:4}}><span style={{fontSize:10}}>{t.icon}</span>{t.label}{t.soon&&<span style={{fontSize:7,color:"#c4bfb6"}}>soon</span>}</button>)}
+      </div>
+    </div>
+  );
+}
+
+function DateDrawer({onClose}){
+  const{sorted,sel,setSel,uShow,aC,shows}=useContext(Ctx);
+  const[newDate,setNewDate]=useState("");
+  const[newType,setNewType]=useState("off");
+  const add=()=>{
+    if(!newDate||shows[newDate])return;
+    uShow(newDate,{date:newDate,clientId:aC,type:newType,city:newType==="travel"?"Travel":"Off Day",venue:newType==="travel"?"Travel Day":"Off Day",country:"",region:"",promoter:"",advance:[],doors:0,curfew:0,busArrive:0,crewCall:0,venueAccess:0,mgTime:0,notes:""});
+    setSel(newDate);setNewDate("");onClose();
+  };
+  const typeStyle=t=>t==="travel"?{bg:"#DBEAFE",c:"#1E40AF",l:"Travel"}:t==="off"?{bg:"#F5F3EF",c:"#64748b",l:"Off"}:null;
+  return(
+    <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.3)",zIndex:80,display:"flex",justifyContent:"flex-end"}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:320,maxWidth:"90vw",height:"100%",background:"#fff",boxShadow:"-4px 0 16px rgba(0,0,0,0.12)",display:"flex",flexDirection:"column",fontFamily:"'Outfit',system-ui"}}>
+        <div style={{padding:"12px 16px",borderBottom:"1px solid #ebe8e3",display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:12,fontWeight:800,letterSpacing:"0.06em",color:"#0f172a"}}>DATES</span>
+          <button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#64748b"}}>×</button>
+        </div>
+        <div style={{padding:"10px 16px",borderBottom:"1px solid #ebe8e3",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+          <input type="date" value={newDate} onChange={e=>setNewDate(e.target.value)} style={{...UI.input,fontFamily:MN,padding:"5px 8px"}}/>
+          <select value={newType} onChange={e=>setNewType(e.target.value)} style={{...UI.input,padding:"5px 8px"}}>
+            <option value="off">Off Day</option>
+            <option value="travel">Travel Day</option>
+          </select>
+          <button onClick={add} disabled={!newDate||!!shows[newDate]} style={{...UI.expandBtn(false,"#047857"),opacity:(!newDate||shows[newDate])?0.4:1}}>+ Add</button>
+        </div>
+        <div style={{flex:1,overflow:"auto",padding:"6px 8px"}}>
+          {sorted.map(s=>{const isSel=s.date===sel;const ts=typeStyle(s.type);return(
+            <div key={s.date} onClick={()=>{setSel(s.date);onClose();}} className="rh" style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:7,cursor:"pointer",background:isSel?"#EDE9FE":"transparent",borderLeft:isSel?"3px solid #5B21B6":"3px solid transparent"}}>
+              <div style={{fontFamily:MN,fontSize:10,fontWeight:700,color:isSel?"#5B21B6":"#475569",width:48,flexShrink:0}}>{fD(s.date)}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontSize:11,fontWeight:600,color:"#0f172a",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.city||"—"}</div>
+                <div style={{fontSize:9,color:"#64748b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.venue}</div>
+              </div>
+              {ts?<span style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:ts.bg,color:ts.c,fontWeight:700,flexShrink:0}}>{ts.l}</span>:null}
+            </div>);})}
+        </div>
       </div>
     </div>
   );
@@ -717,6 +866,14 @@ function AdvTab(){
     if(it.private){const prev=privList;uCheckPriv(sel,privList.filter(c=>c.id!==id));pushUndo(`Deleted "${(it.q||"").slice(0,40)}"`,()=>uCheckPriv(sel,prev));}
     else{const prev=customItems;uAdv(sel,{customItems:customItems.filter(c=>c.id!==id)});pushUndo(`Deleted "${(it.q||"").slice(0,40)}"`,()=>uAdv(sel,{customItems:prev}));}};
   const addCustom=dept=>{if(!newQ.trim())return;const it={id:`c${Date.now()}`,dept,dir:newDir,q:newQ.trim(),custom:true};if(newScope==="private"){uCheckPriv(sel,[...privList,{...it,private:true,status:"pending"}]);}else{uAdv(sel,{customItems:[...customItems,it]});}setNewQ("");setNewDir("bilateral");setNewScope("public");setAddingDept(null);};
+
+  const itemDependents=adv.itemDependents||{};
+  const getDependents=id=>itemDependents[id]||[];
+  const toggleDependent=(id,memberId)=>{
+    const cur=itemDependents[id]||[];
+    const next=cur.includes(memberId)?cur.filter(x=>x!==memberId):[...cur,memberId];
+    uAdv(sel,{itemDependents:{...itemDependents,[id]:next}});
+  };
 
   const deptCounts=useMemo(()=>{const r={};DEPTS.filter(d=>d.id!=="all").forEach(d=>{const di=allItems.filter(t=>t.dept===d.id);r[d.id]={total:di.length,pending:di.filter(t=>getStatus(t.id)==="pending").length};});return r;},[allItems,items]);
 
@@ -811,10 +968,18 @@ function AdvTab(){
                 const status=getStatus(item.id);const q=getQ(item);
                 const isEditing=editId===item.id;const canEdit=!item.locked;const isCustom=!!item.custom;
                 const meta=item.private?item:(items[item.id]||{});
+                const emailMatch=(()=>{const m=matchFor(item.id);if(!m)return null;
+                  const col=m.confidence==="high"?"#047857":m.confidence==="medium"?"#92400E":"#64748b";
+                  const bg=m.confidence==="high"?"#D1FAE5":m.confidence==="medium"?"#FEF3C7":"#f1f5f9";
+                  return <div style={{display:"flex",alignItems:"center",gap:4}}>
+                    <a href={gmailUrl(m.threadTid)} target="_blank" rel="noopener noreferrer" title={`${m.subject} — ${m.from}`} style={{fontSize:7,padding:"2px 5px",borderRadius:3,background:bg,color:col,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email · {m.confidence}</a>
+                    <button onClick={()=>confirmMatch(m)} style={{fontSize:8,padding:"2px 7px",borderRadius:4,border:"none",background:"#047857",color:"#fff",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}>Confirm</button>
+                  </div>;
+                })();
                 return(
-                  <div key={item.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"8px 14px",borderBottom:idx<arr.length-1?"1px solid #f5f3ef":"none",background:isEditing?"#FFFBEB":"transparent",opacity:muted?0.7:1}}>
-                    <span style={{fontFamily:MN,fontSize:8,color:"#94a3b8",width:16,flexShrink:0,marginTop:2}}>{idx+1}.</span>
-                    <div style={{flex:1,minWidth:0}}>
+                  <div key={item.id} style={{display:"grid",gridTemplateColumns:"18px 1fr auto auto",gap:"0 8px",padding:"8px 14px",borderBottom:idx<arr.length-1?"1px solid #f5f3ef":"none",background:isEditing?"#FFFBEB":"transparent",opacity:muted?0.7:1,alignItems:"start"}}>
+                    <span style={{fontFamily:MN,fontSize:8,color:"#94a3b8",paddingTop:3,textAlign:"right"}}>{idx+1}.</span>
+                    <div style={{minWidth:0}}>
                       {isEditing?(
                         <input autoFocus value={editQ} onChange={e=>setEditQ(e.target.value)}
                           onBlur={()=>{setOverride(item.id,editQ);setEditId(null);}}
@@ -822,27 +987,27 @@ function AdvTab(){
                           style={{width:"100%",background:"#fff",border:`1.5px solid ${dept.color}`,borderRadius:4,color:"#0f172a",fontSize:10,padding:"3px 7px",outline:"none"}}/>
                       ):(
                         <div style={{display:"flex",alignItems:"flex-start",gap:4}}>
-                          <span style={{fontSize:10,color:status==="na"?"#94a3b8":"#0f172a",fontWeight:500,lineHeight:1.4,flex:1,textDecoration:status==="na"?"line-through":"none"}}>{q}</span>
-                          {canEdit&&!isEditing&&<button onClick={()=>{setEditId(item.id);setEditQ(q);}} style={{flexShrink:0,background:"none",border:"none",cursor:"pointer",color:"#94a3b8",fontSize:11,padding:"0 2px",lineHeight:1}} title="Edit item">✎</button>}
-                          {isCustom&&<button onClick={()=>deleteCustom(item.id)} style={{flexShrink:0,background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:13,padding:"0 2px",lineHeight:1}} title="Delete">×</button>}
+                          <span style={{fontSize:10,color:status==="na"?"#94a3b8":"#0f172a",fontWeight:500,lineHeight:1.5,flex:1,textDecoration:status==="na"?"line-through":"none"}}>{q}</span>
+                          {canEdit&&!isEditing&&<button onClick={()=>{setEditId(item.id);setEditQ(q);}} style={{flexShrink:0,background:"none",border:"none",cursor:"pointer",color:"#cbd5e1",fontSize:11,padding:"0 2px",lineHeight:1.5}} title="Edit item">✎</button>}
+                          {isCustom&&<button onClick={()=>deleteCustom(item.id)} style={{flexShrink:0,background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:13,padding:"0 2px",lineHeight:1.5}} title="Delete">×</button>}
                         </div>
                       )}
-                      {status==="confirmed"&&meta.confirmedBy&&<div style={{fontSize:8,color:"#94a3b8",marginTop:2,fontFamily:MN}}>✓ {meta.confirmedBy} · {fmtAudit(meta.confirmedAt)}</div>}
-                      <div style={{display:"flex",alignItems:"center",gap:4,marginTop:3}}>
-                        <span style={{fontSize:7,padding:"1px 5px",borderRadius:3,background:item.dir==="we_provide"?"#EDE9FE":item.dir==="they_provide"?"#D1FAE5":"#f1f5f9",color:item.dir==="we_provide"?"#5B21B6":item.dir==="they_provide"?"#065F46":"#475569",fontWeight:600}}>{item.dir==="we_provide"?"We provide":item.dir==="they_provide"?"They provide":"Bilateral"}</span>
-                        {item.locked&&<span style={{fontSize:8,color:"#94a3b8"}}>🔒 locked</span>}
+                      {status==="confirmed"&&meta.confirmedBy&&<div style={{fontSize:8,color:"#94a3b8",marginTop:1,fontFamily:MN}}>✓ {meta.confirmedBy} · {fmtAudit(meta.confirmedAt)}</div>}
+                      <div style={{display:"flex",alignItems:"center",gap:3,marginTop:4,flexWrap:"wrap"}}>
+                        <span style={{fontSize:7,padding:"1px 5px",borderRadius:3,background:item.dir==="we_provide"?"#EDE9FE":item.dir==="they_provide"?"#D1FAE5":"#f1f5f9",color:item.dir==="we_provide"?"#5B21B6":item.dir==="they_provide"?"#065F46":"#475569",fontWeight:600}}>{item.dir==="we_provide"?"We":"They"}</span>
+                        {item.locked&&<span style={{fontSize:7,color:"#94a3b8",fontFamily:MN}}>🔒</span>}
                         {isCustom&&<span style={{fontSize:7,color:dept.color,fontWeight:700}}>custom</span>}
                         {item.private&&<span style={{fontSize:7,color:"#334155",fontWeight:700,background:"#e2e8f0",padding:"1px 4px",borderRadius:3}}>private</span>}
+                        {!item.private&&<span style={{color:"#e2e8f0",fontSize:8,margin:"0 1px"}}>·</span>}
+                        {!item.private&&TEAM_MEMBERS.map(m=>{const active=getDependents(item.id).includes(m.id);return(
+                          <button key={m.id} onClick={()=>toggleDependent(item.id,m.id)} title={`${active?"Remove":"Mark"} ${m.label} as dependent`}
+                            style={{fontSize:7,padding:"1px 5px",borderRadius:3,fontWeight:700,cursor:"pointer",border:"none",
+                              background:active?"#FEF3C7":"#f1f5f9",color:active?"#92400E":"#94a3b8"}}>{m.initials}</button>
+                        );})}
                       </div>
                     </div>
-                    {(()=>{const m=matchFor(item.id);if(!m)return null;
-                      const col=m.confidence==="high"?"#047857":m.confidence==="medium"?"#92400E":"#64748b";
-                      const bg=m.confidence==="high"?"#D1FAE5":m.confidence==="medium"?"#FEF3C7":"#f1f5f9";
-                      return <div style={{display:"flex",alignItems:"center",gap:4,marginRight:6,flexShrink:0}}>
-                        <a href={gmailUrl(m.threadTid)} target="_blank" rel="noopener noreferrer" title={`${m.subject} — ${m.from}`} style={{fontSize:7,padding:"2px 5px",borderRadius:3,background:bg,color:col,fontWeight:700,textDecoration:"none"}}>email · {m.confidence}</a>
-                        <button onClick={()=>confirmMatch(m)} style={{fontSize:8,padding:"2px 7px",borderRadius:4,border:"none",background:"#047857",color:"#fff",cursor:"pointer",fontWeight:700}}>Confirm</button>
-                      </div>;})()}
-                    <StatusBtn status={status} setStatus={(ns)=>setStatus(item.id,ns)} mobile={mobile}/>
+                    <div style={{paddingTop:1}}>{emailMatch}</div>
+                    <div style={{paddingTop:1}}><StatusBtn status={status} setStatus={(ns)=>setStatus(item.id,ns)} mobile={mobile}/></div>
                   </div>
                 );
               };
@@ -900,9 +1065,25 @@ function AdvTab(){
   );
 }
 
+function AnchorTimes({b,setBF}){
+  const toggle=(field,on)=>setBF(b.id,field,on?(b[field]??""):null);
+  return(
+    <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+      <label style={{fontSize:9,fontWeight:700,color:"#64748b",display:"flex",alignItems:"center",gap:4,cursor:"pointer"}}>
+        <input type="checkbox" checked={b.anchorStartAt!=null} onChange={e=>toggle("anchorStartAt",e.target.checked)}/>Start
+      </label>
+      {b.anchorStartAt!=null&&<input type="text" placeholder="7:00p" defaultValue={typeof b.anchorStartAt==="number"?fmt(b.anchorStartAt):b.anchorStartAt} onBlur={e=>{const m=pM(e.target.value);if(m!=null)setBF(b.id,"anchorStartAt",m);}} style={{...UI.input,fontFamily:MN,width:70}}/>}
+      <label style={{fontSize:9,fontWeight:700,color:"#64748b",display:"flex",alignItems:"center",gap:4,cursor:"pointer"}}>
+        <input type="checkbox" checked={b.anchorEndAt!=null} onChange={e=>toggle("anchorEndAt",e.target.checked)}/>End
+      </label>
+      {b.anchorEndAt!=null&&<input type="text" placeholder="8:00p" defaultValue={typeof b.anchorEndAt==="number"?fmt(b.anchorEndAt):b.anchorEndAt} onBlur={e=>{const m=pM(e.target.value);if(m!=null)setBF(b.id,"anchorEndAt",m);}} style={{...UI.input,fontFamily:MN,width:70}}/>}
+    </div>
+  );
+}
+
 function ROSTab(){
   const{shows,uShow,gRos,uRos,ros,sel,setSel,cShows,role,aC}=useContext(Ctx);
-  const[editB,setEditB]=useState(null);const[editA,setEditA]=useState(null);const[dOver,setDOver]=useState(null);
+  const[editB,setEditB]=useState(null);const[dOver,setDOver]=useState(null);
   const dId=useRef(null);const client=CM[aC];const show=shows[sel];const blocks=gRos(sel);if(!show)return null;
   const today=new Date().toISOString().slice(0,10);const upcoming=cShows.filter(s=>s.date>=today);
 
@@ -924,25 +1105,51 @@ function ROSTab(){
   },[show,blocks]);
 
   const setDur=(id,dur)=>uRos(sel,blocks.map(b=>b.id===id?{...b,duration:Math.max(0,dur)}:b));
+  const setBF=(id,field,val)=>uRos(sel,blocks.map(b=>b.id===id?{...b,[field]:val}:b));
+  const addBlock=phase=>{const nb={id:`custom_${Date.now()}`,label:"New Block",duration:30,phase,type:"custom",color:"#5B21B6",roles:["tm"]};const idx=blocks.map((b,i)=>b.phase===phase?i:-1).filter(i=>i>=0).pop();const next=[...blocks];if(idx==null)next.push(nb);else next.splice(idx+1,0,nb);uRos(sel,next);setEditB(nb.id);};
+  const removeBlock=id=>{uRos(sel,blocks.filter(b=>b.id!==id));setEditB(null);};
+  const startResize=(b,edge,e)=>{
+    e.stopPropagation();e.preventDefault();
+    const startY=e.clientY,origDur=b.duration,idx=blocks.findIndex(x=>x.id===b.id);
+    const prev=[...blocks].slice(0,idx).reverse().find(x=>!x.isAnchor&&x.phase===b.phase&&x.duration>0);
+    const origPrev=prev?.duration||0,pxPerMin=0.8;
+    const onMove=ev=>{
+      const dMin=Math.round(((ev.clientY-startY)/pxPerMin)/5)*5;
+      if(edge==="bottom"){
+        const nd=Math.max(0,origDur+dMin);
+        uRos(sel,blocks.map(x=>x.id===b.id?{...x,duration:nd}:x));
+      }else if(prev){
+        const nd=Math.max(0,origDur-dMin),np=Math.max(0,origPrev+dMin);
+        uRos(sel,blocks.map(x=>x.id===b.id?{...x,duration:nd}:x.id===prev.id?{...x,duration:np}:x));
+      }
+    };
+    const onUp=()=>{window.removeEventListener("mousemove",onMove);window.removeEventListener("mouseup",onUp);};
+    window.addEventListener("mousemove",onMove);window.addEventListener("mouseup",onUp);
+  };
   const reorder=(fid,tid)=>{const fi=blocks.findIndex(b=>b.id===fid),ti=blocks.findIndex(b=>b.id===tid);if(fi<0||ti<0||blocks[fi].phase!==blocks[ti].phase||blocks[fi].isAnchor||blocks[ti].isAnchor)return;const n=[...blocks];const[m]=n.splice(fi,1);n.splice(ti,0,m);const ciI=n.findIndex(b=>b.id==="mg_checkin"),mgI=n.findIndex(b=>b.id==="mg");if(ciI>=0&&mgI>=0&&ciI>mgI){const[ci]=n.splice(ciI,1);n.splice(mgI,0,ci);}uRos(sel,n);};
-  const setAnc=(key,str)=>{const m=pM(str);if(m===null)return;uShow(sel,{[key]:m,[key+"Confirmed"]:true});setEditA(null);};
+  const setAnc=(key,str)=>{const m=pM(str);if(m===null)return;uShow(sel,{[key]:m,[key+"Confirmed"]:true});};
   const hl=b=>AB.has(b.id)||role==="tm"||b.roles?.includes(role);
   const AMAP={busArrive:"Bus Arrival",venueAccess:"Venue Access",crewCall:"Crew Call",mgTime:"M&G",doors:"Doors",curfew:"Curfew"};
   const isCustom=!!CUSTOM_ROS_MAP[sel];
 
   const renderB=b=>{
-    const t=times[b.id];if(!t)return null;
+    let t=times[b.id];if(!t)return null;
+    if(b.anchorStartAt!=null||b.anchorEndAt!=null)t={s:b.anchorStartAt!=null?b.anchorStartAt:t.s,e:b.anchorEndAt!=null?b.anchorEndAt:t.e};
     const isA=b.isAnchor,hi=hl(b),isE=editB===b.id,isDT=dOver===b.id;
     const canD=!isA&&b.id!=="doors_early"&&b.id!=="mg_checkin";
+    const canE=b.id!=="mg_checkin"&&b.id!=="doors_early";
     const cK=b.anchorKey?b.anchorKey+"Confirmed":null;const isC=cK?show[cK]:false;
     return(
-      <div key={b.id} draggable={canD}
+      <React.Fragment key={b.id}>
+      <div draggable={canD}
         onDragStart={e=>{dId.current=b.id;e.dataTransfer.effectAllowed="move";}}
         onDragOver={e=>{e.preventDefault();if(dId.current&&dId.current!==b.id)setDOver(b.id);}}
         onDrop={e=>{e.preventDefault();if(dId.current&&dId.current!==b.id)reorder(dId.current,b.id);dId.current=null;setDOver(null);}}
         onDragEnd={()=>{dId.current=null;setDOver(null);}}
-        onClick={()=>!isA&&b.id!=="mg_checkin"&&setEditB(isE?null:b.id)} className="br"
-        style={{display:"flex",alignItems:"center",gap:8,padding:isA?"10px 14px":"7px 14px",background:isDT?"#ede9fe":"#fff",border:isA?`2px solid ${b.color}50`:isE?`1px solid ${b.color}`:"1px solid #d6d3cd",borderRadius:isA?12:8,cursor:canD?"grab":"default",opacity:hi?1:0.22,transition:"all .12s ease",boxShadow:isA?"0 2px 6px rgba(0,0,0,.06)":"none"}}>
+        onClick={()=>canE&&setEditB(isE?null:b.id)} className="br"
+        style={{position:"relative",display:"flex",alignItems:"center",gap:8,padding:isA?"10px 14px":"7px 14px",background:isDT?"#ede9fe":"#fff",border:isA?`2px solid ${b.color}50`:isE?`1px solid ${b.color}`:"1px solid #d6d3cd",borderRadius:isA?12:8,cursor:canD?"grab":canE?"pointer":"default",opacity:hi?1:0.22,transition:"border .12s ease,background .12s ease",boxShadow:isA?"0 2px 6px rgba(0,0,0,.06)":"none",minHeight:isA?undefined:Math.max(32,Math.min(180,b.duration*0.8))}}>
+        {!isA&&b.duration>0&&<div onMouseDown={e=>startResize(b,"top",e)} title="Drag to shift start" style={{position:"absolute",top:-3,left:8,right:8,height:6,cursor:"ns-resize",zIndex:2}}/>}
+        {!isA&&b.duration>0&&<div onMouseDown={e=>startResize(b,"bottom",e)} title="Drag to change duration" style={{position:"absolute",bottom:-3,left:8,right:8,height:6,cursor:"ns-resize",zIndex:2}}/>}
         {canD?<div style={{color:"#94a3b8",fontSize:14,cursor:"grab",userSelect:"none",width:16,flexShrink:0,textAlign:"center"}}>⋮⋮</div>:<div style={{width:16,flexShrink:0}}/>}
         <div style={{width:54,fontFamily:MN,fontSize:12,color:isA?b.color:"#475569",fontWeight:isA?800:500,textAlign:"right",flexShrink:0}}>{fmt(t.s)}</div>
         <div style={{width:4,height:isA?28:20,background:b.color,borderRadius:2,flexShrink:0,opacity:isA?1:.5}}/>
@@ -954,37 +1161,70 @@ function ROSTab(){
           </div>
           {b.note&&<div style={{fontSize:9,color:"#64748b",marginTop:1}}>{b.note}</div>}
         </div>
-        {b.duration>0&&!isA&&b.id!=="mg_checkin"&&<div onClick={e=>e.stopPropagation()} style={{fontFamily:MN,fontSize:10,color:"#475569",background:"#f5f3ef",padding:"3px 7px",borderRadius:4,flexShrink:0,cursor:"pointer",border:"1px solid #d6d3cd",fontWeight:600}}>{isE?<input type="number" min="0" max="480" step="5" defaultValue={b.duration} autoFocus onBlur={e=>{setDur(b.id,parseInt(e.target.value)||0);setEditB(null);}} onKeyDown={e=>{if(e.key==="Enter"){setDur(b.id,parseInt(e.target.value)||0);setEditB(null);}}} style={{width:44,background:"#fff",border:`1px solid ${b.color}`,borderRadius:4,color:"#0f172a",fontSize:10,fontFamily:"inherit",padding:"2px 4px",textAlign:"center"}}/>:`${b.duration}m`}</div>}
+        {b.duration>0&&!isA&&b.id!=="mg_checkin"&&<div style={{fontFamily:MN,fontSize:10,color:"#475569",background:"#f5f3ef",padding:"3px 7px",borderRadius:4,flexShrink:0,border:"1px solid #d6d3cd",fontWeight:600}}>{`${b.duration}m`}</div>}
         {b.duration>0&&<div style={{width:46,fontFamily:MN,fontSize:9,color:"#94a3b8",textAlign:"right",flexShrink:0}}>{fmt(t.e)}</div>}
-        {isA&&<button onClick={e=>{e.stopPropagation();setEditA(editA===b.id?null:b.id);}} style={{background:"#f5f3ef",border:`1px solid ${b.color}40`,borderRadius:6,color:b.color,fontSize:9,padding:"3px 7px",cursor:"pointer",flexShrink:0,fontWeight:700}}>Edit</button>}
+        {cK&&<button onClick={e=>{e.stopPropagation();uShow(sel,{[cK]:!isC});}} title={isC?"Confirmed":"Mark confirmed"} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:isC?"#047857":"#cbd5e1",padding:"2px 4px",flexShrink:0}}>{isC?"✓":"○"}</button>}
+        {canE&&<button onClick={e=>{e.stopPropagation();setEditB(isE?null:b.id);}} title="Edit" style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:isE?"#0f172a":"#94a3b8",padding:"2px 6px",flexShrink:0,fontWeight:700,letterSpacing:1}}>{isE?"×":"⋯"}</button>}
       </div>
+      {isE&&canE&&(
+        <div style={{...UI.expandPanel,borderLeftColor:b.color,marginTop:-2,marginBottom:4,borderRadius:"0 0 8px 8px"}} onClick={e=>e.stopPropagation()}>
+          {isA&&b.anchorKey?(
+            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              <label style={{fontSize:9,fontWeight:700,color:"#64748b"}}>{AMAP[b.anchorKey]} TIME</label>
+              <input type="text" placeholder="7:00p" defaultValue={fmt(show[b.anchorKey])} onKeyDown={e=>{if(e.key==="Enter"){setAnc(b.anchorKey,e.target.value);setEditB(null);}if(e.key==="Escape")setEditB(null);}} onBlur={e=>setAnc(b.anchorKey,e.target.value)} style={{...UI.input,fontFamily:MN,width:80,fontWeight:700}}/>
+              <button onClick={()=>uShow(sel,{[b.anchorKey+"Confirmed"]:!isC})} style={UI.expandBtn(false,isC?"#047857":"#92400E")}>{isC?"✓ Confirmed":"Mark Confirmed"}</button>
+              <label style={{fontSize:9,fontWeight:700,color:"#64748b",display:"flex",alignItems:"center",gap:4,cursor:"pointer"}}><input type="checkbox" checked={!!b.isAnchor} onChange={e=>setBF(b.id,"isAnchor",e.target.checked)}/>Anchor</label>
+              <button onClick={()=>removeBlock(b.id)} style={{marginLeft:"auto",background:"none",border:"none",color:"#B91C1C",fontSize:10,cursor:"pointer",fontWeight:700}}>Remove block</button>
+              {b.isAnchor&&<AnchorTimes b={b} setBF={setBF}/>}
+              <span style={{flexBasis:"100%",fontSize:9,color:"#94a3b8"}}>Enter = save · Esc = close</span>
+            </div>
+          ):(
+            <div style={{display:"grid",gridTemplateColumns:"80px 1fr 1fr",gap:8,alignItems:"center"}}>
+              <div>
+                <div style={{fontSize:8,color:"#64748b",fontWeight:700,marginBottom:2}}>DURATION</div>
+                <input type="number" min="0" max="480" step="5" value={b.duration} onChange={e=>setDur(b.id,parseInt(e.target.value)||0)} style={{...UI.input,fontFamily:MN,width:70,textAlign:"center"}}/>
+              </div>
+              <div>
+                <div style={{fontSize:8,color:"#64748b",fontWeight:700,marginBottom:2}}>LABEL</div>
+                <input type="text" value={b.label} onChange={e=>setBF(b.id,"label",e.target.value)} style={{...UI.input,width:"100%"}}/>
+              </div>
+              <div>
+                <div style={{fontSize:8,color:"#64748b",fontWeight:700,marginBottom:2}}>NOTE</div>
+                <input type="text" value={b.note||""} onChange={e=>setBF(b.id,"note",e.target.value)} placeholder="Optional note" style={{...UI.input,width:"100%"}}/>
+              </div>
+              <div style={{gridColumn:"1 / -1",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+                <label style={{fontSize:9,fontWeight:700,color:"#64748b",display:"flex",alignItems:"center",gap:4,cursor:"pointer"}}><input type="checkbox" checked={!!b.isAnchor} onChange={e=>setBF(b.id,"isAnchor",e.target.checked)}/>Anchor</label>
+                {b.isAnchor&&<AnchorTimes b={b} setBF={setBF}/>}
+                <button onClick={()=>removeBlock(b.id)} style={{marginLeft:"auto",background:"none",border:"none",color:"#B91C1C",fontSize:10,cursor:"pointer",fontWeight:700}}>Remove block</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+      </React.Fragment>
     );
   };
 
   const phases=[{k:"bus_in",l:"BUS ARRIVAL",s:"Anchor"},{k:"pre",l:"PRE-SHOW",s:"Forward from Crew Call"},{k:"mg",l:"MEET & GREET",s:"Anchor"},{k:"doors",l:"DOORS",s:"Contract anchor"},{k:"show",l:"SHOW",s:"Doors +60min"},{k:"curfew",l:"CURFEW",s:sel==="2026-04-16"?"HARD":"Contract anchor"},{k:"post",l:"POST-SHOW",s:"Relative to set end"}];
 
   return(
-    <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
-      <div style={{padding:"5px 20px",borderBottom:"1px solid #d6d3cd",background:"#fff",display:"flex",gap:2,overflowX:"auto",flexShrink:0}}>
-        {upcoming.slice(0,12).map(s=>{const isSel=s.date===sel;const hasCust=!!CUSTOM_ROS_MAP[s.date];const hasOv=!!ros[s.date];
-          return(<button key={s.date} onClick={()=>setSel(s.date)} style={{flexShrink:0,padding:"3px 9px",borderRadius:6,border:isSel?`2px solid ${client.color}`:"1px solid #d6d3cd",background:isSel?"#fff":"#f5f3ef",color:isSel?"#0f172a":"#64748b",fontSize:9,fontWeight:isSel?700:500,cursor:"pointer",position:"relative"}}>
-            <div style={{fontFamily:MN,fontSize:9}}>{fD(s.date)}</div><div style={{fontSize:8}}>{s.city}</div>
-            {(hasCust||hasOv)&&<div style={{position:"absolute",top:1,right:1,width:5,height:5,borderRadius:"50%",background:hasCust?"#5B21B6":"#047857"}}/>}
-          </button>);})}
-      </div>
+    <div className="fi" style={{display:"flex",flexDirection:"column"}}>
       <div style={{padding:"6px 20px",borderBottom:"1px solid #ebe8e3",background:"#fff",display:"flex",gap:10,flexWrap:"wrap",fontSize:11,flexShrink:0,alignItems:"center"}}>
         <span style={{fontWeight:700}}>{show.venue}</span><span style={{color:"#475569",fontSize:10}}>{show.promoter}</span>
         {isCustom&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"#ede9fe",color:"#5B21B6",fontWeight:700}}>Custom ROS</span>}
         {show.notes&&<span style={{color:"#92400E",fontWeight:600,fontSize:9}}>{show.notes}</span>}
-        <div style={{marginLeft:"auto"}}><button onClick={()=>{uRos(sel,null);setEditB(null);}} style={{background:"#f5f3ef",border:"1px solid #d6d3cd",borderRadius:5,color:"#64748b",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:600}}>Reset</button></div>
+        <div style={{marginLeft:"auto",display:"flex",gap:6}}>
+          <button onClick={()=>uShow(sel,{busSkip:!show.busSkip})} title="Toggle Bus Arrival" style={{background:show.busSkip?"#f5f3ef":"#DBEAFE",border:`1px solid ${show.busSkip?"#d6d3cd":"#1E40AF"}`,borderRadius:5,color:show.busSkip?"#94a3b8":"#1E40AF",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{show.busSkip?"+ Bus":"✓ Bus"}</button>
+          <button onClick={()=>uShow(sel,{mgSkip:!show.mgSkip})} title="Toggle Meet & Greet" style={{background:show.mgSkip?"#f5f3ef":"#D1FAE5",border:`1px solid ${show.mgSkip?"#d6d3cd":"#065F46"}`,borderRadius:5,color:show.mgSkip?"#94a3b8":"#065F46",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{show.mgSkip?"+ M&G":"✓ M&G"}</button>
+          <button onClick={()=>{uRos(sel,null);setEditB(null);}} style={{background:"#f5f3ef",border:"1px solid #d6d3cd",borderRadius:5,color:"#64748b",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:600}}>Reset</button>
+        </div>
       </div>
-      {editA&&(()=>{const bl=blocks.find(b=>b.id===editA);const ak=bl?.anchorKey;if(!ak)return null;return(<div style={{padding:"6px 20px",background:"#FFFBEB",borderBottom:"1px solid #FDE68A",display:"flex",alignItems:"center",gap:10,flexShrink:0}}><span style={{fontSize:11,color:"#78350F",fontWeight:700}}>Editing {AMAP[ak]}:</span><input type="text" placeholder="7:00p" defaultValue={fmt(show[ak])} autoFocus onKeyDown={e=>{if(e.key==="Enter")setAnc(ak,e.target.value);if(e.key==="Escape")setEditA(null);}} style={{background:"#fff",border:"2px solid #92400E",borderRadius:5,color:"#0f172a",fontSize:12,fontFamily:MN,padding:"3px 9px",width:70,fontWeight:700}}/><span style={{fontSize:9,color:"#64748b"}}>Enter = save · Esc = cancel</span></div>);})()}
-      <div style={{flex:1,overflow:"auto",padding:"10px 20px 30px",background:"#F5F3EF"}}>
-        {phases.map(ph=>{const pb=blocks.filter(b=>ph.k==="bus_in"?b.phase==="bus_in":ph.k==="curfew"?b.id==="curfew":ph.k==="doors"?b.phase==="doors":ph.k==="mg"?b.phase==="mg":b.phase===ph.k);if(!pb.length)return null;
-          return(<div key={ph.k} style={{marginBottom:6}}><div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0 3px"}}><div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",color:"#64748b"}}>{ph.l}</div><div style={{flex:1,height:1,background:"#d6d3cd"}}/><div style={{fontSize:8,color:"#94a3b8",fontStyle:"italic"}}>{ph.s}</div></div><div style={{display:"flex",flexDirection:"column",gap:3}}>{pb.map(b=>renderB(b))}</div></div>);
+      <div style={{padding:"10px 20px 30px",background:"#F5F3EF"}}>
+        {phases.filter(ph=>!(ph.k==="mg"&&show.mgSkip)&&!(ph.k==="bus_in"&&show.busSkip)).map(ph=>{const pb=blocks.filter(b=>ph.k==="bus_in"?b.phase==="bus_in":ph.k==="curfew"?b.id==="curfew":ph.k==="doors"?b.phase==="doors":ph.k==="mg"?b.phase==="mg":b.phase===ph.k);const canAdd=!["bus_in","curfew","doors","mg"].includes(ph.k);
+          return(<div key={ph.k} style={{marginBottom:6}}><div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0 3px"}}><div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",color:"#64748b"}}>{ph.l}</div><div style={{flex:1,height:1,background:"#d6d3cd"}}/><div style={{fontSize:8,color:"#94a3b8",fontStyle:"italic"}}>{ph.s}</div>{canAdd&&<button onClick={()=>addBlock(ph.k)} title="Add block" style={{background:"none",border:"1px dashed #cbd5e1",borderRadius:5,color:"#64748b",fontSize:9,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>+ Block</button>}</div><div style={{display:"flex",flexDirection:"column",gap:3}}>{pb.map(b=>renderB(b))}</div>{!pb.length&&canAdd&&<div style={{fontSize:9,color:"#94a3b8",fontStyle:"italic",padding:"4px 0"}}>No blocks — click + Block to add.</div>}</div>);
         })}
         <div style={{marginTop:12,padding:"12px 14px",background:"#fff",border:"1px solid #d6d3cd",borderRadius:12,display:"flex",gap:12,flexWrap:"wrap"}}>
-          {[{l:"Bus ETA",v:fmt(show.busArrive),c:"#1E40AF"},{l:"Crew Call",v:fmt(show.crewCall),c:"#92400E"},{l:"M&G",v:fmt(show.mgTime),c:"#065F46"},{l:"Doors",v:fmt(show.doors),c:"#166534"},{l:"Headline",v:times.bbno_set?`${fmt(times.bbno_set.s)}–${fmt(times.bbno_set.e)}`:"--",c:"#B91C1C"},{l:"Settlement",v:times.settlement?fmt(times.settlement.s):"--",c:"#854D0E"},{l:"Curfew",v:fmt(show.curfew),c:"#7F1D1D"},{l:"Bus Out",v:times.bus_depart?fmt(times.bus_depart.s):"--",c:"#1E40AF"}].map((s,i)=><div key={i}><div style={{fontSize:8,color:"#64748b",marginBottom:1,fontWeight:600}}>{s.l}</div><div style={{fontFamily:MN,fontSize:12,color:s.c,fontWeight:800}}>{s.v}</div></div>)}
+          {[{l:"Bus ETA",v:fmt(show.busArrive),c:"#1E40AF",hide:show.busSkip},{l:"Crew Call",v:fmt(show.crewCall),c:"#92400E"},{l:"M&G",v:fmt(show.mgTime),c:"#065F46",hide:show.mgSkip},{l:"Doors",v:fmt(show.doors),c:"#166534"},{l:"Headline",v:times.bbno_set?`${fmt(times.bbno_set.s)}–${fmt(times.bbno_set.e)}`:"--",c:"#B91C1C"},{l:"Settlement",v:times.settlement?fmt(times.settlement.s):"--",c:"#854D0E"},{l:"Curfew",v:fmt(show.curfew),c:"#7F1D1D"},{l:"Bus Out",v:times.bus_depart?fmt(times.bus_depart.s):"--",c:"#1E40AF",hide:show.busSkip}].filter(s=>!s.hide).map((s,i)=><div key={i}><div style={{fontSize:8,color:"#64748b",marginBottom:1,fontWeight:600}}>{s.l}</div><div style={{fontFamily:MN,fontSize:12,color:s.c,fontWeight:800}}>{s.v}</div></div>)}
         </div>
       </div>
     </div>
@@ -1187,10 +1427,16 @@ function CrewTab(){
   const sc=showCrew[sel]||{};
   const uid=()=>Math.random().toString(36).slice(2,9);
 
-  const getCD=(crewId)=>sc[crewId]||{attending:false,travelMode:"bus",inbound:[],outbound:[]};
+  const getCD=(crewId)=>{const d=sc[crewId]||{};
+    // migrate legacy single travelMode to split inbound/outbound
+    const legacy=d.travelMode||"bus";
+    return{attending:false,inboundMode:legacy,outboundMode:legacy,inboundConfirmed:false,outboundConfirmed:false,inbound:[],outbound:[],inboundDate:"",inboundTime:"",inboundNotes:"",outboundDate:"",outboundTime:"",outboundNotes:"",parkingReq:"none",...d,travelMode:undefined};
+  };
   const updateSC=(crewId,patch)=>setShowCrew(p=>({...p,[sel]:{...p[sel],[crewId]:{...getCD(crewId),...patch}}}));
   const toggleAttending=(crewId)=>{const cd=getCD(crewId);updateSC(crewId,{attending:!cd.attending});};
-  const setTravelMode=(crewId,mode)=>updateSC(crewId,{travelMode:mode});
+  const setInboundMode=(crewId,mode)=>updateSC(crewId,{inboundMode:mode});
+  const setOutboundMode=(crewId,mode)=>updateSC(crewId,{outboundMode:mode});
+  const cycleParkingReq=(crewId)=>{const cur=getCD(crewId).parkingReq||"none";const next={none:"requested",requested:"confirmed",confirmed:"none"};updateSC(crewId,{parkingReq:next[cur]||"none"});};
   const addLeg=(crewId,dir)=>{const cd=getCD(crewId);const leg={id:uid(),flight:"",from:"",to:"",depart:"",arrive:"",conf:"",status:"pending"};updateSC(crewId,{[dir]:[...(cd[dir]||[]),leg]});setPanel({crewId});};
   const updateLeg=(crewId,dir,legId,field,val)=>{const cd=getCD(crewId);updateSC(crewId,{[dir]:(cd[dir]||[]).map(l=>l.id===legId?{...l,[field]:val}:l)});};
   const removeLeg=(crewId,dir,legId)=>{const cd=getCD(crewId);updateSC(crewId,{[dir]:(cd[dir]||[]).filter(l=>l.id!==legId)});};
@@ -1210,14 +1456,7 @@ function CrewTab(){
   if(!show)return<div style={{padding:40,textAlign:"center",color:"#64748b"}}>Select a show.</div>;
 
   return(
-    <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
-      {/* Show picker */}
-      <div style={{padding:"5px 20px",borderBottom:"1px solid #d6d3cd",background:"#fff",display:"flex",gap:2,overflowX:"auto",flexShrink:0}}>
-        {upcoming.slice(0,14).map(s=>{const isSel=s.date===sel;return(
-          <button key={s.date} onClick={()=>setSel(s.date)} style={{flexShrink:0,padding:"3px 9px",borderRadius:6,border:isSel?"2px solid #5B21B6":"1px solid #d6d3cd",background:isSel?"#fff":"#f5f3ef",color:isSel?"#0f172a":"#64748b",fontSize:9,fontWeight:isSel?700:500,cursor:"pointer"}}>
-            <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9}}>{fD(s.date)}</div><div style={{fontSize:8}}>{s.city}</div>
-          </button>);})}
-      </div>
+    <div className="fi" style={{display:"flex",flexDirection:"column"}}>
       {/* Header */}
       <div style={{padding:"6px 20px",borderBottom:"1px solid #ebe8e3",background:"#fff",display:"flex",gap:8,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
         <span style={{fontWeight:700,fontSize:12}}>{show.venue}</span>
@@ -1228,18 +1467,25 @@ function CrewTab(){
           <button onClick={addMember} style={btn()}>+ Add</button>
         </div>
       </div>
-      <div style={{flex:1,overflow:"auto",padding:"10px 20px 30px",display:"flex",flexDirection:"column",gap:10}}>
+      <div style={{padding:"10px 20px 30px",display:"flex",flexDirection:"column",gap:10}}>
         {/* Roster */}
         <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,overflow:"hidden"}}>
-          <div style={{display:"grid",gridTemplateColumns:mobile?"28px 1fr 80px":"28px 1fr 90px 80px 80px 90px",gap:8,padding:"6px 12px",borderBottom:"1px solid #ebe8e3",fontSize:9,fontWeight:700,color:"#64748b",letterSpacing:"0.06em",textTransform:"uppercase"}}>
-            <div/><div>Name / Role</div><div>Travel</div>{!mobile&&<><div>Inbound</div><div>Outbound</div><div/></>}
+          <div style={{display:"grid",gridTemplateColumns:mobile?"28px 1fr 54px 56px":"28px 1fr 170px 54px 56px",gap:8,padding:"6px 14px",borderBottom:"1px solid #ebe8e3",fontSize:9,fontWeight:700,color:"#64748b",letterSpacing:"0.06em",textTransform:"uppercase"}}>
+            <div/><div>Name / Role</div>{!mobile&&<div>Travel</div>}<div>Park</div><div/>
           </div>
           {crew.map(c=>{
             const cd=getCD(c.id);
-            const inOk=(cd.inbound||[]).some(l=>l.status==="confirmed");
-            const outOk=(cd.outbound||[]).some(l=>l.status==="confirmed");
+            const isOpen=panel?.crewId===c.id;
+            const MB=(mode,conf)=>{
+              const isFly=mode==="fly";
+              return <span style={{display:"inline-flex",alignItems:"center",gap:4}}>
+                <span style={{fontSize:7,padding:"1px 5px",borderRadius:3,fontWeight:700,background:isFly?"#EDE9FE":"#f1f5f9",color:isFly?"#5B21B6":"#475569",textTransform:"uppercase"}}>{mode.slice(0,3)}</span>
+                <span style={{fontSize:7,padding:"1px 6px",borderRadius:3,fontWeight:700,background:conf?"#D1FAE5":"#FEE2E2",color:conf?"#047857":"#B91C1C"}}>{conf?"Confirmed":"Unconfirmed"}</span>
+              </span>;
+            };
             return(
-              <div key={c.id} style={{display:"grid",gridTemplateColumns:mobile?"28px 1fr 80px":"28px 1fr 90px 80px 80px 90px",gap:8,padding:"7px 12px",borderBottom:"1px solid #f5f3ef",alignItems:"center"}}>
+            <React.Fragment key={c.id}>
+              <div style={{display:"grid",gridTemplateColumns:mobile?"28px 1fr 54px 56px":"28px 1fr 170px 54px 56px",gap:8,padding:"8px 14px",borderBottom:isOpen?"none":"1px solid #f5f3ef",alignItems:"center"}}>
                 <div onClick={()=>toggleAttending(c.id)} style={{width:20,height:20,borderRadius:4,border:`2px solid ${cd.attending?"#047857":"#d6d3cd"}`,background:cd.attending?"#047857":"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:11,fontWeight:700,flexShrink:0}}>{cd.attending?"✓":""}</div>
                 {editMode?(
                   <div style={{display:"flex",gap:4,alignItems:"center"}}>
@@ -1249,55 +1495,83 @@ function CrewTab(){
                     <button onClick={()=>removeMember(c.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:14,flexShrink:0}}>×</button>
                   </div>
                 ):(
-                  <div><div style={{fontWeight:600,fontSize:12}}>{c.name||<span style={{color:"#94a3b8"}}>New member</span>}</div><div style={{fontSize:10,color:"#64748b"}}>{c.role}</div></div>
+                  <div><div style={{fontWeight:600,fontSize:12,color:cd.attending?"#0f172a":"#94a3b8"}}>{c.name||<span style={{color:"#94a3b8"}}>New member</span>}</div><div style={{fontSize:10,color:"#64748b"}}>{c.role}</div></div>
                 )}
-                <div>{cd.attending&&<select value={cd.travelMode} onChange={e=>setTravelMode(c.id,e.target.value)} style={{...inp,width:"auto",padding:"3px 5px"}}>
-                  {TRAVEL_MODES.map(m=><option key={m} value={m}>{m.charAt(0).toUpperCase()+m.slice(1)}</option>)}
-                </select>}</div>
-                {!mobile&&<>
-                  <div>{cd.attending&&cd.travelMode==="fly"&&<span style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:inOk?"#D1FAE5":"#FEF3C7",color:inOk?"#047857":"#92400E",fontWeight:700}}>{inOk?"✓ OK":`${(cd.inbound||[]).length} leg${(cd.inbound||[]).length!==1?"s":""}`}</span>}{cd.attending&&cd.travelMode!=="fly"&&<span style={{fontSize:9,color:"#94a3b8",textTransform:"capitalize"}}>{cd.travelMode}</span>}</div>
-                  <div>{cd.attending&&cd.travelMode==="fly"&&<span style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:outOk?"#D1FAE5":"#FEF3C7",color:outOk?"#047857":"#92400E",fontWeight:700}}>{outOk?"✓ OK":`${(cd.outbound||[]).length} leg${(cd.outbound||[]).length!==1?"s":""}`}</span>}{cd.attending&&cd.travelMode!=="fly"&&<span style={{fontSize:9,color:"#94a3b8",textTransform:"capitalize"}}>{cd.travelMode}</span>}</div>
-                  <div>{cd.attending&&cd.travelMode==="fly"&&<button onClick={()=>setPanel(panel?.crewId===c.id?null:{crewId:c.id})} style={btn(panel?.crewId===c.id?"#0f172a":"#5B21B6")}>✈ Flights</button>}</div>
-                </>}
+                {!mobile&&<div>{cd.attending
+                  ?<div style={{display:"flex",flexDirection:"column",gap:4}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:8,color:"#94a3b8",width:18}}>In</span>{MB(cd.inboundMode,cd.inboundConfirmed)}</div>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:8,color:"#94a3b8",width:18}}>Out</span>{MB(cd.outboundMode,cd.outboundConfirmed)}</div>
+                    </div>
+                  :<span style={{fontSize:9,color:"#d6d3cd"}}>—</span>}
+                </div>}
+                <div>{cd.attending
+                  ?<button onClick={()=>cycleParkingReq(c.id)} style={{fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,
+                      background:cd.parkingReq==="confirmed"?"#D1FAE5":cd.parkingReq==="requested"?"#FEF3C7":"#f1f5f9",
+                      color:cd.parkingReq==="confirmed"?"#047857":cd.parkingReq==="requested"?"#92400E":"#94a3b8"}}>
+                    {cd.parkingReq==="confirmed"?"✓ P":cd.parkingReq==="requested"?"Req":"—"}
+                  </button>
+                  :<span/>}
+                </div>
+                <div>{cd.attending&&<button onClick={()=>setPanel(isOpen?null:{crewId:c.id})} style={{...UI.expandBtn(isOpen),fontSize:9,padding:"3px 8px"}}>{isOpen?"▾":"▸"}</button>}</div>
               </div>
+              {isOpen&&(
+                <div style={{background:"#fafaf9",borderTop:"1px solid #f5f3ef",borderBottom:"1px solid #f5f3ef",padding:"12px 14px",display:"flex",flexDirection:mobile?"column":"row",gap:16}}>
+                  {[["inbound","Inbound"],["outbound","Outbound"]].map(([dir,dirLabel])=>{
+                    const mode=dir==="inbound"?cd.inboundMode:cd.outboundMode;
+                    const conf=dir==="inbound"?cd.inboundConfirmed:cd.outboundConfirmed;
+                    const confKey=dir==="inbound"?"inboundConfirmed":"outboundConfirmed";
+                    const dateKey=`${dir}Date`,timeKey=`${dir}Time`,notesKey=`${dir}Notes`;
+                    return(
+                      <div key={dir} style={{flex:1,minWidth:0}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                          <span style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em"}}>{dirLabel.toUpperCase()}</span>
+                          <select value={mode} onChange={e=>dir==="inbound"?setInboundMode(c.id,e.target.value):setOutboundMode(c.id,e.target.value)} style={{...inp,width:"auto",padding:"2px 6px",fontSize:9}}>
+                            {TRAVEL_MODES.map(m=><option key={m} value={m}>{m.charAt(0).toUpperCase()+m.slice(1)}</option>)}
+                          </select>
+                          <button onClick={()=>updateSC(c.id,{[confKey]:!conf})} style={{fontSize:9,padding:"2px 9px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,marginLeft:"auto",
+                            background:conf?"#D1FAE5":"#FEF3C7",color:conf?"#047857":"#92400E"}}>
+                            {conf?"✓ Confirmed":"Unconfirmed"}
+                          </button>
+                        </div>
+                        {mode==="fly"?(
+                          <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                            {(cd[dir]||[]).map(leg=>(
+                              <div key={leg.id} style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 90px 90px 80px 24px",gap:4,alignItems:"center"}}>
+                                {[["flight","Flight #"],["from","From"],["to","To"],["depart","Depart"],["arrive","Arrive"]].map(([k,ph])=>(
+                                  <input key={k} placeholder={ph} value={leg[k]} onChange={e=>updateLeg(c.id,dir,leg.id,k,e.target.value)} style={inp}/>
+                                ))}
+                                <select value={leg.status} onChange={e=>updateLeg(c.id,dir,leg.id,"status",e.target.value)} style={{...inp,padding:"3px 4px",fontSize:9}}>
+                                  {LEG_STATUS.map(s=><option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
+                                </select>
+                                <button onClick={()=>removeLeg(c.id,dir,leg.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:13,padding:0}}>×</button>
+                              </div>
+                            ))}
+                            <button onClick={()=>addLeg(c.id,dir)} style={{...btn("#047857"),fontSize:9,padding:"3px 9px",width:"fit-content"}}>+ Add Leg</button>
+                          </div>
+                        ):(
+                          <div style={{display:"grid",gridTemplateColumns:"130px 100px 1fr",gap:6,alignItems:"center"}}>
+                            <input type="date" value={cd[dateKey]} onChange={e=>updateSC(c.id,{[dateKey]:e.target.value})} style={inp}/>
+                            <input type="time" value={cd[timeKey]} onChange={e=>updateSC(c.id,{[timeKey]:e.target.value})} style={inp}/>
+                            <input value={cd[notesKey]} onChange={e=>updateSC(c.id,{[notesKey]:e.target.value})} placeholder={dir==="inbound"?"Pickup / meet point…":"Drop-off / instructions…"} style={inp}/>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </React.Fragment>
             );
           })}
         </div>
-        {/* Flight panel */}
-        {panel&&panelCrew&&panelCD&&(
-          <div style={{background:"#fff",border:"2px solid #5B21B6",borderRadius:10,padding:"12px 14px"}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-              <span style={{fontSize:12,fontWeight:700}}>✈ {panelCrew.name}</span>
-              <span style={{fontSize:10,color:"#64748b"}}>{show.venue} · {fFull(sel)}</span>
-              <button onClick={()=>setPanel(null)} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",color:"#64748b",fontSize:16}}>×</button>
-            </div>
-            {["inbound","outbound"].map(dir=>(
-              <div key={dir} style={{marginBottom:12}}>
-                <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:6}}>{dir}</div>
-                {(panelCD[dir]||[]).map(leg=>(
-                  <div key={leg.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr 1fr":"1fr 1fr 1fr 1fr 1fr 90px 28px",gap:4,marginBottom:4,alignItems:"center"}}>
-                    {[["flight","Flight #"],["from","From"],["to","To"],["depart","Depart"],["arrive","Arrive"]].map(([k,ph])=>(
-                      <input key={k} placeholder={ph} value={leg[k]} onChange={e=>updateLeg(panel.crewId,dir,leg.id,k,e.target.value)} style={inp}/>
-                    ))}
-                    <select value={leg.status} onChange={e=>updateLeg(panel.crewId,dir,leg.id,"status",e.target.value)} style={{...inp,padding:"4px 4px"}}>
-                      {LEG_STATUS.map(s=><option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
-                    </select>
-                    <button onClick={()=>removeLeg(panel.crewId,dir,leg.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:14,padding:0}}>×</button>
-                  </div>
-                ))}
-                <button onClick={()=>addLeg(panel.crewId,dir)} style={btn("#047857")}>+ {dir.charAt(0).toUpperCase()+dir.slice(1)} Leg</button>
-              </div>
-            ))}
-          </div>
-        )}
         {/* Summary */}
         {attending.length>0&&(
           <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"10px 12px"}}>
             <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em",marginBottom:8}}>ATTENDING ({attending.length})</div>
             <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
-              {attending.map(c=>{const cd=getCD(c.id);return(
-                <span key={c.id} style={{fontSize:10,padding:"3px 9px",borderRadius:20,background:cd.travelMode==="fly"?"#EDE9FE":"#f1f5f9",color:cd.travelMode==="fly"?"#5B21B6":"#475569",fontWeight:600,border:"1px solid #e2e8f0"}}>
-                  {c.name} <span style={{opacity:0.6,fontSize:8,textTransform:"uppercase"}}>{cd.travelMode}</span>
+              {attending.map(c=>{const cd=getCD(c.id);const hasFly=cd.inboundMode==="fly"||cd.outboundMode==="fly";const sameMode=cd.inboundMode===cd.outboundMode;const bothConfirmed=cd.inboundConfirmed&&cd.outboundConfirmed;const noneConfirmed=!cd.inboundConfirmed&&!cd.outboundConfirmed;return(
+                <span key={c.id} style={{fontSize:10,padding:"3px 9px",borderRadius:20,background:hasFly?"#EDE9FE":"#f1f5f9",color:hasFly?"#5B21B6":"#475569",fontWeight:600,border:`1px solid ${bothConfirmed?"#6EE7B7":noneConfirmed?"#FDE68A":"#e2e8f0"}`}}>
+                  {c.name} <span style={{opacity:0.6,fontSize:8,textTransform:"uppercase"}}>{sameMode?cd.inboundMode:`${cd.inboundMode}→${cd.outboundMode}`}</span>{bothConfirmed&&<span style={{fontSize:8,color:"#047857",marginLeft:3}}>✓</span>}
                 </span>);
               })}
             </div>
