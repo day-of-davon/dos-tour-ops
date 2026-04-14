@@ -119,10 +119,11 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  const ids = [...seenIds].slice(0, 20);
+  const ids = [...seenIds].slice(0, 12);
   const threads = (await Promise.all(ids.map((id) => gmailGetThread(googleToken, id))))
     .filter(Boolean)
-    .map(extractHeaders);
+    .map(extractHeaders)
+    .map((t) => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 600) }));
 
   const sysPrompt = `You are an email intelligence parser for concert touring operations. You work for Davon Johnson, Tour Manager at Day of Show, LLC.
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.
@@ -156,7 +157,7 @@ Return this exact JSON:
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: sysPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
