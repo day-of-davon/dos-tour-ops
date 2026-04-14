@@ -119,11 +119,11 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  const ids = [...seenIds].slice(0, 12);
+  const ids = [...seenIds].slice(0, 8);
   const threads = (await Promise.all(ids.map((id) => gmailGetThread(googleToken, id))))
     .filter(Boolean)
     .map(extractHeaders)
-    .map((t) => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 600) }));
+    .map((t) => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 400) }));
 
   const sysPrompt = `You are an email intelligence parser for concert touring operations. You work for Davon Johnson, Tour Manager at Day of Show, LLC.
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.
@@ -135,7 +135,7 @@ Status phrases: AWAITING RESPONSE, DRAFT READY, CONFIRMED, NEEDS DECISION, PENDI
   const userPrompt = `Here are Gmail threads (incl. body excerpts) for show: ${show.venue} in ${show.city} on ${show.date} (artist: ${show.artist}).
 Thread data:
 ${JSON.stringify(threads, null, 2)}
-For each thread, classify intent, current status, and sender name. Provide a short snippet (<= 200 chars).
+For each thread, classify intent, current status, and sender name. Provide a short snippet (<= 100 chars). Be concise — no verbose descriptions.
 Generate follow-up action items with owner, priority, and deadline.
 Extract key contacts (name, role, email).
 Extract every time mention with the field it applies to and the source thread id. Allowed fields: doors, curfew, busArrive, crewCall, venueAccess, mgTime, soundcheck, set.
@@ -178,16 +178,11 @@ Return this exact JSON:
   console.log("[intel] stop_reason:", anthropicData.stop_reason, "| text length:", textContent.length);
   console.log("[intel] raw (first 600):", textContent.slice(0, 600));
 
-  let intel = null;
-
-  // Extract outermost JSON object using bracket counting (handles nested objects correctly)
+  // Extract outermost JSON object using bracket counting
   function extractJson(text) {
-    // Try 1: direct parse (Claude returned pure JSON)
     try { return JSON.parse(text.trim()); } catch {}
-    // Try 2: strip markdown fences
     const fenced = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
     try { return JSON.parse(fenced); } catch {}
-    // Try 3: bracket counting — find the outermost { } pair
     let depth = 0, start = -1;
     for (let i = 0; i < text.length; i++) {
       if (text[i] === "{") { if (start === -1) start = i; depth++; }
@@ -202,12 +197,48 @@ Return this exact JSON:
     return null;
   }
 
-  intel = extractJson(textContent);
+  // When max_tokens truncates mid-JSON, salvage complete objects from each array key
+  function salvageArray(text, key) {
+    const match = text.match(new RegExp(`"${key}"\\s*:\\s*\\[`));
+    if (!match) return [];
+    const items = [];
+    let depth = 0, objStart = -1, inStr = false, esc = false;
+    for (let i = match.index + match[0].length - 1; i < text.length; i++) {
+      const c = text[i];
+      if (esc) { esc = false; continue; }
+      if (c === "\\" && inStr) { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (c === "{") { if (depth === 0) objStart = i; depth++; }
+      else if (c === "}") {
+        depth--;
+        if (depth === 0 && objStart !== -1) {
+          try { items.push(JSON.parse(text.slice(objStart, i + 1))); } catch {}
+          objStart = -1;
+        }
+      } else if (c === "]" && depth === 0) break;
+    }
+    return items;
+  }
+
+  let intel = extractJson(textContent);
 
   // Validate shape
   if (intel && !Array.isArray(intel.threads)) {
     console.error("[intel] parsed but missing threads array, keys:", Object.keys(intel));
     intel = null;
+  }
+
+  // Partial recovery for max_tokens truncation
+  if (!intel && anthropicData.stop_reason === "max_tokens") {
+    const threads   = salvageArray(textContent, "threads");
+    const followUps = salvageArray(textContent, "followUps");
+    const showContacts = salvageArray(textContent, "showContacts");
+    const schedule  = salvageArray(textContent, "schedule");
+    if (threads.length > 0 || followUps.length > 0) {
+      intel = { threads, followUps, showContacts, schedule, lastRefreshed: new Date().toISOString(), _partial: true };
+      console.log(`[intel] partial recovery: ${threads.length} threads, ${followUps.length} followUps`);
+    }
   }
 
   if (!intel) {
