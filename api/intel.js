@@ -103,9 +103,11 @@ module.exports = async function handler(req, res) {
   }
 
   const queries = [
-    `"${show.venue}" newer_than:90d`,
-    `"bbno$" "${show.city}" newer_than:90d`,
-    `"bbno$" "${show.venue}" newer_than:90d`,
+    `"${show.venue}" newer_than:30d`,
+    `"bbno$" "${show.city}" newer_than:30d`,
+    `"bbno$" "${show.venue}" newer_than:30d`,
+    `"bbno" "${show.venue}" newer_than:30d`,
+    `"bbno" "${show.city}" newer_than:30d`,
   ];
 
   const seenIds = new Set();
