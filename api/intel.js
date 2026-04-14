@@ -14,22 +14,52 @@ async function gmailSearch(googleToken, query, maxResults = 20) {
 }
 
 async function gmailGetThread(googleToken, threadId) {
-  const url = `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`;
+  const url = `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=full`;
   const r = await fetch(url, { headers: { Authorization: `Bearer ${googleToken}` } });
   if (!r.ok) return null;
   return r.json();
+}
+
+function decodeB64(s) {
+  try { return Buffer.from(String(s || "").replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8"); } catch { return ""; }
+}
+
+function extractBody(payload) {
+  if (!payload) return "";
+  const parts = [payload];
+  let text = ""; let html = "";
+  while (parts.length) {
+    const p = parts.shift();
+    if (p.parts) parts.push(...p.parts);
+    const data = p.body?.data;
+    if (!data) continue;
+    if (p.mimeType === "text/plain") text += decodeB64(data) + "\n";
+    else if (p.mimeType === "text/html" && !text) html += decodeB64(data) + "\n";
+  }
+  const out = text || html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+  return out.replace(/\s+/g, " ").trim();
 }
 
 function extractHeaders(thread) {
   const lastMsg = thread.messages?.[thread.messages.length - 1];
   const headers = lastMsg?.payload?.headers || [];
   const get = (name) => headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value || "";
+  const body = (thread.messages || [])
+    .map((m) => extractBody(m.payload))
+    .filter(Boolean)
+    .join("\n---\n")
+    .slice(0, 1800);
   return {
     id: thread.id,
     subject: get("Subject"),
     from: get("From").replace(/<.*?>/, "").trim(),
     date: get("Date"),
     messageCount: thread.messages?.length || 1,
+    bodySnippet: body,
   };
 }
 
@@ -101,19 +131,19 @@ Owner codes: DAVON, SHECK, DAN, MANAGEMENT, VENDOR, CREW, ACCOUNTANT
 Priority: CRITICAL (show <10d), HIGH (<48h), MEDIUM, LOW
 Status phrases: AWAITING RESPONSE, DRAFT READY, CONFIRMED, NEEDS DECISION, PENDING VENDOR, SENT, OVERDUE, RESOLVED`;
 
-  const userPrompt = `Here are Gmail threads for show: ${show.venue} in ${show.city} on ${show.date} (artist: ${show.artist}).
+  const userPrompt = `Here are Gmail threads (incl. body excerpts) for show: ${show.venue} in ${show.city} on ${show.date} (artist: ${show.artist}).
 Thread data:
 ${JSON.stringify(threads, null, 2)}
-For each thread, classify intent, current status, and sender name.
+For each thread, classify intent, current status, and sender name. Provide a short snippet (<= 200 chars).
 Generate follow-up action items with owner, priority, and deadline.
 Extract key contacts (name, role, email).
-Suggest day-of-show schedule items if any timing info found.
+Extract every time mention with the field it applies to and the source thread id. Allowed fields: doors, curfew, busArrive, crewCall, venueAccess, mgTime, soundcheck, set.
 Return this exact JSON:
 {
-  "threads": [{"id":"t1","tid":"<thread_id>","subject":"<subject>","from":"<sender_name>","intent":"<INTENT>","status":"<STATUS>","date":"<Mon DD>"}],
+  "threads": [{"id":"t1","tid":"<thread_id>","subject":"<subject>","from":"<sender_name>","intent":"<INTENT>","status":"<STATUS>","date":"<Mon DD>","snippet":"<<=200 chars>"}],
   "followUps": [{"action":"<action>","owner":"<OWNER>","priority":"<PRIORITY>","deadline":"<Mon DD>"}],
   "showContacts": [{"name":"<n>","role":"<role>","email":"<email>"}],
-  "schedule": [{"time":"<HH:MM or TBD>","item":"<item>"}],
+  "schedule": [{"time":"<HH:MM or 7pm>","item":"<short label>","field":"<doors|curfew|busArrive|crewCall|venueAccess|mgTime|soundcheck|set>","tid":"<thread_id>"}],
   "lastRefreshed": "${new Date().toISOString()}"
 }`;
 
@@ -126,7 +156,7 @@ Return this exact JSON:
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 1500,
+      max_tokens: 2500,
       system: sysPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
