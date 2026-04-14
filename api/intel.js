@@ -156,7 +156,7 @@ Return this exact JSON:
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 2500,
+      max_tokens: 4096,
       system: sysPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
@@ -179,19 +179,29 @@ Return this exact JSON:
 
   let intel = null;
 
-  // Strip common Claude formatting and parse
-  const stripped = textContent
-    .replace(/^[\s\S]*?(\{)/m, "$1")   // drop any preamble before first {
-    .replace(/\}\s*[\s\S]*$/, "}")      // drop any trailing text after last }
-    .trim();
-
-  try {
-    intel = JSON.parse(stripped);
-  } catch {
-    // Fallback: find largest JSON object containing "threads"
-    const m = textContent.match(/\{[\s\S]*"threads"[\s\S]*\}/);
-    if (m) { try { intel = JSON.parse(m[0]); } catch (e2) { console.error("[intel] fallback parse failed:", e2.message); } }
+  // Extract outermost JSON object using bracket counting (handles nested objects correctly)
+  function extractJson(text) {
+    // Try 1: direct parse (Claude returned pure JSON)
+    try { return JSON.parse(text.trim()); } catch {}
+    // Try 2: strip markdown fences
+    const fenced = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+    try { return JSON.parse(fenced); } catch {}
+    // Try 3: bracket counting — find the outermost { } pair
+    let depth = 0, start = -1;
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] === "{") { if (start === -1) start = i; depth++; }
+      else if (text[i] === "}") {
+        depth--;
+        if (depth === 0 && start !== -1) {
+          try { return JSON.parse(text.slice(start, i + 1)); } catch {}
+          start = -1;
+        }
+      }
+    }
+    return null;
   }
+
+  intel = extractJson(textContent);
 
   // Validate shape
   if (intel && !Array.isArray(intel.threads)) {
