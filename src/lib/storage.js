@@ -6,7 +6,7 @@ import { supabase } from "./supabase";
 const TEAM_ID = "dos-bbno-eu-2026";
 
 const SHARED_KEYS = new Set([
-  "dos-v7-shows","dos-v7-ros","dos-v7-advances","dos-v7-finance","dos-v7-settings",
+  "dos-v7-shows","dos-v7-ros","dos-v7-advances","dos-v7-finance","dos-v7-settings","dos-v7-crew",
 ]);
 const PRIVATE_KEYS = new Set([
   "dos-v7-intel","dos-v7-notes-private","dos-v7-checklist-private",

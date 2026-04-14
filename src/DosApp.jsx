@@ -5,7 +5,7 @@ import { supabase } from "./lib/supabase";
 // DOS TOUR OPS v7.0 — Day of Show, LLC
 // Client-first · All dept advance lanes · Custom + editable items · Full settlement
 
-const SK={SHOWS:"dos-v7-shows",ROS:"dos-v7-ros",ADVANCES:"dos-v7-advances",FINANCE:"dos-v7-finance",SETTINGS:"dos-v7-settings"};
+const SK={SHOWS:"dos-v7-shows",ROS:"dos-v7-ros",ADVANCES:"dos-v7-advances",FINANCE:"dos-v7-finance",SETTINGS:"dos-v7-settings",CREW:"dos-v7-crew"};
 const MN="'JetBrains Mono',monospace";
 
 const CLIENTS=[
@@ -16,7 +16,32 @@ const CLIENTS=[
 ];
 const CM=CLIENTS.reduce((a,c)=>{a[c.id]=c;return a},{});
 const ROLES=[{id:"tm",label:"TM",c:"#5B21B6"},{id:"production",label:"PROD",c:"#92400E"},{id:"hospitality",label:"HOSPO",c:"#065F46"},{id:"transport",label:"TRANSPORT",c:"#1E40AF"}];
-const TABS=[{id:"dashboard",label:"Dashboard",icon:"◉"},{id:"advance",label:"Advance",icon:"◎"},{id:"ros",label:"Show Day",icon:"▦"},{id:"transport",label:"Transport",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇",disabled:true,soon:true}];
+const TABS=[{id:"dashboard",label:"Dashboard",icon:"◉"},{id:"advance",label:"Advance",icon:"◎"},{id:"ros",label:"Show Day",icon:"▦"},{id:"transport",label:"Transport",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"}];
+const DEFAULT_CREW=[
+  {id:"ag", name:"Alex Gumuchian",        role:"Headliner (bbno$)",          email:"alexgumuchian@gmail.com"},
+  {id:"jb", name:"Julien Bruce",           role:"Support (Jungle Bobby)",     email:""},
+  {id:"mse",name:"Mat Senechal",           role:"Bassist/Keys",               email:""},
+  {id:"tip",name:"Taylor Madrigal (Tip)",  role:"DJ",                         email:""},
+  {id:"ac", name:"Andrew Campbell",        role:"DJ (Bishu)",                 email:""},
+  {id:"dj", name:"Davon Johnson",          role:"TM/TD",                      email:"d.johnson@dayofshow.net"},
+  {id:"ms", name:"Mike Sheck",             role:"PM (Advance)",               email:"mikesheck@l7touring.com"},
+  {id:"dn", name:"Dan Nudelman",           role:"PM (On-site)",               email:"dan@noodle.management"},
+  {id:"tc", name:"TBD",                    role:"Tour Coordinator",           email:""},
+  {id:"rm", name:"Ruairi Matthews",        role:"FOH Audio",                  email:"ruairim@magentasound.ca"},
+  {id:"nf", name:"Nick Foerster",          role:"Monitor Engineer",           email:""},
+  {id:"sa", name:"Saad A.",               role:"Audio/BNE",                  email:""},
+  {id:"gg", name:"Gabe Greenwood",         role:"LD",                         email:""},
+  {id:"lt1",name:"TBD",                    role:"LED Tech 1",                 email:""},
+  {id:"lt2",name:"TBD",                    role:"LED Tech 2",                 email:""},
+  {id:"cl", name:"Cody Leggett",           role:"Lasers/LSO",                 email:"cody@photon7.com"},
+  {id:"mh", name:"Michael Heid",           role:"Visual/Set Design (Sigma-1)",email:"bbno-visual@sigma-1.com"},
+  {id:"go", name:"Grace Offerdahl",        role:"Merch (Tour Seller)",        email:"graceofferdahl@gmail.com"},
+  {id:"nm", name:"Nathan McCoy",           role:"Merch Dir (A3)",             email:"nathan@a3merch.com"},
+  {id:"mp", name:"Megan Putnam",           role:"Hospo/GL",                   email:"mputnam5@yahoo.com"},
+  {id:"od", name:"O'Len Davis",            role:"Content & Media",            email:""},
+  {id:"gb", name:"Guillaume Bessette",     role:"Bus Driver (Prod.G)",        email:""},
+  {id:"td", name:"TBD",                    role:"Truck Driver",               email:""},
+];
 const AB=new Set(["bus_arrive","doors_early","doors_ga","clear","bus_depart"]);
 
 const DEPTS=[
@@ -297,6 +322,8 @@ export default function App(){
   const[checkPriv,setCheckPriv]=useState({});
   const[intel,setIntel]=useState({});
   const[refreshing,setRefreshing]=useState(null);
+  const[crew,setCrew]=useState(DEFAULT_CREW);
+  const[showCrew,setShowCrew]=useState({});
   const[refreshMsg,setRefreshMsg]=useState("");
   const[exp,setExp]=useState(false);
   const[undoToast,setUndoToast]=useState(null);
@@ -304,11 +331,12 @@ export default function App(){
   const st=useRef(null);const stp=useRef(null);
 
   useEffect(()=>{(async()=>{
-    const[s,r,a,f,se]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS)]);
+    const[s,r,a,f,se,cr]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW)]);
     const init=ALL_SHOWS.reduce((acc,sh)=>{acc[sh.date]={...sh,doorsConfirmed:false,curfewConfirmed:false,busArriveConfirmed:false,crewCallConfirmed:false,venueAccessConfirmed:false,mgTimeConfirmed:false,etaSource:"schedule",lastModified:Date.now()};return acc;},{});
     const merged={...init};if(s)Object.keys(s).forEach(k=>{if(merged[k])merged[k]={...merged[k],...s[k]};});
     setShows(merged);setRos(r||{});setAdvances(a||{});setFinance(f||{});
     if(se?.role)setRole(se.role);if(se?.tab)setTab(se.tab);if(se?.sel)setSel(se.sel);if(se?.aC)setAC(se.aC);
+    if(cr?.crew)setCrew(cr.crew);if(cr?.showCrew)setShowCrew(cr.showCrew);
     const[np,cp,it]=await Promise.all([sGP(PK.NOTES_PRIV),sGP(PK.CHECKLIST_PRIV),sGP(PK.INTEL)]);
     setNotesPriv(np||{});setCheckPriv(cp||{});setIntel(it||{});
     setLoaded(true);
@@ -358,9 +386,9 @@ export default function App(){
 
   const save=useCallback(()=>{
     if(!loaded)return;if(st.current)clearTimeout(st.current);
-    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC})]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
-  },[loaded,shows,ros,advances,finance,role,tab,sel,aC]);
-  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC]);
+    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC}),sS(SK.CREW,{crew,showCrew})]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
+  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew]);
+  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew]);
   useEffect(()=>{const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(v=>!v);}if(e.key==="Escape")setCmd(false);};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
 
   const uShow=useCallback((d,u)=>setShows(p=>({...p,[d]:{...p[d],...u,lastModified:Date.now()}})),[]);
@@ -375,13 +403,13 @@ export default function App(){
   if(!loaded||!shows)return(<div style={{background:"#F5F3EF",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"#64748b",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
   return(
-    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast}}>
+    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew}}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:#F5F3EF}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:3px}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#f0ede8!important}.rh:hover{background:#f8f7f5!important}`}</style>
       <div style={{fontFamily:"'Outfit',system-ui",background:"#F5F3EF",color:"#0f172a",minHeight:"100vh",width:"100%",maxWidth:"100vw",overflowX:"hidden",display:"flex",flexDirection:"column"}}>
         <TopBar ss={ss}/>
         <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,width:"100%",maxWidth:900,overflowX:"hidden"}}>
-          {tab==="dashboard"&&<Dash/>}{tab==="advance"&&<AdvTab/>}{tab==="ros"&&<ROSTab/>}{tab==="transport"&&<TransTab/>}{tab==="finance"&&<FinTab/>}{tab==="crew"&&<PH label="Crew"/>}
+          {tab==="dashboard"&&<Dash/>}{tab==="advance"&&<AdvTab/>}{tab==="ros"&&<ROSTab/>}{tab==="transport"&&<TransTab/>}{tab==="finance"&&<FinTab/>}{tab==="crew"&&<CrewTab/>}
         </div>
         {cmd&&<CmdP/>}
         {exp&&<ExportModal onClose={()=>setExp(false)}/>}
@@ -1144,6 +1172,137 @@ function CmdP(){
             <span style={{fontSize:8,color:"#94a3b8",fontFamily:MN}}>{r.type}</span>
           </div>)}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function CrewTab(){
+  const{sel,setSel,shows,cShows,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo}=useContext(Ctx);
+  const[panel,setPanel]=useState(null);
+  const[editMode,setEditMode]=useState(false);
+  const show=shows[sel];
+  const today=new Date().toISOString().slice(0,10);
+  const upcoming=cShows.filter(s=>s.date>=today);
+  const sc=showCrew[sel]||{};
+  const uid=()=>Math.random().toString(36).slice(2,9);
+
+  const getCD=(crewId)=>sc[crewId]||{attending:false,travelMode:"bus",inbound:[],outbound:[]};
+  const updateSC=(crewId,patch)=>setShowCrew(p=>({...p,[sel]:{...p[sel],[crewId]:{...getCD(crewId),...patch}}}));
+  const toggleAttending=(crewId)=>{const cd=getCD(crewId);updateSC(crewId,{attending:!cd.attending});};
+  const setTravelMode=(crewId,mode)=>updateSC(crewId,{travelMode:mode});
+  const addLeg=(crewId,dir)=>{const cd=getCD(crewId);const leg={id:uid(),flight:"",from:"",to:"",depart:"",arrive:"",conf:"",status:"pending"};updateSC(crewId,{[dir]:[...(cd[dir]||[]),leg]});setPanel({crewId});};
+  const updateLeg=(crewId,dir,legId,field,val)=>{const cd=getCD(crewId);updateSC(crewId,{[dir]:(cd[dir]||[]).map(l=>l.id===legId?{...l,[field]:val}:l)});};
+  const removeLeg=(crewId,dir,legId)=>{const cd=getCD(crewId);updateSC(crewId,{[dir]:(cd[dir]||[]).filter(l=>l.id!==legId)});};
+  const addMember=()=>setCrew(p=>[...p,{id:uid(),name:"",role:"",email:""}]);
+  const updateMember=(id,field,val)=>setCrew(p=>p.map(c=>c.id===id?{...c,[field]:val}:c));
+  const removeMember=(id)=>{const prev=crew;setCrew(p=>p.filter(c=>c.id!==id));pushUndo("Crew member removed.",()=>setCrew(prev));};
+
+  const attending=crew.filter(c=>getCD(c.id).attending);
+  const panelCrew=panel?crew.find(c=>c.id===panel.crewId):null;
+  const panelCD=panel?getCD(panel.crewId):null;
+
+  const TRAVEL_MODES=["bus","fly","local","vendor","drive"];
+  const LEG_STATUS=["pending","confirmed","cancelled"];
+  const inp={background:"#f5f3ef",border:"1px solid #d6d3cd",borderRadius:5,fontSize:10,padding:"4px 6px",outline:"none",width:"100%",fontFamily:"'Outfit',system-ui"};
+  const btn=(bg="#5B21B6",col="#fff")=>({background:bg,border:"none",borderRadius:6,color:col,fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700});
+
+  if(!show)return<div style={{padding:40,textAlign:"center",color:"#64748b"}}>Select a show.</div>;
+
+  return(
+    <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
+      {/* Show picker */}
+      <div style={{padding:"5px 20px",borderBottom:"1px solid #d6d3cd",background:"#fff",display:"flex",gap:2,overflowX:"auto",flexShrink:0}}>
+        {upcoming.slice(0,14).map(s=>{const isSel=s.date===sel;return(
+          <button key={s.date} onClick={()=>setSel(s.date)} style={{flexShrink:0,padding:"3px 9px",borderRadius:6,border:isSel?"2px solid #5B21B6":"1px solid #d6d3cd",background:isSel?"#fff":"#f5f3ef",color:isSel?"#0f172a":"#64748b",fontSize:9,fontWeight:isSel?700:500,cursor:"pointer"}}>
+            <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:9}}>{fD(s.date)}</div><div style={{fontSize:8}}>{s.city}</div>
+          </button>);})}
+      </div>
+      {/* Header */}
+      <div style={{padding:"6px 20px",borderBottom:"1px solid #ebe8e3",background:"#fff",display:"flex",gap:8,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
+        <span style={{fontWeight:700,fontSize:12}}>{show.venue}</span>
+        <span style={{fontSize:11,color:"#64748b"}}>{show.city} · {fFull(sel)}</span>
+        <span style={{fontSize:9,padding:"2px 7px",borderRadius:12,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>{attending.length} attending</span>
+        <div style={{marginLeft:"auto",display:"flex",gap:5}}>
+          <button onClick={()=>setEditMode(v=>!v)} style={btn(editMode?"#0f172a":"#f5f3ef",editMode?"#fff":"#475569")}>{editMode?"Done Editing":"Edit Roster"}</button>
+          <button onClick={addMember} style={btn()}>+ Add</button>
+        </div>
+      </div>
+      <div style={{flex:1,overflow:"auto",padding:"10px 20px 30px",display:"flex",flexDirection:"column",gap:10}}>
+        {/* Roster */}
+        <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,overflow:"hidden"}}>
+          <div style={{display:"grid",gridTemplateColumns:mobile?"28px 1fr 80px":"28px 1fr 90px 80px 80px 90px",gap:8,padding:"6px 12px",borderBottom:"1px solid #ebe8e3",fontSize:9,fontWeight:700,color:"#64748b",letterSpacing:"0.06em",textTransform:"uppercase"}}>
+            <div/><div>Name / Role</div><div>Travel</div>{!mobile&&<><div>Inbound</div><div>Outbound</div><div/></>}
+          </div>
+          {crew.map(c=>{
+            const cd=getCD(c.id);
+            const inOk=(cd.inbound||[]).some(l=>l.status==="confirmed");
+            const outOk=(cd.outbound||[]).some(l=>l.status==="confirmed");
+            return(
+              <div key={c.id} style={{display:"grid",gridTemplateColumns:mobile?"28px 1fr 80px":"28px 1fr 90px 80px 80px 90px",gap:8,padding:"7px 12px",borderBottom:"1px solid #f5f3ef",alignItems:"center"}}>
+                <div onClick={()=>toggleAttending(c.id)} style={{width:20,height:20,borderRadius:4,border:`2px solid ${cd.attending?"#047857":"#d6d3cd"}`,background:cd.attending?"#047857":"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:11,fontWeight:700,flexShrink:0}}>{cd.attending?"✓":""}</div>
+                {editMode?(
+                  <div style={{display:"flex",gap:4,alignItems:"center"}}>
+                    <input value={c.name} onChange={e=>updateMember(c.id,"name",e.target.value)} placeholder="Name" style={{...inp,flex:1}}/>
+                    <input value={c.role} onChange={e=>updateMember(c.id,"role",e.target.value)} placeholder="Role" style={{...inp,flex:1}}/>
+                    <input value={c.email} onChange={e=>updateMember(c.id,"email",e.target.value)} placeholder="Email" style={{...inp,flex:1}}/>
+                    <button onClick={()=>removeMember(c.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:14,flexShrink:0}}>×</button>
+                  </div>
+                ):(
+                  <div><div style={{fontWeight:600,fontSize:12}}>{c.name||<span style={{color:"#94a3b8"}}>New member</span>}</div><div style={{fontSize:10,color:"#64748b"}}>{c.role}</div></div>
+                )}
+                <div>{cd.attending&&<select value={cd.travelMode} onChange={e=>setTravelMode(c.id,e.target.value)} style={{...inp,width:"auto",padding:"3px 5px"}}>
+                  {TRAVEL_MODES.map(m=><option key={m} value={m}>{m.charAt(0).toUpperCase()+m.slice(1)}</option>)}
+                </select>}</div>
+                {!mobile&&<>
+                  <div>{cd.attending&&cd.travelMode==="fly"&&<span style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:inOk?"#D1FAE5":"#FEF3C7",color:inOk?"#047857":"#92400E",fontWeight:700}}>{inOk?"✓ OK":`${(cd.inbound||[]).length} leg${(cd.inbound||[]).length!==1?"s":""}`}</span>}{cd.attending&&cd.travelMode!=="fly"&&<span style={{fontSize:9,color:"#94a3b8",textTransform:"capitalize"}}>{cd.travelMode}</span>}</div>
+                  <div>{cd.attending&&cd.travelMode==="fly"&&<span style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:outOk?"#D1FAE5":"#FEF3C7",color:outOk?"#047857":"#92400E",fontWeight:700}}>{outOk?"✓ OK":`${(cd.outbound||[]).length} leg${(cd.outbound||[]).length!==1?"s":""}`}</span>}{cd.attending&&cd.travelMode!=="fly"&&<span style={{fontSize:9,color:"#94a3b8",textTransform:"capitalize"}}>{cd.travelMode}</span>}</div>
+                  <div>{cd.attending&&cd.travelMode==="fly"&&<button onClick={()=>setPanel(panel?.crewId===c.id?null:{crewId:c.id})} style={btn(panel?.crewId===c.id?"#0f172a":"#5B21B6")}>✈ Flights</button>}</div>
+                </>}
+              </div>
+            );
+          })}
+        </div>
+        {/* Flight panel */}
+        {panel&&panelCrew&&panelCD&&(
+          <div style={{background:"#fff",border:"2px solid #5B21B6",borderRadius:10,padding:"12px 14px"}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+              <span style={{fontSize:12,fontWeight:700}}>✈ {panelCrew.name}</span>
+              <span style={{fontSize:10,color:"#64748b"}}>{show.venue} · {fFull(sel)}</span>
+              <button onClick={()=>setPanel(null)} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",color:"#64748b",fontSize:16}}>×</button>
+            </div>
+            {["inbound","outbound"].map(dir=>(
+              <div key={dir} style={{marginBottom:12}}>
+                <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:6}}>{dir}</div>
+                {(panelCD[dir]||[]).map(leg=>(
+                  <div key={leg.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr 1fr":"1fr 1fr 1fr 1fr 1fr 90px 28px",gap:4,marginBottom:4,alignItems:"center"}}>
+                    {[["flight","Flight #"],["from","From"],["to","To"],["depart","Depart"],["arrive","Arrive"]].map(([k,ph])=>(
+                      <input key={k} placeholder={ph} value={leg[k]} onChange={e=>updateLeg(panel.crewId,dir,leg.id,k,e.target.value)} style={inp}/>
+                    ))}
+                    <select value={leg.status} onChange={e=>updateLeg(panel.crewId,dir,leg.id,"status",e.target.value)} style={{...inp,padding:"4px 4px"}}>
+                      {LEG_STATUS.map(s=><option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
+                    </select>
+                    <button onClick={()=>removeLeg(panel.crewId,dir,leg.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:14,padding:0}}>×</button>
+                  </div>
+                ))}
+                <button onClick={()=>addLeg(panel.crewId,dir)} style={btn("#047857")}>+ {dir.charAt(0).toUpperCase()+dir.slice(1)} Leg</button>
+              </div>
+            ))}
+          </div>
+        )}
+        {/* Summary */}
+        {attending.length>0&&(
+          <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"10px 12px"}}>
+            <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em",marginBottom:8}}>ATTENDING ({attending.length})</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+              {attending.map(c=>{const cd=getCD(c.id);return(
+                <span key={c.id} style={{fontSize:10,padding:"3px 9px",borderRadius:20,background:cd.travelMode==="fly"?"#EDE9FE":"#f1f5f9",color:cd.travelMode==="fly"?"#5B21B6":"#475569",fontWeight:600,border:"1px solid #e2e8f0"}}>
+                  {c.name} <span style={{opacity:0.6,fontSize:8,textTransform:"uppercase"}}>{cd.travelMode}</span>
+                </span>);
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
