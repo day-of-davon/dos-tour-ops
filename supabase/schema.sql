@@ -80,3 +80,12 @@ create policy "delete own or team"
     (team_id is null and auth.uid() = user_id)
     or team_id = 'dos-bbno-eu-2026'
   );
+
+-- ── Intel cache (server-side, service key only, no RLS needed) ─────────────
+-- Keyed by show_id (venue__date). Accessed only from api/intel.js via service key.
+create table if not exists intel_cache (
+  show_id     text        primary key,
+  intel       jsonb       not null,
+  gmail_threads_found int not null default 0,
+  cached_at   timestamptz not null default now()
+);
