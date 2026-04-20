@@ -90,21 +90,48 @@ module.exports = async function handler(req, res) {
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
 
   const queries = [
+    // Broad subject sweeps
     `subject:(flight confirmation) newer_than:365d`,
     `subject:(e-ticket) newer_than:365d`,
     `subject:(itinerary) (flight OR airline OR airways) newer_than:365d`,
     `subject:(booking confirmation) (flight OR airline OR airways) newer_than:365d`,
     `subject:(travel confirmation) (flight OR airline) newer_than:365d`,
+    `subject:(your flight) (confirmation OR booking OR itinerary) newer_than:365d`,
+    `subject:(boarding pass) newer_than:365d`,
+    `"booking reference" (flight OR departure OR arrival) newer_than:365d`,
+    // European LCCs
     `from:(noreply@ryanair.com) newer_than:365d`,
     `from:(no-reply@easyjet.com) newer_than:365d`,
-    `from:(donotreply@klm.com) OR from:(booking@klm.com) newer_than:365d`,
+    `from:(noreply@wizzair.com) newer_than:365d`,
+    `from:(booking@norwegian.com) OR from:(no-reply@norwegian.com) newer_than:365d`,
+    `from:(noreply@vueling.com) newer_than:365d`,
+    `from:(noreply@transavia.com) newer_than:365d`,
+    // European full-service
     `from:(noreply@lufthansa.com) newer_than:365d`,
     `from:(noreply@aerlingus.com) newer_than:365d`,
     `from:(noreply@ba.com) OR from:(customerrelations@ba.com) newer_than:365d`,
+    `from:(donotreply@klm.com) OR from:(booking@klm.com) newer_than:365d`,
+    `from:(noreply@airfrance.fr) OR from:(noreply@airfrance.com) newer_than:365d`,
+    `from:(noreply@iberia.com) newer_than:365d`,
+    `from:(noreply@swiss.com) newer_than:365d`,
+    `from:(noreply@austrian.com) newer_than:365d`,
+    `from:(noreply@brusselsairlines.com) newer_than:365d`,
+    `from:(noreply@finnair.com) newer_than:365d`,
+    `from:(noreply@flysas.com) OR from:(noreply@sas.se) newer_than:365d`,
+    `from:(noreply@tap.pt) newer_than:365d`,
+    `from:(noreply@turkishairlines.com) OR from:(thy@thy.com) newer_than:365d`,
+    // North American
     `from:(noreply@united.com) newer_than:365d`,
     `from:(DeltaAirLines@t.delta.com) newer_than:365d`,
-    `"booking reference" (flight OR departure OR arrival) newer_than:365d`,
-    `subject:(your flight) (confirmation OR booking OR itinerary) newer_than:365d`,
+    `from:(noreply@aa.com) OR from:(confirmations@aa.com) newer_than:365d`,
+    `from:(noreply@aircanada.com) newer_than:365d`,
+    `from:(noreply@westjet.com) newer_than:365d`,
+    `from:(noreply@alaskaair.com) newer_than:365d`,
+    `from:(noreply@jetblue.com) newer_than:365d`,
+    // Gulf / international
+    `from:(emirates@emails.emirates.com) OR from:(noreply@emirates.com) newer_than:365d`,
+    `from:(etihad@etihad.com) OR from:(noreply@etihad.com) newer_than:365d`,
+    `from:(noreply@qatarairways.com) newer_than:365d`,
   ];
 
   const seenIds = new Set();
@@ -118,7 +145,7 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  const ids = [...seenIds].slice(0, 40);
+  const ids = [...seenIds].slice(0, 60);
   if (!ids.length) return res.json({ flights: [], threadsFound: 0 });
 
   const threads = (await Promise.all(ids.map(id => gmailGetThread(googleToken, id))))
