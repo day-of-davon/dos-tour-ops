@@ -782,12 +782,30 @@ function SignOut(){
 }
 
 function TopBar({ss}){
-  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sorted,sel,setSel,setDateMenu,shows,orderedTabs,reorderTabs}=useContext(Ctx);
+  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sorted,sel,setSel,setDateMenu,shows,orderedTabs,reorderTabs,tourDays}=useContext(Ctx);
   const[dragId,setDragId]=useState(null);
   const[overId,setOverId]=useState(null);
   const a=useAuth();const userEmail=(a?.user?.email||"").toLowerCase();
   const curShow=shows?.[sel];
   const curClient=CM[aC];
+  // Label for the date-menu trigger. Prefers real show; falls back to tourDays for
+  // off/travel/split days (travel shows route; off shows "Off"; split shows "Split").
+  const curDateLabel=useMemo(()=>{
+    if(!sel)return "Dates";
+    const td=tourDays?.[sel];
+    if(curShow){
+      const isNon=curShow.type==="travel"||curShow.type==="off";
+      const routeOrLabel=isNon&&td?.bus?.route?td.bus.route:(curShow.city||curShow.venue||"—");
+      return `${fD(sel)} · ${routeOrLabel}`;
+    }
+    if(td){
+      if(td.type==="travel"&&td.bus?.route)return `${fD(sel)} · ${td.bus.route}`;
+      if(td.type==="split")return `${fD(sel)} · Split Day`;
+      if(td.type==="off")return `${fD(sel)} · Off`;
+      if(td.city||td.venue)return `${fD(sel)} · ${td.city||td.venue}`;
+    }
+    return `${fD(sel)}`;
+  },[sel,curShow,tourDays]);
   const canSeeFestivals=FESTIVAL_ACCESS_EMAILS.some(e=>e.toLowerCase()===userEmail);
   const activeClients=CLIENTS.filter(c=>c.status==="active"&&(c.type!=="festival"||canSeeFestivals));
   // Guard: if current active client isn't in the visible list, reset to bbn
@@ -800,7 +818,7 @@ function TopBar({ss}){
           <span style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>v7.0</span>
           {next&&<span style={{fontSize:10,fontFamily:MN,color:"#5B21B6",fontWeight:600,marginLeft:4}}>{next.city} {fD(next.date)} · {dU(next.date)}d</span>}
           <button onClick={()=>setDateMenu(true)} title="Open dates menu" style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid #d6d3cd",background:"#f5f3ef",color:"#0f172a",fontFamily:MN,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
-            <span style={{fontSize:11}}>☰</span>{curShow?`${fD(curShow.date)} · ${curShow.city||curShow.venue||"—"}`:"Dates"}
+            <span style={{fontSize:11}}>☰</span>{curDateLabel}
           </button>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,minWidth:0,maxWidth:"100%"}}>
