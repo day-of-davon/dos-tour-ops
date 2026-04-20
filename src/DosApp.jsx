@@ -365,6 +365,7 @@ export default function App(){
   const[crew,setCrew]=useState(DEFAULT_CREW);
   const[showCrew,setShowCrew]=useState({});
   const[production,setProduction]=useState({});
+  const[tabOrder,setTabOrder]=useState(null);
   const[refreshMsg,setRefreshMsg]=useState("");
   const[exp,setExp]=useState(false);
   const[undoToast,setUndoToast]=useState(null);
@@ -378,6 +379,7 @@ export default function App(){
     const merged={...init};if(s)Object.keys(s).forEach(k=>{if(merged[k])merged[k]={...merged[k],...s[k]};});
     setShows(merged);setRos(r||{});setAdvances(a||{});setFinance(f||{});
     if(se?.role)setRole(se.role);if(se?.tab)setTab(se.tab);if(se?.sel)setSel(se.sel);if(se?.aC)setAC(se.aC);
+    if(Array.isArray(se?.tabOrder))setTabOrder(se.tabOrder);
     if(cr?.crew)setCrew(cr.crew);if(cr?.showCrew)setShowCrew(cr.showCrew);
     setProduction(pr||{});
     const[np,cp,it]=await Promise.all([sGP(PK.NOTES_PRIV),sGP(PK.CHECKLIST_PRIV),sGP(PK.INTEL)]);
@@ -437,9 +439,9 @@ export default function App(){
 
   const save=useCallback(()=>{
     if(!loaded)return;if(st.current)clearTimeout(st.current);
-    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
+    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
   },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production]);
-  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production]);
+  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder]);
   useEffect(()=>{const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(v=>!v);}if(e.key==="Escape")setCmd(false);};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
 
   const uShow=useCallback((d,u)=>setShows(p=>({...p,[d]:{...p[d],...u,lastModified:Date.now()}})),[]);
@@ -478,10 +480,29 @@ export default function App(){
   },[sorted]);
   const tourDaysSorted=useMemo(()=>Object.values(tourDays).sort((a,b)=>a.date.localeCompare(b.date)),[tourDays]);
 
+  // Ordered tabs: apply saved tabOrder, append any tabs not in saved order (handles new tabs added in code)
+  const orderedTabs=useMemo(()=>{
+    if(!Array.isArray(tabOrder)||!tabOrder.length)return TABS;
+    const byId=TABS.reduce((a,t)=>{a[t.id]=t;return a;},{});
+    const seen=new Set();
+    const out=[];
+    for(const id of tabOrder){if(byId[id]&&!seen.has(id)){out.push(byId[id]);seen.add(id);}}
+    for(const t of TABS){if(!seen.has(t.id))out.push(t);}
+    return out;
+  },[tabOrder]);
+  const reorderTabs=useCallback((fromId,toId)=>{
+    if(fromId===toId)return;
+    const ids=orderedTabs.map(t=>t.id);
+    const fi=ids.indexOf(fromId),ti=ids.indexOf(toId);
+    if(fi<0||ti<0)return;
+    const next=[...ids];const[moved]=next.splice(fi,1);next.splice(ti,0,moved);
+    setTabOrder(next);
+  },[orderedTabs]);
+
   if(!loaded||!shows)return(<div style={{background:"#F5F3EF",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"#64748b",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
   return(
-    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted}}>
+    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs}}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:#F5F3EF}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:3px}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#f0ede8!important}.rh:hover{background:#f8f7f5!important}`}</style>
       <div style={{fontFamily:"'Outfit',system-ui",background:"#F5F3EF",color:"#0f172a",minHeight:"100vh",width:"100%",maxWidth:"100vw",overflowX:"hidden",display:"flex",flexDirection:"column"}}>
@@ -761,7 +782,9 @@ function SignOut(){
 }
 
 function TopBar({ss}){
-  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sorted,sel,setSel,setDateMenu,shows}=useContext(Ctx);
+  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sorted,sel,setSel,setDateMenu,shows,orderedTabs,reorderTabs}=useContext(Ctx);
+  const[dragId,setDragId]=useState(null);
+  const[overId,setOverId]=useState(null);
   const a=useAuth();const userEmail=(a?.user?.email||"").toLowerCase();
   const curShow=shows?.[sel];
   const curClient=CM[aC];
@@ -796,7 +819,25 @@ function TopBar({ss}){
         </select>
       </div>
       <div style={{display:"flex",padding:"0 20px",width:"100%",maxWidth:900,overflowX:"auto",overflowY:"hidden",scrollbarWidth:"thin",WebkitOverflowScrolling:"touch"}}>
-        {TABS.map(t=><button key={t.id} onClick={()=>!t.disabled&&setTab(t.id)} style={{padding:"6px 12px",fontSize:11,fontWeight:tab===t.id?700:500,color:t.disabled?"#c4bfb6":tab===t.id?"#0f172a":"#64748b",background:"none",border:"none",cursor:t.disabled?"default":"pointer",borderBottom:tab===t.id?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:4,flexShrink:0,whiteSpace:"nowrap"}}><span style={{fontSize:10}}>{t.icon}</span>{t.label}{t.soon&&<span style={{fontSize:7,color:"#c4bfb6"}}>soon</span>}</button>)}
+        {(orderedTabs||TABS).map(t=>{
+          const isDrag=dragId===t.id;
+          const isOver=overId===t.id&&dragId&&dragId!==t.id;
+          return(
+            <button
+              key={t.id}
+              draggable={!t.disabled}
+              onDragStart={e=>{if(t.disabled)return;setDragId(t.id);e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",t.id);}catch{}}}
+              onDragOver={e=>{if(!dragId||t.disabled)return;e.preventDefault();e.dataTransfer.dropEffect="move";setOverId(t.id);}}
+              onDragLeave={()=>{if(overId===t.id)setOverId(null);}}
+              onDrop={e=>{e.preventDefault();if(dragId&&dragId!==t.id&&reorderTabs)reorderTabs(dragId,t.id);setDragId(null);setOverId(null);}}
+              onDragEnd={()=>{setDragId(null);setOverId(null);}}
+              onClick={()=>!t.disabled&&setTab(t.id)}
+              style={{padding:"6px 12px",fontSize:11,fontWeight:tab===t.id?700:500,color:t.disabled?"#c4bfb6":tab===t.id?"#0f172a":"#64748b",background:isOver?"#EDE9FE":"none",border:"none",cursor:t.disabled?"default":isDrag?"grabbing":"grab",borderBottom:tab===t.id?"2px solid #5B21B6":isOver?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:4,flexShrink:0,whiteSpace:"nowrap",opacity:isDrag?0.4:1,transition:"opacity .1s,background .1s",userSelect:"none"}}
+            >
+              <span style={{fontSize:10}}>{t.icon}</span>{t.label}{t.soon&&<span style={{fontSize:7,color:"#c4bfb6"}}>soon</span>}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
