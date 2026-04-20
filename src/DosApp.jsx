@@ -1417,32 +1417,64 @@ function AnchorTimes({b,setBF}){
 
 function FlightDayStrip({sel}){
   const{flights}=useContext(Ctx);
-  const dayFlights=Object.values(flights).filter(f=>f.status==="confirmed"&&(f.depDate===sel||f.arrDate===sel));
-  if(!dayFlights.length)return null;
+  const[open,setOpen]=useState(true);
+  const deps=Object.values(flights).filter(f=>f.status==="confirmed"&&f.depDate===sel);
+  const arrs=Object.values(flights).filter(f=>f.status==="confirmed"&&f.arrDate===sel&&f.arrDate!==f.depDate);
+  if(!deps.length&&!arrs.length)return null;
+  const total=deps.length+arrs.length;
   return(
-    <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:8}}>
-      {dayFlights.map(f=>{
-        const isDep=f.depDate===sel;
-        const isArr=f.arrDate===sel&&f.arrDate!==f.depDate;
-        const isOvernight=f.arrDate&&f.arrDate!==f.depDate;
-        return(
-          <div key={f.id} style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8,padding:"7px 11px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-            <span style={{fontSize:9,fontWeight:800,color:"#1E40AF",fontFamily:MN}}>{f.from}<span style={{fontWeight:400,padding:"0 4px",color:"#93C5FD"}}>→</span>{f.to}</span>
-            <span style={{fontSize:9,fontWeight:700,color:"#1D4ED8"}}>{f.flightNo||f.carrier}</span>
-            {isDep&&f.dep&&<span style={{fontSize:8,background:"#DBEAFE",color:"#1E40AF",padding:"2px 6px",borderRadius:5,fontWeight:700,fontFamily:MN}}>DEP {f.dep}</span>}
-            {isArr&&f.arr&&<span style={{fontSize:8,background:"#D1FAE5",color:"#047857",padding:"2px 6px",borderRadius:5,fontWeight:700,fontFamily:MN}}>ARR {f.arr}</span>}
-            {isDep&&isOvernight&&<span style={{fontSize:8,color:"#64748b"}}>arrives {f.arrDate?.slice(5)}</span>}
-            {f.pax?.length>0&&<span style={{fontSize:8,color:"#475569"}}>{f.pax.join(", ")}</span>}
-            {f.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"#94a3b8"}}>#{f.confirmNo}</span>}
-          </div>
-        );
-      })}
+    <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:10,marginBottom:10,overflow:"hidden"}}>
+      <div onClick={()=>setOpen(v=>!v)} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",cursor:"pointer",userSelect:"none"}}>
+        <span style={{fontSize:10,fontWeight:800,color:"#1E40AF",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
+        {deps.length>0&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#DBEAFE",color:"#1E40AF",fontWeight:700}}>{deps.length} DEP</span>}
+        {arrs.length>0&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#D1FAE5",color:"#047857",fontWeight:700}}>{arrs.length} ARR</span>}
+        <span style={{marginLeft:"auto",fontSize:10,color:"#93C5FD"}}>{open?"▾":"▸"}</span>
+      </div>
+      {open&&(
+        <div style={{borderTop:"1px solid #BFDBFE",display:"flex",flexDirection:"column",gap:0}}>
+          {[...deps.map(f=>({f,role:"dep"})),...arrs.map(f=>({f,role:"arr"}))].map(({f,role},i,arr)=>{
+            const isDep=role==="dep";
+            const sameDay=f.depDate===f.arrDate;
+            return(
+              <div key={f.id} style={{padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #DBEAFE":"none",display:"grid",gridTemplateColumns:"auto 1fr auto",gap:"6px 12px",alignItems:"center"}}>
+                {/* Left: type badge */}
+                <div style={{display:"flex",flexDirection:"column",gap:3,alignItems:"center"}}>
+                  <span style={{fontSize:7,fontWeight:800,padding:"2px 5px",borderRadius:4,background:isDep?"#1E40AF":"#047857",color:"#fff",letterSpacing:"0.06em"}}>{isDep?"DEP":"ARR"}</span>
+                </div>
+                {/* Center: flight info */}
+                <div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:3}}>
+                    <span style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#1E40AF"}}>{f.from}<span style={{fontSize:10,color:"#93C5FD",fontWeight:400,padding:"0 4px"}}>→</span>{f.to}</span>
+                    <span style={{fontSize:10,fontWeight:700,color:"#1D4ED8"}}>{f.flightNo||f.carrier}</span>
+                    {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:"#64748b"}}>{f.carrier}</span>}
+                    {f.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"#94a3b8"}}>#{f.confirmNo}</span>}
+                  </div>
+                  {f.pax?.length>0&&<div style={{fontSize:9,color:"#475569"}}>{f.pax.join(", ")}</div>}
+                </div>
+                {/* Right: times */}
+                <div style={{textAlign:"right"}}>
+                  <div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"flex-end"}}>
+                    {f.dep&&<div style={{display:"flex",alignItems:"center",gap:5}}>
+                      <span style={{fontSize:8,color:"#1E40AF",fontWeight:700}}>DEP</span>
+                      <span style={{fontFamily:MN,fontSize:12,fontWeight:800,color:"#1E40AF"}}>{f.dep}</span>
+                    </div>}
+                    {f.arr&&<div style={{display:"flex",alignItems:"center",gap:5}}>
+                      <span style={{fontSize:8,color:"#047857",fontWeight:700}}>ARR{!sameDay?` ${f.arrDate?.slice(5)}`:""}</span>
+                      <span style={{fontFamily:MN,fontSize:12,fontWeight:800,color:"#047857"}}>{f.arr}</span>
+                    </div>}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 function DayScheduleView({show,bus,split,sel}){
-  const{uShow,uRos,gRos,shows,aC}=useContext(Ctx);
+  const{uShow,uRos,gRos,shows,aC,flights}=useContext(Ctx);
   const isTravel=show.type==="travel";
   const isSplit=show.type==="split";
   const isStored=!!shows?.[sel];
@@ -1459,11 +1491,31 @@ function DayScheduleView({show,bus,split,sel}){
   const[newItem,setNewItem]=useState({time:"",label:"",notes:""});
   const[editItemId,setEditItemId]=useState(null);
   const allItems=gRos(sel)||[];
-  const dayItems=allItems.filter(b=>b.isDayItem);
-  const sortedItems=useMemo(()=>[...dayItems].sort((a,b)=>{
-    if(a.startMin!=null&&b.startMin!=null)return a.startMin-b.startMin;
-    if(a.startMin!=null)return -1;if(b.startMin!=null)return 1;return 0;
-  }),[dayItems]);
+  const dayItems=allItems.filter(b=>b.isDayItem&&!b.flightId);
+
+  // Unified timeline: bus + flights + schedule items sorted by time
+  const timeline=useMemo(()=>{
+    const items=[];
+    // Bus segment
+    if(isTravel&&bus){
+      const depMin=hhmmToMin(bus.dep);
+      const arrMin=hhmmToMin(bus.arr);
+      items.push({type:"bus",id:"bus",sortMin:depMin??-1,bus,depMin,arrMin});
+    }
+    // Departing flights
+    Object.values(flights).filter(f=>f.status==="confirmed"&&f.depDate===sel).forEach(f=>{
+      items.push({type:"flight",id:f.id,sortMin:hhmmToMin(f.dep)??-1,f,role:"dep"});
+    });
+    // Arriving flights (overnight — arrived from prev day)
+    Object.values(flights).filter(f=>f.status==="confirmed"&&f.arrDate===sel&&f.arrDate!==f.depDate).forEach(f=>{
+      items.push({type:"flight",id:`${f.id}_arr`,sortMin:hhmmToMin(f.arr)??-1,f,role:"arr"});
+    });
+    // Schedule items
+    dayItems.forEach(b=>{
+      items.push({type:"item",id:b.id,sortMin:b.startMin??-1,b});
+    });
+    return items.sort((a,b)=>a.sortMin-b.sortMin);
+  },[isTravel,bus,flights,sel,dayItems]);
 
   const ensureStored=()=>{if(!isStored)uShow(sel,{date:sel,clientId:aC,type:show.type||"off",city:show.city||"",venue:show.venue||"",advance:[],doors:0,curfew:0,busArrive:0,crewCall:0,venueAccess:0,mgTime:0,notes:""});};
   const saveNotes=()=>{ensureStored();uShow(sel,{notes:notesVal});setEditNotes(false);};
@@ -1533,28 +1585,6 @@ function DayScheduleView({show,bus,split,sel}){
         </div>
       )}
 
-      {/* Bus card */}
-      {isTravel&&bus&&(
-        <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"14px 16px",marginBottom:12}}>
-          <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.08em",marginBottom:8}}>BUS SEGMENT · PIETER SMIT T26-021201</div>
-          <div style={{fontSize:14,fontWeight:700,color:"#0f172a",marginBottom:12}}>{bus.route}</div>
-          <div style={{display:"flex",gap:20,flexWrap:"wrap",marginBottom:bus.note||bus.flag?10:0}}>
-            {[{l:"Distance",v:`${bus.km} km`,hide:!bus.km},{l:"Drive Time",v:bus.drive},{l:"Departure",v:bus.dep},{l:"Arrival",v:bus.arr}].filter(s=>!s.hide&&s.v!=="—").map((s,i)=>(
-              <div key={i}>
-                <div style={{fontSize:8,color:"#64748b",fontWeight:600,marginBottom:2}}>{s.l}</div>
-                <div style={{fontFamily:MN,fontSize:14,fontWeight:800,color:"#0f172a"}}>{s.v}</div>
-              </div>
-            ))}
-          </div>
-          {bus.flag==="⚠"&&<div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:7,padding:"7px 10px",fontSize:9,color:"#DC2626",fontWeight:600,marginTop:6}}>⚠ {bus.note||"HOS flag — review hours of service compliance"}</div>}
-          {bus.note&&bus.flag!=="⚠"&&<div style={{fontSize:9,color:"#94a3b8",marginTop:6,fontStyle:"italic"}}>{bus.note}</div>}
-          {bus.day&&<div style={{marginTop:8,fontSize:8,color:"#94a3b8",fontFamily:MN}}>Tour Day {bus.day} of 30</div>}
-        </div>
-      )}
-      {isTravel&&!bus&&(
-        <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"14px 16px",marginBottom:12,color:"#94a3b8",fontSize:10,textAlign:"center"}}>No bus data on file for this travel day.</div>
-      )}
-
       {/* Split card */}
       {split&&(
         <div style={{background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
@@ -1572,10 +1602,10 @@ function DayScheduleView({show,bus,split,sel}){
         </div>
       )}
 
-      {/* Schedule items */}
+      {/* Unified timeline: bus + flights + schedule items */}
       <div style={{marginBottom:14}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-          <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.08em"}}>SCHEDULE{sortedItems.length>0?` · ${sortedItems.length} ITEM${sortedItems.length>1?"S":""}`:" ITEMS"}</div>
+          <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.08em"}}>TIMELINE{timeline.length>0?` · ${timeline.length}`:""}</div>
           <button onClick={()=>setAddingItem(true)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid #5B21B6",background:"#EDE9FE",color:"#5B21B6",cursor:"pointer",fontWeight:700}}>+ Add Item</button>
         </div>
         {addingItem&&(
@@ -1587,50 +1617,107 @@ function DayScheduleView({show,bus,split,sel}){
             <input placeholder="Notes (optional)" value={newItem.notes} onChange={e=>setNewItem(p=>({...p,notes:e.target.value}))} style={{...UI.input,width:"100%",marginBottom:6,boxSizing:"border-box"}}/>
             <div style={{display:"flex",gap:6}}>
               <button onClick={addItem} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Add</button>
-              <button onClick={()=>{setAddingItem(false);setNewItem({time:"",label:"",notes:""}); }} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Cancel</button>
+              <button onClick={()=>{setAddingItem(false);setNewItem({time:"",label:"",notes:""});}} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Cancel</button>
             </div>
           </div>
         )}
-        {sortedItems.length>0?sortedItems.map(item=>{
-          const isEditing=editItemId===item.id;
-          return(
-            <div key={item.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"8px 10px",background:"#fff",border:`1px solid ${isEditing?"#5B21B6":"#d6d3cd"}`,borderRadius:8,marginBottom:4}}>
-              {isEditing?(
-                <div style={{flex:1,display:"flex",flexDirection:"column",gap:5}}>
-                  <div style={{display:"flex",gap:5}}>
-                    <input defaultValue={item.time||""} onChange={e=>updateItem(item.id,{time:e.target.value})} placeholder="Time" style={{...UI.input,width:100,fontFamily:MN}}/>
-                    <input defaultValue={item.label} onChange={e=>updateItem(item.id,{label:e.target.value})} placeholder="Label" style={{...UI.input,flex:1}}/>
+        <div style={{display:"flex",flexDirection:"column",gap:4}}>
+          {timeline.map(entry=>{
+            if(entry.type==="bus"){
+              const{bus:b,depMin,arrMin}=entry;
+              return(
+                <div key="bus" style={{display:"flex",alignItems:"flex-start",gap:8,padding:"10px 12px",background:"#fff",border:"1px solid #d6d3cd",borderRadius:8}}>
+                  <div style={{width:44,flexShrink:0,textAlign:"right"}}>
+                    {depMin!=null&&<div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#1E40AF"}}>{fmt(depMin)}</div>}
+                    {arrMin!=null&&<div style={{fontFamily:MN,fontSize:9,color:"#64748b"}}>{fmt(arrMin)}</div>}
                   </div>
-                  <input defaultValue={item.notes||""} onChange={e=>updateItem(item.id,{notes:e.target.value})} placeholder="Notes" style={{...UI.input,width:"100%",boxSizing:"border-box"}}/>
-                  <div style={{display:"flex",gap:5}}>
-                    <button onClick={()=>setEditItemId(null)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Done</button>
-                    <button onClick={()=>{removeItem(item.id);setEditItemId(null);}} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid #FECACA",background:"#FEF2F2",color:"#DC2626",cursor:"pointer"}}>Delete</button>
+                  <div style={{width:3,alignSelf:"stretch",background:"#1E40AF",borderRadius:2,opacity:0.4,flexShrink:0}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+                      <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:"#DBEAFE",color:"#1E40AF",letterSpacing:"0.04em"}}>BUS</span>
+                      <span style={{fontSize:11,fontWeight:700,color:"#0f172a"}}>{b.route}</span>
+                      {b.flag==="⚠"&&<span style={{fontSize:9,color:"#DC2626"}}>⚠</span>}
+                    </div>
+                    <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                      {b.km&&<span style={{fontSize:9,color:"#64748b"}}>{b.km} km</span>}
+                      {b.drive&&b.drive!=="—"&&<span style={{fontSize:9,color:"#64748b"}}>{b.drive} drive</span>}
+                      {b.day&&<span style={{fontFamily:MN,fontSize:8,color:"#94a3b8"}}>Day {b.day}/30</span>}
+                    </div>
+                    {b.flag==="⚠"&&b.note&&<div style={{fontSize:9,color:"#DC2626",marginTop:3,fontWeight:600}}>{b.note}</div>}
+                    {b.note&&b.flag!=="⚠"&&<div style={{fontSize:9,color:"#94a3b8",marginTop:2,fontStyle:"italic"}}>{b.note}</div>}
                   </div>
                 </div>
-              ):(
-                <>
-                  <div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#5B21B6",width:44,flexShrink:0,paddingTop:1,textAlign:"right"}}>{item.startMin!=null?fmt(item.startMin):item.time||"—"}</div>
-                  <div style={{width:3,height:32,background:"#5B21B6",borderRadius:2,flexShrink:0,opacity:0.5,alignSelf:"center"}}/>
-                  <div style={{flex:1,minWidth:0,cursor:"pointer"}} onClick={()=>setEditItemId(item.id)}>
-                    <div style={{fontSize:11,fontWeight:600,color:"#0f172a"}}>{item.label}</div>
-                    {item.notes&&<div style={{fontSize:9,color:"#64748b",marginTop:2}}>{item.notes}</div>}
+              );
+            }
+            if(entry.type==="flight"){
+              const{f,role}=entry;
+              const isDep=role==="dep";
+              const sameDay=f.depDate===f.arrDate;
+              return(
+                <div key={entry.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"10px 12px",background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8}}>
+                  <div style={{width:44,flexShrink:0,textAlign:"right"}}>
+                    {isDep&&f.dep&&<div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#1E40AF"}}>{f.dep}</div>}
+                    {isDep&&f.arr&&<div style={{fontFamily:MN,fontSize:9,color:"#047857"}}>{f.arr}{!sameDay?` (${f.arrDate?.slice(5)})`:""}</div>}
+                    {!isDep&&f.arr&&<div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#047857"}}>{f.arr}</div>}
                   </div>
-                  <button onClick={()=>setEditItemId(item.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#94a3b8",fontSize:11,padding:"0 2px",flexShrink:0}}>✏</button>
-                </>
-              )}
-            </div>
-          );
-        }):(
-          !addingItem&&(
-            <div style={{padding:"18px 0",textAlign:"center",background:"#F8FAFC",border:"1px dashed #d6d3cd",borderRadius:8}}>
-              <div style={{fontSize:10,color:"#94a3b8"}}>No schedule items. Add meals, check-ins, promo events, media, etc.</div>
-            </div>
-          )
+                  <div style={{width:3,alignSelf:"stretch",background:isDep?"#1E40AF":"#047857",borderRadius:2,opacity:0.5,flexShrink:0}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
+                      <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:isDep?"#1E40AF":"#047857",color:"#fff",letterSpacing:"0.04em"}}>{isDep?"✈ DEP":"✈ ARR"}</span>
+                      <span style={{fontFamily:MN,fontSize:11,fontWeight:800,color:"#1E40AF"}}>{f.from}<span style={{fontWeight:400,color:"#93C5FD",padding:"0 3px"}}>→</span>{f.to}</span>
+                      <span style={{fontSize:10,fontWeight:700,color:"#1D4ED8"}}>{f.flightNo||f.carrier}</span>
+                      {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:"#64748b"}}>{f.carrier}</span>}
+                    </div>
+                    <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                      {f.pax?.length>0&&<span style={{fontSize:9,color:"#475569"}}>{f.pax.join(", ")}</span>}
+                      {f.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"#94a3b8"}}>#{f.confirmNo}</span>}
+                      {f.fromCity&&isDep&&<span style={{fontSize:9,color:"#64748b"}}>{f.fromCity}</span>}
+                      {f.toCity&&<span style={{fontSize:9,color:"#64748b"}}>{isDep?"→ ":""}{f.toCity}</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            // type === "item"
+            const item=entry.b;const isEditing=editItemId===item.id;
+            return(
+              <div key={item.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"8px 10px",background:"#fff",border:`1px solid ${isEditing?"#5B21B6":"#d6d3cd"}`,borderRadius:8}}>
+                {isEditing?(
+                  <div style={{flex:1,display:"flex",flexDirection:"column",gap:5}}>
+                    <div style={{display:"flex",gap:5}}>
+                      <input defaultValue={item.time||""} onChange={e=>updateItem(item.id,{time:e.target.value})} placeholder="Time" style={{...UI.input,width:100,fontFamily:MN}}/>
+                      <input defaultValue={item.label} onChange={e=>updateItem(item.id,{label:e.target.value})} placeholder="Label" style={{...UI.input,flex:1}}/>
+                    </div>
+                    <input defaultValue={item.notes||""} onChange={e=>updateItem(item.id,{notes:e.target.value})} placeholder="Notes" style={{...UI.input,width:"100%",boxSizing:"border-box"}}/>
+                    <div style={{display:"flex",gap:5}}>
+                      <button onClick={()=>setEditItemId(null)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Done</button>
+                      <button onClick={()=>{removeItem(item.id);setEditItemId(null);}} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid #FECACA",background:"#FEF2F2",color:"#DC2626",cursor:"pointer"}}>Delete</button>
+                    </div>
+                  </div>
+                ):(
+                  <>
+                    <div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#5B21B6",width:44,flexShrink:0,paddingTop:1,textAlign:"right"}}>{item.startMin!=null?fmt(item.startMin):item.time||"—"}</div>
+                    <div style={{width:3,height:32,background:"#5B21B6",borderRadius:2,flexShrink:0,opacity:0.5,alignSelf:"center"}}/>
+                    <div style={{flex:1,minWidth:0,cursor:"pointer"}} onClick={()=>setEditItemId(item.id)}>
+                      <div style={{fontSize:11,fontWeight:600,color:"#0f172a"}}>{item.label}</div>
+                      {item.notes&&<div style={{fontSize:9,color:"#64748b",marginTop:2}}>{item.notes}</div>}
+                    </div>
+                    <button onClick={()=>setEditItemId(item.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#94a3b8",fontSize:11,padding:"0 2px",flexShrink:0}}>✏</button>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {timeline.length===0&&!addingItem&&(
+          <div style={{padding:"18px 0",textAlign:"center",background:"#F8FAFC",border:"1px dashed #d6d3cd",borderRadius:8}}>
+            <div style={{fontSize:10,color:"#94a3b8"}}>No items. Add meals, check-ins, promo events, etc.</div>
+          </div>
         )}
       </div>
 
       {/* Off-day empty state when no items, no bus, no split */}
-      {!isTravel&&!split&&sortedItems.length===0&&!addingItem&&(
+      {!isTravel&&!split&&timeline.length===0&&!addingItem&&(
         <div style={{padding:"24px 0",textAlign:"center"}}>
           <div style={{fontSize:20,marginBottom:6,opacity:0.25}}>◌</div>
           <div style={{fontSize:11,fontWeight:600,color:"#0f172a",marginBottom:3}}>Rest Day</div>
