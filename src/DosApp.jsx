@@ -1588,7 +1588,41 @@ function CrewTab(){
 function PH({label}){return<div className="fi" style={{padding:40,textAlign:"center",color:"#64748b"}}><div style={{fontSize:14,fontWeight:700,marginBottom:6,color:"#475569"}}>{label}</div><div style={{fontSize:11}}>Coming in a future phase.</div></div>;}
 
 // ── Production Intelligence Engine (PIE) ────────────────────────────────────
-const PROD_DEPTS=["ALL","LIGHTING","VIDEO","AUDIO","LASERS","POWER_DISTRO","STAGING","TRANSPORT","SFX","OTHER"];
+
+// Equipment manifest seeded from bbno$ EU Production Binder
+// Neg Earth 26-1273 | Sonalyst 26-0097 | Design Spec v1.0.0
+const MANIFEST_SEED=[
+  // LIGHTING
+  {id:"s1",department:"LIGHTING",item_name:"Ayrton Diablo S (550W Profile)",model_ref:"Ayrton Diablo S",qty:8,weight_kg:21.8,power_w:550,ip_rating:"IP20",rig_position:"fly",is_package:false,notes:"DESIGN SPEC. Neg Earth quoted Perseo-S instead. IP20. Profile/beam/effects hybrid.",vendor_name:"Design Spec v1.0.0",vendor_quote_ref:"v1.0.0",source_type:"design_spec",spec_source:"fixture_specs",visible_venue:true,has_discrepancy:true,discrepancy_type:"FIXTURE MISMATCH",flag_severity:"HIGH",flag_note:"Neg Earth quoted Perseo-S instead — confirm with Sheck before PO",included:true},
+  {id:"s2",department:"LIGHTING",item_name:"Ayrton Perseo-S (Neg Earth actual)",model_ref:"Ayrton Perseo-S",qty:8,weight_kg:26,power_w:520,ip_rating:"IP65",rig_position:"fly",is_package:false,notes:"QUOTED substitute for Diablo. Beam fixture, different category. Requires Sheck sign-off.",vendor_name:"Neg Earth",vendor_quote_ref:"26-1273",source_type:"quote",spec_source:"fixture_specs",visible_venue:true,has_discrepancy:true,discrepancy_type:"FIXTURE MISMATCH",flag_severity:"HIGH",flag_note:"NOT per design spec — confirm with Sheck",included:true},
+  {id:"s3",department:"LIGHTING",item_name:"GLP JDC2 IP (Hybrid LED Strobe)",model_ref:"GLP JDC2 IP",qty:16,weight_kg:24,power_w:1500,ip_rating:"IP65",rig_position:"fly",is_package:false,notes:"DigiFX + NDI. 180° tilt. Dedicated circuit per unit.",vendor_name:"Neg Earth",vendor_quote_ref:"26-1273",source_type:"quote",spec_source:"fixture_specs",visible_venue:true,has_discrepancy:false,included:true},
+  {id:"s4",department:"LIGHTING",item_name:"ACME Pixel Line IP (STROBE 3 IP, RGBW)",model_ref:"ACME Pixel Line IP",qty:12,weight_kg:4.5,power_w:420,ip_rating:"IP66",rig_position:"fly",is_package:false,notes:"672 RGB + 112 CW LEDs, 32 sections. Smart Glass Technology.",vendor_name:"Neg Earth",vendor_quote_ref:"26-1273",source_type:"quote",spec_source:"fixture_specs",visible_venue:true,has_discrepancy:false,included:true},
+  {id:"s5",department:"LIGHTING",item_name:"Look Solutions Unique 2.1 Hazer (DMX)",model_ref:"Look Solutions Unique 2.1",qty:2,weight_kg:14,power_w:500,ip_rating:null,rig_position:"ground",is_package:false,notes:"DMX-controlled touring hazer.",vendor_name:"Neg Earth",vendor_quote_ref:"26-1273",source_type:"quote",spec_source:"fixture_specs",visible_venue:true,has_discrepancy:false,included:true},
+  {id:"s6",department:"LIGHTING",item_name:"ProFan DMX Effect Fan",model_ref:null,qty:2,weight_kg:7,power_w:150,ip_rating:null,rig_position:"ground",is_package:false,notes:"DMX fan. Used with hazer.",vendor_name:"Neg Earth",vendor_quote_ref:"26-1273",source_type:"quote",spec_source:"quote",visible_venue:true,has_discrepancy:false,included:true},
+  {id:"s7",department:"LIGHTING",item_name:"10' HUD Black Box Truss Section",model_ref:null,qty:6,weight_kg:9,power_w:null,ip_rating:null,rig_position:"fly",is_package:false,notes:"Neg Earth spec. Design calls Tyler Truss GT 10' — confirm compatibility.",vendor_name:"Neg Earth",vendor_quote_ref:"26-1273",source_type:"quote",spec_source:"quote",visible_venue:true,has_discrepancy:true,discrepancy_type:"TRUSS MISMATCH",flag_severity:"MEDIUM",flag_note:"Truss brand ≠ design spec (Tyler GT) — confirm coupler compatibility",included:true},
+  // VIDEO
+  {id:"s8",department:"VIDEO",item_name:"ROE Carbon CB5 5.76mm LED Panel (T4v Frame)",model_ref:"ROE Carbon CB5",qty:48,weight_kg:13.9,power_w:400,ip_rating:"IP65",rig_position:"fly",is_package:false,notes:"600×1200mm. Brompton-mapped. IP65. Design: 'ROE MC-5H T4v Frame' — confirm same panel.",vendor_name:"Neg Earth",vendor_quote_ref:"26-1273",source_type:"quote",spec_source:"fixture_specs",visible_venue:true,has_discrepancy:true,discrepancy_type:"MODEL DESIGNATION",flag_severity:"MEDIUM",flag_note:"Panel model designation mismatch vs. drawing — confirm ROE CB5 = MC-5H T4v",included:true},
+  {id:"s9",department:"VIDEO",item_name:"Brompton S4 LED Processor",model_ref:"Brompton S4",qty:2,weight_kg:5,power_w:250,ip_rating:null,rig_position:"fly",is_package:false,notes:"Main + backup. Required for ROE CB5 operation.",vendor_name:"Neg Earth",vendor_quote_ref:"26-1273",source_type:"quote",spec_source:"fixture_specs",visible_venue:true,has_discrepancy:false,included:true},
+  {id:"s10",department:"VIDEO",item_name:"ROE Air Frame Double Hanging Bar 1.2m",model_ref:null,qty:6,weight_kg:6,power_w:null,ip_rating:null,rig_position:"fly",is_package:false,notes:"Panel suspension system for LED wall.",vendor_name:"Neg Earth",vendor_quote_ref:"26-1273",source_type:"quote",spec_source:"quote",visible_venue:true,has_discrepancy:false,included:true},
+  {id:"s11",department:"VIDEO",item_name:"LITEC Supertruss 30.5cm 1m Section (Black)",model_ref:null,qty:1,weight_kg:4,power_w:null,ip_rating:null,rig_position:"fly",is_package:false,notes:"Video truss structure.",vendor_name:"Neg Earth",vendor_quote_ref:"26-1273",source_type:"quote",spec_source:"quote",visible_venue:true,has_discrepancy:false,included:true},
+  {id:"s12",department:"VIDEO",item_name:"LITEC Supertruss 30.5cm 3m Section (Black)",model_ref:null,qty:2,weight_kg:12,power_w:null,ip_rating:null,rig_position:"fly",is_package:false,notes:"Video truss structure.",vendor_name:"Neg Earth",vendor_quote_ref:"26-1273",source_type:"quote",spec_source:"quote",visible_venue:true,has_discrepancy:false,included:true},
+  {id:"s13",department:"VIDEO",item_name:"500kg Chain Hoist 3ph (LITEC Exe-Rise D8+, 25m)",model_ref:null,qty:2,weight_kg:32,power_w:750,ip_rating:null,rig_position:"fly",is_package:false,notes:"4m/min. 2 hoists = 1,000kg rated vs ~800kg wall+truss load.",vendor_name:"Neg Earth",vendor_quote_ref:"26-1273",source_type:"quote",spec_source:"quote",visible_venue:true,has_discrepancy:true,discrepancy_type:"HOIST COUNT",flag_severity:"CRITICAL",flag_note:"Hoist count may be insufficient — verify rigging load calc with Neg Earth",included:true},
+  {id:"s14",department:"VIDEO",item_name:"Motor Control Points + Rigging Points",model_ref:null,qty:4,weight_kg:null,power_w:null,ip_rating:null,rig_position:"fly",is_package:false,notes:"Per Neg Earth scope. Venue rigging approval required at each stop.",vendor_name:"Neg Earth",vendor_quote_ref:"26-1273",source_type:"quote",spec_source:"quote",visible_venue:true,has_discrepancy:false,included:true},
+  {id:"s15",department:"VIDEO",item_name:"Power, Data, Fiber & Ancillaries (Video)",model_ref:null,qty:1,weight_kg:30,power_w:null,ip_rating:null,rig_position:"fly",is_package:true,notes:"Signal path; panel distribution. Loom not separately itemised.",vendor_name:"Neg Earth",vendor_quote_ref:"26-1273",source_type:"quote",spec_source:"quote",visible_venue:true,has_discrepancy:false,included:true},
+  // AUDIO (tour carry)
+  {id:"s16",department:"AUDIO",item_name:"PK Sound T10 Robotic Line Array",model_ref:"PK Sound T10",qty:6,weight_kg:47.6,power_w:3000,ip_rating:"IP42",rig_position:"touring_carry",is_package:false,notes:"Dual 10\" bandpass LF + 2x 6.5\" CMI mid + HF planar waveguide. Robotic 60-120°. Auto-Array. 3 per side, flown.",vendor_name:"Tour carry",vendor_quote_ref:null,source_type:"quote",spec_source:"fixture_specs",visible_venue:true,has_discrepancy:false,flag_note:"Qty confirmed — 3 per side",included:true},
+  {id:"s17",department:"AUDIO",item_name:"PK Sound T218 Intelligent Subwoofer",model_ref:"PK Sound T218",qty:12,weight_kg:104,power_w:4000,ip_rating:"IP42",rig_position:"ground",is_package:false,notes:"Dual 18\" front-loaded bass reflex. 25-100 Hz. Onboard Class D amp + DSP. Ground stacked only.",vendor_name:"Tour carry",vendor_quote_ref:null,source_type:"quote",spec_source:"fixture_specs",visible_venue:true,has_discrepancy:false,flag_note:"Qty confirmed — ground stacked, not in fly weight",included:true},
+  // LASERS
+  {id:"s18",department:"LASERS",item_name:"Kvant LD33 Spectrum RGBY (Design Spec)",model_ref:"Kvant LD33",qty:8,weight_kg:37,power_w:900,ip_rating:"IP54",rig_position:"ground",is_package:false,notes:"FB4-MAX. Saturn9 30kpps. Incl. flight case. Sonalyst £65,750 pkg (no model confirmed). Neg Earth excludes lasers.",vendor_name:"Design Spec v1.0.0",vendor_quote_ref:"v1.0.0",source_type:"design_spec",spec_source:"fixture_specs",visible_venue:true,has_discrepancy:true,discrepancy_type:"VENDOR UNCONFIRMED",flag_severity:"CRITICAL",flag_note:"VENDOR UNCONFIRMED — Sonalyst pkg (£65,750) or Photon7. Must confirm before May 4.",included:true},
+  // POWER & DISTRO
+  {id:"s19",department:"POWER_DISTRO",item_name:"50mm Powerlock Cable 15m",model_ref:null,qty:2,weight_kg:8,power_w:null,ip_rating:null,rig_position:"ground",is_package:false,notes:"Main power distribution feed.",vendor_name:"Neg Earth",vendor_quote_ref:"26-1273",source_type:"quote",spec_source:"quote",visible_venue:true,has_discrepancy:false,included:true},
+  {id:"s20",department:"POWER_DISTRO",item_name:"36 Way Hot Power Rack (MFO-36)",model_ref:null,qty:1,weight_kg:22,power_w:null,ip_rating:null,rig_position:"ground",is_package:false,notes:"1× P/L in, 1× out, 6× Soca. Hot-patch capable.",vendor_name:"Neg Earth",vendor_quote_ref:"26-1273",source_type:"quote",spec_source:"quote",visible_venue:true,has_discrepancy:false,included:true},
+  // STAGING
+  {id:"s21",department:"STAGING",item_name:"Riser / Stage Package (Sonalyst)",model_ref:null,qty:1,weight_kg:null,power_w:null,ip_rating:null,rig_position:"ground",is_package:true,notes:"Sht-6: 20'×13'9\" main + 6' side exts = 32' total width. Astroturf. Multi-level. Shifted 2ft US (Rev B).",vendor_name:"Sonalyst",vendor_quote_ref:"26-0097",source_type:"quote",spec_source:"quote",visible_venue:true,has_discrepancy:false,included:true},
+  {id:"s22",department:"SFX",item_name:"SFX Addition (Rev B, 3/12/26)",model_ref:null,qty:null,weight_kg:null,power_w:null,ip_rating:null,rig_position:"TBD",is_package:false,notes:"Rev B notes 'Added SFX' — type unspecified. Pyro? CO2? Confirm with Sheck/Dan.",vendor_name:"TBD",vendor_quote_ref:null,source_type:"design_spec",spec_source:"quote",visible_venue:false,has_discrepancy:true,discrepancy_type:"SFX UNSPECIFIED",flag_severity:"CRITICAL",flag_note:"SFX TYPE + VENDOR UNCONFIRMED — clarify with Sheck/Dan before advance",included:true},
+];
+
+const PROD_DEPTS=["ALL","LIGHTING","VIDEO","AUDIO","LASERS","POWER_DISTRO","STAGING","SFX","TRANSPORT","OTHER"];
 const SEV_STYLES={CRITICAL:{bg:"#FEF2F2",c:"#DC2626",b:"#FECACA"},HIGH:{bg:"#FFF7ED",c:"#C2410C",b:"#FED7AA"},MEDIUM:{bg:"#FEFCE8",c:"#A16207",b:"#FEF08A"},LOW:{bg:"#F0FDF4",c:"#166534",b:"#BBF7D0"}};
 const POS_STYLES={fly:{bg:"#EDE9FE",c:"#5B21B6"},ground:{bg:"#DCFCE7",c:"#166534"},tower:{bg:"#FEF3C7",c:"#92400E"},touring_carry:{bg:"#DBEAFE",c:"#1E40AF"},TBD:{bg:"#F1F5F9",c:"#64748b"}};
 
@@ -1830,6 +1864,22 @@ function ProdTab(){
     upd({docs:(data.docs||[]).filter(d=>d.id!==docId),items:(data.items||[]).filter(i=>i.doc_id!==docId),analysis:null,issues:[]});
   };
 
+  const seedManifest=()=>{
+    const seeded=MANIFEST_SEED.map(i=>({...i,id:`seed_${sel}_${i.id}`,doc_id:"seed"}));
+    const seedDoc={id:"seed",fileName:"EU Tour Binder (seeded)",docType:"vendor_quote",vendorName:"Neg Earth / Sonalyst / Tour Carry",quoteRef:"26-1273 | 26-0097 | v1.0.0",parsedAt:new Date().toISOString(),itemCount:seeded.length};
+    upd({docs:[seedDoc],items:seeded,analysis:null,issues:[]});
+  };
+
+  const toggleIncluded=itemId=>{
+    upd({items:(data.items||[]).map(i=>i.id===itemId?{...i,included:!i.included}:i),analysis:null});
+  };
+
+  const updateQty=(itemId,val)=>{
+    const n=parseInt(val,10);
+    if(isNaN(n)||n<0)return;
+    upd({items:(data.items||[]).map(i=>i.id===itemId?{...i,qty:n}:i),analysis:null});
+  };
+
   const exportJson=()=>{
     const blob=new Blob([JSON.stringify({show:show?.venue,date:show?.date,...data},null,2)],{type:"application/json"});
     const url=URL.createObjectURL(blob);const a=document.createElement("a");
@@ -1837,12 +1887,14 @@ function ProdTab(){
     a.click();URL.revokeObjectURL(url);
   };
 
+  const[showExcluded,setShowExcluded]=useState(false);
   const filteredItems=useMemo(()=>{
     let items=data.items||[];
+    if(!showExcluded)items=items.filter(i=>i.included!==false);
     if(deptFilter!=="ALL")items=items.filter(i=>i.department===deptFilter);
     if(posFilter!=="ALL")items=items.filter(i=>i.rig_position===posFilter);
     return items;
-  },[data.items,deptFilter,posFilter]);
+  },[data.items,deptFilter,posFilter,showExcluded]);
 
   const groupedItems=useMemo(()=>{
     return filteredItems.reduce((acc,item)=>{
@@ -1946,29 +1998,42 @@ function ProdTab(){
             {["ALL","fly","ground","tower","touring_carry","TBD"].map(p=><option key={p} value={p}>{p==="ALL"?"All positions":p.toUpperCase()}</option>)}
           </select>
           {tbdCount>0&&<button onClick={()=>setPosFilter("TBD")} style={{fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:5,border:"1.5px solid #C2410C",background:"#FFF7ED",color:"#C2410C",cursor:"pointer"}}>▲ {tbdCount} TBD</button>}
+          <button onClick={()=>setShowExcluded(v=>!v)} style={{fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:5,border:`1.5px solid ${showExcluded?"#5B21B6":"#d6d3cd"}`,background:showExcluded?"#EDE9FE":"#f8f7f5",color:showExcluded?"#5B21B6":"#94a3b8",cursor:"pointer"}}>{showExcluded?"Show all":"Excluded hidden"}</button>
+          <span style={{marginLeft:"auto",fontSize:9,color:"#94a3b8"}}>{(data.items||[]).filter(i=>i.included!==false).length} of {(data.items||[]).length} included</span>
         </div>
 
-        {Object.entries(groupedItems).length===0&&<div style={{padding:32,textAlign:"center",color:"#94a3b8",fontSize:10}}>No items match the current filters.</div>}
+        {(data.items||[]).length===0&&VENUE_GRID[sel]&&<div style={{padding:32,textAlign:"center"}}>
+          <div style={{fontSize:24,marginBottom:8}}>▤</div>
+          <div style={{fontSize:11,fontWeight:600,color:"#0f172a",marginBottom:4}}>No manifest loaded</div>
+          <div style={{fontSize:10,color:"#64748b",marginBottom:16}}>Seed from the EU Tour Binder or upload vendor quote PDFs in the Upload tab.</div>
+          <button onClick={seedManifest} style={{fontSize:11,fontWeight:700,padding:"8px 20px",borderRadius:7,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer"}}>Load Tour Manifest</button>
+        </div>}
+
+        {(data.items||[]).length===0&&!VENUE_GRID[sel]&&<div style={{padding:32,textAlign:"center",color:"#94a3b8",fontSize:10}}>No items. Upload vendor quote PDFs in the Upload tab.</div>}
+
+        {(data.items||[]).length>0&&Object.entries(groupedItems).length===0&&<div style={{padding:32,textAlign:"center",color:"#94a3b8",fontSize:10}}>No items match the current filters.</div>}
 
         {Object.entries(groupedItems).map(([dept,items])=><div key={dept} style={{marginBottom:12}}>
           <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4}}>{dept} ({items.length})</div>
           <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:8,overflow:"hidden"}}>
             {/* Table header */}
-            <div style={{display:"grid",gridTemplateColumns:"1fr 40px 60px 60px 60px 60px 70px 70px",gap:0,borderBottom:"1px solid #ebe8e3",padding:"5px 8px",background:"#f8f7f5"}}>
-              {["Item","Qty","Position","Wt/u","Wt tot","Pwr/u","IP","Source"].map(h=><span key={h} style={{fontSize:8,fontWeight:800,color:"#94a3b8",letterSpacing:"0.04em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h}</span>)}
+            <div style={{display:"grid",gridTemplateColumns:"20px 1fr 60px 60px 60px 60px 60px 70px 70px",gap:0,borderBottom:"1px solid #ebe8e3",padding:"5px 8px",background:"#f8f7f5"}}>
+              {["","Item","Qty","Position","Wt/u","Wt tot","Pwr/u","IP","Source"].map(h=><span key={h} style={{fontSize:8,fontWeight:800,color:"#94a3b8",letterSpacing:"0.04em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h}</span>)}
             </div>
             {items.map(item=>{
               const pos=item.rig_position||"TBD";
               const ps=POS_STYLES[pos]||POS_STYLES.TBD;
               const flagged=item.has_discrepancy;
+              const excluded=item.included===false;
               return(
-                <div key={item.id} className="rh" style={{display:"grid",gridTemplateColumns:"1fr 40px 60px 60px 60px 60px 70px 70px",gap:0,padding:"5px 8px",borderBottom:"1px solid #f1f5f9",background:flagged?"#FEF2F2":"#fff",alignItems:"center"}}>
+                <div key={item.id} className="rh" style={{display:"grid",gridTemplateColumns:"20px 1fr 60px 60px 60px 60px 60px 70px 70px",gap:0,padding:"5px 8px",borderBottom:"1px solid #f1f5f9",background:flagged?"#FEF2F2":excluded?"#fafafa":"#fff",alignItems:"center",opacity:excluded?0.45:1}}>
+                  <input type="checkbox" checked={!excluded} onChange={()=>toggleIncluded(item.id)} style={{width:13,height:13,cursor:"pointer",accentColor:"#5B21B6"}}/>
                   <div style={{minWidth:0}}>
-                    <div style={{fontSize:10,fontWeight:600,color:"#0f172a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={item.item_name}>{item.item_name}</div>
+                    <div style={{fontSize:10,fontWeight:600,color:"#0f172a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:excluded?"line-through":"none"}} title={item.item_name}>{item.item_name}</div>
                     {item.model_ref&&item.model_ref!==item.item_name&&<div style={{fontSize:8,color:"#94a3b8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.model_ref}</div>}
                     {item.vendor_name&&<div style={{fontSize:8,color:"#64748b"}}>{item.vendor_name}{item.vendor_quote_ref&&` · ${item.vendor_quote_ref}`}</div>}
                   </div>
-                  <span style={{fontSize:10,fontFamily:MN,color:"#475569",textAlign:"center"}}>{item.qty||1}</span>
+                  <input type="number" min={0} value={item.qty||1} onChange={e=>updateQty(item.id,e.target.value)} style={{width:48,fontSize:10,fontFamily:MN,fontWeight:600,textAlign:"center",border:"1px solid #e2e8f0",borderRadius:4,padding:"2px 4px",background:"#f8f7f5",color:"#0f172a",outline:"none"}}/>
                   <div style={{display:"flex",alignItems:"center"}}>
                     <select value={pos} onChange={e=>overridePosition(item.id,e.target.value)} style={{fontSize:8,fontWeight:700,padding:"2px 4px",borderRadius:4,border:`1px solid ${ps.c}`,background:ps.bg,color:ps.c,cursor:"pointer",maxWidth:56}}>
                       {["fly","ground","tower","touring_carry","TBD"].map(p=><option key={p} value={p}>{p.toUpperCase()}</option>)}
