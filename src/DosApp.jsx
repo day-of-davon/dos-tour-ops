@@ -5,7 +5,7 @@ import { supabase } from "./lib/supabase";
 // DOS TOUR OPS v7.0 — Day of Show, LLC
 // Client-first · All dept advance lanes · Custom + editable items · Full settlement
 
-const SK={SHOWS:"dos-v7-shows",ROS:"dos-v7-ros",ADVANCES:"dos-v7-advances",FINANCE:"dos-v7-finance",SETTINGS:"dos-v7-settings",CREW:"dos-v7-crew"};
+const SK={SHOWS:"dos-v7-shows",ROS:"dos-v7-ros",ADVANCES:"dos-v7-advances",FINANCE:"dos-v7-finance",SETTINGS:"dos-v7-settings",CREW:"dos-v7-crew",PRODUCTION:"dos-v7-production"};
 const MN="'JetBrains Mono',monospace";
 
 const CLIENTS=[
@@ -18,7 +18,7 @@ const CM=CLIENTS.reduce((a,c)=>{a[c.id]=c;return a},{});
 // Only these users can see festival clients in the selector
 const FESTIVAL_ACCESS_EMAILS=["d.johnson@dayofshow.net","olivia@dayofshow.net"];
 const ROLES=[{id:"tm",label:"TM",c:"#5B21B6"},{id:"production",label:"PROD",c:"#92400E"},{id:"hospitality",label:"HOSPO",c:"#065F46"},{id:"transport",label:"TRANSPORT",c:"#1E40AF"}];
-const TABS=[{id:"dashboard",label:"Dashboard",icon:"◉"},{id:"advance",label:"Advance",icon:"◎"},{id:"ros",label:"Show Day",icon:"▦"},{id:"transport",label:"Transport",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"}];
+const TABS=[{id:"dashboard",label:"Dashboard",icon:"◉"},{id:"advance",label:"Advance",icon:"◎"},{id:"ros",label:"Show Day",icon:"▦"},{id:"transport",label:"Transport",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"production",label:"Production",icon:"▤"}];
 const DEFAULT_CREW=[
   {id:"ag", name:"Alex Gumuchian",        role:"Headliner (bbno$)",          email:"alexgumuchian@gmail.com"},
   {id:"jb", name:"Julien Bruce",           role:"Support (Jungle Bobby)",     email:""},
@@ -346,6 +346,7 @@ export default function App(){
   const[refreshing,setRefreshing]=useState(null);
   const[crew,setCrew]=useState(DEFAULT_CREW);
   const[showCrew,setShowCrew]=useState({});
+  const[production,setProduction]=useState({});
   const[refreshMsg,setRefreshMsg]=useState("");
   const[exp,setExp]=useState(false);
   const[undoToast,setUndoToast]=useState(null);
@@ -354,12 +355,13 @@ export default function App(){
   const st=useRef(null);const stp=useRef(null);
 
   useEffect(()=>{(async()=>{
-    const[s,r,a,f,se,cr]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW)]);
+    const[s,r,a,f,se,cr,pr]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW),sG(SK.PRODUCTION)]);
     const init=ALL_SHOWS.reduce((acc,sh)=>{acc[sh.date]={...sh,doorsConfirmed:false,curfewConfirmed:false,busArriveConfirmed:false,crewCallConfirmed:false,venueAccessConfirmed:false,mgTimeConfirmed:false,etaSource:"schedule",lastModified:Date.now()};return acc;},{});
     const merged={...init};if(s)Object.keys(s).forEach(k=>{if(merged[k])merged[k]={...merged[k],...s[k]};});
     setShows(merged);setRos(r||{});setAdvances(a||{});setFinance(f||{});
     if(se?.role)setRole(se.role);if(se?.tab)setTab(se.tab);if(se?.sel)setSel(se.sel);if(se?.aC)setAC(se.aC);
     if(cr?.crew)setCrew(cr.crew);if(cr?.showCrew)setShowCrew(cr.showCrew);
+    setProduction(pr||{});
     const[np,cp,it]=await Promise.all([sGP(PK.NOTES_PRIV),sGP(PK.CHECKLIST_PRIV),sGP(PK.INTEL)]);
     setNotesPriv(np||{});setCheckPriv(cp||{});setIntel(it||{});
     setLoaded(true);
@@ -417,15 +419,16 @@ export default function App(){
 
   const save=useCallback(()=>{
     if(!loaded)return;if(st.current)clearTimeout(st.current);
-    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC}),sS(SK.CREW,{crew,showCrew})]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
-  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew]);
-  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew]);
+    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
+  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production]);
+  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production]);
   useEffect(()=>{const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(v=>!v);}if(e.key==="Escape")setCmd(false);};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
 
   const uShow=useCallback((d,u)=>setShows(p=>({...p,[d]:{...p[d],...u,lastModified:Date.now()}})),[]);
   const uRos=useCallback((d,b)=>setRos(p=>{const n={...p};if(b)n[d]=b;else delete n[d];return n;}),[]);
   const uAdv=useCallback((d,u)=>setAdvances(p=>({...p,[d]:{...(p[d]||{}),...u}})),[]);
   const uFin=useCallback((d,u)=>setFinance(p=>({...p,[d]:{...(p[d]||{}),...u}})),[]);
+  const uProd=useCallback((d,u)=>setProduction(p=>({...p,[d]:{...(p[d]||{}),...u}})),[]);
   const gRos=useCallback(d=>{if(ros[d])return ros[d];if(CUSTOM_ROS_MAP[d])return CUSTOM_ROS_MAP[d]();const sh=shows?.[d];if(sh?.type==="off"||sh?.type==="travel")return [];return DEFAULT_ROS();},[ros,shows]);
   const sorted=useMemo(()=>shows?Object.values(shows).sort((a,b)=>a.date.localeCompare(b.date)):[], [shows]);
   const next=useMemo(()=>{const t=new Date().toISOString().slice(0,10);return sorted.find(s=>s.date>=t)||sorted[0];},[sorted]);
@@ -434,13 +437,13 @@ export default function App(){
   if(!loaded||!shows)return(<div style={{background:"#F5F3EF",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"#64748b",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
   return(
-    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu}}>
+    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd}}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:#F5F3EF}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:3px}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#f0ede8!important}.rh:hover{background:#f8f7f5!important}`}</style>
       <div style={{fontFamily:"'Outfit',system-ui",background:"#F5F3EF",color:"#0f172a",minHeight:"100vh",width:"100%",maxWidth:"100vw",overflowX:"hidden",display:"flex",flexDirection:"column"}}>
         <TopBar ss={ss}/>
         <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,width:"100%",maxWidth:900,overflowX:"hidden"}}>
-          {tab==="dashboard"&&<Dash/>}{tab==="advance"&&<AdvTab/>}{tab==="ros"&&<ROSTab/>}{tab==="transport"&&<TransTab/>}{tab==="finance"&&<FinTab/>}{tab==="crew"&&<CrewTab/>}
+          {tab==="dashboard"&&<Dash/>}{tab==="advance"&&<AdvTab/>}{tab==="ros"&&<ROSTab/>}{tab==="transport"&&<TransTab/>}{tab==="finance"&&<FinTab/>}{tab==="crew"&&<CrewTab/>}{tab==="production"&&<ProdTab/>}
         </div>
         {cmd&&<CmdP/>}
         {exp&&<ExportModal onClose={()=>setExp(false)}/>}
@@ -1583,3 +1586,313 @@ function CrewTab(){
 }
 
 function PH({label}){return<div className="fi" style={{padding:40,textAlign:"center",color:"#64748b"}}><div style={{fontSize:14,fontWeight:700,marginBottom:6,color:"#475569"}}>{label}</div><div style={{fontSize:11}}>Coming in a future phase.</div></div>;}
+
+// ── Production Intelligence Engine (PIE) ────────────────────────────────────
+const PROD_DEPTS=["ALL","LIGHTING","VIDEO","AUDIO","LASERS","POWER_DISTRO","STAGING","TRANSPORT","SFX","OTHER"];
+const SEV_STYLES={CRITICAL:{bg:"#FEF2F2",c:"#DC2626",b:"#FECACA"},HIGH:{bg:"#FFF7ED",c:"#C2410C",b:"#FED7AA"},MEDIUM:{bg:"#FEFCE8",c:"#A16207",b:"#FEF08A"},LOW:{bg:"#F0FDF4",c:"#166534",b:"#BBF7D0"}};
+const POS_STYLES={fly:{bg:"#EDE9FE",c:"#5B21B6"},ground:{bg:"#DCFCE7",c:"#166534"},tower:{bg:"#FEF3C7",c:"#92400E"},touring_carry:{bg:"#DBEAFE",c:"#1E40AF"},TBD:{bg:"#F1F5F9",c:"#64748b"}};
+
+function ProdTab(){
+  const{shows,sel,production,uProd,mobile}=useContext(Ctx);
+  const show=shows?.[sel];
+  const data=production[sel]||{docs:[],items:[],issues:[],analysis:null};
+
+  const[subTab,setSubTab]=useState("upload");
+  const[uploading,setUploading]=useState(false);
+  const[analyzing,setAnalyzing]=useState(false);
+  const[uploadMsg,setUploadMsg]=useState("");
+  const[docType,setDocType]=useState("vendor_quote");
+  const[vendorName,setVendorName]=useState("");
+  const[quoteRef,setQuoteRef]=useState("");
+  const[deptFilter,setDeptFilter]=useState("ALL");
+  const[posFilter,setPosFilter]=useState("ALL");
+  const fileRef=useRef(null);
+
+  const upd=useCallback(patch=>uProd(sel,{...data,...patch}),[sel,data,uProd]);
+
+  const handleFile=async e=>{
+    const file=e.target.files?.[0];if(!file)return;
+    if(file.type!=="application/pdf"){setUploadMsg("PDF files only");return;}
+    setUploading(true);setUploadMsg(`Parsing ${file.name}…`);
+    try{
+      const{data:{session}}=await supabase.auth.getSession();
+      if(!session){setUploadMsg("No session");return;}
+      const buf=await file.arrayBuffer();
+      const b64=btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const resp=await fetch("/api/production",{
+        method:"POST",
+        headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},
+        body:JSON.stringify({pdfBase64:b64,docType,vendorName:vendorName.trim()||null,quoteRef:quoteRef.trim()||null}),
+      });
+      const result=await resp.json();
+      if(!resp.ok){setUploadMsg(result.error||"Parse failed");return;}
+      const docId=`doc_${Date.now()}`;
+      const newDoc={id:docId,fileName:file.name,docType,vendorName:vendorName.trim()||null,quoteRef:quoteRef.trim()||null,parsedAt:new Date().toISOString(),itemCount:result.count};
+      const newItems=(result.items||[]).map(i=>({...i,doc_id:docId}));
+      upd({docs:[...(data.docs||[]),newDoc],items:[...(data.items||[]),...newItems],analysis:null,issues:[]});
+      setUploadMsg(`Parsed ${result.count} items from ${file.name}`);
+      setVendorName("");setQuoteRef("");
+      if(fileRef.current)fileRef.current.value="";
+      setTimeout(()=>setUploadMsg(""),4000);
+    }catch(e){setUploadMsg(`Error: ${e.message}`);}
+    finally{setUploading(false);}
+  };
+
+  const runAnalysis=async()=>{
+    if(!data.items?.length){setUploadMsg("Upload at least one document first");return;}
+    setAnalyzing(true);setUploadMsg("Running analysis…");
+    try{
+      const{data:{session}}=await supabase.auth.getSession();
+      if(!session){setUploadMsg("No session");return;}
+      const resp=await fetch("/api/production",{
+        method:"POST",
+        headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},
+        body:JSON.stringify({action:"analyze",existingItems:data.items}),
+      });
+      const result=await resp.json();
+      if(!resp.ok){setUploadMsg(result.error||"Analysis failed");return;}
+      upd({issues:result.issues||[],analysis:{powerBudget:result.powerBudget,weightLedger:result.weightLedger,analyzedAt:new Date().toISOString()}});
+      setUploadMsg(`Analysis complete — ${result.issues?.length||0} issues detected`);
+      setSubTab("analysis");
+      setTimeout(()=>setUploadMsg(""),4000);
+    }catch(e){setUploadMsg(`Error: ${e.message}`);}
+    finally{setAnalyzing(false);}
+  };
+
+  const overridePosition=(itemId,pos)=>{
+    upd({items:(data.items||[]).map(i=>i.id===itemId?{...i,rig_position:pos}:i),analysis:null,issues:[]});
+  };
+
+  const resolveIssue=id=>{
+    upd({issues:(data.issues||[]).map(i=>i.id===id?{...i,resolved:!i.resolved}:i)});
+  };
+
+  const deleteDoc=docId=>{
+    upd({docs:(data.docs||[]).filter(d=>d.id!==docId),items:(data.items||[]).filter(i=>i.doc_id!==docId),analysis:null,issues:[]});
+  };
+
+  const exportJson=()=>{
+    const blob=new Blob([JSON.stringify({show:show?.venue,date:show?.date,...data},null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob);const a=document.createElement("a");
+    a.href=url;a.download=`production-${show?.venue||"show"}-${show?.date||"export"}.json`.toLowerCase().replace(/\s+/g,"_");
+    a.click();URL.revokeObjectURL(url);
+  };
+
+  const filteredItems=useMemo(()=>{
+    let items=data.items||[];
+    if(deptFilter!=="ALL")items=items.filter(i=>i.department===deptFilter);
+    if(posFilter!=="ALL")items=items.filter(i=>i.rig_position===posFilter);
+    return items;
+  },[data.items,deptFilter,posFilter]);
+
+  const groupedItems=useMemo(()=>{
+    return filteredItems.reduce((acc,item)=>{
+      const d=item.department||"OTHER";
+      if(!acc[d])acc[d]=[];
+      acc[d].push(item);
+      return acc;
+    },{});
+  },[filteredItems]);
+
+  const tbdCount=useMemo(()=>(data.items||[]).filter(i=>i.rig_position==="TBD").length,[data.items]);
+  const openIssues=useMemo(()=>(data.issues||[]).filter(i=>!i.resolved).length,[data.issues]);
+
+  const SUB_TABS=[
+    {id:"upload",label:"Upload"},
+    {id:"manifest",label:`Manifest${data.items?.length?` (${data.items.length})`:""}`,badge:tbdCount>0?tbdCount:null,badgeColor:"#92400E"},
+    {id:"analysis",label:"Analysis",badge:data.analysis?null:null},
+    {id:"issues",label:`Issues${openIssues>0?` (${openIssues})`:""}`,badge:openIssues>0?openIssues:null,badgeColor:"#DC2626"},
+  ];
+
+  if(!show)return<div style={{padding:24,color:"#64748b",fontSize:11}}>Select a show to view production data.</div>;
+
+  return(
+    <div className="fi" style={{padding:"16px 20px",maxWidth:900,width:"100%"}}>
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+        <div style={{flex:1}}>
+          <div style={{fontSize:13,fontWeight:800,color:"#0f172a"}}>{show.venue}</div>
+          <div style={{fontSize:10,color:"#64748b",fontFamily:MN}}>{show.date} · {show.city}</div>
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          {data.items?.length>0&&<button onClick={runAnalysis} disabled={analyzing} style={{fontSize:10,fontWeight:700,padding:"5px 12px",borderRadius:6,border:"none",background:analyzing?"#e2e8f0":"#5B21B6",color:analyzing?"#94a3b8":"#fff",cursor:analyzing?"default":"pointer"}}>{analyzing?"Analyzing…":"Run Analysis"}</button>}
+          {data.items?.length>0&&<button onClick={exportJson} style={{fontSize:10,fontWeight:600,padding:"5px 10px",borderRadius:6,border:"1px solid #d6d3cd",background:"#f5f3ef",color:"#475569",cursor:"pointer"}}>Export JSON</button>}
+        </div>
+      </div>
+
+      {uploadMsg&&<div style={{fontSize:10,color:uploadMsg.startsWith("Error")||uploadMsg.startsWith("PDF")?"#DC2626":"#047857",background:uploadMsg.startsWith("Error")||uploadMsg.startsWith("PDF")?"#FEF2F2":"#F0FDF4",border:`1px solid ${uploadMsg.startsWith("Error")||uploadMsg.startsWith("PDF")?"#FECACA":"#BBF7D0"}`,borderRadius:6,padding:"6px 10px",marginBottom:10,fontFamily:MN}}>{uploadMsg}</div>}
+
+      {/* Sub-tabs */}
+      <div style={{display:"flex",gap:1,borderBottom:"1px solid #d6d3cd",marginBottom:12}}>
+        {SUB_TABS.map(t=><button key={t.id} onClick={()=>setSubTab(t.id)} style={{padding:"5px 12px",fontSize:10,fontWeight:subTab===t.id?700:500,color:subTab===t.id?"#0f172a":"#64748b",background:"none",border:"none",cursor:"pointer",borderBottom:subTab===t.id?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:4}}>
+          {t.label}{t.badge!=null&&<span style={{fontSize:8,fontWeight:800,background:t.badgeColor||"#5B21B6",color:"#fff",borderRadius:10,padding:"1px 5px"}}>{t.badge}</span>}
+        </button>)}
+      </div>
+
+      {/* Upload tab */}
+      {subTab==="upload"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
+        <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:16}}>
+          <div style={{...UI.sectionLabel,marginBottom:10}}>Add Document</div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
+            {["vendor_quote","design_drawing"].map(dt=><button key={dt} onClick={()=>setDocType(dt)} style={{fontSize:10,fontWeight:700,padding:"4px 12px",borderRadius:6,border:`1.5px solid ${docType===dt?"#5B21B6":"#d6d3cd"}`,background:docType===dt?"#EDE9FE":"#fff",color:docType===dt?"#5B21B6":"#475569",cursor:"pointer"}}>{dt==="vendor_quote"?"Vendor Quote":"Design Drawing"}</button>)}
+          </div>
+          <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
+            <input value={vendorName} onChange={e=>setVendorName(e.target.value)} placeholder="Vendor name (e.g. Neg Earth)" style={{...UI.input,flex:1,minWidth:140}} disabled={docType==="design_drawing"}/>
+            <input value={quoteRef} onChange={e=>setQuoteRef(e.target.value)} placeholder="Quote ref (e.g. 26-1273)" style={{...UI.input,flex:1,minWidth:120}} disabled={docType==="design_drawing"}/>
+          </div>
+          <label style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"24px 16px",border:"2px dashed #d6d3cd",borderRadius:8,cursor:"pointer",background:"#fafaf8",color:"#64748b",fontSize:10,fontWeight:600}}>
+            <span style={{fontSize:20}}>▤</span>
+            {uploading?"Uploading…":"Click to upload PDF or drag and drop"}
+            <input ref={fileRef} type="file" accept="application/pdf" onChange={handleFile} style={{display:"none"}} disabled={uploading}/>
+          </label>
+        </div>
+
+        {(data.docs||[]).length>0&&<div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:16}}>
+          <div style={{...UI.sectionLabel,marginBottom:8}}>Uploaded Documents</div>
+          {(data.docs||[]).map(doc=><div key={doc.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #f1f5f9"}}>
+            <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:10,background:doc.docType==="vendor_quote"?"#EDE9FE":"#DCFCE7",color:doc.docType==="vendor_quote"?"#5B21B6":"#166534"}}>{doc.docType==="vendor_quote"?"QUOTE":"DESIGN"}</span>
+            <span style={{fontSize:10,flex:1,color:"#0f172a"}}>{doc.fileName}</span>
+            {doc.vendorName&&<span style={{fontSize:9,color:"#64748b"}}>{doc.vendorName}</span>}
+            {doc.quoteRef&&<span style={{fontSize:9,color:"#94a3b8",fontFamily:MN}}>{doc.quoteRef}</span>}
+            <span style={{fontSize:9,color:"#047857",fontFamily:MN}}>{doc.itemCount} items</span>
+            <button onClick={()=>deleteDoc(doc.id)} style={{fontSize:10,color:"#94a3b8",background:"none",border:"none",cursor:"pointer",padding:"0 4px"}} title="Remove document">×</button>
+          </div>)}
+          {data.items?.length>0&&<div style={{marginTop:12,padding:"8px 10px",background:"#F8FAFC",borderRadius:6,display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:10,color:"#475569"}}>{data.items.length} total items across {data.docs.length} document(s)</span>
+            {tbdCount>0&&<span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:10,background:"#FEF3C7",color:"#92400E"}}>{tbdCount} TBD positions</span>}
+            <button onClick={()=>setSubTab("manifest")} style={{marginLeft:"auto",fontSize:10,fontWeight:600,padding:"3px 10px",borderRadius:5,border:"1px solid #d6d3cd",background:"#f5f3ef",color:"#475569",cursor:"pointer"}}>View Manifest →</button>
+          </div>}
+        </div>}
+
+        {!data.docs?.length&&<div style={{padding:32,textAlign:"center",color:"#94a3b8",fontSize:10}}>
+          <div style={{fontSize:24,marginBottom:8}}>▤</div>
+          <div style={{fontWeight:600,marginBottom:4}}>No documents uploaded</div>
+          <div>Upload vendor quote PDFs or production design drawings to generate a manifest.</div>
+        </div>}
+      </div>}
+
+      {/* Manifest tab */}
+      {subTab==="manifest"&&<div>
+        {/* Filters */}
+        <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
+          <select value={deptFilter} onChange={e=>setDeptFilter(e.target.value)} style={{...UI.input,fontSize:9}}>
+            {PROD_DEPTS.map(d=><option key={d} value={d}>{d}</option>)}
+          </select>
+          <select value={posFilter} onChange={e=>setPosFilter(e.target.value)} style={{...UI.input,fontSize:9}}>
+            {["ALL","fly","ground","tower","touring_carry","TBD"].map(p=><option key={p} value={p}>{p==="ALL"?"All positions":p.toUpperCase()}</option>)}
+          </select>
+          {tbdCount>0&&<button onClick={()=>setPosFilter("TBD")} style={{fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:5,border:"1.5px solid #C2410C",background:"#FFF7ED",color:"#C2410C",cursor:"pointer"}}>▲ {tbdCount} TBD</button>}
+        </div>
+
+        {Object.entries(groupedItems).length===0&&<div style={{padding:32,textAlign:"center",color:"#94a3b8",fontSize:10}}>No items match the current filters.</div>}
+
+        {Object.entries(groupedItems).map(([dept,items])=><div key={dept} style={{marginBottom:12}}>
+          <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4}}>{dept} ({items.length})</div>
+          <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:8,overflow:"hidden"}}>
+            {/* Table header */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 40px 60px 60px 60px 60px 70px 70px",gap:0,borderBottom:"1px solid #ebe8e3",padding:"5px 8px",background:"#f8f7f5"}}>
+              {["Item","Qty","Position","Wt/u","Wt tot","Pwr/u","IP","Source"].map(h=><span key={h} style={{fontSize:8,fontWeight:800,color:"#94a3b8",letterSpacing:"0.04em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h}</span>)}
+            </div>
+            {items.map(item=>{
+              const pos=item.rig_position||"TBD";
+              const ps=POS_STYLES[pos]||POS_STYLES.TBD;
+              const flagged=item.has_discrepancy;
+              return(
+                <div key={item.id} className="rh" style={{display:"grid",gridTemplateColumns:"1fr 40px 60px 60px 60px 60px 70px 70px",gap:0,padding:"5px 8px",borderBottom:"1px solid #f1f5f9",background:flagged?"#FEF2F2":"#fff",alignItems:"center"}}>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontSize:10,fontWeight:600,color:"#0f172a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={item.item_name}>{item.item_name}</div>
+                    {item.model_ref&&item.model_ref!==item.item_name&&<div style={{fontSize:8,color:"#94a3b8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.model_ref}</div>}
+                    {item.vendor_name&&<div style={{fontSize:8,color:"#64748b"}}>{item.vendor_name}{item.vendor_quote_ref&&` · ${item.vendor_quote_ref}`}</div>}
+                  </div>
+                  <span style={{fontSize:10,fontFamily:MN,color:"#475569",textAlign:"center"}}>{item.qty||1}</span>
+                  <div style={{display:"flex",alignItems:"center"}}>
+                    <select value={pos} onChange={e=>overridePosition(item.id,e.target.value)} style={{fontSize:8,fontWeight:700,padding:"2px 4px",borderRadius:4,border:`1px solid ${ps.c}`,background:ps.bg,color:ps.c,cursor:"pointer",maxWidth:56}}>
+                      {["fly","ground","tower","touring_carry","TBD"].map(p=><option key={p} value={p}>{p.toUpperCase()}</option>)}
+                    </select>
+                  </div>
+                  <span style={{fontSize:9,fontFamily:MN,color:"#475569",textAlign:"right"}}>{item.weight_kg?`${item.weight_kg}kg`:"—"}</span>
+                  <span style={{fontSize:9,fontFamily:MN,color:"#475569",textAlign:"right"}}>{item.weight_kg&&item.qty?`${Math.round(item.weight_kg*item.qty*10)/10}kg`:"—"}</span>
+                  <span style={{fontSize:9,fontFamily:MN,color:"#475569",textAlign:"right"}}>{item.power_w?`${item.power_w}W`:"—"}</span>
+                  <span style={{fontSize:8,fontFamily:MN,color:"#475569"}}>{item.ip_rating||"—"}</span>
+                  <span style={{fontSize:8,color:item.spec_source==="fixture_specs"?"#047857":"#94a3b8"}}>{item.source_type==="design_spec"?"design":"quote"}{item.spec_source==="fixture_specs"&&" ✓"}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>)}
+      </div>}
+
+      {/* Analysis tab */}
+      {subTab==="analysis"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
+        {!data.analysis?<div style={{padding:32,textAlign:"center"}}>
+          <div style={{fontSize:10,color:"#64748b",marginBottom:12}}>Run analysis to see power budget, weight ledger, and issue detection.</div>
+          {data.items?.length>0&&<button onClick={runAnalysis} disabled={analyzing} style={{fontSize:11,fontWeight:700,padding:"8px 20px",borderRadius:7,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer"}}>{analyzing?"Analyzing…":"Run Analysis"}</button>}
+        </div>:<>
+          {/* Power Budget */}
+          <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:14}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
+              <div style={{...UI.sectionLabel,margin:0}}>Power Budget</div>
+              <span style={{fontSize:18,fontWeight:800,fontFamily:MN,color:data.analysis.powerBudget.total_kw>100?"#DC2626":data.analysis.powerBudget.total_kw>80?"#C2410C":"#047857"}}>{data.analysis.powerBudget.total_kw} kW</span>
+              <span style={{fontSize:9,color:"#94a3b8"}}>→ {data.analysis.powerBudget.recommended_minimum_kw} kW recommended minimum (30% headroom)</span>
+            </div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {Object.entries(data.analysis.powerBudget.by_dept||{}).sort((a,b)=>b[1]-a[1]).map(([dept,w])=><div key={dept} style={{background:"#f8f7f5",borderRadius:6,padding:"5px 10px"}}>
+                <div style={{fontSize:8,color:"#94a3b8",textTransform:"uppercase"}}>{dept}</div>
+                <div style={{fontSize:11,fontWeight:700,fontFamily:MN,color:"#0f172a"}}>{Math.round(w/100)/10} kW</div>
+              </div>)}
+            </div>
+            {data.analysis.powerBudget.missing_power_count>0&&<div style={{marginTop:8,fontSize:9,color:"#92400E",background:"#FEF3C7",borderRadius:5,padding:"4px 8px"}}>{data.analysis.powerBudget.missing_power_count} item(s) missing power data — total may be understated</div>}
+          </div>
+
+          {/* Weight Ledger */}
+          <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:14}}>
+            <div style={{...UI.sectionLabel,marginBottom:10}}>Weight Ledger — Fly vs. Ground Split</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+              <div style={{background:"#EDE9FE",borderRadius:8,padding:"10px 14px",textAlign:"center"}}>
+                <div style={{fontSize:8,color:"#5B21B6",fontWeight:800,textTransform:"uppercase",marginBottom:4}}>Fly</div>
+                <div style={{fontSize:20,fontWeight:800,fontFamily:MN,color:"#5B21B6"}}>{data.analysis.weightLedger.fly_kg} kg</div>
+                <div style={{fontSize:9,color:"#7C3AED"}}>{data.analysis.weightLedger.fly_item_count} item(s)</div>
+              </div>
+              <div style={{background:"#DCFCE7",borderRadius:8,padding:"10px 14px",textAlign:"center"}}>
+                <div style={{fontSize:8,color:"#166534",fontWeight:800,textTransform:"uppercase",marginBottom:4}}>Ground</div>
+                <div style={{fontSize:20,fontWeight:800,fontFamily:MN,color:"#166534"}}>{data.analysis.weightLedger.ground_kg} kg</div>
+                <div style={{fontSize:9,color:"#166534"}}>{data.analysis.weightLedger.ground_item_count} item(s)</div>
+              </div>
+              <div style={{background:"#FEF3C7",borderRadius:8,padding:"10px 14px",textAlign:"center"}}>
+                <div style={{fontSize:8,color:"#92400E",fontWeight:800,textTransform:"uppercase",marginBottom:4}}>TBD</div>
+                <div style={{fontSize:20,fontWeight:800,fontFamily:MN,color:"#92400E"}}>{data.analysis.weightLedger.tbd_count}</div>
+                <div style={{fontSize:9,color:"#92400E"}}>items unclassified</div>
+              </div>
+            </div>
+            {data.analysis.weightLedger.tbd_count>0&&<div style={{marginTop:8,fontSize:9,color:"#92400E",background:"#FEF3C7",borderRadius:5,padding:"4px 8px"}}>Set positions in Manifest tab to complete weight split.</div>}
+          </div>
+
+          <div style={{fontSize:9,color:"#94a3b8",fontFamily:MN}}>Analyzed {new Date(data.analysis.analyzedAt).toLocaleString()} — re-run after position corrections</div>
+        </>}
+      </div>}
+
+      {/* Issues tab */}
+      {subTab==="issues"&&<div>
+        {!(data.issues?.length)&&<div style={{padding:32,textAlign:"center",color:"#94a3b8",fontSize:10}}>
+          {data.items?.length?<><div style={{marginBottom:8}}>No issues detected yet.</div><button onClick={runAnalysis} disabled={analyzing} style={{fontSize:10,fontWeight:700,padding:"5px 14px",borderRadius:6,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer"}}>{analyzing?"Analyzing…":"Run Analysis"}</button></>:<div>Upload documents then run analysis to detect issues.</div>}
+        </div>}
+        {(data.issues||[]).map(issue=>{
+          const sv=SEV_STYLES[issue.severity]||SEV_STYLES.LOW;
+          return(
+            <div key={issue.id} style={{background:issue.resolved?"#f8f7f5":"#fff",border:`1px solid ${issue.resolved?"#e2e8f0":sv.b}`,borderRadius:8,padding:"10px 12px",marginBottom:8,opacity:issue.resolved?0.6:1}}>
+              <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:4}}>
+                <span style={{fontSize:8,fontWeight:800,padding:"2px 7px",borderRadius:10,background:sv.bg,color:sv.c,flexShrink:0}}>{issue.severity}</span>
+                <span style={{fontSize:9,fontWeight:700,color:"#64748b",flexShrink:0}}>{issue.category}</span>
+                <span style={{fontSize:9,fontWeight:700,color:"#0f172a",flex:1}}>{issue.finding}</span>
+                <button onClick={()=>resolveIssue(issue.id)} style={{fontSize:8,fontWeight:700,padding:"2px 8px",borderRadius:5,border:"1px solid #d6d3cd",background:issue.resolved?"#F0FDF4":"#fff",color:issue.resolved?"#047857":"#475569",cursor:"pointer",flexShrink:0}}>{issue.resolved?"✓ Resolved":"Resolve"}</button>
+              </div>
+              {issue.impact&&<div style={{fontSize:9,color:"#64748b",marginBottom:2}}><span style={{fontWeight:600}}>Impact:</span> {issue.impact}</div>}
+              {issue.action&&<div style={{fontSize:9,color:"#475569"}}><span style={{fontWeight:600}}>Action:</span> {issue.action}</div>}
+            </div>
+          );
+        })}
+        {data.issues?.length>0&&<div style={{marginTop:8,fontSize:9,color:"#94a3b8",fontFamily:MN}}>{data.issues.filter(i=>!i.resolved).length} open · {data.issues.filter(i=>i.resolved).length} resolved</div>}
+      </div>}
+    </div>
+  );
+}
