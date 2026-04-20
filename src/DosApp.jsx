@@ -274,6 +274,16 @@ const BUS_DATA=[
   {day:30,date:"May 31",dow:"Sun",route:"Warsaw → Aarschot",km:1400,drive:"14h",dep:"02:00",arr:"18:00",show:false,flag:"⚠",note:"Return. 2x 10h exemption."},
 ];
 
+// Split days: touring party divides across simultaneous events
+const SPLIT_DAYS={
+  "2026-05-01":{
+    parties:[
+      {id:"worcester",label:"Worcester Show",location:"Worcester, MA",event:"WPI — Pretty Polly",type:"show",color:"#047857",bg:"#D1FAE5",crew:["ag","jb","mse","tip","ac","rm"],note:"Performing crew. Advance past due."},
+      {id:"eu_prog",label:"EU Programming",location:"En Route / Europe",event:"Pre-tour advance + logistics",type:"travel",color:"#1E40AF",bg:"#DBEAFE",crew:["dj","ms","dn"],note:"TM + PM advance work ahead of Dublin Day 1."}
+    ]
+  }
+};
+
 const Ctx=createContext(null);
 
 function useMobile(bp=640){
@@ -1234,16 +1244,160 @@ function ROSTab(){
   );
 }
 
+function TourCalendar(){
+  const[expRows,setExpRows]=useState({});
+  const crewById=useMemo(()=>DEFAULT_CREW.reduce((a,c)=>{a[c.id]=c;return a},{}),[]);
+  const busMap=useMemo(()=>{
+    const m={};
+    BUS_DATA.forEach(d=>{
+      const base=new Date('2026-05-02T12:00:00');
+      base.setDate(base.getDate()+d.day-1);
+      m[base.toISOString().slice(0,10)]=d;
+    });
+    return m;
+  },[]);
+  const showMap=useMemo(()=>{
+    const m={};
+    ALL_SHOWS.filter(s=>s.clientId==="bbn"&&s.date>="2026-04-16"&&s.date<="2026-05-31").forEach(s=>{m[s.date]=s;});
+    return m;
+  },[]);
+  const days=useMemo(()=>{
+    const result=[];
+    const end=new Date('2026-05-31T12:00:00');
+    for(let d=new Date('2026-04-16T12:00:00');d<=end;d.setDate(d.getDate()+1)){
+      const iso=d.toISOString().slice(0,10);
+      const bus=busMap[iso];
+      const show=showMap[iso];
+      const split=SPLIT_DAYS[iso];
+      let type="off";
+      if(split)type="split";
+      else if(show||(bus&&bus.show))type="show";
+      else if(bus)type="travel";
+      result.push({iso,bus,show,split,type});
+    }
+    return result;
+  },[busMap,showMap]);
+  const TS={
+    show:{l:"SHOW",c:"#047857",b:"#D1FAE5"},
+    travel:{l:"TRAVEL",c:"#1E40AF",b:"#DBEAFE"},
+    off:{l:"OFF",c:"#64748b",b:"#F1F5F9"},
+    split:{l:"SPLIT",c:"#92400E",b:"#FEF3C7"},
+  };
+  return(
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
+        {[
+          {l:"Shows",v:days.filter(d=>d.type==="show").length,c:"#047857",b:"#D1FAE5"},
+          {l:"Travel Days",v:days.filter(d=>d.type==="travel").length,c:"#1E40AF",b:"#DBEAFE"},
+          {l:"Off Days",v:days.filter(d=>d.type==="off").length,c:"#64748b",b:"#F1F5F9"},
+          {l:"Split Days",v:days.filter(d=>d.type==="split").length,c:"#92400E",b:"#FEF3C7"},
+        ].map((s,i)=>(
+          <div key={i} style={{background:s.b,border:`1px solid ${s.c}30`,borderRadius:8,padding:"10px 12px"}}>
+            <div style={{fontSize:9,color:s.c,fontWeight:700,marginBottom:2}}>{s.l}</div>
+            <div style={{fontFamily:MN,fontSize:16,fontWeight:800,color:s.c}}>{s.v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,overflow:"hidden"}}>
+        {days.map((d,i)=>{
+          const ts=TS[d.type]||TS.off;
+          const isOff=d.type==="off";
+          const isSplit=d.type==="split";
+          const isExp=expRows[d.iso];
+          const hasFlag=(d.bus?.flag==="⚠")||(d.show?.notes||"").includes("⚠");
+          const canExpand=isSplit||hasFlag;
+          return(
+            <div key={d.iso} style={{borderBottom:i<days.length-1?"1px solid #f5f3ef":"none"}}>
+              <div
+                onClick={canExpand?()=>setExpRows(p=>({...p,[d.iso]:!p[d.iso]})):undefined}
+                style={{display:"grid",gridTemplateColumns:"76px 58px 1fr auto",alignItems:"center",gap:8,padding:isOff?"5px 12px":"8px 12px",background:d.type==="show"?"#F9FAFB":d.type==="travel"?"#F8FAFF":d.type==="split"?"#FFFBEB":"#fff",cursor:canExpand?"pointer":"default",opacity:isOff?0.65:1}}
+              >
+                <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+                  <span style={{fontFamily:MN,fontSize:isOff?9:10,fontWeight:isOff?400:700,color:ts.c}}>{fD(d.iso)}</span>
+                  <span style={{fontSize:8,color:"#94a3b8"}}>{fW(d.iso)}</span>
+                </div>
+                <div style={{background:ts.b,color:ts.c,fontSize:8,fontWeight:800,padding:"2px 6px",borderRadius:4,textAlign:"center",letterSpacing:"0.04em",whiteSpace:"nowrap"}}>{ts.l}</div>
+                <div style={{minWidth:0,overflow:"hidden"}}>
+                  {d.type==="show"&&(
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                      <span style={{fontSize:10,fontWeight:600,color:"#0f172a"}}>{d.show?.venue||d.bus?.venue}</span>
+                      <span style={{fontSize:9,color:"#64748b"}}>— {d.show?.city}</span>
+                      {d.show?.notes&&<span style={{fontSize:9,color:"#92400E"}}>{d.show.notes}</span>}
+                      {d.show?.promoter&&<span style={{fontSize:8,color:"#94a3b8",fontStyle:"italic"}}>{d.show.promoter}</span>}
+                    </div>
+                  )}
+                  {d.type==="travel"&&(
+                    <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                      <span style={{fontSize:10,color:"#0f172a",fontWeight:500}}>{d.bus?.route}</span>
+                      {d.bus?.km>0&&<span style={{fontFamily:MN,fontSize:9,color:"#64748b"}}>{d.bus.km}km</span>}
+                      <span style={{fontFamily:MN,fontSize:9,color:"#64748b"}}>{d.bus?.drive}</span>
+                      {d.bus?.dep!=="—"&&<span style={{fontFamily:MN,fontSize:9,color:"#475569"}}>↑{d.bus.dep}</span>}
+                      {d.bus?.arr!=="—"&&<span style={{fontFamily:MN,fontSize:9,color:"#475569"}}>↓{d.bus.arr}</span>}
+                      {d.bus?.note&&<span style={{fontSize:9,color:"#94a3b8"}}>{d.bus.note}</span>}
+                    </div>
+                  )}
+                  {d.type==="off"&&<span style={{fontSize:9,color:"#94a3b8"}}>—</span>}
+                  {d.type==="split"&&(
+                    <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+                      {d.split.parties.map(p=>(
+                        <span key={p.id} style={{fontSize:9,padding:"2px 8px",borderRadius:4,background:p.bg,color:p.color,fontWeight:700}}>{p.label} · {p.crew.length} crew</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+                  {hasFlag&&<span style={{fontSize:11}}>⚠</span>}
+                  {canExpand&&<span style={{fontSize:9,color:ts.c,fontWeight:700}}>{isExp?"▴":"▾"}</span>}
+                </div>
+              </div>
+              {isSplit&&isExp&&(
+                <div style={{padding:"0 12px 10px",background:"#FFFBEB",borderTop:"1px solid #FDE68A"}}>
+                  {d.split.parties.map(p=>(
+                    <div key={p.id} style={{marginTop:8,padding:"8px 10px",background:p.bg,borderRadius:7,border:`1px solid ${p.color}30`}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6,flexWrap:"wrap"}}>
+                        <span style={{fontSize:10,fontWeight:800,color:p.color}}>{p.label}</span>
+                        <span style={{fontSize:9,color:"#94a3b8"}}>·</span>
+                        <span style={{fontSize:9,color:"#64748b"}}>{p.location}</span>
+                        <span style={{fontSize:9,color:"#94a3b8"}}>·</span>
+                        <span style={{fontSize:9,color:"#64748b"}}>{p.event}</span>
+                      </div>
+                      <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:p.note?4:0}}>
+                        {p.crew.map(cid=>{const c=crewById[cid];return c?(
+                          <span key={cid} style={{fontSize:8,padding:"2px 8px",borderRadius:12,background:"#fff",border:`1px solid ${p.color}40`,color:p.color,fontWeight:600}}>
+                            {c.name.split(" ")[0]} <span style={{fontWeight:400,opacity:0.7,fontSize:7}}>({c.role.split(" (")[0].split("/")[0].trim()})</span>
+                          </span>
+                        ):null;})}
+                      </div>
+                      {p.note&&<div style={{fontSize:9,color:"#64748b",fontStyle:"italic"}}>{p.note}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!isSplit&&hasFlag&&isExp&&d.show?.notes&&(
+                <div style={{padding:"6px 12px 8px",background:"#FEF3C7",borderTop:"1px solid #FDE68A",fontSize:9,color:"#92400E"}}>{d.show.notes}</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function TransTab(){
-  const[view,setView]=useState("bus");
+  const[view,setView]=useState("calendar");
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
-      <div style={{padding:"7px 20px",borderBottom:"1px solid #d6d3cd",background:"#fff",display:"flex",gap:6,flexShrink:0,alignItems:"center"}}>
-        {["bus","festival"].map(v=><button key={v} onClick={()=>setView(v)} style={{padding:"4px 12px",borderRadius:6,border:"1px solid #d6d3cd",background:view===v?"#5B21B6":"#f5f3ef",color:view===v?"#fff":"#64748b",fontSize:10,fontWeight:700,cursor:"pointer"}}>{v==="bus"?"EU Bus Schedule":"Festival Dispatch"}</button>)}
+      <div style={{padding:"7px 20px",borderBottom:"1px solid #d6d3cd",background:"#fff",display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"wrap"}}>
+        {[["calendar","Tour Calendar"],["bus","EU Bus Schedule"],["festival","Festival Dispatch"]].map(([v,l])=>(
+          <button key={v} onClick={()=>setView(v)} style={{padding:"4px 12px",borderRadius:6,border:"1px solid #d6d3cd",background:view===v?"#5B21B6":"#f5f3ef",color:view===v?"#fff":"#64748b",fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
+        ))}
         {view==="bus"&&<div style={{marginLeft:"auto",fontFamily:MN,fontSize:8,color:"#94a3b8"}}>Pieter Smit T26-021201 · 8,970 km · 31 days</div>}
+        {view==="calendar"&&<div style={{marginLeft:"auto",fontFamily:MN,fontSize:8,color:"#94a3b8"}}>Apr 16 – May 31 · Internet Explorer EU 2026</div>}
       </div>
       <div style={{flex:1,overflow:"auto",padding:"12px 20px 30px"}}>
-        {view==="bus"?(
+        {view==="calendar"&&<TourCalendar/>}
+        {view==="bus"&&(
           <div>
             <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
               {[{l:"Total KM",v:"8,970"},{l:"Shows",v:"17"},{l:"Drive Days",v:"13"},{l:"HOS Flags",v:"3"}].map((s,i)=><div key={i} style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:8,padding:"10px 12px"}}><div style={{fontSize:9,color:"#64748b",fontWeight:600,marginBottom:2}}>{s.l}</div><div style={{fontFamily:MN,fontSize:16,fontWeight:800}}>{s.v}</div></div>)}
@@ -1269,7 +1423,8 @@ function TransTab(){
               </table>
             </div>
           </div>
-        ):(
+        )}
+        {view==="festival"&&(
           <div style={{padding:"40px 0",textAlign:"center",color:"#64748b"}}><div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Festival Dispatch</div><div style={{fontSize:11,color:"#94a3b8"}}>Olivia manages driver pool for Beyond Wonderland and Wakaan.<br/>Payout log is in Finance → Payment Batch.</div></div>
         )}
       </div>
