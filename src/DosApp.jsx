@@ -751,8 +751,8 @@ function TopBar({ss}){
           {activeClients.map(c=><option key={c.id} value={c.id} style={{color:"#0f172a",fontWeight:500}}>● {c.name} · {c.type==="festival"?"FEST":"ARTIST"}</option>)}
         </select>
       </div>
-      <div style={{display:"flex",padding:"0 20px",width:"100%",maxWidth:900}}>
-        {TABS.map(t=><button key={t.id} onClick={()=>!t.disabled&&setTab(t.id)} style={{padding:"6px 12px",fontSize:11,fontWeight:tab===t.id?700:500,color:t.disabled?"#c4bfb6":tab===t.id?"#0f172a":"#64748b",background:"none",border:"none",cursor:t.disabled?"default":"pointer",borderBottom:tab===t.id?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:4}}><span style={{fontSize:10}}>{t.icon}</span>{t.label}{t.soon&&<span style={{fontSize:7,color:"#c4bfb6"}}>soon</span>}</button>)}
+      <div style={{display:"flex",padding:"0 20px",width:"100%",maxWidth:900,overflowX:"auto",overflowY:"hidden",scrollbarWidth:"thin",WebkitOverflowScrolling:"touch"}}>
+        {TABS.map(t=><button key={t.id} onClick={()=>!t.disabled&&setTab(t.id)} style={{padding:"6px 12px",fontSize:11,fontWeight:tab===t.id?700:500,color:t.disabled?"#c4bfb6":tab===t.id?"#0f172a":"#64748b",background:"none",border:"none",cursor:t.disabled?"default":"pointer",borderBottom:tab===t.id?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:4,flexShrink:0,whiteSpace:"nowrap"}}><span style={{fontSize:10}}>{t.icon}</span>{t.label}{t.soon&&<span style={{fontSize:7,color:"#c4bfb6"}}>soon</span>}</button>)}
       </div>
     </div>
   );
@@ -2175,8 +2175,8 @@ function ProdTab(){
       {uploadMsg&&<div style={{fontSize:10,color:uploadMsg.startsWith("Error")||uploadMsg.startsWith("PDF")?"#DC2626":"#047857",background:uploadMsg.startsWith("Error")||uploadMsg.startsWith("PDF")?"#FEF2F2":"#F0FDF4",border:`1px solid ${uploadMsg.startsWith("Error")||uploadMsg.startsWith("PDF")?"#FECACA":"#BBF7D0"}`,borderRadius:6,padding:"6px 10px",marginBottom:10,fontFamily:MN}}>{uploadMsg}</div>}
 
       {/* Sub-tabs */}
-      <div style={{display:"flex",gap:1,borderBottom:"1px solid #d6d3cd",marginBottom:12}}>
-        {SUB_TABS.map(t=><button key={t.id} onClick={()=>setSubTab(t.id)} style={{padding:"5px 12px",fontSize:10,fontWeight:subTab===t.id?700:500,color:subTab===t.id?"#0f172a":"#64748b",background:"none",border:"none",cursor:"pointer",borderBottom:subTab===t.id?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:4}}>
+      <div style={{display:"flex",gap:1,borderBottom:"1px solid #d6d3cd",marginBottom:12,overflowX:"auto",overflowY:"hidden",scrollbarWidth:"thin",WebkitOverflowScrolling:"touch"}}>
+        {SUB_TABS.map(t=><button key={t.id} onClick={()=>setSubTab(t.id)} style={{padding:"5px 12px",fontSize:10,fontWeight:subTab===t.id?700:500,color:subTab===t.id?"#0f172a":"#64748b",background:"none",border:"none",cursor:"pointer",borderBottom:subTab===t.id?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:4,flexShrink:0,whiteSpace:"nowrap"}}>
           {t.label}{t.badge!=null&&<span style={{fontSize:8,fontWeight:800,background:t.badgeColor||"#5B21B6",color:"#fff",borderRadius:10,padding:"1px 5px"}}>{t.badge}</span>}
         </button>)}
       </div>
