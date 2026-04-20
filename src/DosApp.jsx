@@ -2001,7 +2001,8 @@ function TourCalendar(){
 }
 
 function FlightsListView(){
-  const{flights,uFlight,uRos,gRos,uFin,finance,crew,setShowCrew}=useContext(Ctx);
+  const{flights,uFlight,uRos,gRos,uFin,finance,crew,setShowCrew,setSel,setTab}=useContext(Ctx);
+  const goToSchedule=(date)=>{setSel(date);setTab("ros");};
   const[scanning,setScanning]=useState(false);
   const[scanMsg,setScanMsg]=useState("");
   const[pendingImport,setPendingImport]=useState([]);
@@ -2115,13 +2116,25 @@ function FlightsListView(){
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {dates.map(date=>(
             <div key={date}>
-              <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.08em",marginBottom:6,display:"flex",alignItems:"center",gap:8}}>{fFull(date)}<div style={{flex:1,height:1,background:"#d6d3cd"}}/></div>
+              <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.08em",marginBottom:6,display:"flex",alignItems:"center",gap:8}}>
+                <button onClick={()=>goToSchedule(date)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:9,fontWeight:800,color:"#5B21B6",letterSpacing:"0.08em",textDecoration:"underline",textDecorationStyle:"dotted",textUnderlineOffset:2}}>{fFull(date)}</button>
+                <div style={{flex:1,height:1,background:"#d6d3cd"}}/>
+              </div>
               <div style={{display:"flex",flexDirection:"column",gap:4}}>
                 {byDate[date].map(f=>(
                   <div key={f.id} style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:8,padding:"9px 12px",display:"grid",gridTemplateColumns:"80px 1fr 1fr 1fr auto",gap:10,alignItems:"center"}}>
                     <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#1E40AF"}}>{f.from}<span style={{fontSize:9,fontWeight:400,color:"#94a3b8",padding:"0 3px"}}>→</span>{f.to}</div>
                     <div><div style={{fontSize:11,fontWeight:700,color:"#0f172a"}}>{f.flightNo||f.carrier}</div><div style={{fontSize:9,color:"#64748b"}}>{f.carrier&&f.flightNo?f.carrier:""}</div></div>
-                    <div><div style={{fontSize:9,color:"#64748b",fontWeight:600}}>DEP · ARR</div><div style={{fontFamily:MN,fontSize:10,fontWeight:700,color:"#0f172a"}}>{f.dep||"—"}<span style={{color:"#94a3b8",fontWeight:400}}>→</span>{f.arr||"—"}</div></div>
+                    <div>
+                      <div style={{fontSize:9,color:"#64748b",fontWeight:600}}>DEP · ARR</div>
+                      <div style={{fontFamily:MN,fontSize:10,fontWeight:700,color:"#0f172a",display:"flex",alignItems:"center",gap:3}}>
+                        <button onClick={()=>goToSchedule(f.depDate)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:MN,fontSize:10,fontWeight:700,color:"#1E40AF",textDecoration:"underline",textDecorationStyle:"dotted",textUnderlineOffset:2}}>{f.dep||"—"}</button>
+                        <span style={{color:"#94a3b8",fontWeight:400}}>→</span>
+                        {f.arrDate&&f.arrDate!==f.depDate
+                          ?<button onClick={()=>goToSchedule(f.arrDate)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:MN,fontSize:10,fontWeight:700,color:"#1E40AF",textDecoration:"underline",textDecorationStyle:"dotted",textUnderlineOffset:2}}>{f.arr||"—"}</button>
+                          :<span>{f.arr||"—"}</span>}
+                      </div>
+                    </div>
                     <div><div style={{fontSize:9,color:"#64748b",fontWeight:600}}>PAX</div><div style={{fontSize:10,color:"#0f172a"}}>{(f.pax||[]).join(", ")||"—"}</div></div>
                     <button onClick={()=>uFlight(f.id,{...f,status:"dismissed"})} title="Remove" style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:14,lineHeight:1}}>×</button>
                   </div>
