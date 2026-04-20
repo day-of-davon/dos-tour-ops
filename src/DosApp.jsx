@@ -2543,9 +2543,10 @@ function CmdP(){
 }
 
 function CrewTab(){
-  const{sel,setSel,shows,tourDaysSorted,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo}=useContext(Ctx);
+  const{sel,setSel,shows,tourDaysSorted,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights}=useContext(Ctx);
   const[panel,setPanel]=useState(null);
   const[editMode,setEditMode]=useState(false);
+  const[flightPicker,setFlightPicker]=useState(null); // {crewId, dir}
   const show=shows[sel];
   const today=new Date().toISOString().slice(0,10);
   const sc=showCrew[sel]||{};
@@ -2580,6 +2581,32 @@ function CrewTab(){
   const addMember=()=>setCrew(p=>[...p,{id:uid(),name:"",role:"",email:""}]);
   const updateMember=(id,field,val)=>setCrew(p=>p.map(c=>c.id===id?{...c,[field]:val}:c));
   const removeMember=(id)=>{const prev=crew;setCrew(p=>p.filter(c=>c.id!==id));pushUndo("Crew member removed.",()=>setCrew(prev));};
+
+  const confirmedFlights=useMemo(()=>Object.values(flights||{}).filter(f=>f&&f.status==="confirmed"),[flights]);
+  const flightsForDir=(dir)=>{
+    if(dir==="inbound") return confirmedFlights.filter(f=>f.arrDate===sel);
+    return confirmedFlights.filter(f=>f.depDate===sel);
+  };
+  const assignFlight=(crewId,dir,f)=>{
+    const leg={id:`leg_${f.id}`,flight:f.flightNo||"",carrier:f.carrier||"",from:f.from,fromCity:f.fromCity||f.from,to:f.to,toCity:f.toCity||f.to,depart:f.dep,arrive:f.arr,conf:f.confirmNo||f.bookingRef||"",status:"confirmed",flightId:f.id};
+    const confKey=dir==="inbound"?"inboundConfirmed":"outboundConfirmed";
+    const dateKey=dir==="inbound"?"inboundDate":"outboundDate";
+    const timeKey=dir==="inbound"?"inboundTime":"outboundTime";
+    const timeVal=dir==="inbound"?f.arr:f.dep;
+    const dateVal=dir==="inbound"?(f.arrDate||sel):f.depDate;
+    setShowCrew(p=>{
+      const cur=p[sel]?.[crewId]||{};
+      const ex=(cur[dir]||[]).filter(l=>l.flightId!==f.id);
+      return{...p,[sel]:{...p[sel],[crewId]:{...cur,attending:true,inboundMode:dir==="inbound"?cur.inboundMode||"fly":cur.inboundMode,outboundMode:dir==="outbound"?cur.outboundMode||"fly":cur.outboundMode,[dir]:[...ex,leg],[confKey]:true,[dateKey]:dateVal,[timeKey]:timeVal||""}}};
+    });
+    setFlightPicker(null);
+  };
+  const unassignFlight=(crewId,dir,flightId)=>{
+    setShowCrew(p=>{
+      const cur=p[sel]?.[crewId]||{};
+      return{...p,[sel]:{...p[sel],[crewId]:{...cur,[dir]:(cur[dir]||[]).filter(l=>l.flightId!==flightId)}}};
+    });
+  };
 
   const attending=crew.filter(c=>getCD(c.id).attending);
   const panelCrew=panel?crew.find(c=>c.id===panel.crewId):null;
@@ -2701,19 +2728,60 @@ function CrewTab(){
                           </button>
                         </div>
                         {mode==="fly"?(
-                          <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                            {(cd[dir]||[]).map(leg=>(
-                              <div key={leg.id} style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 90px 90px 80px 24px",gap:4,alignItems:"center"}}>
-                                {[["flight","Flight #"],["from","From"],["to","To"],["depart","Depart"],["arrive","Arrive"]].map(([k,ph])=>(
-                                  <input key={k} placeholder={ph} value={leg[k]} onChange={e=>updateLeg(c.id,dir,leg.id,k,e.target.value)} style={inp}/>
-                                ))}
-                                <select value={leg.status} onChange={e=>updateLeg(c.id,dir,leg.id,"status",e.target.value)} style={{...inp,padding:"3px 4px",fontSize:9}}>
-                                  {LEG_STATUS.map(s=><option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
-                                </select>
-                                <button onClick={()=>removeLeg(c.id,dir,leg.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:13,padding:0}}>×</button>
+                          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                            {(cd[dir]||[]).map(leg=>{
+                              const isAssigned=!!leg.flightId;
+                              return isAssigned?(
+                                <div key={leg.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"#EDE9FE",borderRadius:6,border:"1px solid #c4b5fd"}}>
+                                  <span style={{fontSize:9,fontWeight:700,color:"#5B21B6",whiteSpace:"nowrap"}}>✈ {leg.flight||"—"}</span>
+                                  <span style={{fontSize:9,color:"#475569",flex:1}}>{leg.fromCity||leg.from} → {leg.toCity||leg.to}</span>
+                                  {leg.depart&&<span style={{fontSize:9,fontFamily:MN,color:"#64748b",whiteSpace:"nowrap"}}>{leg.depart}{leg.arrive?` → ${leg.arrive}`:""}</span>}
+                                  {leg.conf&&<span style={{fontSize:8,color:"#94a3b8",fontFamily:MN,whiteSpace:"nowrap"}}>#{leg.conf}</span>}
+                                  <button onClick={()=>unassignFlight(c.id,dir,leg.flightId)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:13,padding:0,flexShrink:0,lineHeight:1}}>×</button>
+                                </div>
+                              ):(
+                                <div key={leg.id} style={{display:"grid",gridTemplateColumns:"1fr 70px 70px 90px 90px 80px 24px",gap:4,alignItems:"center"}}>
+                                  {[["flight","Flight #"],["from","From"],["to","To"],["depart","Depart"],["arrive","Arrive"]].map(([k,ph])=>(
+                                    <input key={k} placeholder={ph} value={leg[k]} onChange={e=>updateLeg(c.id,dir,leg.id,k,e.target.value)} style={inp}/>
+                                  ))}
+                                  <select value={leg.status} onChange={e=>updateLeg(c.id,dir,leg.id,"status",e.target.value)} style={{...inp,padding:"3px 4px",fontSize:9}}>
+                                    {LEG_STATUS.map(s=><option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>)}
+                                  </select>
+                                  <button onClick={()=>removeLeg(c.id,dir,leg.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:13,padding:0}}>×</button>
+                                </div>
+                              );
+                            })}
+                            {/* Flight picker dropdown */}
+                            {flightPicker?.crewId===c.id&&flightPicker?.dir===dir?(
+                              <div style={{background:"#fff",border:"1px solid #c4b5fd",borderRadius:8,overflow:"hidden",boxShadow:"0 4px 16px rgba(0,0,0,0.10)"}}>
+                                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 10px",borderBottom:"1px solid #ebe8e3",background:"#f5f3ef"}}>
+                                  <span style={{fontSize:9,fontWeight:800,color:"#5B21B6",letterSpacing:"0.06em"}}>ASSIGN FLIGHT — {dir==="inbound"?"ARRIVALS":"DEPARTURES"} {fD(sel)}</span>
+                                  <button onClick={()=>setFlightPicker(null)} style={{background:"none",border:"none",cursor:"pointer",color:"#94a3b8",fontSize:14,padding:0,lineHeight:1}}>×</button>
+                                </div>
+                                {flightsForDir(dir).length===0?(
+                                  <div style={{padding:"12px 10px",fontSize:10,color:"#94a3b8",textAlign:"center"}}>No confirmed {dir==="inbound"?"arrivals":"departures"} on {fD(sel)}.<br/><span style={{fontSize:9}}>Scan Gmail for flights in Transport tab.</span></div>
+                                ):flightsForDir(dir).map(f=>{
+                                  const alreadyAssigned=(cd[dir]||[]).some(l=>l.flightId===f.id);
+                                  return(
+                                    <div key={f.id} onClick={()=>!alreadyAssigned&&assignFlight(c.id,dir,f)} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",borderBottom:"1px solid #f5f3ef",cursor:alreadyAssigned?"default":"pointer",background:alreadyAssigned?"#f5f3ef":"#fff",opacity:alreadyAssigned?0.6:1}} className="rh">
+                                      <span style={{fontSize:10,fontWeight:700,color:"#5B21B6",minWidth:60}}>{f.flightNo||f.carrier}</span>
+                                      <span style={{fontSize:10,flex:1,color:"#0f172a"}}>{f.fromCity||f.from} → {f.toCity||f.to}</span>
+                                      <span style={{fontSize:9,fontFamily:MN,color:"#64748b"}}>{f.dep} → {f.arr}</span>
+                                      {f.pax?.length>0&&<span style={{fontSize:8,color:"#94a3b8"}}>{f.pax.join(", ")}</span>}
+                                      {alreadyAssigned?<span style={{fontSize:8,color:"#047857",fontWeight:700}}>✓ Assigned</span>:<span style={{fontSize:9,color:"#5B21B6",fontWeight:700}}>Assign →</span>}
+                                    </div>
+                                  );
+                                })}
+                                <div style={{padding:"6px 10px",borderTop:"1px solid #ebe8e3",background:"#f5f3ef"}}>
+                                  <button onClick={()=>addLeg(c.id,dir)} style={{...btn("#64748b"),fontSize:8,padding:"2px 8px"}}>+ Enter manually</button>
+                                </div>
                               </div>
-                            ))}
-                            <button onClick={()=>addLeg(c.id,dir)} style={{...btn("#047857"),fontSize:9,padding:"3px 9px",width:"fit-content"}}>+ Add Leg</button>
+                            ):(
+                              <div style={{display:"flex",gap:6}}>
+                                <button onClick={()=>setFlightPicker({crewId:c.id,dir})} style={{...btn("#5B21B6"),fontSize:9,padding:"3px 10px"}}>✈ Assign Flight</button>
+                                <button onClick={()=>addLeg(c.id,dir)} style={{...btn("#64748b"),fontSize:9,padding:"3px 9px"}}>+ Manual</button>
+                              </div>
+                            )}
                           </div>
                         ):(
                           <div style={{display:"grid",gridTemplateColumns:"130px 100px 1fr",gap:6,alignItems:"center"}}>
