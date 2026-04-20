@@ -90,23 +90,27 @@ module.exports = async function handler(req, res) {
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
 
   const queries = [
-    `subject:(flight confirmation) newer_than:120d`,
-    `subject:(e-ticket) newer_than:120d`,
-    `subject:(itinerary) (flight OR airline OR airways) newer_than:120d`,
-    `subject:(booking confirmation) (flight OR airline OR airways) newer_than:120d`,
-    `subject:(travel confirmation) (flight OR airline) newer_than:120d`,
-    `from:(noreply@ryanair.com) newer_than:120d`,
-    `from:(no-reply@easyjet.com) newer_than:120d`,
-    `from:(donotreply@klm.com) OR from:(booking@klm.com) newer_than:120d`,
-    `from:(noreply@lufthansa.com) newer_than:120d`,
-    `from:(noreply@aerlingus.com) newer_than:120d`,
-    `"booking reference" (flight OR departure OR arrival) newer_than:120d`,
+    `subject:(flight confirmation) newer_than:365d`,
+    `subject:(e-ticket) newer_than:365d`,
+    `subject:(itinerary) (flight OR airline OR airways) newer_than:365d`,
+    `subject:(booking confirmation) (flight OR airline OR airways) newer_than:365d`,
+    `subject:(travel confirmation) (flight OR airline) newer_than:365d`,
+    `from:(noreply@ryanair.com) newer_than:365d`,
+    `from:(no-reply@easyjet.com) newer_than:365d`,
+    `from:(donotreply@klm.com) OR from:(booking@klm.com) newer_than:365d`,
+    `from:(noreply@lufthansa.com) newer_than:365d`,
+    `from:(noreply@aerlingus.com) newer_than:365d`,
+    `from:(noreply@ba.com) OR from:(customerrelations@ba.com) newer_than:365d`,
+    `from:(noreply@united.com) newer_than:365d`,
+    `from:(DeltaAirLines@t.delta.com) newer_than:365d`,
+    `"booking reference" (flight OR departure OR arrival) newer_than:365d`,
+    `subject:(your flight) (confirmation OR booking OR itinerary) newer_than:365d`,
   ];
 
   const seenIds = new Set();
   for (const q of queries) {
     try {
-      const ids = await gmailSearch(googleToken, q, 8);
+      const ids = await gmailSearch(googleToken, q, 20);
       ids.forEach(id => seenIds.add(id));
     } catch (e) {
       console.error("[flights] search error:", e.message);
@@ -114,7 +118,7 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  const ids = [...seenIds].slice(0, 14);
+  const ids = [...seenIds].slice(0, 40);
   if (!ids.length) return res.json({ flights: [], threadsFound: 0 });
 
   const threads = (await Promise.all(ids.map(id => gmailGetThread(googleToken, id))))
@@ -173,7 +177,7 @@ Return this exact JSON:
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: sysPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
