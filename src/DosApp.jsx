@@ -1424,30 +1424,88 @@ function AnchorTimes({b,setBF}){
 }
 
 function FlightDayStrip({sel}){
-  const{flights}=useContext(Ctx);
+  const{flights,uFlight}=useContext(Ctx);
   const[open,setOpen]=useState(true);
+  const[scanning,setScanning]=useState(false);
+  const[refreshing,setRefreshing]=useState(false);
+  const[stripMsg,setStripMsg]=useState("");
+  const[liveStatuses,setLiveStatuses]=useState({});
+
   const deps=Object.values(flights).filter(f=>f.status==="confirmed"&&f.depDate===sel);
   const arrs=Object.values(flights).filter(f=>f.status==="confirmed"&&f.arrDate===sel&&f.arrDate!==f.depDate);
-  if(!deps.length&&!arrs.length)return null;
-  const total=deps.length+arrs.length;
+  const dayFlights=[...deps,...arrs];
+
+  const scanFlights=async(e)=>{
+    e.stopPropagation();
+    const{data:{session}}=await supabase.auth.getSession();
+    if(!session)return;
+    const googleToken=session.provider_token;
+    if(!googleToken){setStripMsg("Gmail unavailable — re-login.");return;}
+    setScanning(true);setStripMsg("Scanning…");
+    try{
+      const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken,tourStart:"2026-04-01",tourEnd:"2026-06-30"})});
+      if(resp.status===402){setStripMsg("Gmail expired — re-login.");setScanning(false);return;}
+      const data=await resp.json();
+      if(data.error){setStripMsg(`Error: ${data.error}`);setScanning(false);return;}
+      const allFlights=Object.values(flights);
+      const existingKeys=new Set(allFlights.map(f=>`${f.flightNo}__${f.depDate}`));
+      const novel=(data.flights||[]).filter(f=>!flights[f.id]&&!existingKeys.has(`${f.flightNo}__${f.depDate}`));
+      novel.forEach(f=>uFlight(f.id,{...f,status:"pending"}));
+      setStripMsg(novel.length?`+${novel.length} flight${novel.length>1?"s":""} added to Transport`:"No new flights found.");
+    }catch(err){setStripMsg(`Scan failed: ${err.message}`);}
+    setScanning(false);
+    setTimeout(()=>setStripMsg(""),4000);
+  };
+
+  const refreshTimes=async(e)=>{
+    e.stopPropagation();
+    const toRefresh=dayFlights.filter(f=>f.flightNo);
+    if(!toRefresh.length){setStripMsg("No flight numbers to refresh.");setTimeout(()=>setStripMsg(""),3000);return;}
+    setRefreshing(true);setStripMsg("Refreshing…");
+    try{
+      const{data:{session}}=await supabase.auth.getSession();
+      if(!session){setRefreshing(false);return;}
+      const resp=await fetch("/api/flight-status",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({flights:toRefresh.map(f=>({flightNo:f.flightNo,depDate:f.depDate,id:f.id}))})});
+      if(resp.ok){
+        const data=await resp.json();
+        const next={};
+        toRefresh.forEach(f=>{const s=data.statuses?.[`${f.flightNo}__${f.depDate}`];if(s&&!s.error)next[f.id]=s;});
+        setLiveStatuses(p=>({...p,...next}));
+        const updated=Object.keys(next).length;
+        setStripMsg(updated?`Updated ${updated} flight${updated>1?"s":""}. `:"No status data available.");
+      }
+    }catch(err){setStripMsg(`Refresh failed: ${err.message}`);}
+    setRefreshing(false);
+    setTimeout(()=>setStripMsg(""),4000);
+  };
+
+  const hasAny=deps.length||arrs.length;
   return(
     <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:10,marginBottom:10,overflow:"hidden"}}>
       <div onClick={()=>setOpen(v=>!v)} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",cursor:"pointer",userSelect:"none"}}>
         <span style={{fontSize:10,fontWeight:800,color:"#1E40AF",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
         {deps.length>0&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#DBEAFE",color:"#1E40AF",fontWeight:700}}>{deps.length} DEP</span>}
         {arrs.length>0&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#D1FAE5",color:"#047857",fontWeight:700}}>{arrs.length} ARR</span>}
-        <span style={{marginLeft:"auto",fontSize:10,color:"#93C5FD"}}>{open?"▾":"▸"}</span>
+        {stripMsg&&<span style={{fontSize:9,color:"#64748b",fontFamily:MN,marginLeft:4}}>{stripMsg}</span>}
+        <div style={{marginLeft:"auto",display:"flex",gap:5,alignItems:"center"}} onClick={e=>e.stopPropagation()}>
+          {hasAny>0&&<button onClick={refreshTimes} disabled={refreshing} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"1px solid #93C5FD",background:refreshing?"#DBEAFE":"#fff",color:"#1E40AF",cursor:refreshing?"default":"pointer",fontWeight:700,flexShrink:0}}>{refreshing?"…":"↻ Times"}</button>}
+          <button onClick={scanFlights} disabled={scanning} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"none",background:scanning?"#DBEAFE":"#1E40AF",color:scanning?"#1E40AF":"#fff",cursor:scanning?"default":"pointer",fontWeight:700,flexShrink:0}}>{scanning?"Scanning…":"Scan Gmail"}</button>
+        </div>
+        <span style={{fontSize:10,color:"#93C5FD",flexShrink:0}}>{open?"▾":"▸"}</span>
       </div>
       {open&&(
         <div style={{borderTop:"1px solid #BFDBFE",display:"flex",flexDirection:"column",gap:0}}>
           {[...deps.map(f=>({f,role:"dep"})),...arrs.map(f=>({f,role:"arr"}))].map(({f,role},i,arr)=>{
             const isDep=role==="dep";
             const sameDay=f.depDate===f.arrDate;
+            const live=liveStatuses[f.id];
+            const liveStyle=live?.status==="Cancelled"?{background:"#FEF2F2",borderColor:"#FECACA"}:live?.status==="Delayed"?{background:"#FFFBEB",borderColor:"#FDE68A"}:{};
             return(
-              <div key={f.id} style={{padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #DBEAFE":"none",display:"grid",gridTemplateColumns:"auto 1fr auto",gap:"6px 12px",alignItems:"center"}}>
+              <div key={f.id} style={{padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #DBEAFE":"none",display:"grid",gridTemplateColumns:"auto 1fr auto",gap:"6px 12px",alignItems:"start",...liveStyle}}>
                 {/* Left: type badge */}
-                <div style={{display:"flex",flexDirection:"column",gap:3,alignItems:"center"}}>
+                <div style={{display:"flex",flexDirection:"column",gap:3,alignItems:"center",paddingTop:1}}>
                   <span style={{fontSize:7,fontWeight:800,padding:"2px 5px",borderRadius:4,background:isDep?"#1E40AF":"#047857",color:"#fff",letterSpacing:"0.06em"}}>{isDep?"DEP":"ARR"}</span>
+                  {live?.status&&<span style={{fontSize:7,fontWeight:700,padding:"1px 4px",borderRadius:3,...(STATUS_STYLE[live.status]||STATUS_STYLE.Unknown),background:(STATUS_STYLE[live.status]||STATUS_STYLE.Unknown).bg,color:(STATUS_STYLE[live.status]||STATUS_STYLE.Unknown).c}}>{(STATUS_STYLE[live.status]||STATUS_STYLE.Unknown).label}</span>}
                 </div>
                 {/* Center: flight info */}
                 <div>
@@ -1457,18 +1515,28 @@ function FlightDayStrip({sel}){
                     {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:"#64748b"}}>{f.carrier}</span>}
                     {f.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"#94a3b8"}}>#{f.confirmNo}</span>}
                   </div>
-                  {f.pax?.length>0&&<div style={{fontSize:9,color:"#475569"}}>{f.pax.join(", ")}</div>}
+                  {f.pax?.length>0&&<div style={{fontSize:9,color:"#475569",marginBottom:live?3:0}}>{f.pax.join(", ")}</div>}
+                  {live&&<div style={{display:"flex",gap:10,flexWrap:"wrap",fontSize:9,color:"#475569"}}>
+                    {live.depActual&&<span>Actual dep: <strong style={{fontFamily:MN}}>{live.depActual}</strong></span>}
+                    {live.arrActual&&<span>Actual arr: <strong style={{fontFamily:MN}}>{live.arrActual}</strong></span>}
+                    {live.depGate&&<span>Gate: <strong>{live.depGate}</strong></span>}
+                    {live.depTerminal&&<span>T<strong>{live.depTerminal}</strong></span>}
+                    {live.delayMinutes>0&&<span style={{color:"#B45309",fontWeight:700}}>+{live.delayMinutes}m delay</span>}
+                    {live.aircraft&&<span style={{color:"#94a3b8"}}>{live.aircraft}</span>}
+                  </div>}
                 </div>
                 {/* Right: times */}
                 <div style={{textAlign:"right"}}>
                   <div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"flex-end"}}>
                     {f.dep&&<div style={{display:"flex",alignItems:"center",gap:5}}>
                       <span style={{fontSize:8,color:"#1E40AF",fontWeight:700}}>DEP</span>
-                      <span style={{fontFamily:MN,fontSize:12,fontWeight:800,color:"#1E40AF"}}>{f.dep}</span>
+                      <span style={{fontFamily:MN,fontSize:12,fontWeight:800,color:live?.depActual&&live.depActual!==f.dep?"#B45309":"#1E40AF"}}>{live?.depActual||f.dep}</span>
+                      {live?.depActual&&live.depActual!==f.dep&&<span style={{fontFamily:MN,fontSize:9,color:"#94a3b8",textDecoration:"line-through"}}>{f.dep}</span>}
                     </div>}
                     {f.arr&&<div style={{display:"flex",alignItems:"center",gap:5}}>
                       <span style={{fontSize:8,color:"#047857",fontWeight:700}}>ARR{!sameDay?` ${f.arrDate?.slice(5)}`:""}</span>
-                      <span style={{fontFamily:MN,fontSize:12,fontWeight:800,color:"#047857"}}>{f.arr}</span>
+                      <span style={{fontFamily:MN,fontSize:12,fontWeight:800,color:live?.arrActual&&live.arrActual!==f.arr?"#B45309":"#047857"}}>{live?.arrActual||f.arr}</span>
+                      {live?.arrActual&&live.arrActual!==f.arr&&<span style={{fontFamily:MN,fontSize:9,color:"#94a3b8",textDecoration:"line-through"}}>{f.arr}</span>}
                     </div>}
                   </div>
                 </div>
