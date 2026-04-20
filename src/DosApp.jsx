@@ -862,7 +862,7 @@ function TopBar({ss}){
 }
 
 function DateDrawer({onClose}){
-  const{sorted,tourDaysSorted,sel,setSel,uShow,aC,shows}=useContext(Ctx);
+  const{sorted,tourDaysSorted,sel,setSel,uShow,aC,shows,tourDays}=useContext(Ctx);
   const[newDate,setNewDate]=useState("");
   const[newType,setNewType]=useState("off");
   const[filter,setFilter]=useState("all");
@@ -871,6 +871,14 @@ function DateDrawer({onClose}){
     uShow(newDate,{date:newDate,clientId:aC,type:newType,city:newType==="travel"?"Travel":"Off Day",venue:newType==="travel"?"Travel Day":"Off Day",country:"",region:"",promoter:"",advance:[],doors:0,curfew:0,busArrive:0,crewCall:0,venueAccess:0,mgTime:0,notes:""});
     setSel(newDate);setNewDate("");onClose();
   };
+  const drawerLabel=useMemo(()=>{
+    if(!sel)return"DATES";
+    const td=tourDays?.[sel];const sh=shows?.[sel];
+    if(sh&&(sh.type==="travel"||sh.type==="off")){const r=td?.bus?.route;return r?r:sh.city||sh.type.toUpperCase();}
+    if(sh)return sh.city||sh.venue||fD(sel);
+    if(td){if(td.type==="travel"&&td.bus?.route)return td.bus.route;if(td.type==="split")return"Split Day";if(td.type==="off")return"Off";}
+    return fD(sel);
+  },[sel,tourDays,shows]);
   const typeStyle=t=>t==="travel"?{bg:"#DBEAFE",c:"#1E40AF",l:"Travel"}:t==="off"?{bg:"#F5F3EF",c:"#94a3b8",l:"Off"}:t==="split"?{bg:"#FEF3C7",c:"#92400E",l:"Split"}:t==="show"?{bg:"#D1FAE5",c:"#047857",l:"Show"}:null;
   // Merge tour days with non-tour shows (post-EU shows, festivals). Use tourDays for Apr16-May31, fall back to sorted for everything else.
   const rows=useMemo(()=>{
@@ -884,7 +892,7 @@ function DateDrawer({onClose}){
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.3)",zIndex:80,display:"flex",justifyContent:"flex-end"}}>
       <div onClick={e=>e.stopPropagation()} style={{width:320,maxWidth:"90vw",height:"100%",background:"#fff",boxShadow:"-4px 0 16px rgba(0,0,0,0.12)",display:"flex",flexDirection:"column",fontFamily:"'Outfit',system-ui"}}>
         <div style={{padding:"12px 16px",borderBottom:"1px solid #ebe8e3",display:"flex",alignItems:"center",gap:8}}>
-          <span style={{fontSize:12,fontWeight:800,letterSpacing:"0.06em",color:"#0f172a"}}>DATES</span>
+          <span style={{fontSize:12,fontWeight:800,letterSpacing:"0.06em",color:"#0f172a"}}>{drawerLabel}</span>
           <button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#64748b"}}>×</button>
         </div>
         <div style={{padding:"10px 16px",borderBottom:"1px solid #ebe8e3",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
@@ -1202,17 +1210,97 @@ function AnchorTimes({b,setBF}){
 }
 
 function DayScheduleView({show,bus,split,sel}){
+  const{uShow,uRos,gRos,shows,aC}=useContext(Ctx);
   const isTravel=show.type==="travel";
+  const isSplit=show.type==="split";
+  const isStored=!!shows?.[sel];
+  // Notes
+  const[editNotes,setEditNotes]=useState(false);
+  const[notesVal,setNotesVal]=useState(show.notes||"");
+  // Edit day info
+  const[editDay,setEditDay]=useState(false);
+  const[dayCity,setDayCity]=useState(show.city||"");
+  const[dayVenue,setDayVenue]=useState(show.venue||"");
+  const[dayType,setDayType]=useState(show.type||"off");
+  // Schedule items
+  const[addingItem,setAddingItem]=useState(false);
+  const[newItem,setNewItem]=useState({time:"",label:"",notes:""});
+  const[editItemId,setEditItemId]=useState(null);
+  const allItems=gRos(sel)||[];
+  const dayItems=allItems.filter(b=>b.isDayItem);
+  const sortedItems=useMemo(()=>[...dayItems].sort((a,b)=>{
+    if(a.startMin!=null&&b.startMin!=null)return a.startMin-b.startMin;
+    if(a.startMin!=null)return -1;if(b.startMin!=null)return 1;return 0;
+  }),[dayItems]);
+
+  const ensureStored=()=>{if(!isStored)uShow(sel,{date:sel,clientId:aC,type:show.type||"off",city:show.city||"",venue:show.venue||"",advance:[],doors:0,curfew:0,busArrive:0,crewCall:0,venueAccess:0,mgTime:0,notes:""});};
+  const saveNotes=()=>{ensureStored();uShow(sel,{notes:notesVal});setEditNotes(false);};
+  const saveDayInfo=()=>{
+    const base=isStored?shows[sel]:{date:sel,advance:[],doors:0,curfew:0,busArrive:0,crewCall:0,venueAccess:0,mgTime:0};
+    uShow(sel,{...base,type:dayType,city:dayCity,venue:dayVenue});
+    setEditDay(false);
+  };
+  const convertToShow=()=>{
+    const base=isStored?shows[sel]:{date:sel,advance:[],promoter:"",country:"",region:""};
+    uShow(sel,{...base,type:"show",city:dayCity||show.city||"",venue:dayVenue||show.venue||""});
+    setEditDay(false);
+  };
+  const addItem=()=>{
+    if(!newItem.label.trim())return;
+    const tMin=newItem.time?pM(newItem.time):null;
+    const nb={id:`item_${Date.now()}`,label:newItem.label.trim(),time:newItem.time,startMin:tMin,notes:newItem.notes,type:"custom",isDayItem:true,color:"#5B21B6",phase:"pre",duration:60,roles:["tm","pm","ld","driver"]};
+    uRos(sel,[...allItems,nb]);
+    setNewItem({time:"",label:"",notes:""});setAddingItem(false);
+  };
+  const removeItem=id=>uRos(sel,allItems.filter(b=>b.id!==id));
+  const updateItem=(id,patch)=>uRos(sel,allItems.map(b=>b.id===id?{...b,...patch,startMin:patch.time!==undefined?pM(patch.time):b.startMin}:b));
+
   return(
     <div className="fi" style={{padding:"16px 20px",maxWidth:680}}>
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
-        <div>
-          <div style={{fontSize:13,fontWeight:800,color:"#0f172a"}}>{isTravel?"Travel Day":"Rest Day"}</div>
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:13,fontWeight:800,color:"#0f172a",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+            {isTravel?(bus?.route||show.city||"Travel Day"):isSplit?"Split Day":(show.city||"Rest Day")}
+          </div>
           <div style={{fontSize:10,color:"#64748b",fontFamily:MN}}>{fFull(sel)}</div>
         </div>
-        <div style={{marginLeft:"auto",fontSize:8,fontWeight:800,padding:"3px 9px",borderRadius:6,background:isTravel?"#DBEAFE":"#F1F5F9",color:isTravel?"#1E40AF":"#64748b",letterSpacing:"0.06em"}}>{isTravel?"TRAVEL":"OFF"}</div>
+        <button onClick={()=>setEditDay(v=>!v)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:`1px solid ${editDay?"#5B21B6":"#d6d3cd"}`,background:editDay?"#EDE9FE":"#f5f3ef",color:editDay?"#5B21B6":"#475569",cursor:"pointer",fontWeight:600,flexShrink:0}}>✏ Edit</button>
+        <div style={{fontSize:8,fontWeight:800,padding:"3px 9px",borderRadius:6,background:isTravel?"#DBEAFE":isSplit?"#FEF3C7":"#F1F5F9",color:isTravel?"#1E40AF":isSplit?"#92400E":"#64748b",letterSpacing:"0.06em",flexShrink:0}}>
+          {isTravel?"TRAVEL":isSplit?"SPLIT":"OFF"}
+        </div>
       </div>
 
+      {/* Edit panel */}
+      {editDay&&(
+        <div style={{background:"#F8FAFC",border:"1px solid #d6d3cd",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+          <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.08em",marginBottom:10}}>EDIT DAY</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:8}}>
+            <div>
+              <div style={{fontSize:8,color:"#64748b",fontWeight:600,marginBottom:3}}>CITY / LOCATION</div>
+              <input value={dayCity} onChange={e=>setDayCity(e.target.value)} placeholder="e.g. Amsterdam" style={{...UI.input,width:"100%"}}/>
+            </div>
+            <div>
+              <div style={{fontSize:8,color:"#64748b",fontWeight:600,marginBottom:3}}>VENUE / NOTE</div>
+              <input value={dayVenue} onChange={e=>setDayVenue(e.target.value)} placeholder="e.g. Hotel Okura" style={{...UI.input,width:"100%"}}/>
+            </div>
+          </div>
+          <div style={{marginBottom:8}}>
+            <div style={{fontSize:8,color:"#64748b",fontWeight:600,marginBottom:3}}>TYPE</div>
+            <select value={dayType} onChange={e=>setDayType(e.target.value)} style={{...UI.input}}>
+              <option value="off">Off Day</option>
+              <option value="travel">Travel Day</option>
+            </select>
+          </div>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+            <button onClick={saveDayInfo} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"none",background:"#047857",color:"#fff",cursor:"pointer",fontWeight:700}}>Save</button>
+            <button onClick={convertToShow} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid #d6d3cd",background:"#f5f3ef",color:"#0f172a",cursor:"pointer",fontWeight:600}}>↑ Convert to Show Day</button>
+            <button onClick={()=>setEditDay(false)} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* Bus card */}
       {isTravel&&bus&&(
         <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"14px 16px",marginBottom:12}}>
           <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.08em",marginBottom:8}}>BUS SEGMENT · PIETER SMIT T26-021201</div>
@@ -1230,11 +1318,11 @@ function DayScheduleView({show,bus,split,sel}){
           {bus.day&&<div style={{marginTop:8,fontSize:8,color:"#94a3b8",fontFamily:MN}}>Tour Day {bus.day} of 30</div>}
         </div>
       )}
-
       {isTravel&&!bus&&(
         <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"14px 16px",marginBottom:12,color:"#94a3b8",fontSize:10,textAlign:"center"}}>No bus data on file for this travel day.</div>
       )}
 
+      {/* Split card */}
       {split&&(
         <div style={{background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
           <div style={{fontSize:9,fontWeight:800,color:"#92400E",letterSpacing:"0.08em",marginBottom:8}}>SPLIT PARTY — {split.parties.length} GROUPS</div>
@@ -1251,15 +1339,88 @@ function DayScheduleView({show,bus,split,sel}){
         </div>
       )}
 
-      {!isTravel&&!split&&(
-        <div style={{padding:"40px 0",textAlign:"center",color:"#64748b"}}>
-          <div style={{fontSize:22,marginBottom:8,opacity:0.3}}>◌</div>
-          <div style={{fontSize:12,fontWeight:600,color:"#0f172a",marginBottom:4}}>No events scheduled</div>
-          <div style={{fontSize:10,color:"#94a3b8"}}>Rest day. No bus movements or show obligations.</div>
+      {/* Schedule items */}
+      <div style={{marginBottom:14}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+          <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.08em"}}>SCHEDULE{sortedItems.length>0?` · ${sortedItems.length} ITEM${sortedItems.length>1?"S":""}`:" ITEMS"}</div>
+          <button onClick={()=>setAddingItem(true)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid #5B21B6",background:"#EDE9FE",color:"#5B21B6",cursor:"pointer",fontWeight:700}}>+ Add Item</button>
+        </div>
+        {addingItem&&(
+          <div style={{background:"#F8FAFC",border:"1px solid #d6d3cd",borderRadius:8,padding:"10px 12px",marginBottom:8}}>
+            <div style={{display:"flex",gap:6,marginBottom:6,flexWrap:"wrap"}}>
+              <input placeholder="Time (e.g. 2:00p)" value={newItem.time} onChange={e=>setNewItem(p=>({...p,time:e.target.value}))} style={{...UI.input,width:110,fontFamily:MN}}/>
+              <input placeholder="Label" value={newItem.label} onChange={e=>setNewItem(p=>({...p,label:e.target.value}))} style={{...UI.input,flex:1,minWidth:140}}/>
+            </div>
+            <input placeholder="Notes (optional)" value={newItem.notes} onChange={e=>setNewItem(p=>({...p,notes:e.target.value}))} style={{...UI.input,width:"100%",marginBottom:6,boxSizing:"border-box"}}/>
+            <div style={{display:"flex",gap:6}}>
+              <button onClick={addItem} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Add</button>
+              <button onClick={()=>{setAddingItem(false);setNewItem({time:"",label:"",notes:""}); }} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Cancel</button>
+            </div>
+          </div>
+        )}
+        {sortedItems.length>0?sortedItems.map(item=>{
+          const isEditing=editItemId===item.id;
+          return(
+            <div key={item.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"8px 10px",background:"#fff",border:`1px solid ${isEditing?"#5B21B6":"#d6d3cd"}`,borderRadius:8,marginBottom:4}}>
+              {isEditing?(
+                <div style={{flex:1,display:"flex",flexDirection:"column",gap:5}}>
+                  <div style={{display:"flex",gap:5}}>
+                    <input defaultValue={item.time||""} onChange={e=>updateItem(item.id,{time:e.target.value})} placeholder="Time" style={{...UI.input,width:100,fontFamily:MN}}/>
+                    <input defaultValue={item.label} onChange={e=>updateItem(item.id,{label:e.target.value})} placeholder="Label" style={{...UI.input,flex:1}}/>
+                  </div>
+                  <input defaultValue={item.notes||""} onChange={e=>updateItem(item.id,{notes:e.target.value})} placeholder="Notes" style={{...UI.input,width:"100%",boxSizing:"border-box"}}/>
+                  <div style={{display:"flex",gap:5}}>
+                    <button onClick={()=>setEditItemId(null)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Done</button>
+                    <button onClick={()=>{removeItem(item.id);setEditItemId(null);}} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid #FECACA",background:"#FEF2F2",color:"#DC2626",cursor:"pointer"}}>Delete</button>
+                  </div>
+                </div>
+              ):(
+                <>
+                  <div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#5B21B6",width:44,flexShrink:0,paddingTop:1,textAlign:"right"}}>{item.startMin!=null?fmt(item.startMin):item.time||"—"}</div>
+                  <div style={{width:3,height:32,background:"#5B21B6",borderRadius:2,flexShrink:0,opacity:0.5,alignSelf:"center"}}/>
+                  <div style={{flex:1,minWidth:0,cursor:"pointer"}} onClick={()=>setEditItemId(item.id)}>
+                    <div style={{fontSize:11,fontWeight:600,color:"#0f172a"}}>{item.label}</div>
+                    {item.notes&&<div style={{fontSize:9,color:"#64748b",marginTop:2}}>{item.notes}</div>}
+                  </div>
+                  <button onClick={()=>setEditItemId(item.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#94a3b8",fontSize:11,padding:"0 2px",flexShrink:0}}>✏</button>
+                </>
+              )}
+            </div>
+          );
+        }):(
+          !addingItem&&(
+            <div style={{padding:"18px 0",textAlign:"center",background:"#F8FAFC",border:"1px dashed #d6d3cd",borderRadius:8}}>
+              <div style={{fontSize:10,color:"#94a3b8"}}>No schedule items. Add meals, check-ins, promo events, media, etc.</div>
+            </div>
+          )
+        )}
+      </div>
+
+      {/* Off-day empty state when no items, no bus, no split */}
+      {!isTravel&&!split&&sortedItems.length===0&&!addingItem&&(
+        <div style={{padding:"24px 0",textAlign:"center"}}>
+          <div style={{fontSize:20,marginBottom:6,opacity:0.25}}>◌</div>
+          <div style={{fontSize:11,fontWeight:600,color:"#0f172a",marginBottom:3}}>Rest Day</div>
+          <div style={{fontSize:9,color:"#94a3b8"}}>Nothing scheduled. Add items above or convert to a show day.</div>
         </div>
       )}
 
-      {show.notes&&<div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:7,padding:"8px 12px",fontSize:9,color:"#92400E",fontWeight:500,marginTop:4}}>{show.notes}</div>}
+      {/* Notes */}
+      <div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+          <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.08em"}}>NOTES</div>
+          <button onClick={()=>{if(editNotes)saveNotes();else{setNotesVal(show.notes||"");setEditNotes(true);}}} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:`1px solid ${editNotes?"#5B21B6":"#d6d3cd"}`,background:editNotes?"#EDE9FE":"#f5f3ef",color:editNotes?"#5B21B6":"#475569",cursor:"pointer",fontWeight:600}}>
+            {editNotes?"Save":"Edit"}
+          </button>
+        </div>
+        {editNotes?(
+          <textarea value={notesVal} onChange={e=>setNotesVal(e.target.value)} placeholder="Notes for this day..." rows={3} style={{...UI.input,width:"100%",resize:"vertical",boxSizing:"border-box",fontFamily:"inherit",lineHeight:1.5}}/>
+        ):notesVal?(
+          <div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:7,padding:"8px 12px",fontSize:9,color:"#92400E",fontWeight:500}}>{notesVal}</div>
+        ):(
+          <div style={{fontSize:9,color:"#94a3b8",fontStyle:"italic"}}>No notes.</div>
+        )}
+      </div>
     </div>
   );
 }
