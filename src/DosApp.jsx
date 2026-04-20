@@ -367,6 +367,10 @@ export default function App(){
   const[production,setProduction]=useState({});
   const[tabOrder,setTabOrder]=useState(null);
   const[refreshMsg,setRefreshMsg]=useState("");
+  const[selEventId,setSelEventId]=useState(null);
+  // Reset sub-event selection whenever the selected day changes
+  const prevSel=useRef(sel);
+  useEffect(()=>{if(prevSel.current!==sel){setSelEventId(null);prevSel.current=sel;}},[sel]);
   const[exp,setExp]=useState(false);
   const[undoToast,setUndoToast]=useState(null);
   const[dateMenu,setDateMenu]=useState(false);
@@ -502,7 +506,7 @@ export default function App(){
   if(!loaded||!shows)return(<div style={{background:"#F5F3EF",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"#64748b",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
   return(
-    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs}}>
+    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId}}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:#F5F3EF}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:3px}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#f0ede8!important}.rh:hover{background:#f8f7f5!important}`}</style>
       <div style={{fontFamily:"'Outfit',system-ui",background:"#F5F3EF",color:"#0f172a",minHeight:"100vh",width:"100%",maxWidth:"100vw",overflowX:"hidden",display:"flex",flexDirection:"column"}}>
@@ -1440,15 +1444,80 @@ function ScheduleTab(){
   return <ROSTab/>;
 }
 
+function EventSwitcher({show,sel}){
+  const{selEventId,setSelEventId,uShow}=useContext(Ctx);
+  const[adding,setAdding]=useState(false);
+  const[newName,setNewName]=useState("");
+  const[delId,setDelId]=useState(null);
+  const subEvents=show.subEvents||[];
+  const addEvent=()=>{
+    const id=`ev_${Date.now()}`;
+    const nb={id,name:newName.trim()||`Event ${subEvents.length+2}`,venue:show.venue,city:show.city,promoter:show.promoter||"",doors:show.doors,curfew:show.curfew,busArrive:show.busArrive,crewCall:show.crewCall,venueAccess:show.venueAccess,mgTime:show.mgTime,notes:"",busSkip:show.busSkip,mgSkip:show.mgSkip};
+    uShow(sel,{subEvents:[...subEvents,nb]});
+    setSelEventId(id);setAdding(false);setNewName("");
+  };
+  const removeEvent=id=>{
+    const next=subEvents.filter(e=>e.id!==id);
+    uShow(sel,{subEvents:next});
+    if(selEventId===id)setSelEventId(null);
+    setDelId(null);
+  };
+  if(subEvents.length===0&&!adding)return(
+    <div style={{padding:"4px 20px",borderBottom:"1px solid #ebe8e3",background:"#fff",display:"flex",alignItems:"center",gap:6}}>
+      <span style={{fontSize:9,color:"#94a3b8",fontStyle:"italic"}}>Single event day</span>
+      <button onClick={()=>setAdding(true)} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"1px dashed #94a3b8",background:"transparent",color:"#64748b",cursor:"pointer",fontWeight:600,marginLeft:"auto"}}>+ Add Event</button>
+    </div>
+  );
+  return(
+    <div style={{padding:"0 20px",borderBottom:"1px solid #ebe8e3",background:"#fff",display:"flex",alignItems:"center",gap:2,overflowX:"auto",scrollbarWidth:"none"}}>
+      {/* Main event tab */}
+      <button onClick={()=>setSelEventId(null)} style={{padding:"6px 12px",fontSize:11,fontWeight:!selEventId?700:500,color:!selEventId?"#0f172a":"#64748b",border:"none",borderBottom:!selEventId?"2px solid #0f172a":"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
+        {show.venue||"Main"}
+      </button>
+      {/* Sub-event tabs */}
+      {subEvents.map(ev=>{
+        const isA=selEventId===ev.id;
+        return(
+          <div key={ev.id} style={{display:"flex",alignItems:"center",flexShrink:0}}>
+            <button onClick={()=>setSelEventId(ev.id)} style={{padding:"6px 10px",fontSize:11,fontWeight:isA?700:500,color:isA?"#5B21B6":"#64748b",border:"none",borderBottom:isA?"2px solid #5B21B6":"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap"}}>
+              {ev.name}
+            </button>
+            <button onClick={()=>setDelId(delId===ev.id?null:ev.id)} style={{background:"none",border:"none",color:"#cbd5e1",fontSize:12,cursor:"pointer",padding:"0 2px",lineHeight:1}}>×</button>
+            {delId===ev.id&&<span style={{fontSize:9,display:"flex",alignItems:"center",gap:4}}>
+              <button onClick={()=>removeEvent(ev.id)} style={{fontSize:9,padding:"2px 6px",borderRadius:4,border:"none",background:"#FEF2F2",color:"#DC2626",cursor:"pointer",fontWeight:700}}>Delete</button>
+              <button onClick={()=>setDelId(null)} style={{fontSize:9,padding:"2px 6px",borderRadius:4,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Cancel</button>
+            </span>}
+          </div>
+        );
+      })}
+      {/* Add new event */}
+      {adding?(
+        <div style={{display:"flex",alignItems:"center",gap:5,marginLeft:4,flexShrink:0}}>
+          <input autoFocus value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addEvent();if(e.key==="Escape"){setAdding(false);setNewName("");}}} placeholder="Event name" style={{...UI.input,width:130,fontSize:10}}/>
+          <button onClick={addEvent} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Add</button>
+          <button onClick={()=>{setAdding(false);setNewName("");}} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>✕</button>
+        </div>
+      ):(
+        <button onClick={()=>setAdding(true)} style={{padding:"4px 10px",fontSize:9,fontWeight:700,color:"#64748b",border:"none",borderBottom:"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,marginLeft:4}}>+ Event</button>
+      )}
+    </div>
+  );
+}
+
 function ROSTab(){
-  const{shows,uShow,gRos,uRos,ros,sel,setSel,cShows,role,aC}=useContext(Ctx);
+  const{shows,uShow,gRos,uRos,ros,sel,setSel,cShows,role,aC,selEventId,setSelEventId}=useContext(Ctx);
   const[editB,setEditB]=useState(null);const[dOver,setDOver]=useState(null);
-  const dId=useRef(null);const client=CM[aC];const show=shows[sel];const blocks=gRos(sel);
+  const dId=useRef(null);const client=CM[aC];const show=shows[sel];
+  // Sub-event support: use compound ROS key when a sub-event is selected
+  const subEvent=selEventId?(show?.subEvents||[]).find(e=>e.id===selEventId)||null:null;
+  const effShow=subEvent||show;
+  const rosKey=selEventId?`${sel}_${selEventId}`:sel;
+  const blocks=gRos(rosKey);
   if(!show)return null;
   const today=new Date().toISOString().slice(0,10);const upcoming=cShows.filter(s=>s.date>=today);
 
   const times=useMemo(()=>{
-    const t={};const{doors,curfew,busArrive,crewCall,venueAccess,mgTime}=show;
+    const t={};const{doors,curfew,busArrive,crewCall,venueAccess,mgTime}=effShow;
     t.bus_arrive={s:busArrive,e:busArrive};t.venue_access={s:venueAccess,e:venueAccess};t.crew_call={s:crewCall,e:crewCall};
     const pre=blocks.filter(b=>b.phase==="pre"&&!b.isAnchor);let c=crewCall;
     for(const b of pre){t[b.id]={s:c,e:c+b.duration};c+=b.duration;}
@@ -1462,12 +1531,12 @@ function ROSTab(){
     const post=blocks.filter(b=>b.phase==="post");c=curfew;
     for(const b of post){if(b.offsetRef==="bbno_set_end"){t[b.id]={s:hE+(b.offsetMin||0),e:hE+(b.offsetMin||0)+b.duration};continue;}t[b.id]={s:c,e:c+b.duration};c+=b.duration;}
     return t;
-  },[show,blocks]);
+  },[effShow,blocks]);
 
-  const setDur=(id,dur)=>uRos(sel,blocks.map(b=>b.id===id?{...b,duration:Math.max(0,dur)}:b));
-  const setBF=(id,field,val)=>uRos(sel,blocks.map(b=>b.id===id?{...b,[field]:val}:b));
-  const addBlock=phase=>{const nb={id:`custom_${Date.now()}`,label:"New Block",duration:30,phase,type:"custom",color:"#5B21B6",roles:["tm"]};const idx=blocks.map((b,i)=>b.phase===phase?i:-1).filter(i=>i>=0).pop();const next=[...blocks];if(idx==null)next.push(nb);else next.splice(idx+1,0,nb);uRos(sel,next);setEditB(nb.id);};
-  const removeBlock=id=>{uRos(sel,blocks.filter(b=>b.id!==id));setEditB(null);};
+  const setDur=(id,dur)=>uRos(rosKey,blocks.map(b=>b.id===id?{...b,duration:Math.max(0,dur)}:b));
+  const setBF=(id,field,val)=>uRos(rosKey,blocks.map(b=>b.id===id?{...b,[field]:val}:b));
+  const addBlock=phase=>{const nb={id:`custom_${Date.now()}`,label:"New Block",duration:30,phase,type:"custom",color:"#5B21B6",roles:["tm"]};const idx=blocks.map((b,i)=>b.phase===phase?i:-1).filter(i=>i>=0).pop();const next=[...blocks];if(idx==null)next.push(nb);else next.splice(idx+1,0,nb);uRos(rosKey,next);setEditB(nb.id);};
+  const removeBlock=id=>{uRos(rosKey,blocks.filter(b=>b.id!==id));setEditB(null);};
   const startResize=(b,edge,e)=>{
     e.stopPropagation();e.preventDefault();
     const startY=e.clientY,origDur=b.duration,idx=blocks.findIndex(x=>x.id===b.id);
@@ -1477,20 +1546,25 @@ function ROSTab(){
       const dMin=Math.round(((ev.clientY-startY)/pxPerMin)/5)*5;
       if(edge==="bottom"){
         const nd=Math.max(0,origDur+dMin);
-        uRos(sel,blocks.map(x=>x.id===b.id?{...x,duration:nd}:x));
+        uRos(rosKey,blocks.map(x=>x.id===b.id?{...x,duration:nd}:x));
       }else if(prev){
         const nd=Math.max(0,origDur-dMin),np=Math.max(0,origPrev+dMin);
-        uRos(sel,blocks.map(x=>x.id===b.id?{...x,duration:nd}:x.id===prev.id?{...x,duration:np}:x));
+        uRos(rosKey,blocks.map(x=>x.id===b.id?{...x,duration:nd}:x.id===prev.id?{...x,duration:np}:x));
       }
     };
     const onUp=()=>{window.removeEventListener("mousemove",onMove);window.removeEventListener("mouseup",onUp);};
     window.addEventListener("mousemove",onMove);window.addEventListener("mouseup",onUp);
   };
-  const reorder=(fid,tid)=>{const fi=blocks.findIndex(b=>b.id===fid),ti=blocks.findIndex(b=>b.id===tid);if(fi<0||ti<0||blocks[fi].phase!==blocks[ti].phase||blocks[fi].isAnchor||blocks[ti].isAnchor)return;const n=[...blocks];const[m]=n.splice(fi,1);n.splice(ti,0,m);const ciI=n.findIndex(b=>b.id==="mg_checkin"),mgI=n.findIndex(b=>b.id==="mg");if(ciI>=0&&mgI>=0&&ciI>mgI){const[ci]=n.splice(ciI,1);n.splice(mgI,0,ci);}uRos(sel,n);};
-  const setAnc=(key,str)=>{const m=pM(str);if(m===null)return;uShow(sel,{[key]:m,[key+"Confirmed"]:true});};
+  const reorder=(fid,tid)=>{const fi=blocks.findIndex(b=>b.id===fid),ti=blocks.findIndex(b=>b.id===tid);if(fi<0||ti<0||blocks[fi].phase!==blocks[ti].phase||blocks[fi].isAnchor||blocks[ti].isAnchor)return;const n=[...blocks];const[m]=n.splice(fi,1);n.splice(ti,0,m);const ciI=n.findIndex(b=>b.id==="mg_checkin"),mgI=n.findIndex(b=>b.id==="mg");if(ciI>=0&&mgI>=0&&ciI>mgI){const[ci]=n.splice(ciI,1);n.splice(mgI,0,ci);}uRos(rosKey,n);};
+  // uEffShow: writes anchor times to the correct target (main show or sub-event)
+  const uEffShow=(patch)=>{
+    if(!subEvent){uShow(sel,patch);}
+    else{uShow(sel,{subEvents:(show.subEvents||[]).map(e=>e.id===selEventId?{...e,...patch}:e)});}
+  };
+  const setAnc=(key,str)=>{const m=pM(str);if(m===null)return;uEffShow({[key]:m,[key+"Confirmed"]:true});};
   const hl=b=>AB.has(b.id)||role==="tm"||b.roles?.includes(role);
   const AMAP={busArrive:"Bus Arrival",venueAccess:"Venue Access",crewCall:"Crew Call",mgTime:"M&G",doors:"Doors",curfew:"Curfew"};
-  const isCustom=!!CUSTOM_ROS_MAP[sel];
+  const isCustom=!subEvent&&!!CUSTOM_ROS_MAP[sel];
 
   if(show.type==="off"||show.type==="travel"){
     return <DayScheduleView show={show} bus={BUS_DATA_MAP[sel]||null} split={SPLIT_DAYS[sel]||null} sel={sel}/>;
@@ -1502,7 +1576,7 @@ function ROSTab(){
     const isA=b.isAnchor,hi=hl(b),isE=editB===b.id,isDT=dOver===b.id;
     const canD=!isA&&b.id!=="doors_early"&&b.id!=="mg_checkin";
     const canE=b.id!=="mg_checkin"&&b.id!=="doors_early";
-    const cK=b.anchorKey?b.anchorKey+"Confirmed":null;const isC=cK?show[cK]:false;
+    const cK=b.anchorKey?b.anchorKey+"Confirmed":null;const isC=cK?effShow[cK]:false;
     return(
       <React.Fragment key={b.id}>
       <div draggable={canD}
@@ -1527,7 +1601,7 @@ function ROSTab(){
         </div>
         {b.duration>0&&!isA&&b.id!=="mg_checkin"&&<div style={{fontFamily:MN,fontSize:10,color:"#475569",background:"#f5f3ef",padding:"3px 7px",borderRadius:4,flexShrink:0,border:"1px solid #d6d3cd",fontWeight:600}}>{`${b.duration}m`}</div>}
         {b.duration>0&&<div style={{width:46,fontFamily:MN,fontSize:9,color:"#94a3b8",textAlign:"right",flexShrink:0}}>{fmt(t.e)}</div>}
-        {cK&&<button onClick={e=>{e.stopPropagation();uShow(sel,{[cK]:!isC});}} title={isC?"Confirmed":"Mark confirmed"} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:isC?"#047857":"#cbd5e1",padding:"2px 4px",flexShrink:0}}>{isC?"✓":"○"}</button>}
+        {cK&&<button onClick={e=>{e.stopPropagation();uEffShow({[cK]:!isC});}} title={isC?"Confirmed":"Mark confirmed"} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:isC?"#047857":"#cbd5e1",padding:"2px 4px",flexShrink:0}}>{isC?"✓":"○"}</button>}
         {canE&&<button onClick={e=>{e.stopPropagation();setEditB(isE?null:b.id);}} title="Edit" style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:isE?"#0f172a":"#94a3b8",padding:"2px 6px",flexShrink:0,fontWeight:700,letterSpacing:1}}>{isE?"×":"⋯"}</button>}
       </div>
       {isE&&canE&&(
@@ -1535,8 +1609,8 @@ function ROSTab(){
           {isA&&b.anchorKey?(
             <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
               <label style={{fontSize:9,fontWeight:700,color:"#64748b"}}>{AMAP[b.anchorKey]} TIME</label>
-              <input type="text" placeholder="7:00p" defaultValue={fmt(show[b.anchorKey])} onKeyDown={e=>{if(e.key==="Enter"){setAnc(b.anchorKey,e.target.value);setEditB(null);}if(e.key==="Escape")setEditB(null);}} onBlur={e=>setAnc(b.anchorKey,e.target.value)} style={{...UI.input,fontFamily:MN,width:80,fontWeight:700}}/>
-              <button onClick={()=>uShow(sel,{[b.anchorKey+"Confirmed"]:!isC})} style={UI.expandBtn(false,isC?"#047857":"#92400E")}>{isC?"✓ Confirmed":"Mark Confirmed"}</button>
+              <input type="text" placeholder="7:00p" defaultValue={fmt(effShow[b.anchorKey])} onKeyDown={e=>{if(e.key==="Enter"){setAnc(b.anchorKey,e.target.value);setEditB(null);}if(e.key==="Escape")setEditB(null);}} onBlur={e=>setAnc(b.anchorKey,e.target.value)} style={{...UI.input,fontFamily:MN,width:80,fontWeight:700}}/>
+              <button onClick={()=>uEffShow({[b.anchorKey+"Confirmed"]:!isC})} style={UI.expandBtn(false,isC?"#047857":"#92400E")}>{isC?"✓ Confirmed":"Mark Confirmed"}</button>
               <label style={{fontSize:9,fontWeight:700,color:"#64748b",display:"flex",alignItems:"center",gap:4,cursor:"pointer"}}><input type="checkbox" checked={!!b.isAnchor} onChange={e=>setBF(b.id,"isAnchor",e.target.checked)}/>Anchor</label>
               <button onClick={()=>removeBlock(b.id)} style={{marginLeft:"auto",background:"none",border:"none",color:"#B91C1C",fontSize:10,cursor:"pointer",fontWeight:700}}>Remove block</button>
               {b.isAnchor&&<AnchorTimes b={b} setBF={setBF}/>}
@@ -1573,22 +1647,25 @@ function ROSTab(){
 
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column"}}>
+      {/* Event switcher — always visible on show days */}
+      <EventSwitcher show={show} sel={sel}/>
       <div style={{padding:"6px 20px",borderBottom:"1px solid #ebe8e3",background:"#fff",display:"flex",gap:10,flexWrap:"wrap",fontSize:11,flexShrink:0,alignItems:"center"}}>
-        <span style={{fontWeight:700}}>{show.venue}</span><span style={{color:"#475569",fontSize:10}}>{show.promoter}</span>
+        <span style={{fontWeight:700}}>{effShow.venue}</span><span style={{color:"#475569",fontSize:10}}>{effShow.promoter}</span>
         {isCustom&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"#ede9fe",color:"#5B21B6",fontWeight:700}}>Custom ROS</span>}
-        {show.notes&&<span style={{color:"#92400E",fontWeight:600,fontSize:9}}>{show.notes}</span>}
+        {subEvent&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>{subEvent.name}</span>}
+        {effShow.notes&&<span style={{color:"#92400E",fontWeight:600,fontSize:9}}>{effShow.notes}</span>}
         <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-          <button onClick={()=>uShow(sel,{busSkip:!show.busSkip})} title="Toggle Bus Arrival" style={{background:show.busSkip?"#f5f3ef":"#DBEAFE",border:`1px solid ${show.busSkip?"#d6d3cd":"#1E40AF"}`,borderRadius:5,color:show.busSkip?"#94a3b8":"#1E40AF",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{show.busSkip?"+ Bus":"✓ Bus"}</button>
-          <button onClick={()=>uShow(sel,{mgSkip:!show.mgSkip})} title="Toggle Meet & Greet" style={{background:show.mgSkip?"#f5f3ef":"#D1FAE5",border:`1px solid ${show.mgSkip?"#d6d3cd":"#065F46"}`,borderRadius:5,color:show.mgSkip?"#94a3b8":"#065F46",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{show.mgSkip?"+ M&G":"✓ M&G"}</button>
-          <button onClick={()=>{uRos(sel,null);setEditB(null);}} style={{background:"#f5f3ef",border:"1px solid #d6d3cd",borderRadius:5,color:"#64748b",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:600}}>Reset</button>
+          <button onClick={()=>uEffShow({busSkip:!effShow.busSkip})} title="Toggle Bus Arrival" style={{background:effShow.busSkip?"#f5f3ef":"#DBEAFE",border:`1px solid ${effShow.busSkip?"#d6d3cd":"#1E40AF"}`,borderRadius:5,color:effShow.busSkip?"#94a3b8":"#1E40AF",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{effShow.busSkip?"+ Bus":"✓ Bus"}</button>
+          <button onClick={()=>uEffShow({mgSkip:!effShow.mgSkip})} title="Toggle Meet & Greet" style={{background:effShow.mgSkip?"#f5f3ef":"#D1FAE5",border:`1px solid ${effShow.mgSkip?"#d6d3cd":"#065F46"}`,borderRadius:5,color:effShow.mgSkip?"#94a3b8":"#065F46",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{effShow.mgSkip?"+ M&G":"✓ M&G"}</button>
+          <button onClick={()=>{uRos(rosKey,null);setEditB(null);}} style={{background:"#f5f3ef",border:"1px solid #d6d3cd",borderRadius:5,color:"#64748b",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:600}}>Reset</button>
         </div>
       </div>
       <div style={{padding:"10px 20px 30px",background:"#F5F3EF"}}>
-        {phases.filter(ph=>!(ph.k==="mg"&&show.mgSkip)&&!(ph.k==="bus_in"&&show.busSkip)).map(ph=>{const pb=blocks.filter(b=>ph.k==="bus_in"?b.phase==="bus_in":ph.k==="curfew"?b.id==="curfew":ph.k==="doors"?b.phase==="doors":ph.k==="mg"?b.phase==="mg":b.phase===ph.k);const canAdd=!["bus_in","curfew","doors","mg"].includes(ph.k);
+        {phases.filter(ph=>!(ph.k==="mg"&&effShow.mgSkip)&&!(ph.k==="bus_in"&&effShow.busSkip)).map(ph=>{const pb=blocks.filter(b=>ph.k==="bus_in"?b.phase==="bus_in":ph.k==="curfew"?b.id==="curfew":ph.k==="doors"?b.phase==="doors":ph.k==="mg"?b.phase==="mg":b.phase===ph.k);const canAdd=!["bus_in","curfew","doors","mg"].includes(ph.k);
           return(<div key={ph.k} style={{marginBottom:6}}><div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0 3px"}}><div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",color:"#64748b"}}>{ph.l}</div><div style={{flex:1,height:1,background:"#d6d3cd"}}/><div style={{fontSize:8,color:"#94a3b8",fontStyle:"italic"}}>{ph.s}</div>{canAdd&&<button onClick={()=>addBlock(ph.k)} title="Add block" style={{background:"none",border:"1px dashed #cbd5e1",borderRadius:5,color:"#64748b",fontSize:9,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>+ Block</button>}</div><div style={{display:"flex",flexDirection:"column",gap:3}}>{pb.map(b=>renderB(b))}</div>{!pb.length&&canAdd&&<div style={{fontSize:9,color:"#94a3b8",fontStyle:"italic",padding:"4px 0"}}>No blocks — click + Block to add.</div>}</div>);
         })}
         <div style={{marginTop:12,padding:"12px 14px",background:"#fff",border:"1px solid #d6d3cd",borderRadius:12,display:"flex",gap:12,flexWrap:"wrap"}}>
-          {[{l:"Bus ETA",v:fmt(show.busArrive),c:"#1E40AF",hide:show.busSkip},{l:"Crew Call",v:fmt(show.crewCall),c:"#92400E"},{l:"M&G",v:fmt(show.mgTime),c:"#065F46",hide:show.mgSkip},{l:"Doors",v:fmt(show.doors),c:"#166534"},{l:"Headline",v:times.bbno_set?`${fmt(times.bbno_set.s)}–${fmt(times.bbno_set.e)}`:"--",c:"#B91C1C"},{l:"Settlement",v:times.settlement?fmt(times.settlement.s):"--",c:"#854D0E"},{l:"Curfew",v:fmt(show.curfew),c:"#7F1D1D"},{l:"Bus Out",v:times.bus_depart?fmt(times.bus_depart.s):"--",c:"#1E40AF",hide:show.busSkip}].filter(s=>!s.hide).map((s,i)=><div key={i}><div style={{fontSize:8,color:"#64748b",marginBottom:1,fontWeight:600}}>{s.l}</div><div style={{fontFamily:MN,fontSize:12,color:s.c,fontWeight:800}}>{s.v}</div></div>)}
+          {[{l:"Bus ETA",v:fmt(effShow.busArrive),c:"#1E40AF",hide:effShow.busSkip},{l:"Crew Call",v:fmt(effShow.crewCall),c:"#92400E"},{l:"M&G",v:fmt(effShow.mgTime),c:"#065F46",hide:effShow.mgSkip},{l:"Doors",v:fmt(effShow.doors),c:"#166534"},{l:"Headline",v:times.bbno_set?`${fmt(times.bbno_set.s)}–${fmt(times.bbno_set.e)}`:"--",c:"#B91C1C"},{l:"Settlement",v:times.settlement?fmt(times.settlement.s):"--",c:"#854D0E"},{l:"Curfew",v:fmt(effShow.curfew),c:"#7F1D1D"},{l:"Bus Out",v:times.bus_depart?fmt(times.bus_depart.s):"--",c:"#1E40AF",hide:effShow.busSkip}].filter(s=>!s.hide).map((s,i)=><div key={i}><div style={{fontSize:8,color:"#64748b",marginBottom:1,fontWeight:600}}>{s.l}</div><div style={{fontFamily:MN,fontSize:12,color:s.c,fontWeight:800}}>{s.v}</div></div>)}
         </div>
       </div>
     </div>
