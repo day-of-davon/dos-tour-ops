@@ -452,10 +452,36 @@ export default function App(){
   const next=useMemo(()=>{const t=new Date().toISOString().slice(0,10);return sorted.find(s=>s.date>=t)||sorted[0];},[sorted]);
   const cShows=useMemo(()=>sorted.filter(s=>s.clientId===aC),[sorted,aC]);
 
+  // Tour days: real shows + synthesized travel/off/split days for Apr 16–May 31 window.
+  // Keyed by ISO date. Real shows win; synthetic fill for bus moves + off days.
+  const tourDays=useMemo(()=>{
+    const m={};
+    (sorted||[]).forEach(s=>{
+      m[s.date]={date:s.date,type:s.type||"show",show:s,bus:BUS_DATA_MAP[s.date]||null,split:SPLIT_DAYS[s.date]||null,synthetic:false,city:s.city,venue:s.venue,clientId:s.clientId};
+    });
+    const end=new Date('2026-05-31T12:00:00');
+    for(let d=new Date('2026-04-16T12:00:00');d<=end;d.setDate(d.getDate()+1)){
+      const iso=d.toISOString().slice(0,10);
+      const bus=BUS_DATA_MAP[iso]||null;
+      const split=SPLIT_DAYS[iso]||null;
+      if(m[iso]){
+        // enrich existing real show with bus/split context
+        m[iso]={...m[iso],bus:m[iso].bus||bus,split:m[iso].split||split};
+        continue;
+      }
+      if(split){m[iso]={date:iso,type:"split",split,bus,synthetic:true,city:split.parties.map(p=>p.location).join(" / "),venue:"Split Day",clientId:"bbn"};}
+      else if(bus&&!bus.show){m[iso]={date:iso,type:"travel",bus,synthetic:true,city:bus.route,venue:"Travel Day",clientId:"bbn"};}
+      else if(bus&&bus.show){m[iso]={date:iso,type:"show",bus,synthetic:true,city:bus.route,venue:bus.venue||"Show",clientId:"bbn"};}
+      else{m[iso]={date:iso,type:"off",synthetic:true,city:"—",venue:"Off Day",clientId:"bbn"};}
+    }
+    return m;
+  },[sorted]);
+  const tourDaysSorted=useMemo(()=>Object.values(tourDays).sort((a,b)=>a.date.localeCompare(b.date)),[tourDays]);
+
   if(!loaded||!shows)return(<div style={{background:"#F5F3EF",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"#64748b",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
   return(
-    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd}}>
+    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted}}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:#F5F3EF}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:3px}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#f0ede8!important}.rh:hover{background:#f8f7f5!important}`}</style>
       <div style={{fontFamily:"'Outfit',system-ui",background:"#F5F3EF",color:"#0f172a",minHeight:"100vh",width:"100%",maxWidth:"100vw",overflowX:"hidden",display:"flex",flexDirection:"column"}}>
@@ -777,15 +803,24 @@ function TopBar({ss}){
 }
 
 function DateDrawer({onClose}){
-  const{sorted,sel,setSel,uShow,aC,shows}=useContext(Ctx);
+  const{sorted,tourDaysSorted,sel,setSel,uShow,aC,shows}=useContext(Ctx);
   const[newDate,setNewDate]=useState("");
   const[newType,setNewType]=useState("off");
+  const[filter,setFilter]=useState("all");
   const add=()=>{
     if(!newDate||shows[newDate])return;
     uShow(newDate,{date:newDate,clientId:aC,type:newType,city:newType==="travel"?"Travel":"Off Day",venue:newType==="travel"?"Travel Day":"Off Day",country:"",region:"",promoter:"",advance:[],doors:0,curfew:0,busArrive:0,crewCall:0,venueAccess:0,mgTime:0,notes:""});
     setSel(newDate);setNewDate("");onClose();
   };
-  const typeStyle=t=>t==="travel"?{bg:"#DBEAFE",c:"#1E40AF",l:"Travel"}:t==="off"?{bg:"#F5F3EF",c:"#64748b",l:"Off"}:null;
+  const typeStyle=t=>t==="travel"?{bg:"#DBEAFE",c:"#1E40AF",l:"Travel"}:t==="off"?{bg:"#F5F3EF",c:"#94a3b8",l:"Off"}:t==="split"?{bg:"#FEF3C7",c:"#92400E",l:"Split"}:t==="show"?{bg:"#D1FAE5",c:"#047857",l:"Show"}:null;
+  // Merge tour days with non-tour shows (post-EU shows, festivals). Use tourDays for Apr16-May31, fall back to sorted for everything else.
+  const rows=useMemo(()=>{
+    const tourIds=new Set((tourDaysSorted||[]).map(d=>d.date));
+    const extras=(sorted||[]).filter(s=>!tourIds.has(s.date)).map(s=>({date:s.date,type:s.type||"show",show:s,city:s.city,venue:s.venue}));
+    const all=[...(tourDaysSorted||[]),...extras].sort((a,b)=>a.date.localeCompare(b.date));
+    if(filter==="all")return all;
+    return all.filter(d=>d.type===filter);
+  },[tourDaysSorted,sorted,filter]);
   return(
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.3)",zIndex:80,display:"flex",justifyContent:"flex-end"}}>
       <div onClick={e=>e.stopPropagation()} style={{width:320,maxWidth:"90vw",height:"100%",background:"#fff",boxShadow:"-4px 0 16px rgba(0,0,0,0.12)",display:"flex",flexDirection:"column",fontFamily:"'Outfit',system-ui"}}>
@@ -801,13 +836,18 @@ function DateDrawer({onClose}){
           </select>
           <button onClick={add} disabled={!newDate||!!shows[newDate]} style={{...UI.expandBtn(false,"#047857"),opacity:(!newDate||shows[newDate])?0.4:1}}>+ Add</button>
         </div>
+        <div style={{padding:"6px 12px",borderBottom:"1px solid #ebe8e3",display:"flex",gap:4,flexWrap:"wrap"}}>
+          {[["all","All"],["show","Show"],["travel","Travel"],["off","Off"],["split","Split"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setFilter(v)} style={{padding:"2px 8px",fontSize:9,fontWeight:700,borderRadius:10,border:`1px solid ${filter===v?"#5B21B6":"#d6d3cd"}`,background:filter===v?"#EDE9FE":"#fff",color:filter===v?"#5B21B6":"#64748b",cursor:"pointer"}}>{l}</button>
+          ))}
+        </div>
         <div style={{flex:1,overflow:"auto",padding:"6px 8px"}}>
-          {sorted.map(s=>{const isSel=s.date===sel;const ts=typeStyle(s.type);return(
-            <div key={s.date} onClick={()=>{setSel(s.date);onClose();}} className="rh" style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",borderRadius:7,cursor:"pointer",background:isSel?"#EDE9FE":"transparent",borderLeft:isSel?"3px solid #5B21B6":"3px solid transparent"}}>
-              <div style={{fontFamily:MN,fontSize:10,fontWeight:700,color:isSel?"#5B21B6":"#475569",width:48,flexShrink:0}}>{fD(s.date)}</div>
+          {rows.map(d=>{const isSel=d.date===sel;const ts=typeStyle(d.type);const isDim=d.type==="off";return(
+            <div key={d.date} onClick={()=>{setSel(d.date);onClose();}} className="rh" style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:7,cursor:"pointer",background:isSel?"#EDE9FE":"transparent",borderLeft:isSel?"3px solid #5B21B6":"3px solid transparent",opacity:isDim?0.65:1}}>
+              <div style={{fontFamily:MN,fontSize:10,fontWeight:700,color:isSel?"#5B21B6":"#475569",width:48,flexShrink:0}}>{fD(d.date)}</div>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:11,fontWeight:600,color:"#0f172a",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.city||"—"}</div>
-                <div style={{fontSize:9,color:"#64748b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.venue}</div>
+                <div style={{fontSize:11,fontWeight:600,color:"#0f172a",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.city||"—"}</div>
+                <div style={{fontSize:9,color:"#64748b",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.venue}{d.bus?.note?` · ${d.bus.note}`:""}</div>
               </div>
               {ts?<span style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:ts.bg,color:ts.c,fontWeight:700,flexShrink:0}}>{ts.l}</span>:null}
             </div>);})}
@@ -1166,9 +1206,17 @@ function DayScheduleView({show,bus,split,sel}){
 }
 
 function ROSTab(){
-  const{shows,uShow,gRos,uRos,ros,sel,setSel,cShows,role,aC}=useContext(Ctx);
+  const{shows,uShow,gRos,uRos,ros,sel,setSel,cShows,role,aC,tourDays}=useContext(Ctx);
   const[editB,setEditB]=useState(null);const[dOver,setDOver]=useState(null);
-  const dId=useRef(null);const client=CM[aC];const show=shows[sel];const blocks=gRos(sel);if(!show)return null;
+  const dId=useRef(null);const client=CM[aC];const show=shows[sel];const blocks=gRos(sel);
+  // Synthesized tour day (travel/off/split) — render DayScheduleView without a real show record
+  if(!show){
+    const td=tourDays?.[sel];
+    if(td&&(td.type==="off"||td.type==="travel"||td.type==="split")){
+      return <DayScheduleView show={{type:td.type,notes:td.bus?.note}} bus={td.bus||null} split={td.split||null} sel={sel}/>;
+    }
+    return null;
+  }
   const today=new Date().toISOString().slice(0,10);const upcoming=cShows.filter(s=>s.date>=today);
 
   const times=useMemo(()=>{
@@ -1320,8 +1368,10 @@ function ROSTab(){
 }
 
 function TourCalendar(){
+  const{setSel,setTab}=useContext(Ctx);
   const[expRows,setExpRows]=useState({});
   const crewById=useMemo(()=>DEFAULT_CREW.reduce((a,c)=>{a[c.id]=c;return a},{}),[]);
+  const openDay=iso=>{setSel(iso);setTab("ros");};
   const busMap=useMemo(()=>{
     const m={};
     BUS_DATA.forEach(d=>{
@@ -1384,8 +1434,9 @@ function TourCalendar(){
           return(
             <div key={d.iso} style={{borderBottom:i<days.length-1?"1px solid #f5f3ef":"none"}}>
               <div
-                onClick={canExpand?()=>setExpRows(p=>({...p,[d.iso]:!p[d.iso]})):undefined}
-                style={{display:"grid",gridTemplateColumns:"76px 58px 1fr auto",alignItems:"center",gap:8,padding:isOff?"5px 12px":"8px 12px",background:d.type==="show"?"#F9FAFB":d.type==="travel"?"#F8FAFF":d.type==="split"?"#FFFBEB":"#fff",cursor:canExpand?"pointer":"default",opacity:isOff?0.65:1}}
+                onClick={()=>openDay(d.iso)}
+                className="rh"
+                style={{display:"grid",gridTemplateColumns:"76px 58px 1fr auto",alignItems:"center",gap:8,padding:isOff?"5px 12px":"8px 12px",background:d.type==="show"?"#F9FAFB":d.type==="travel"?"#F8FAFF":d.type==="split"?"#FFFBEB":"#fff",cursor:"pointer",opacity:isOff?0.65:1}}
               >
                 <div style={{display:"flex",alignItems:"baseline",gap:4}}>
                   <span style={{fontFamily:MN,fontSize:isOff?9:10,fontWeight:isOff?400:700,color:ts.c}}>{fD(d.iso)}</span>
@@ -1422,7 +1473,7 @@ function TourCalendar(){
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
                   {hasFlag&&<span style={{fontSize:11}}>⚠</span>}
-                  {canExpand&&<span style={{fontSize:9,color:ts.c,fontWeight:700}}>{isExp?"▴":"▾"}</span>}
+                  {canExpand&&<span onClick={e=>{e.stopPropagation();setExpRows(p=>({...p,[d.iso]:!p[d.iso]}));}} style={{fontSize:9,color:ts.c,fontWeight:700,padding:"2px 6px",borderRadius:4,cursor:"pointer"}}>{isExp?"▴":"▾"}</span>}
                 </div>
               </div>
               {isSplit&&isExp&&(
