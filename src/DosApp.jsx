@@ -691,19 +691,27 @@ function FlightsSection(){
       uFin(f.depDate,{flightExpenses:[...existing.filter(e=>e.flightId!==f.id),{flightId:f.id,label:`${f.flightNo||f.carrier} ${f.from}→${f.to}`,amount:f.cost,currency:f.currency||"USD",pax:f.pax||[],carrier:f.carrier}]});
     }
 
-    // Crew: match pax names → populate inbound leg
+    // Crew: match pax names → populate inbound + outbound legs
     if(f.pax?.length&&crew?.length){
+      const leg={id:`leg_${f.id}`,flight:f.flightNo||"",carrier:f.carrier||"",from:f.from,fromCity:f.fromCity||f.from,to:f.to,toCity:f.toCity||f.to,depart:f.dep,arrive:f.arr,conf:f.confirmNo||f.bookingRef||"",status:"confirmed",flightId:f.id};
       f.pax.forEach(name=>{
         if(!name)return;
         const fname=name.split(" ")[0].toLowerCase();
         const match=crew.find(c=>c.name&&c.name.toLowerCase().includes(fname));
-        if(match){
-          const leg={id:`leg_${f.id}`,flight:f.flightNo||"",from:f.from,to:f.to,depart:f.dep,arrive:f.arr,conf:f.confirmNo||"",status:"confirmed",flightId:f.id};
-          const targetDate=f.arrDate||f.depDate;
+        if(!match)return;
+        const arrD=f.arrDate||f.depDate;
+        const depD=f.depDate;
+        const sameDay=arrD===depD;
+        setShowCrew(p=>{
+          const cur=p[arrD]?.[match.id]||{};
+          const ex=(cur.inbound||[]).filter(l=>l.flightId!==f.id);
+          return{...p,[arrD]:{...p[arrD],[match.id]:{...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,inboundDate:arrD,inboundTime:f.arr||"",inbound:[...ex,leg]}}};
+        });
+        if(!sameDay){
           setShowCrew(p=>{
-            const cur=p[targetDate]?.[match.id]||{};
-            const existing=(cur.inbound||[]).filter(l=>l.flightId!==f.id);
-            return{...p,[targetDate]:{...p[targetDate],[match.id]:{...cur,inbound:[...existing,leg],inboundMode:"fly",attending:true}}};
+            const cur=p[depD]?.[match.id]||{};
+            const ex=(cur.outbound||[]).filter(l=>l.flightId!==f.id);
+            return{...p,[depD]:{...p[depD],[match.id]:{...cur,attending:true,outboundMode:"fly",outboundDate:depD,outboundTime:f.dep||"",outbound:[...ex,leg]}}};
           });
         }
       });
@@ -2181,14 +2189,26 @@ function FlightsListView(){
       uFin(f.depDate,{flightExpenses:[...existing.filter(e=>e.flightId!==f.id),{flightId:f.id,label:`${f.flightNo||f.carrier} ${f.from}→${f.to}`,amount:f.cost,currency:f.currency||"USD",pax:f.pax||[],carrier:f.carrier}]});
     }
     if(f.pax?.length&&crew?.length){
+      const leg={id:`leg_${f.id}`,flight:f.flightNo||"",carrier:f.carrier||"",from:f.from,fromCity:f.fromCity||f.from,to:f.to,toCity:f.toCity||f.to,depart:f.dep,arrive:f.arr,conf:f.confirmNo||f.bookingRef||"",status:"confirmed",flightId:f.id};
       f.pax.forEach(name=>{
         if(!name)return;
         const fname=name.split(" ")[0].toLowerCase();
         const match=crew.find(c=>c.name&&c.name.toLowerCase().includes(fname));
-        if(match){
-          const leg={id:`leg_${f.id}`,flight:f.flightNo||"",from:f.from,to:f.to,depart:f.dep,arrive:f.arr,conf:f.confirmNo||"",status:"confirmed",flightId:f.id};
-          const targetDate=f.arrDate||f.depDate;
-          setShowCrew(p=>{const cur=p[targetDate]?.[match.id]||{};const ex=(cur.inbound||[]).filter(l=>l.flightId!==f.id);return{...p,[targetDate]:{...p[targetDate],[match.id]:{...cur,inbound:[...ex,leg],inboundMode:"fly",attending:true}}};});
+        if(!match)return;
+        const arrD=f.arrDate||f.depDate;
+        const depD=f.depDate;
+        const sameDay=arrD===depD;
+        setShowCrew(p=>{
+          const cur=p[arrD]?.[match.id]||{};
+          const ex=(cur.inbound||[]).filter(l=>l.flightId!==f.id);
+          return{...p,[arrD]:{...p[arrD],[match.id]:{...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,inboundDate:arrD,inboundTime:f.arr||"",inbound:[...ex,leg]}}};
+        });
+        if(!sameDay){
+          setShowCrew(p=>{
+            const cur=p[depD]?.[match.id]||{};
+            const ex=(cur.outbound||[]).filter(l=>l.flightId!==f.id);
+            return{...p,[depD]:{...p[depD],[match.id]:{...cur,attending:true,outboundMode:"fly",outboundDate:depD,outboundTime:f.dep||"",outbound:[...ex,leg]}}};
+          });
         }
       });
     }
