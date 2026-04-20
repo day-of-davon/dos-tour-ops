@@ -1647,6 +1647,238 @@ const VENUE_GRID={
   "2026-05-30":{venue:"Orange Warsaw Festival",city:"Warsaw, Poland",capacity:30000,address:"Sluzewiec Horse Racing Track, Pulawska 266, Warsaw",advanceContact:"Mikolaj Ziolkowski",advanceEmail:"mikolaj.ziolkowski@alterart.pl",techContact:"Mikolaj Ziolkowski / AlterArt — contact to be established via Wasserman booking",loadDock:"TBC — festival show.",loadIn:"TBC — festival show. Min 60min.",stageDims:"TBC — festival stage.",rigging:null,riggingNotes:"Festival provided.",designVer:"BBNO$26_EUTOUR_v1.0.0_031526",ledNotes:"48x ROE Carbon 5.76 (600×1200mm). 2x Brompton S4 processor. Max ground-stack: 7.2m × 5m.",lxNotes:"Festival PA&Lights provided. Advance stage specs with AlterArt.",audioNotes:"Festival PA provided. Advance specs with AlterArt.",soundLimit:null,venuePower:"TBC — festival show. Advance with Mikolaj.",co2:null,flames:null,pyro:null,confetti:null,sfxNotes:"TBC — festival show.",flags:"⚠ No venue docs on file — festival show. 5 comp tix. Advance with Mikolaj/AlterArt for stage specs and power. Last show of EU run.",busPower:"TBC — festival show."},
 };
 
+// Tour rig specification — extracted from BBNO$26_EUTOUR_v1.0.0_031526.vwx + PDF
+// Symbol Key (Sht-1), Elevation (Sht-2), Section (Sht-3), Staging (Sht-6)
+// Designer: Mike Sheck | Drawn: 3/17-3/18/26 | © L7 Productions, LLC
+const DESIGN_RIG={
+  version:"v1.0.0",
+  file:"BBNO$26_EUTOUR_v1.0.0_031526.vwx",
+  drawnBy:"Mike Sheck",
+  publishedAt:"2026-03-17",
+  // Confirmed quantities from Symbol Key (Sht-1)
+  fixtures:[
+    {dept:"LIGHTING",name:"Ayrton Diablo",qty:8,power_w:550,position:"fly",source:"Sht-1 Symbol Key",binder_qty:12,delta:-4},
+    {dept:"LIGHTING",name:"GLP JDC2 IP",qty:16,power_w:1500,position:"fly",source:"Sht-1 Symbol Key",binder_qty:12,delta:4},
+    {dept:"LIGHTING",name:"ACME Pixel Line IP (Strobe 3 IP)",qty:12,power_w:420,position:"fly",source:"Sht-1 Symbol Key",binder_qty:48,delta:-36,note:"Binder quotes 48 — verify if additional positions exist beyond overview plan"},
+    {dept:"LIGHTING",name:"Robe iForte",qty:2,power_w:800,position:"fly",source:"VWX binary",binder_qty:2,delta:0},
+    {dept:"LASERS",name:"Kvant LD33 Spectrum RGBY",qty:8,power_w:33,position:"ground",source:"Sht-1 Symbol Key",binder_qty:3,delta:5},
+    {dept:"VIDEO",name:"ROE MC-5H T4v Frame LED Panel",qty:48,power_w:400,position:"ground",source:"Sht-1 Symbol Key",binder_qty:60,delta:-12},
+    {dept:"VIDEO",name:"ROE Black Marble BM4",qty:null,power_w:null,position:"fly",source:"VWX binary",binder_qty:null,note:"In VWX design; binder quotes ROE Carbon CB5. Different panel spec — CONFIRM"},
+    {dept:"VIDEO",name:"Brompton S4 Processor",qty:2,power_w:250,position:"ground",source:"binder",binder_qty:2,delta:0},
+    {dept:"VIDEO",name:"ROE Vanish S Curved Panels",qty:null,power_w:null,position:"ground",source:"VWX binary",binder_qty:0,note:"In design file — no vendor quote found"},
+    {dept:"TRUSS",name:"Tyler Truss GT 10' w/ Horizontal Forks",qty:6,power_w:null,position:"fly",source:"Sht-1 Symbol Key",binder_qty:null},
+    {dept:"CONTROL",name:"GrandMA3 Full",qty:1,power_w:300,position:"ground",source:"binder",binder_qty:1,delta:0},
+    {dept:"CONTROL",name:"GrandMA3 Light",qty:2,power_w:300,position:"ground",source:"binder",binder_qty:2,delta:0},
+    {dept:"STAGING",name:"All Access River Stage (Green Astroturf)",qty:1,power_w:null,position:"ground",source:"Sht-6",binder_qty:null,note:"Rev B 3/12: shifted 2ft US, SFX added"},
+  ],
+  // Dimensions confirmed from drawings
+  dims:{
+    rig_width_mm:7203,    // Sht-2 Elevation
+    led_tower_h_mm:4913,  // Sht-3 Section
+    fly_trim_mm:5840,     // Sht-3 Section (front truss fly height)
+    stage_depth_mm:6494,  // Sht-3 Section
+    stage_w_total_mm:9754,// Sht-6: 20' center + 6' each wing
+  },
+  // Minimum venue requirements derived from design
+  req:{
+    min_clearance_fly_m:7.0,   // fly trim 5.84m + overhead + safety = 7m minimum
+    min_clearance_gs_m:5.5,    // LED towers 4.91m + safety for ground-stack
+    min_stage_w_m:10.0,        // 9.75m stage + working space
+    min_stage_d_m:7.0,         // 6.5m rig depth + front working space
+    power_kw_est:95,           // 8×550 + 16×1500 + 48×400 + 12×420 + control + backline
+    min_phase_a:200,
+    laser_class:"Class 4",
+    laser_count:8,
+    laser_types:["Kvant LD33 RGBY"],
+    requires_forklift:true,
+    requires_rigging:true,
+  },
+  // Design vs quote discrepancies
+  specDiscrepancies:[
+    {severity:"CRITICAL",category:"QTY MISMATCH",finding:"GLP JDC2 IP: design=16, binder quote=12. 4 additional units not in Neg Earth quote 26-1273.",action:"Confirm qty with Neg Earth (Alex Griffiths). Update quote if 16 are required."},
+    {severity:"HIGH",category:"QTY MISMATCH",finding:"Kvant LD33 RGBY: design=8, binder=3. 5 additional laser units not quoted — significant cost + compliance gap.",action:"Confirm qty with Sonalyst (quote 26-0097). LSO docs must cover all 8 units per jurisdiction."},
+    {severity:"HIGH",category:"UNQUOTED FIXTURE",finding:"ROE Black Marble BM4 panels in VWX design — binder quotes ROE Carbon CB5 (different pitch/IP/weight). Spec not aligned.",action:"Confirm final panel spec with Neg Earth and Sigma-1 (Michael Heid). CB5 and BM4 are not interchangeable."},
+    {severity:"HIGH",category:"UNQUOTED FIXTURE",finding:"ROE Vanish S curved panels in VWX — no vendor quote found in binder.",action:"Confirm with Neg Earth if Vanish panels are in scope. Source vendor or remove from design."},
+    {severity:"MEDIUM",category:"QTY MISMATCH",finding:"Ayrton Diablo: design=8, binder=12. 4 units in binder may be over-specced — or used in additional positions not shown in overview plan.",action:"Confirm with LD (Gabe Greenwood) what the actual Diablo count is per show."},
+    {severity:"MEDIUM",category:"QTY MISMATCH",finding:"ROE MC-5H: design=48 panels, binder=60. 12-panel gap — confirm final panel count with Neg Earth.",action:"Update manifest qty to match final agreed count."},
+    {severity:"MEDIUM",category:"ACME VARIANT",finding:"ACME Pixel Line: design specifies 'Strobe 3 IP' variant (12 units); binder quotes generic 'Pixel Line IP' (48 units). Model variant and quantity both diverge.",action:"Confirm exact model variant and total qty with Neg Earth. Strobe 1 vs Strobe 3 affects DMX patching."},
+  ],
+};
+
+// Parse ceiling clearance from venue text fields
+function parseClearance(stageDims,riggingNotes,lxNotes){
+  const t=`${stageDims||""} ${riggingNotes||""} ${lxNotes||""}`;
+  const patterns=[
+    /(\d+(?:\.\d+)?)\s*m\s+clearance/i,
+    /clearance\s*[:\-]?\s*(\d+(?:\.\d+)?)\s*m/i,
+    /trim\s*[hH]\s*(\d+(?:\.\d+)?)\s*m/i,
+    /(\d+(?:\.\d+)?)\s*m\s+from\s+stage/i,
+    /(\d+(?:\.\d+)?)\s*m\s*(?:to\s+)?(?:pre-rigg|ceiling|trusses)/i,
+    /(\d+(?:\.\d+)?)m\s*floor.{1,15}(?:ceil|rigg|beam)/i,
+    /ceiling\s+(\d+(?:\.\d+)?)\s*m/i,
+  ];
+  for(const p of patterns){const m=t.match(p);if(m)return parseFloat(m[1]);}
+  return null;
+}
+function parseStageW(stageDims){
+  const t=stageDims||"";
+  const m=t.match(/(\d+(?:\.\d+)?)\s*m\s+W/i)||t.match(/W\s+(?:max\s+)?(\d+(?:\.\d+)?)\s*m/i)||t.match(/(\d+(?:\.\d+)?)m\s+wide/i)||t.match(/(\d+(?:\.\d+)?)\s*m\s*(?:W|wide)/i);
+  if(m)return parseFloat(m[1]);
+  const ft=t.match(/(\d+(?:\.\d+)?)\s*ft\s+W/i)||t.match(/W\s+(?:max\s+)?(\d+(?:\.\d+)?)\s*ft/i);
+  if(ft)return Math.round(parseFloat(ft[1])*0.3048*10)/10;
+  return null;
+}
+function parseStageD(stageDims){
+  const t=stageDims||"";
+  const m=t.match(/(\d+(?:\.\d+)?)\s*m\s+D/i)||t.match(/D\s+(?:max\s+)?(\d+(?:\.\d+)?)\s*m/i);
+  if(m)return parseFloat(m[1]);
+  const ft=t.match(/(\d+(?:\.\d+)?)\s*ft\s+D/i)||t.match(/D\s+(?:max\s+)?(\d+(?:\.\d+)?)\s*ft/i);
+  if(ft)return Math.round(parseFloat(ft[1])*0.3048*10)/10;
+  return null;
+}
+
+function checkRigVsVenue(vg){
+  if(!vg)return[];
+  const issues=[];
+  const r=DESIGN_RIG.req;
+  const d=DESIGN_RIG.dims;
+
+  // 1. Ceiling clearance
+  const clr=parseClearance(vg.stageDims,vg.riggingNotes,vg.lxNotes);
+  if(clr!==null){
+    const ledH=d.led_tower_h_mm/1000;
+    const flyH=d.fly_trim_mm/1000;
+    if(clr<ledH+0.3){
+      issues.push({id:"rv_clr",severity:"CRITICAL",category:"CLEARANCE",
+        finding:`${clr}m clearance — LED towers are ${ledH}m tall. Ground-stack will NOT fit. Touring rig cannot be deployed as designed.`,
+        action:`Advance modified plot with LD (Gabe Greenwood). Confirm venue LED substitute or reduce tower height. Min ${ledH+0.3}m needed for ground-stack.`});
+    } else if(clr<r.min_clearance_gs_m){
+      issues.push({id:"rv_clr",severity:"HIGH",category:"CLEARANCE",
+        finding:`${clr}m clearance is tight — LED towers at ${ledH}m need ${r.min_clearance_gs_m}m min for safe ground-stack deployment.`,
+        action:"Advance rig trim with LD. Confirm exact measurement from stage deck to rigging. Safety margin may require reducing tower height."});
+    } else if(clr<r.min_clearance_fly_m){
+      issues.push({id:"rv_clr",severity:"MEDIUM",category:"CLEARANCE",
+        finding:`${clr}m clearance — ground-stack OK (LED towers ${ledH}m), but fly trusses at ${flyH}m trim will be at or above venue limit. May need to reduce fly trim.`,
+        action:"Advance rigging plot. Fly trim at "+flyH+"m may need to be dropped. Confirm with venue rigger and LD."});
+    }
+  } else if(!vg.stageDims||vg.stageDims.toLowerCase().includes("tbc")){
+    issues.push({id:"rv_clr",severity:"HIGH",category:"CLEARANCE",
+      finding:"Stage clearance height not on file. LED towers are 4.91m; fly trusses need 7m+ clearance.",
+      action:"Advance stage dims with venue TD urgently. Minimum clearance spec: 5.5m ground-stack, 7m fly."});
+  }
+
+  // 2. Stage width
+  const sw=parseStageW(vg.stageDims);
+  if(sw!==null&&sw<r.min_stage_w_m){
+    issues.push({id:"rv_sw",severity:sw<8?"CRITICAL":"HIGH",category:"STAGE WIDTH",
+      finding:`Stage ${sw}m W — touring rig footprint is ${d.rig_width_mm/1000}m wide, full stage package is ${d.stage_w_total_mm/1000}m (wings included). Rig will exceed stage.`,
+      action:"Advance modified stage plot with LD. Consider removing wing extensions. Confirm floor plan with Sigma-1 (Michael Heid)."});
+  }
+
+  // 3. Stage depth
+  const sd=parseStageD(vg.stageDims);
+  if(sd!==null&&sd<r.min_stage_d_m){
+    issues.push({id:"rv_sd",severity:sd<6?"CRITICAL":"HIGH",category:"STAGE DEPTH",
+      finding:`Stage ${sd}m D — rig requires ${r.min_stage_d_m}m min depth (LED ground stack ${d.stage_depth_mm/1000}m + front working space).`,
+      action:"Advance modified plot with LD. Back wall LED may need to be moved upstage. Confirm with staging vendor (All Access)."});
+  }
+
+  // 4. Load access
+  const loadTxt=`${vg.loadDock||""} ${vg.loadIn||""}`.toLowerCase();
+  const stairsMatch=loadTxt.match(/(\d+)\s*step/);
+  const hasStairs=stairsMatch||loadTxt.match(/\bstairs?\b/);
+  const hasNoForklift=loadTxt.includes("no forklift")||loadTxt.includes("drop & go");
+  if((hasStairs||hasNoForklift)&&!loadTxt.includes("forklift avail")){
+    const stairCount=stairsMatch?parseInt(stairsMatch[1]):null;
+    issues.push({id:"rv_load",severity:stairCount>=10?"CRITICAL":"HIGH",category:"LOAD ACCESS",
+      finding:`${hasNoForklift?"No forklift. ":""}${stairCount?`${stairCount} stairs to stage. `:"Stairs to stage. "}Tyler GT Truss sections + All Access staging require forklift or crane. Total fly weight ~${r.power_kw_est}kW.`,
+      action:"Arrange additional crew (min 12 hands for heavy items). Source hand-truck/ramp. Coordinate with venue contact and local production manager."});
+  }
+
+  // 5. Rigging not confirmed
+  if(!vg.rigging||vg.rigging==="Festival provided"){
+    issues.push({id:"rv_rig",severity:"HIGH",category:"RIGGING",
+      finding:"No confirmed rigging system on file. Rig requires certified rigging for front truss at 5.84m trim.",
+      action:"Advance rigging spec with venue TD. Required: certified rigger, grid or beam SWL >3t total, cherry picker or ladder access for trim."});
+  } else if((vg.rigging||"").toLowerCase().includes("advance")){
+    issues.push({id:"rv_rig",severity:"MEDIUM",category:"RIGGING",
+      finding:"Rigging not yet advanced/confirmed. Rigging plot must be submitted to venue rigger before load-in.",
+      action:"Submit rigging plot to venue rigger. Include hoist positions, trim heights, and total fly weight."});
+  }
+
+  // 6. Max point load
+  const pointMatch=(vg.rigging||"").match(/(\d+)\s*kg\s*max\s*point/i)||(vg.riggingNotes||"").match(/(\d+)\s*kg\s*(?:max\s+)?point/i);
+  if(pointMatch){
+    const maxPt=parseInt(pointMatch[1]);
+    const estMaxPt=Math.ceil((d.led_tower_h_mm/1000*48*23.5+16*23.5+8*21.8)/12); // rough est
+    if(maxPt<estMaxPt){
+      issues.push({id:"rv_pt",severity:"HIGH",category:"RIGGING CAPACITY",
+        finding:`Venue max ${maxPt}kg/point — estimated rig needs ~${estMaxPt}kg/point. Fly weight may exceed per-point limit.`,
+        action:"Provide detailed rigging plot to venue rigger. May need to spread load across more points or cut fly elements. Advance with Knight/IRS/Frontline per venue."});
+    }
+  }
+
+  // 7. Lasers
+  const sfxAll=`${vg.sfxNotes||""} ${vg.flags||""}`.toLowerCase();
+  const laserTexts={
+    blocked:sfxAll.includes("laser") && (sfxAll.includes("not permitted")||sfxAll.includes("not allowed")),
+    deadlinePassed:sfxAll.includes("deadline may have passed")||sfxAll.includes("deadline")&&sfxAll.includes("passed"),
+    docsOut:sfxAll.includes("laser") && (sfxAll.includes("outstanding")||sfxAll.includes("critical")||sfxAll.includes("escalate")||sfxAll.includes("docs")),
+    lsoRequired:sfxAll.includes("lso required")||sfxAll.includes("lso docs"),
+    approvalReq:sfxAll.includes("laser") && (sfxAll.includes("approval")||sfxAll.includes("permit")||sfxAll.includes("police")||sfxAll.includes("council")),
+  };
+  if(laserTexts.blocked){
+    issues.push({id:"rv_las",severity:"CRITICAL",category:"LASER COMPLIANCE",
+      finding:"Lasers may be restricted at this venue. Rig carries 8× Kvant LD33 RGBY (Class 4).",
+      action:"Confirm laser status with venue and local authority. If prohibited, remove from day-of rig. Contact Cody Leggett (cody@photon7.com)."});
+  } else if(laserTexts.deadlinePassed){
+    issues.push({id:"rv_las",severity:"CRITICAL",category:"LASER COMPLIANCE",
+      finding:`⚠ Laser approval deadline may have PASSED. 8× Kvant LD33 RGBY require local authority approval (Class 4).`,
+      action:"ESCALATE NOW: Cody Leggett + Sheck. Confirm if approval was submitted. If deadline passed, lasers may be prohibited for this date."});
+  } else if(laserTexts.docsOut||laserTexts.lsoRequired||laserTexts.approvalReq){
+    issues.push({id:"rv_las",severity:"HIGH",category:"LASER COMPLIANCE",
+      finding:`Laser docs/LSO/approval outstanding. 8× Kvant LD33 RGBY = Class 4 — requires advance approval per jurisdiction.`,
+      action:`${laserTexts.lsoRequired?"Arrange local LSO at artist expense (per venue requirement). ":""}Submit RAMS + laser cert to venue/authority. Cody Leggett to confirm docs sent.`});
+  }
+
+  // 8. Power
+  const pwrTxt=(vg.venuePower||"").toLowerCase();
+  if(!pwrTxt||pwrTxt.includes("tbc")||pwrTxt.includes("not on file")){
+    issues.push({id:"rv_pwr",severity:"HIGH",category:"POWER",
+      finding:`Venue power spec not on file. Tour rig draws ~${r.power_kw_est}kW — requires min ${r.min_phase_a}A/phase at 400V 3-phase.`,
+      action:"Request full power spec from venue TD. Minimum: 2× 125A 3-phase feeds (LX + audio separate). Confirm generator availability if venue power insufficient."});
+  } else if(!pwrTxt.includes("powerlock")&&!pwrTxt.includes("125a")&&!pwrTxt.includes("200a")&&!pwrTxt.includes("400a")&&!pwrTxt.includes("63a")&&pwrTxt.length<20){
+    issues.push({id:"rv_pwr",severity:"MEDIUM",category:"POWER",
+      finding:"Power spec on file but may be insufficient. Confirm min 200A/phase 3-phase is available for LX+VX draw.",
+      action:"Advance with venue TD."});
+  }
+
+  // 9. Venue provides LED (rig stays on truck)
+  const ledTxt=(vg.ledNotes||"").toLowerCase();
+  if(ledTxt.includes("venue led only")||ledTxt.includes("touring roe led not required")){
+    issues.push({id:"rv_led",severity:"MEDIUM",category:"LED WALL",
+      finding:"Venue provides LED wall — touring ROE/MC panels stay on truck. VJ signal routing changes.",
+      action:"Confirm signal routing with venue TD and Michael Heid (Sigma-1). Brompton S4 processors may need to be removed from rack or rerouted to venue LED."});
+  }
+
+  // 10. Sound limit
+  if(vg.soundLimit&&!vg.soundLimit.toLowerCase().includes("tbc")){
+    issues.push({id:"rv_snd",severity:"LOW",category:"SOUND LIMIT",
+      finding:`Sound limit: ${vg.soundLimit}`,
+      action:"Brief Ruairi (FOH) and monitor engineer pre-show. Noise management may be on-site monitoring in real-time."});
+  }
+
+  // 11. Flames prohibited (rig doesn't have flames but flag if pyro was added — Rev B "Added SFX")
+  const flamesTxt=(vg.flames||"").toLowerCase();
+  if(flamesTxt.includes("no")||flamesTxt.includes("prohibited")||flamesTxt.includes("not allowed")){
+    issues.push({id:"rv_sfx",severity:"LOW",category:"SFX RESTRICTION",
+      finding:`Flames/fire restricted at this venue. Design Rev B added SFX — confirm no flame-based SFX in show.`,
+      action:"Brief Sigma-1/show design: no flame SFX at this venue. CO2 and haze OK if separately cleared."});
+  }
+
+  return issues;
+}
+
 function VBRow({label,value,warn}){
   if(!value||value==="TBC"&&!warn)return null;
   const isWarn=warn||(typeof value==="string"&&value.startsWith("⚠"));
@@ -1909,8 +2141,15 @@ function ProdTab(){
   const openIssues=useMemo(()=>(data.issues||[]).filter(i=>!i.resolved).length,[data.issues]);
 
   const vg=VENUE_GRID[sel]||null;
+  const rigChecks=useMemo(()=>checkRigVsVenue(VENUE_GRID[sel]||null),[sel]);
+  const rigCritical=rigChecks.filter(i=>i.severity==="CRITICAL").length;
+  const rigHigh=rigChecks.filter(i=>i.severity==="HIGH").length;
+  const rigBadge=rigCritical>0?rigCritical:rigHigh>0?rigHigh:null;
+  const rigBadgeColor=rigCritical>0?"#DC2626":"#C2410C";
+
   const SUB_TABS=[
     {id:"venue",label:"Venue Brief"},
+    {id:"rigcheck",label:"Rig Check",badge:rigBadge,badgeColor:rigBadgeColor},
     {id:"upload",label:"Upload"},
     {id:"manifest",label:`Manifest${data.items?.length?` (${data.items.length})`:""}`,badge:tbdCount>0?tbdCount:null,badgeColor:"#92400E"},
     {id:"analysis",label:"Analysis"},
@@ -1944,6 +2183,104 @@ function ProdTab(){
 
       {/* Venue Brief tab */}
       {subTab==="venue"&&<VenueBrief vg={vg} sel={sel} data={data} upd={upd}/>}
+
+      {/* Rig Check tab */}
+      {subTab==="rigcheck"&&<div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {/* Spec header */}
+        <div style={{background:"#0f172a",borderRadius:10,padding:"12px 16px",color:"#fff"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+            <div style={{flex:1}}>
+              <div style={{fontSize:11,fontWeight:800,fontFamily:MN,color:"#e2e8f0"}}>BBNO$ EU TOUR RIG — {DESIGN_RIG.version}</div>
+              <div style={{fontSize:9,color:"#64748b",fontFamily:MN}}>Designer: {DESIGN_RIG.drawnBy} · {DESIGN_RIG.publishedAt} · {DESIGN_RIG.file}</div>
+            </div>
+            <span style={{fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:6,background:"#1e293b",color:"#94a3b8",fontFamily:MN}}>~{DESIGN_RIG.req.power_kw_est} kW est.</span>
+          </div>
+          <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+            {[["Rig W",`${DESIGN_RIG.dims.rig_width_mm/1000}m`],["LED Tower H",`${DESIGN_RIG.dims.led_tower_h_mm/1000}m`],["Fly Trim",`${DESIGN_RIG.dims.fly_trim_mm/1000}m`],["Stage Depth",`${DESIGN_RIG.dims.stage_depth_mm/1000}m`],["Stage W total",`${DESIGN_RIG.dims.stage_w_total_mm/1000}m`],["Min Clear (GS)",`${DESIGN_RIG.req.min_clearance_gs_m}m`],["Min Clear (fly)",`${DESIGN_RIG.req.min_clearance_fly_m}m`],["Lasers",`${DESIGN_RIG.req.laser_count}× Class 4`]].map(([k,v])=><div key={k} style={{textAlign:"center"}}>
+              <div style={{fontSize:8,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.04em"}}>{k}</div>
+              <div style={{fontSize:12,fontWeight:800,fontFamily:MN,color:"#f8fafc"}}>{v}</div>
+            </div>)}
+          </div>
+        </div>
+
+        {/* Fixture schedule */}
+        <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:12}}>
+          <div style={{...UI.sectionLabel,marginBottom:8}}>Fixture Schedule (Sht-1 Symbol Key + VWX)</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 40px 60px 60px 50px",gap:0,padding:"4px 8px",background:"#f8f7f5",borderRadius:"6px 6px 0 0",borderBottom:"1px solid #e2e8f0"}}>
+            {["Fixture","Qty","W/unit","Binder","Δ"].map(h=><span key={h} style={{fontSize:8,fontWeight:800,color:"#94a3b8",letterSpacing:"0.04em"}}>{h}</span>)}
+          </div>
+          {DESIGN_RIG.fixtures.map((f,i)=>{
+            const hasDelta=f.delta!=null&&f.delta!==0;
+            const deltaColor=f.delta>0?"#DC2626":f.delta<0?"#C2410C":"#047857";
+            return(
+              <div key={f.name} style={{display:"grid",gridTemplateColumns:"1fr 40px 60px 60px 50px",gap:0,padding:"4px 8px",background:hasDelta?"#FEF2F2":i%2===0?"#fff":"#fafafa",borderBottom:"1px solid #f1f5f9",alignItems:"center"}}>
+                <div>
+                  <div style={{fontSize:9,fontWeight:600,color:"#0f172a"}}>{f.name}</div>
+                  {f.note&&<div style={{fontSize:7,color:"#94a3b8",fontStyle:"italic"}}>{f.note}</div>}
+                  <div style={{fontSize:7,color:"#b0b8c8"}}>{f.dept} · {f.position} · {f.source}</div>
+                </div>
+                <span style={{fontSize:10,fontWeight:700,fontFamily:MN,textAlign:"center",color:f.qty==null?"#94a3b8":"#0f172a"}}>{f.qty??"-"}</span>
+                <span style={{fontSize:9,fontFamily:MN,color:"#475569",textAlign:"right"}}>{f.power_w?`${f.power_w}W`:"—"}</span>
+                <span style={{fontSize:9,fontFamily:MN,color:"#64748b",textAlign:"center"}}>{f.binder_qty??"-"}</span>
+                <span style={{fontSize:10,fontWeight:700,fontFamily:MN,textAlign:"center",color:hasDelta?deltaColor:"#047857"}}>{f.delta==null?"?":f.delta===0?"✓":f.delta>0?`+${f.delta}`:f.delta}</span>
+              </div>
+            );
+          })}
+          <div style={{padding:"4px 8px",fontSize:8,color:"#94a3b8"}}>Δ = design qty − binder qty · red = under-quoted · amber = over-quoted</div>
+        </div>
+
+        {/* Design vs quote discrepancies */}
+        <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:12}}>
+          <div style={{...UI.sectionLabel,marginBottom:8}}>Design vs Quote Discrepancies</div>
+          {DESIGN_RIG.specDiscrepancies.map((disc,i)=>{
+            const sv=SEV_STYLES[disc.severity]||SEV_STYLES.LOW;
+            return(
+              <div key={i} style={{padding:"7px 10px",borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafafa"}}>
+                <div style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:3}}>
+                  <span style={{fontSize:8,fontWeight:800,padding:"1px 6px",borderRadius:8,background:sv.bg,color:sv.c,flexShrink:0}}>{disc.severity}</span>
+                  <span style={{fontSize:8,fontWeight:700,color:"#64748b",flexShrink:0}}>{disc.category}</span>
+                  <span style={{fontSize:9,color:"#0f172a",flex:1}}>{disc.finding}</span>
+                </div>
+                <div style={{fontSize:8,color:"#475569",paddingLeft:2}}><span style={{fontWeight:600}}>Action:</span> {disc.action}</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Venue compatibility */}
+        <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:12}}>
+          <div style={{...UI.sectionLabel,marginBottom:4}}>Venue Compatibility — {vg?vg.venue:"No venue selected"}</div>
+          {vg&&<div style={{fontSize:9,color:"#64748b",marginBottom:8}}>
+            {[vg.stageDims&&`Stage: ${vg.stageDims.slice(0,80)}`,vg.rigging&&`Rigging: ${vg.rigging.slice(0,60)}`].filter(Boolean).map((s,i)=><div key={i} style={{fontFamily:MN}}>{s}</div>)}
+          </div>}
+          {!vg&&<div style={{padding:"20px 0",textAlign:"center",color:"#94a3b8",fontSize:10}}>Select an EU show to run venue compatibility check.</div>}
+          {vg&&rigChecks.length===0&&<div style={{padding:"16px 0",textAlign:"center"}}>
+            <div style={{fontSize:22,marginBottom:4}}>✓</div>
+            <div style={{fontSize:11,fontWeight:700,color:"#047857"}}>No compatibility issues detected</div>
+            <div style={{fontSize:9,color:"#94a3b8",marginTop:4}}>Parameters on file are compatible with touring rig. Advance TBC items per Venue Brief.</div>
+          </div>}
+          {vg&&rigChecks.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {[...rigChecks].sort((a,b)=>({CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3}[a.severity]-{CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3}[b.severity])).map(issue=>{
+              const sv=SEV_STYLES[issue.severity]||SEV_STYLES.LOW;
+              return(
+                <div key={issue.id} style={{background:issue.severity==="CRITICAL"?"#FEF2F2":issue.severity==="HIGH"?"#FFF7ED":"#fff",border:`1px solid ${sv.b}`,borderRadius:8,padding:"8px 10px"}}>
+                  <div style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:3}}>
+                    <span style={{fontSize:8,fontWeight:800,padding:"1px 6px",borderRadius:8,background:sv.bg,color:sv.c,flexShrink:0}}>{issue.severity}</span>
+                    <span style={{fontSize:8,fontWeight:700,color:"#64748b",flexShrink:0}}>{issue.category}</span>
+                    <span style={{fontSize:9,fontWeight:600,color:"#0f172a",flex:1}}>{issue.finding}</span>
+                  </div>
+                  <div style={{fontSize:8,color:"#475569"}}><span style={{fontWeight:600}}>Action:</span> {issue.action}</div>
+                </div>
+              );
+            })}
+            <div style={{fontSize:8,color:"#94a3b8",fontFamily:MN,marginTop:2}}>
+              {rigCritical>0&&<span style={{color:"#DC2626",fontWeight:700,marginRight:6}}>{rigCritical} CRITICAL</span>}
+              {rigHigh>0&&<span style={{color:"#C2410C",fontWeight:700,marginRight:6}}>{rigHigh} HIGH</span>}
+              Based on venue data on file. Some flags may resolve via advance.
+            </div>
+          </div>}
+        </div>
+      </div>}
 
       {/* Upload tab */}
       {subTab==="upload"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
