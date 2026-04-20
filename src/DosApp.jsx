@@ -2436,17 +2436,29 @@ function CmdP(){
 }
 
 function CrewTab(){
-  const{sel,setSel,shows,cShows,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo}=useContext(Ctx);
+  const{sel,setSel,shows,tourDaysSorted,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo}=useContext(Ctx);
   const[panel,setPanel]=useState(null);
   const[editMode,setEditMode]=useState(false);
   const show=shows[sel];
   const today=new Date().toISOString().slice(0,10);
-  const upcoming=cShows.filter(s=>s.date>=today);
   const sc=showCrew[sel]||{};
   const uid=()=>Math.random().toString(36).slice(2,9);
 
-  const getCD=(crewId)=>{const d=sc[crewId]||{};
-    // migrate legacy single travelMode to split inbound/outbound
+  // Nearest prior date with any crew data
+  const prevDate=useMemo(()=>{
+    const candidates=Object.keys(showCrew).filter(d=>d<sel&&Object.keys(showCrew[d]||{}).length>0).sort();
+    return candidates[candidates.length-1]||null;
+  },[sel,showCrew]);
+  const prevCrew=prevDate?showCrew[prevDate]:null;
+  const isInheriting=!showCrew[sel]&&!!prevCrew;
+
+  const copyFromPrev=()=>{
+    if(!prevCrew)return;
+    setShowCrew(p=>({...p,[sel]:{...prevCrew}}));
+  };
+
+  const getCD=(crewId)=>{
+    const d=sc[crewId]||(isInheriting?prevCrew?.[crewId]:null)||{};
     const legacy=d.travelMode||"bus";
     return{attending:false,inboundMode:legacy,outboundMode:legacy,inboundConfirmed:false,outboundConfirmed:false,inbound:[],outbound:[],inboundDate:"",inboundTime:"",inboundNotes:"",outboundDate:"",outboundTime:"",outboundNotes:"",parkingReq:"none",...d,travelMode:undefined};
   };
@@ -2471,20 +2483,50 @@ function CrewTab(){
   const inp={background:"#f5f3ef",border:"1px solid #d6d3cd",borderRadius:5,fontSize:10,padding:"4px 6px",outline:"none",width:"100%",fontFamily:"'Outfit',system-ui"};
   const btn=(bg="#5B21B6",col="#fff")=>({background:bg,border:"none",borderRadius:6,color:col,fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700});
 
-  if(!show)return<div style={{padding:40,textAlign:"center",color:"#64748b"}}>Select a show.</div>;
+  const dateLabel=(d)=>{const s=shows[d];const td=tourDaysSorted.find(x=>x.date===d);if(s)return s.city||s.venue||fD(d);if(td?.type==="travel"&&td?.bus?.route)return td.bus.route;return fD(d);};
+  const dayType=(d)=>{const s=shows[d];if(s)return s.type||"show";const td=tourDaysSorted.find(x=>x.date===d);return td?.type||"off";};
 
   return(
-    <div className="fi" style={{display:"flex",flexDirection:"column"}}>
+    <div className="fi" style={{display:"flex",height:"calc(100vh - 115px)"}}>
+      {/* Date sidebar */}
+      <div style={{width:190,borderRight:"1px solid #d6d3cd",background:"#fff",overflow:"auto",flexShrink:0}}>
+        <div style={{padding:"7px 12px",fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.08em",borderBottom:"1px solid #ebe8e3"}}>DATES</div>
+        {tourDaysSorted.map(td=>{
+          const d=td.date;const isSel=sel===d;
+          const hasData=!!showCrew[d]&&Object.keys(showCrew[d]).length>0;
+          const isShow=dayType(d)==="show";
+          const att=hasData?Object.values(showCrew[d]).filter(x=>x.attending).length:0;
+          return(
+            <div key={d} onClick={()=>setSel(d)} className="br rh" style={{padding:"7px 12px",cursor:"pointer",borderBottom:"1px solid #f5f3ef",background:isSel?"#f5f3ef":"transparent",borderLeft:isSel?"3px solid #5B21B6":"3px solid transparent"}}>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:1}}>
+                <span style={{fontFamily:MN,fontSize:9,color:"#64748b"}}>{fD(d)}</span>
+                {att>0&&<span style={{fontSize:7,padding:"1px 4px",borderRadius:3,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>{att}</span>}
+              </div>
+              <div style={{fontSize:10,fontWeight:600,color:isShow?"#0f172a":"#94a3b8",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{dateLabel(d)}</div>
+              <div style={{fontSize:8,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.04em"}}>{isShow?"Show":dayType(d)}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Main panel */}
+      <div style={{flex:1,overflow:"auto",display:"flex",flexDirection:"column"}}>
       {/* Header */}
       <div style={{padding:"6px 20px",borderBottom:"1px solid #ebe8e3",background:"#fff",display:"flex",gap:8,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
-        <span style={{fontWeight:700,fontSize:12}}>{show.venue}</span>
-        <span style={{fontSize:11,color:"#64748b"}}>{show.city} · {fFull(sel)}</span>
+        <span style={{fontWeight:700,fontSize:12}}>{show?.venue||dateLabel(sel)}</span>
+        <span style={{fontSize:11,color:"#64748b"}}>{show?.city||""}{show?.city?" · ":""}{fFull(sel)}</span>
         <span style={{fontSize:9,padding:"2px 7px",borderRadius:12,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>{attending.length} attending</span>
         <div style={{marginLeft:"auto",display:"flex",gap:5}}>
           <button onClick={()=>setEditMode(v=>!v)} style={btn(editMode?"#0f172a":"#f5f3ef",editMode?"#fff":"#475569")}>{editMode?"Done Editing":"Edit Roster"}</button>
           <button onClick={addMember} style={btn()}>+ Add</button>
         </div>
       </div>
+      {isInheriting&&prevDate&&(
+        <div style={{margin:"10px 20px 0",padding:"7px 12px",background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:8,display:"flex",alignItems:"center",gap:8,fontSize:9}}>
+          <span style={{color:"#92400E"}}>Showing crew carried from <strong>{fFull(prevDate)}</strong> — no data saved for this date yet.</span>
+          <button onClick={copyFromPrev} style={{marginLeft:"auto",fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#F59E0B",color:"#fff",cursor:"pointer",fontWeight:700,flexShrink:0}}>Copy to {fD(sel)}</button>
+        </div>
+      )}
       <div style={{padding:"10px 20px 30px",display:"flex",flexDirection:"column",gap:10}}>
         {/* Roster */}
         <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,overflow:"hidden"}}>
@@ -2595,6 +2637,7 @@ function CrewTab(){
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );
