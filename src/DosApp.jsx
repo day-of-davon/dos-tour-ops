@@ -2203,6 +2203,40 @@ function ProdTab(){
           </div>
         </div>
 
+        {/* Venue compatibility */}
+        <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:12}}>
+          <div style={{...UI.sectionLabel,marginBottom:4}}>Venue Compatibility — {vg?vg.venue:"No venue selected"}</div>
+          {vg&&<div style={{fontSize:9,color:"#64748b",marginBottom:8}}>
+            {[vg.stageDims&&`Stage: ${vg.stageDims.slice(0,80)}`,vg.rigging&&`Rigging: ${vg.rigging.slice(0,60)}`].filter(Boolean).map((s,i)=><div key={i} style={{fontFamily:MN}}>{s}</div>)}
+          </div>}
+          {!vg&&<div style={{padding:"20px 0",textAlign:"center",color:"#94a3b8",fontSize:10}}>Select an EU show to run venue compatibility check.</div>}
+          {vg&&rigChecks.length===0&&<div style={{padding:"16px 0",textAlign:"center"}}>
+            <div style={{fontSize:22,marginBottom:4}}>✓</div>
+            <div style={{fontSize:11,fontWeight:700,color:"#047857"}}>No compatibility issues detected</div>
+            <div style={{fontSize:9,color:"#94a3b8",marginTop:4}}>Parameters on file are compatible with touring rig. Advance TBC items per Venue Brief.</div>
+          </div>}
+          {vg&&rigChecks.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {[...rigChecks].sort((a,b)=>({CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3}[a.severity]-{CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3}[b.severity])).map(issue=>{
+              const sv=SEV_STYLES[issue.severity]||SEV_STYLES.LOW;
+              return(
+                <div key={issue.id} style={{background:issue.severity==="CRITICAL"?"#FEF2F2":issue.severity==="HIGH"?"#FFF7ED":"#fff",border:`1px solid ${sv.b}`,borderRadius:8,padding:"8px 10px"}}>
+                  <div style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:3}}>
+                    <span style={{fontSize:8,fontWeight:800,padding:"1px 6px",borderRadius:8,background:sv.bg,color:sv.c,flexShrink:0}}>{issue.severity}</span>
+                    <span style={{fontSize:8,fontWeight:700,color:"#64748b",flexShrink:0}}>{issue.category}</span>
+                    <span style={{fontSize:9,fontWeight:600,color:"#0f172a",flex:1}}>{issue.finding}</span>
+                  </div>
+                  <div style={{fontSize:8,color:"#475569"}}><span style={{fontWeight:600}}>Action:</span> {issue.action}</div>
+                </div>
+              );
+            })}
+            <div style={{fontSize:8,color:"#94a3b8",fontFamily:MN,marginTop:2}}>
+              {rigCritical>0&&<span style={{color:"#DC2626",fontWeight:700,marginRight:6}}>{rigCritical} CRITICAL</span>}
+              {rigHigh>0&&<span style={{color:"#C2410C",fontWeight:700,marginRight:6}}>{rigHigh} HIGH</span>}
+              Based on venue data on file. Some flags may resolve via advance.
+            </div>
+          </div>}
+        </div>
+
         {/* Fixture schedule */}
         <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:12}}>
           <div style={{...UI.sectionLabel,marginBottom:8}}>Fixture Schedule (Sht-1 Symbol Key + VWX)</div>
@@ -2247,39 +2281,6 @@ function ProdTab(){
           })}
         </div>
 
-        {/* Venue compatibility */}
-        <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:12}}>
-          <div style={{...UI.sectionLabel,marginBottom:4}}>Venue Compatibility — {vg?vg.venue:"No venue selected"}</div>
-          {vg&&<div style={{fontSize:9,color:"#64748b",marginBottom:8}}>
-            {[vg.stageDims&&`Stage: ${vg.stageDims.slice(0,80)}`,vg.rigging&&`Rigging: ${vg.rigging.slice(0,60)}`].filter(Boolean).map((s,i)=><div key={i} style={{fontFamily:MN}}>{s}</div>)}
-          </div>}
-          {!vg&&<div style={{padding:"20px 0",textAlign:"center",color:"#94a3b8",fontSize:10}}>Select an EU show to run venue compatibility check.</div>}
-          {vg&&rigChecks.length===0&&<div style={{padding:"16px 0",textAlign:"center"}}>
-            <div style={{fontSize:22,marginBottom:4}}>✓</div>
-            <div style={{fontSize:11,fontWeight:700,color:"#047857"}}>No compatibility issues detected</div>
-            <div style={{fontSize:9,color:"#94a3b8",marginTop:4}}>Parameters on file are compatible with touring rig. Advance TBC items per Venue Brief.</div>
-          </div>}
-          {vg&&rigChecks.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {[...rigChecks].sort((a,b)=>({CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3}[a.severity]-{CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3}[b.severity])).map(issue=>{
-              const sv=SEV_STYLES[issue.severity]||SEV_STYLES.LOW;
-              return(
-                <div key={issue.id} style={{background:issue.severity==="CRITICAL"?"#FEF2F2":issue.severity==="HIGH"?"#FFF7ED":"#fff",border:`1px solid ${sv.b}`,borderRadius:8,padding:"8px 10px"}}>
-                  <div style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:3}}>
-                    <span style={{fontSize:8,fontWeight:800,padding:"1px 6px",borderRadius:8,background:sv.bg,color:sv.c,flexShrink:0}}>{issue.severity}</span>
-                    <span style={{fontSize:8,fontWeight:700,color:"#64748b",flexShrink:0}}>{issue.category}</span>
-                    <span style={{fontSize:9,fontWeight:600,color:"#0f172a",flex:1}}>{issue.finding}</span>
-                  </div>
-                  <div style={{fontSize:8,color:"#475569"}}><span style={{fontWeight:600}}>Action:</span> {issue.action}</div>
-                </div>
-              );
-            })}
-            <div style={{fontSize:8,color:"#94a3b8",fontFamily:MN,marginTop:2}}>
-              {rigCritical>0&&<span style={{color:"#DC2626",fontWeight:700,marginRight:6}}>{rigCritical} CRITICAL</span>}
-              {rigHigh>0&&<span style={{color:"#C2410C",fontWeight:700,marginRight:6}}>{rigHigh} HIGH</span>}
-              Based on venue data on file. Some flags may resolve via advance.
-            </div>
-          </div>}
-        </div>
       </div>}
 
       {/* Upload tab */}
