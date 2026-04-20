@@ -18,7 +18,7 @@ const CM=CLIENTS.reduce((a,c)=>{a[c.id]=c;return a},{});
 // Only these users can see festival clients in the selector
 const FESTIVAL_ACCESS_EMAILS=["d.johnson@dayofshow.net","olivia@dayofshow.net"];
 const ROLES=[{id:"tm",label:"TM",c:"#5B21B6"},{id:"production",label:"PROD",c:"#92400E"},{id:"hospitality",label:"HOSPO",c:"#065F46"},{id:"transport",label:"TRANSPORT",c:"#1E40AF"}];
-const TABS=[{id:"dashboard",label:"Dashboard",icon:"◉"},{id:"advance",label:"Advance",icon:"◎"},{id:"ros",label:"Show Day",icon:"▦"},{id:"transport",label:"Transport",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"production",label:"Production",icon:"▤"}];
+const TABS=[{id:"dashboard",label:"Dashboard",icon:"◉"},{id:"advance",label:"Advance",icon:"◎"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Transport",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"production",label:"Production",icon:"▤"}];
 const DEFAULT_CREW=[
   {id:"ag", name:"Alex Gumuchian",        role:"Headliner (bbno$)",          email:"alexgumuchian@gmail.com"},
   {id:"jb", name:"Julien Bruce",           role:"Support (Jungle Bobby)",     email:""},
@@ -273,6 +273,14 @@ const BUS_DATA=[
   {day:29,date:"May 30",dow:"Sat",route:"Warsaw",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"Orange Festival",flag:""},
   {day:30,date:"May 31",dow:"Sun",route:"Warsaw → Aarschot",km:1400,drive:"14h",dep:"02:00",arr:"18:00",show:false,flag:"⚠",note:"Return. 2x 10h exemption."},
 ];
+
+// BUS_DATA keyed by ISO date for fast lookup (Day 1 = 2026-05-02)
+const BUS_DATA_MAP=BUS_DATA.reduce((m,d)=>{
+  const base=new Date('2026-05-02T12:00:00');
+  base.setDate(base.getDate()+d.day-1);
+  m[base.toISOString().slice(0,10)]=d;
+  return m;
+},{});
 
 // Split days: touring party divides across simultaneous events
 const SPLIT_DAYS={
@@ -1094,6 +1102,69 @@ function AnchorTimes({b,setBF}){
   );
 }
 
+function DayScheduleView({show,bus,split,sel}){
+  const isTravel=show.type==="travel";
+  return(
+    <div className="fi" style={{padding:"16px 20px",maxWidth:680}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+        <div>
+          <div style={{fontSize:13,fontWeight:800,color:"#0f172a"}}>{isTravel?"Travel Day":"Rest Day"}</div>
+          <div style={{fontSize:10,color:"#64748b",fontFamily:MN}}>{fFull(sel)}</div>
+        </div>
+        <div style={{marginLeft:"auto",fontSize:8,fontWeight:800,padding:"3px 9px",borderRadius:6,background:isTravel?"#DBEAFE":"#F1F5F9",color:isTravel?"#1E40AF":"#64748b",letterSpacing:"0.06em"}}>{isTravel?"TRAVEL":"OFF"}</div>
+      </div>
+
+      {isTravel&&bus&&(
+        <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"14px 16px",marginBottom:12}}>
+          <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.08em",marginBottom:8}}>BUS SEGMENT · PIETER SMIT T26-021201</div>
+          <div style={{fontSize:14,fontWeight:700,color:"#0f172a",marginBottom:12}}>{bus.route}</div>
+          <div style={{display:"flex",gap:20,flexWrap:"wrap",marginBottom:bus.note||bus.flag?10:0}}>
+            {[{l:"Distance",v:`${bus.km} km`,hide:!bus.km},{l:"Drive Time",v:bus.drive},{l:"Departure",v:bus.dep},{l:"Arrival",v:bus.arr}].filter(s=>!s.hide&&s.v!=="—").map((s,i)=>(
+              <div key={i}>
+                <div style={{fontSize:8,color:"#64748b",fontWeight:600,marginBottom:2}}>{s.l}</div>
+                <div style={{fontFamily:MN,fontSize:14,fontWeight:800,color:"#0f172a"}}>{s.v}</div>
+              </div>
+            ))}
+          </div>
+          {bus.flag==="⚠"&&<div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:7,padding:"7px 10px",fontSize:9,color:"#DC2626",fontWeight:600,marginTop:6}}>⚠ {bus.note||"HOS flag — review hours of service compliance"}</div>}
+          {bus.note&&bus.flag!=="⚠"&&<div style={{fontSize:9,color:"#94a3b8",marginTop:6,fontStyle:"italic"}}>{bus.note}</div>}
+          {bus.day&&<div style={{marginTop:8,fontSize:8,color:"#94a3b8",fontFamily:MN}}>Tour Day {bus.day} of 30</div>}
+        </div>
+      )}
+
+      {isTravel&&!bus&&(
+        <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"14px 16px",marginBottom:12,color:"#94a3b8",fontSize:10,textAlign:"center"}}>No bus data on file for this travel day.</div>
+      )}
+
+      {split&&(
+        <div style={{background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+          <div style={{fontSize:9,fontWeight:800,color:"#92400E",letterSpacing:"0.08em",marginBottom:8}}>SPLIT PARTY — {split.parties.length} GROUPS</div>
+          {split.parties.map(p=>(
+            <div key={p.id} style={{marginBottom:8,padding:"8px 10px",background:p.bg,borderRadius:7,border:`1px solid ${p.color}30`}}>
+              <div style={{fontSize:10,fontWeight:700,color:p.color,marginBottom:3}}>{p.label} <span style={{fontWeight:400,color:"#64748b"}}>· {p.location}</span></div>
+              <div style={{fontSize:9,color:"#64748b",marginBottom:6}}>{p.event}</div>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                {p.crew.map(cid=>{const c=DEFAULT_CREW.find(x=>x.id===cid);return c?(<span key={cid} style={{fontSize:8,padding:"2px 8px",borderRadius:12,background:"#fff",border:`1px solid ${p.color}40`,color:p.color,fontWeight:600}}>{c.name.split(" ")[0]} <span style={{fontWeight:400,opacity:0.7,fontSize:7}}>({c.role.split(" (")[0].split("/")[0].trim()})</span></span>):null;})}
+              </div>
+              {p.note&&<div style={{fontSize:8,color:"#64748b",marginTop:5,fontStyle:"italic"}}>{p.note}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!isTravel&&!split&&(
+        <div style={{padding:"40px 0",textAlign:"center",color:"#64748b"}}>
+          <div style={{fontSize:22,marginBottom:8,opacity:0.3}}>◌</div>
+          <div style={{fontSize:12,fontWeight:600,color:"#0f172a",marginBottom:4}}>No events scheduled</div>
+          <div style={{fontSize:10,color:"#94a3b8"}}>Rest day. No bus movements or show obligations.</div>
+        </div>
+      )}
+
+      {show.notes&&<div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:7,padding:"8px 12px",fontSize:9,color:"#92400E",fontWeight:500,marginTop:4}}>{show.notes}</div>}
+    </div>
+  );
+}
+
 function ROSTab(){
   const{shows,uShow,gRos,uRos,ros,sel,setSel,cShows,role,aC}=useContext(Ctx);
   const[editB,setEditB]=useState(null);const[dOver,setDOver]=useState(null);
@@ -1144,6 +1215,10 @@ function ROSTab(){
   const hl=b=>AB.has(b.id)||role==="tm"||b.roles?.includes(role);
   const AMAP={busArrive:"Bus Arrival",venueAccess:"Venue Access",crewCall:"Crew Call",mgTime:"M&G",doors:"Doors",curfew:"Curfew"};
   const isCustom=!!CUSTOM_ROS_MAP[sel];
+
+  if(show.type==="off"||show.type==="travel"){
+    return <DayScheduleView show={show} bus={BUS_DATA_MAP[sel]||null} split={SPLIT_DAYS[sel]||null} sel={sel}/>;
+  }
 
   const renderB=b=>{
     let t=times[b.id];if(!t)return null;
