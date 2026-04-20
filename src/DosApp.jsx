@@ -589,15 +589,41 @@ function IntelSection({title,count,children,actions}){
   );
 }
 
-function FlightCard({f,actions}){
+const STATUS_STYLE={
+  Landed:{bg:"#D1FAE5",c:"#047857",label:"Landed"},
+  Departed:{bg:"#DBEAFE",c:"#1D4ED8",label:"Departed"},
+  Scheduled:{bg:"#F1F5F9",c:"#475569",label:"Scheduled"},
+  Cancelled:{bg:"#FEE2E2",c:"#B91C1C",label:"Cancelled"},
+  Delayed:{bg:"#FEF3C7",c:"#92400E",label:"Delayed"},
+  Unknown:{bg:"#F1F5F9",c:"#94a3b8",label:"—"},
+};
+function statusStyle(s){return STATUS_STYLE[s]||STATUS_STYLE.Unknown;}
+
+function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing}){
+  const st=liveStatus?statusStyle(liveStatus.status):null;
+  const delayed=liveStatus?.delayMinutes>0;
   return(
-    <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:9,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6}}>
+    <div style={{background:"#fff",border:`1px solid ${st&&delayed?"#FCD34D":st?.c==="#B91C1C"?"#FCA5A5":"#d6d3cd"}`,borderRadius:9,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6}}>
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
         <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#1E40AF"}}>{f.from}<span style={{fontSize:10,color:"#94a3b8",fontWeight:400,padding:"0 5px"}}>→</span>{f.to}</div>
         <div style={{fontSize:10,fontWeight:700,color:"#0f172a"}}>{f.flightNo||f.carrier}</div>
         {f.carrier&&f.flightNo&&<div style={{fontSize:9,color:"#64748b"}}>{f.carrier}</div>}
-        <div style={{marginLeft:"auto",fontSize:9,fontFamily:MN,color:"#475569",fontWeight:600}}>{f.depDate}{f.dep?` · ${f.dep}`:""}{f.arr?`–${f.arr}`:""}</div>
+        {st&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:st.bg,color:st.c,fontWeight:700}}>{st.label}{delayed?` +${liveStatus.delayMinutes}m`:""}</span>}
+        <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
+          {onRefreshStatus&&<button onClick={onRefreshStatus} disabled={refreshing} title="Refresh live status" style={{background:"none",border:"none",cursor:refreshing?"default":"pointer",fontSize:10,color:refreshing?"#94a3b8":"#5B21B6",padding:0,lineHeight:1}}>{refreshing?"⟳":"⟳"}</button>}
+          <div style={{fontSize:9,fontFamily:MN,color:"#475569",fontWeight:600}}>{f.depDate}{f.dep?` · ${f.dep}`:""}{f.arr?`–${f.arr}`:""}</div>
+        </div>
       </div>
+      {liveStatus&&(
+        <div style={{display:"flex",gap:12,padding:"5px 8px",background:st.bg,borderRadius:6,flexWrap:"wrap"}}>
+          {liveStatus.depActual&&<div><div style={{fontSize:7,color:st.c,fontWeight:700}}>ACT DEP</div><div style={{fontFamily:MN,fontSize:10,fontWeight:800,color:st.c}}>{liveStatus.depActual}{liveStatus.depGate?` · Gate ${liveStatus.depGate}`:""}</div></div>}
+          {liveStatus.arrActual&&<div><div style={{fontSize:7,color:st.c,fontWeight:700}}>ACT ARR</div><div style={{fontFamily:MN,fontSize:10,fontWeight:800,color:st.c}}>{liveStatus.arrActual}{liveStatus.arrGate?` · Gate ${liveStatus.arrGate}`:""}</div></div>}
+          {!liveStatus.depActual&&liveStatus.depScheduled&&<div><div style={{fontSize:7,color:st.c,fontWeight:700}}>SCH DEP</div><div style={{fontFamily:MN,fontSize:10,color:st.c}}>{liveStatus.depScheduled}{liveStatus.depGate?` · Gate ${liveStatus.depGate}`:""}</div></div>}
+          {!liveStatus.arrActual&&liveStatus.arrScheduled&&<div><div style={{fontSize:7,color:st.c,fontWeight:700}}>SCH ARR</div><div style={{fontFamily:MN,fontSize:10,color:st.c}}>{liveStatus.arrScheduled}{liveStatus.arrGate?` · Gate ${liveStatus.arrGate}`:""}</div></div>}
+          {liveStatus.aircraft&&<div><div style={{fontSize:7,color:st.c,fontWeight:700}}>AIRCRAFT</div><div style={{fontSize:9,color:st.c}}>{liveStatus.aircraft}</div></div>}
+          {liveStatus.fetchedAt&&<div style={{marginLeft:"auto"}}><div style={{fontSize:7,color:"#94a3b8"}}>updated {new Date(liveStatus.fetchedAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div></div>}
+        </div>
+      )}
       <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
         {f.fromCity&&<div><div style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>FROM</div><div style={{fontSize:10,color:"#0f172a"}}>{f.fromCity}</div></div>}
         {f.toCity&&<div><div style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>TO</div><div style={{fontSize:10,color:"#0f172a"}}>{f.toCity}</div></div>}
@@ -2007,6 +2033,9 @@ function FlightsListView(){
   const[scanMsg,setScanMsg]=useState("");
   const[pendingImport,setPendingImport]=useState([]);
   const[confirmingId,setConfirmingId]=useState(null);
+  const[liveStatuses,setLiveStatuses]=useState({});  // keyed by flight id
+  const[refreshingId,setRefreshingId]=useState(null);
+  const[refreshingAll,setRefreshingAll]=useState(false);
 
   const allFlights=Object.values(flights);
   const pending=allFlights.filter(f=>f.status==="pending").sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0);
@@ -2066,6 +2095,42 @@ function FlightsListView(){
     setTimeout(()=>setConfirmingId(null),1200);
   };
 
+  const fetchStatus=async(f)=>{
+    if(!f.flightNo)return;
+    try{
+      const{data:{session}}=await supabase.auth.getSession();
+      if(!session)return;
+      const resp=await fetch("/api/flight-status",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({flightNo:f.flightNo,depDate:f.depDate})});
+      if(!resp.ok)return;
+      const data=await resp.json();
+      if(data.status)setLiveStatuses(p=>({...p,[f.id]:data.status}));
+    }catch{}
+  };
+
+  const refreshStatus=async(f)=>{
+    setRefreshingId(f.id);
+    await fetchStatus(f);
+    setRefreshingId(null);
+  };
+
+  const refreshAllStatus=async()=>{
+    const toRefresh=confirmed.filter(f=>f.flightNo);
+    if(!toRefresh.length)return;
+    setRefreshingAll(true);
+    try{
+      const{data:{session}}=await supabase.auth.getSession();
+      if(!session){setRefreshingAll(false);return;}
+      const resp=await fetch("/api/flight-status",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({flights:toRefresh.map(f=>({flightNo:f.flightNo,depDate:f.depDate,id:f.id}))})});
+      if(resp.ok){
+        const data=await resp.json();
+        const next={};
+        toRefresh.forEach(f=>{const s=data.statuses?.[`${f.flightNo}__${f.depDate}`];if(s&&!s.error)next[f.id]=s;});
+        setLiveStatuses(p=>({...p,...next}));
+      }
+    }catch{}
+    setRefreshingAll(false);
+  };
+
   return(
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
       {/* Scan bar */}
@@ -2073,7 +2138,10 @@ function FlightsListView(){
         <span style={{fontSize:10,fontWeight:800,color:"#1E40AF",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
         <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"#DBEAFE",color:"#1E40AF",fontWeight:700}}>{confirmed.length} confirmed · {pending.length} pending</span>
         {scanMsg&&<span style={{fontSize:9,color:scanning?"#5B21B6":"#64748b",fontFamily:MN}}>{scanMsg}</span>}
-        <button onClick={scanFlights} disabled={scanning} style={{marginLeft:"auto",background:scanning?"#ebe8e3":"#1E40AF",color:scanning?"#64748b":"#fff",border:"none",borderRadius:6,fontSize:10,padding:"5px 14px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail for Flights"}</button>
+        <div style={{marginLeft:"auto",display:"flex",gap:6}}>
+          {confirmed.length>0&&<button onClick={refreshAllStatus} disabled={refreshingAll} style={{background:refreshingAll?"#ebe8e3":"#f5f3ef",color:refreshingAll?"#94a3b8":"#5B21B6",border:"1px solid #d6d3cd",borderRadius:6,fontSize:10,padding:"5px 12px",cursor:refreshingAll?"default":"pointer",fontWeight:700}}>{refreshingAll?"Refreshing…":"⟳ Refresh Status"}</button>}
+          <button onClick={scanFlights} disabled={scanning} style={{background:scanning?"#ebe8e3":"#1E40AF",color:scanning?"#64748b":"#fff",border:"none",borderRadius:6,fontSize:10,padding:"5px 14px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail for Flights"}</button>
+        </div>
       </div>
 
       {/* Pending import */}
@@ -2120,24 +2188,18 @@ function FlightsListView(){
                 <button onClick={()=>goToSchedule(date)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:9,fontWeight:800,color:"#5B21B6",letterSpacing:"0.08em",textDecoration:"underline",textDecorationStyle:"dotted",textUnderlineOffset:2}}>{fFull(date)}</button>
                 <div style={{flex:1,height:1,background:"#d6d3cd"}}/>
               </div>
-              <div style={{display:"flex",flexDirection:"column",gap:4}}>
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
                 {byDate[date].map(f=>(
-                  <div key={f.id} style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:8,padding:"9px 12px",display:"grid",gridTemplateColumns:"80px 1fr 1fr 1fr auto",gap:10,alignItems:"center"}}>
-                    <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#1E40AF"}}>{f.from}<span style={{fontSize:9,fontWeight:400,color:"#94a3b8",padding:"0 3px"}}>→</span>{f.to}</div>
-                    <div><div style={{fontSize:11,fontWeight:700,color:"#0f172a"}}>{f.flightNo||f.carrier}</div><div style={{fontSize:9,color:"#64748b"}}>{f.carrier&&f.flightNo?f.carrier:""}</div></div>
-                    <div>
-                      <div style={{fontSize:9,color:"#64748b",fontWeight:600}}>DEP · ARR</div>
-                      <div style={{fontFamily:MN,fontSize:10,fontWeight:700,color:"#0f172a",display:"flex",alignItems:"center",gap:3}}>
-                        <button onClick={()=>goToSchedule(f.depDate)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:MN,fontSize:10,fontWeight:700,color:"#1E40AF",textDecoration:"underline",textDecorationStyle:"dotted",textUnderlineOffset:2}}>{f.dep||"—"}</button>
-                        <span style={{color:"#94a3b8",fontWeight:400}}>→</span>
-                        {f.arrDate&&f.arrDate!==f.depDate
-                          ?<button onClick={()=>goToSchedule(f.arrDate)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontFamily:MN,fontSize:10,fontWeight:700,color:"#1E40AF",textDecoration:"underline",textDecorationStyle:"dotted",textUnderlineOffset:2}}>{f.arr||"—"}</button>
-                          :<span>{f.arr||"—"}</span>}
-                      </div>
-                    </div>
-                    <div><div style={{fontSize:9,color:"#64748b",fontWeight:600}}>PAX</div><div style={{fontSize:10,color:"#0f172a"}}>{(f.pax||[]).join(", ")||"—"}</div></div>
-                    <button onClick={()=>uFlight(f.id,{...f,status:"dismissed"})} title="Remove" style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:14,lineHeight:1}}>×</button>
-                  </div>
+                  <FlightCard key={f.id} f={f}
+                    liveStatus={liveStatuses[f.id]||null}
+                    refreshing={refreshingId===f.id}
+                    onRefreshStatus={f.flightNo?()=>refreshStatus(f):null}
+                    actions={<>
+                      <button onClick={()=>goToSchedule(f.depDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700}}>→ Schedule {f.depDate?.slice(5)}</button>
+                      {f.arrDate&&f.arrDate!==f.depDate&&<button onClick={()=>goToSchedule(f.arrDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700}}>→ Arr {f.arrDate?.slice(5)}</button>}
+                      <button onClick={()=>uFlight(f.id,{...f,status:"dismissed"})} style={{marginLeft:"auto",fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#94a3b8",cursor:"pointer"}}>Remove</button>
+                    </>}
+                  />
                 ))}
               </div>
             </div>
