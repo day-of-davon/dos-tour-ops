@@ -558,11 +558,15 @@ function StatusBtn({status,setStatus,mobile}){
   const onCtx=e=>{e.preventDefault();setOpen(true);};
   const onDown=e=>{if(mobile)return;lp.current=setTimeout(()=>setOpen(true),400);};
   const onUp=()=>{if(lp.current){clearTimeout(lp.current);lp.current=null;}};
-  return <div ref={ref} style={{position:"relative",flexShrink:0}}>
-    <button onClick={onClick} onContextMenu={onCtx} onMouseDown={onDown} onMouseUp={onUp} onMouseLeave={onUp} onTouchStart={onDown} onTouchEnd={onUp}
-      style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",cursor:"pointer",fontWeight:700,background:s.b,color:s.c,minWidth:78}}>{s.l}</button>
-    {open&&<div style={{position:"absolute",top:"100%",right:0,marginTop:3,background:"#fff",border:"1px solid #d6d3cd",borderRadius:7,boxShadow:"0 6px 20px rgba(0,0,0,.1)",zIndex:50,padding:3,minWidth:120}}>
-      {SC_ORDER.map(k=>{const v=SC[k];return <button key={k} onClick={()=>{setStatus(k);setOpen(false);}} style={{display:"block",width:"100%",textAlign:"left",padding:"4px 8px",fontSize:10,border:"none",background:status===k?v.b:"transparent",color:v.c,cursor:"pointer",borderRadius:4,fontWeight:600}}>{v.l}</button>;})}
+  const caretClick=e=>{e.stopPropagation();e.preventDefault();setOpen(v=>!v);};
+  const tip=mobile?`${s.l} — tap to change`:`${s.l} — click to cycle, caret or right-click for all options`;
+  return <div ref={ref} style={{position:"relative",flexShrink:0,display:"inline-flex"}}>
+    <button title={tip} onClick={onClick} onContextMenu={onCtx} onMouseDown={onDown} onMouseUp={onUp} onMouseLeave={onUp} onTouchStart={onDown} onTouchEnd={onUp}
+      style={{fontSize:mobile?10:9,padding:mobile?"5px 9px":"3px 8px",borderTopLeftRadius:5,borderBottomLeftRadius:5,borderTopRightRadius:0,borderBottomRightRadius:0,border:"none",borderRight:`1px solid ${s.c}26`,cursor:"pointer",fontWeight:700,background:s.b,color:s.c,minWidth:mobile?82:78,minHeight:mobile?28:undefined}}>{s.l}</button>
+    <button title="Open all status options" aria-label="Open status menu" onClick={caretClick}
+      style={{fontSize:mobile?10:9,padding:mobile?"5px 7px":"3px 6px",borderTopRightRadius:5,borderBottomRightRadius:5,borderTopLeftRadius:0,borderBottomLeftRadius:0,border:"none",cursor:"pointer",fontWeight:800,background:s.b,color:s.c,minHeight:mobile?28:undefined,opacity:.75}}>▾</button>
+    {open&&<div style={{position:"absolute",top:"100%",right:0,marginTop:3,background:"#fff",border:"1px solid #d6d3cd",borderRadius:7,boxShadow:"0 6px 20px rgba(0,0,0,.1)",zIndex:50,padding:3,minWidth:130}}>
+      {SC_ORDER.map(k=>{const v=SC[k];return <button key={k} onClick={()=>{setStatus(k);setOpen(false);}} style={{display:"block",width:"100%",textAlign:"left",padding:mobile?"7px 10px":"4px 8px",fontSize:mobile?11:10,border:"none",background:status===k?v.b:"transparent",color:v.c,cursor:"pointer",borderRadius:4,fontWeight:600}}>{v.l}</button>;})}
     </div>}
   </div>;
 }
@@ -782,7 +786,7 @@ function SignOut(){
 }
 
 function TopBar({ss}){
-  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sorted,sel,setSel,setDateMenu,shows,orderedTabs,reorderTabs,tourDays}=useContext(Ctx);
+  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sorted,sel,setSel,setDateMenu,shows,orderedTabs,reorderTabs,tourDays,tourDaysSorted,mobile}=useContext(Ctx);
   const[dragId,setDragId]=useState(null);
   const[overId,setOverId]=useState(null);
   const a=useAuth();const userEmail=(a?.user?.email||"").toLowerCase();
@@ -806,53 +810,72 @@ function TopBar({ss}){
     }
     return `${fD(sel)}`;
   },[sel,curShow,tourDays]);
+  // Combined list of selectable dates for prev/next stepping (tour days + extras).
+  const stepList=useMemo(()=>{
+    const td=tourDaysSorted||[];
+    const tourIds=new Set(td.map(d=>d.date));
+    const extras=(sorted||[]).filter(s=>!tourIds.has(s.date)).map(s=>({date:s.date}));
+    return[...td.map(d=>({date:d.date})),...extras].sort((a,b)=>a.date.localeCompare(b.date));
+  },[tourDaysSorted,sorted]);
+  const curIdx=stepList.findIndex(d=>d.date===sel);
+  const stepDate=dir=>{if(curIdx<0)return;const ni=curIdx+dir;if(ni<0||ni>=stepList.length)return;setSel(stepList[ni].date);};
+  const canPrev=curIdx>0;const canNext=curIdx>=0&&curIdx<stepList.length-1;
   const canSeeFestivals=FESTIVAL_ACCESS_EMAILS.some(e=>e.toLowerCase()===userEmail);
   const activeClients=CLIENTS.filter(c=>c.status==="active"&&(c.type!=="festival"||canSeeFestivals));
   // Guard: if current active client isn't in the visible list, reset to bbn
   React.useEffect(()=>{if(!activeClients.find(c=>c.id===aC))setAC("bbn");},[canSeeFestivals]);
+  const stepBtn={background:"#f5f3ef",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:11,padding:mobile?"5px 8px":"3px 7px",cursor:"pointer",fontWeight:700,minHeight:mobile?30:undefined,lineHeight:1};
   return(
     <div style={{borderBottom:"1px solid #d6d3cd",background:"#fff",width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px 5px",minWidth:0,gap:8,width:"100%",maxWidth:900}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0,flexShrink:1,overflow:"hidden"}}>
-          <span style={{fontSize:16,fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em",flexShrink:0}}>DOS</span>
-          <span style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>v7.0</span>
-          {next&&<span style={{fontSize:10,fontFamily:MN,color:"#5B21B6",fontWeight:600,marginLeft:4}}>{next.city} {fD(next.date)} · {dU(next.date)}d</span>}
-          <button onClick={()=>setDateMenu(true)} title="Open dates menu" style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid #d6d3cd",background:"#f5f3ef",color:"#0f172a",fontFamily:MN,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
-            <span style={{fontSize:11}}>☰</span>{curDateLabel}
-          </button>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,minWidth:0,maxWidth:"100%"}}>
-          {ss&&<span style={{fontSize:9,color:ss==="saved"?"#047857":"#94a3b8",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
-          <div style={{display:"flex",gap:1,background:"#ebe8e3",borderRadius:7,padding:2}}>
-            {ROLES.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:9,fontWeight:role===r.id?700:500,padding:"3px 8px",borderRadius:5,border:"none",cursor:"pointer",background:role===r.id?"#fff":"transparent",color:role===r.id?r.c:"#64748b",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:mobile?"8px 12px 4px":"10px 20px 5px",minWidth:0,gap:8,width:"100%",maxWidth:900}}>
+        <div style={{display:"flex",alignItems:"center",gap:mobile?6:10,minWidth:0,flexShrink:1,overflow:"hidden"}}>
+          <span style={{fontSize:mobile?15:16,fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em",flexShrink:0}}>DOS</span>
+          {!mobile&&<span style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>v7.0</span>}
+          {next&&!mobile&&<span style={{fontSize:10,fontFamily:MN,color:"#5B21B6",fontWeight:600,marginLeft:4}}>{next.city} {fD(next.date)} · {dU(next.date)}d</span>}
+          <div style={{display:"flex",alignItems:"center",gap:3,marginLeft:mobile?2:4,minWidth:0}}>
+            <button onClick={()=>stepDate(-1)} disabled={!canPrev} title="Previous day" aria-label="Previous day" style={{...stepBtn,opacity:canPrev?1:.35,cursor:canPrev?"pointer":"default"}}>‹</button>
+            <button onClick={()=>setDateMenu(true)} title="Open dates menu" style={{fontSize:mobile?11:10,padding:mobile?"5px 10px":"3px 8px",borderRadius:5,border:"1px solid #d6d3cd",background:"#f5f3ef",color:"#0f172a",fontFamily:MN,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5,minHeight:mobile?30:undefined,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+              <span style={{fontSize:mobile?12:11,flexShrink:0}}>☰</span><span style={{minWidth:0,overflow:"hidden",textOverflow:"ellipsis"}}>{curDateLabel}</span>
+            </button>
+            <button onClick={()=>stepDate(1)} disabled={!canNext} title="Next day" aria-label="Next day" style={{...stepBtn,opacity:canNext?1:.35,cursor:canNext?"pointer":"default"}}>›</button>
           </div>
-          <button onClick={()=>setExp(true)} title="Export / Import" style={{background:"#ebe8e3",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:9,padding:"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600}}>⇅</button>
-          <button onClick={()=>setCmd(true)} style={{background:"#ebe8e3",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:9,padding:"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600}}>⌘K</button>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:mobile?4:8,flexShrink:0,minWidth:0,maxWidth:"100%"}}>
+          {ss&&!mobile&&<span style={{fontSize:9,color:ss==="saved"?"#047857":"#94a3b8",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
+          {!mobile&&<div style={{display:"flex",gap:1,background:"#ebe8e3",borderRadius:7,padding:2}}>
+            {ROLES.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:9,fontWeight:role===r.id?700:500,padding:"3px 8px",borderRadius:5,border:"none",cursor:"pointer",background:role===r.id?"#fff":"transparent",color:role===r.id?r.c:"#64748b",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
+          </div>}
+          <button onClick={()=>setExp(true)} title="Export / Import" style={{background:"#ebe8e3",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>⇅</button>
+          <button onClick={()=>setCmd(true)} title="Command palette (⌘K)" style={{background:"#ebe8e3",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>{mobile?"⌘":"⌘K"}</button>
           <SignOut/>
         </div>
       </div>
-      <div style={{padding:"3px 20px 5px"}}>
-        <select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:10,padding:"3px 9px",borderRadius:20,border:`1.5px solid ${curClient?.color||"#d6d3cd"}`,background:curClient?`${curClient.color}14`:"#fff",color:curClient?.color||"#475569",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer"}}>
+      <div style={{padding:mobile?"3px 12px 5px":"3px 20px 5px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:20,border:`1.5px solid ${curClient?.color||"#d6d3cd"}`,background:curClient?`${curClient.color}14`:"#fff",color:curClient?.color||"#475569",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer",minHeight:mobile?30:undefined}}>
           {activeClients.map(c=><option key={c.id} value={c.id} style={{color:"#0f172a",fontWeight:500}}>● {c.name} · {c.type==="festival"?"FEST":"ARTIST"}</option>)}
         </select>
+        {mobile&&<div style={{display:"flex",gap:1,background:"#ebe8e3",borderRadius:7,padding:2,marginLeft:"auto"}}>
+          {ROLES.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:10,fontWeight:role===r.id?700:500,padding:"4px 8px",borderRadius:5,border:"none",cursor:"pointer",background:role===r.id?"#fff":"transparent",color:role===r.id?r.c:"#64748b",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
+        </div>}
+        {mobile&&ss&&<span style={{fontSize:9,color:ss==="saved"?"#047857":"#94a3b8",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
       </div>
-      <div style={{display:"flex",padding:"0 20px",width:"100%",maxWidth:900,overflowX:"auto",overflowY:"hidden",scrollbarWidth:"thin",WebkitOverflowScrolling:"touch"}}>
+      <div style={{display:"flex",padding:mobile?"0 12px":"0 20px",width:"100%",maxWidth:900,overflowX:"auto",overflowY:"hidden",scrollbarWidth:"thin",WebkitOverflowScrolling:"touch"}}>
         {(orderedTabs||TABS).map(t=>{
           const isDrag=dragId===t.id;
           const isOver=overId===t.id&&dragId&&dragId!==t.id;
           return(
             <button
               key={t.id}
-              draggable={!t.disabled}
-              onDragStart={e=>{if(t.disabled)return;setDragId(t.id);e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",t.id);}catch{}}}
+              draggable={!t.disabled&&!mobile}
+              onDragStart={e=>{if(t.disabled||mobile)return;setDragId(t.id);e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",t.id);}catch{}}}
               onDragOver={e=>{if(!dragId||t.disabled)return;e.preventDefault();e.dataTransfer.dropEffect="move";setOverId(t.id);}}
               onDragLeave={()=>{if(overId===t.id)setOverId(null);}}
               onDrop={e=>{e.preventDefault();if(dragId&&dragId!==t.id&&reorderTabs)reorderTabs(dragId,t.id);setDragId(null);setOverId(null);}}
               onDragEnd={()=>{setDragId(null);setOverId(null);}}
               onClick={()=>!t.disabled&&setTab(t.id)}
-              style={{padding:"6px 12px",fontSize:11,fontWeight:tab===t.id?700:500,color:t.disabled?"#c4bfb6":tab===t.id?"#0f172a":"#64748b",background:isOver?"#EDE9FE":"none",border:"none",cursor:t.disabled?"default":isDrag?"grabbing":"grab",borderBottom:tab===t.id?"2px solid #5B21B6":isOver?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:4,flexShrink:0,whiteSpace:"nowrap",opacity:isDrag?0.4:1,transition:"opacity .1s,background .1s",userSelect:"none"}}
+              style={{padding:mobile?"9px 13px":"6px 12px",fontSize:mobile?12:11,fontWeight:tab===t.id?700:500,color:t.disabled?"#c4bfb6":tab===t.id?"#0f172a":"#64748b",background:isOver?"#EDE9FE":"none",border:"none",cursor:t.disabled?"default":mobile?"pointer":isDrag?"grabbing":"grab",borderBottom:tab===t.id?"2px solid #5B21B6":isOver?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:5,flexShrink:0,whiteSpace:"nowrap",opacity:isDrag?0.4:1,transition:"opacity .1s,background .1s",userSelect:"none",minHeight:mobile?40:undefined}}
             >
-              <span style={{fontSize:10}}>{t.icon}</span>{t.label}{t.soon&&<span style={{fontSize:7,color:"#c4bfb6"}}>soon</span>}
+              <span style={{fontSize:mobile?12:10}}>{t.icon}</span>{t.label}{t.soon&&<span style={{fontSize:7,color:"#c4bfb6"}}>soon</span>}
             </button>
           );
         })}
@@ -1746,22 +1769,65 @@ function FinTab(){
 }
 
 function CmdP(){
-  const{sorted,setSel,setTab,setCmd,setAC}=useContext(Ctx);
-  const[q,setQ]=useState("");const ref=useRef(null);
+  const{sorted,setSel,setTab,setCmd,setAC,setExp,setDateMenu,next,sel,shows,refreshIntel,mobile}=useContext(Ctx);
+  const[q,setQ]=useState("");const[sel1,setSel1]=useState(0);const ref=useRef(null);const listRef=useRef(null);
   useEffect(()=>{ref.current?.focus();},[]);
-  const res=useMemo(()=>{const ql=q.toLowerCase().trim();if(!ql)return[...TABS.filter(t=>!t.disabled).map(t=>({type:"tab",id:t.id,label:t.label,icon:t.icon})),...sorted.slice(0,5).map(s=>({type:"show",id:s.date,label:`${fD(s.date)} ${s.city}`,sub:s.venue,cId:s.clientId}))];const it=[];TABS.forEach(t=>{if(!t.disabled&&t.label.toLowerCase().includes(ql))it.push({type:"tab",id:t.id,label:t.label,icon:t.icon});});CLIENTS.forEach(c=>{if(c.name.toLowerCase().includes(ql))it.push({type:"client",id:c.id,label:c.name,sub:c.type});});sorted.forEach(s=>{if(s.city.toLowerCase().includes(ql)||s.venue.toLowerCase().includes(ql)||s.date.includes(ql))it.push({type:"show",id:s.date,label:`${fD(s.date)} ${s.city}`,sub:s.venue,cId:s.clientId});});return it.slice(0,12);},[q,sorted]);
-  const go=item=>{if(item.type==="tab")setTab(item.id);if(item.type==="show"){setSel(item.id);if(item.cId)setAC(item.cId);setTab("ros");}if(item.type==="client"){setAC(item.id);setTab("dashboard");}setCmd(false);};
+  const actions=useMemo(()=>{
+    const a=[{type:"action",id:"open_now",label:"Go to Now",sub:"Dashboard / next 72h",icon:"◉",run:()=>setTab("dashboard")},
+      {type:"action",id:"open_advance",label:"Open Advance tracker",sub:"current show",icon:"◎",run:()=>setTab("advance")},
+      {type:"action",id:"open_ros",label:"Open Schedule",sub:"ROS for current show",icon:"▦",run:()=>setTab("ros")},
+      {type:"action",id:"open_transport",label:"Open Transport",sub:"bus + dispatch",icon:"◈",run:()=>setTab("transport")},
+      {type:"action",id:"open_finance",label:"Open Finance",sub:"settlement + payout",icon:"◐",run:()=>setTab("finance")},
+      {type:"action",id:"open_dates",label:"Open Dates menu",sub:"full tour calendar",icon:"☰",run:()=>setDateMenu(true)},
+      {type:"action",id:"export",label:"Export / Import snapshot",sub:"JSON download",icon:"⇅",run:()=>setExp(true)}];
+    const cur=sel?shows?.[sel]:null;
+    if(cur&&refreshIntel)a.push({type:"action",id:"refresh_intel",label:`Refresh Gmail intel (${cur.city||cur.venue})`,sub:"scan inbox for this show",icon:"↻",run:()=>refreshIntel(cur,true)});
+    if(next)a.push({type:"action",id:"jump_next",label:`Jump to next show (${next.city})`,sub:`${fD(next.date)} · ${dU(next.date)}d`,icon:"→",run:()=>{setSel(next.date);if(next.clientId)setAC(next.clientId);setTab("ros");}});
+    return a;
+  },[next,sel,shows,refreshIntel,setTab,setDateMenu,setExp,setSel,setAC]);
+  const res=useMemo(()=>{
+    const ql=q.toLowerCase().trim();
+    if(!ql)return[...actions.slice(0,5),...sorted.slice(0,5).map(s=>({type:"show",id:s.date,label:`${fD(s.date)} ${s.city}`,sub:s.venue,cId:s.clientId}))];
+    const it=[];
+    actions.forEach(a=>{if(a.label.toLowerCase().includes(ql)||a.sub?.toLowerCase().includes(ql))it.push(a);});
+    TABS.forEach(t=>{if(!t.disabled&&t.label.toLowerCase().includes(ql))it.push({type:"tab",id:t.id,label:t.label,icon:t.icon});});
+    CLIENTS.forEach(c=>{if(c.name.toLowerCase().includes(ql))it.push({type:"client",id:c.id,label:c.name,sub:c.type});});
+    sorted.forEach(s=>{if(s.city.toLowerCase().includes(ql)||s.venue.toLowerCase().includes(ql)||s.date.includes(ql))it.push({type:"show",id:s.date,label:`${fD(s.date)} ${s.city}`,sub:s.venue,cId:s.clientId});});
+    return it.slice(0,14);
+  },[q,sorted,actions]);
+  useEffect(()=>{setSel1(0);},[q]);
+  const go=item=>{
+    if(item.type==="action"){item.run?.();}
+    if(item.type==="tab")setTab(item.id);
+    if(item.type==="show"){setSel(item.id);if(item.cId)setAC(item.cId);setTab("ros");}
+    if(item.type==="client"){setAC(item.id);setTab("dashboard");}
+    setCmd(false);
+  };
+  const onKey=e=>{
+    if(e.key==="Escape")setCmd(false);
+    else if(e.key==="ArrowDown"){e.preventDefault();setSel1(i=>Math.min(i+1,res.length-1));}
+    else if(e.key==="ArrowUp"){e.preventDefault();setSel1(i=>Math.max(i-1,0));}
+    else if(e.key==="Enter"&&res.length)go(res[sel1]||res[0]);
+  };
+  useEffect(()=>{if(!listRef.current)return;const el=listRef.current.querySelector(`[data-idx="${sel1}"]`);el?.scrollIntoView({block:"nearest"});},[sel1]);
   return(
-    <div onClick={()=>setCmd(false)} style={{position:"fixed",inset:0,background:"rgba(15,23,42,.25)",backdropFilter:"blur(6px)",display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:100,zIndex:1000}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:400,background:"#fff",border:"1px solid #d6d3cd",borderRadius:16,boxShadow:"0 25px 60px rgba(0,0,0,.15)",overflow:"hidden"}}>
-        <input ref={ref} value={q} onChange={e=>setQ(e.target.value)} placeholder="Search shows, clients, views..." onKeyDown={e=>{if(e.key==="Escape")setCmd(false);if(e.key==="Enter"&&res.length)go(res[0]);}} style={{width:"100%",padding:"14px 18px",background:"transparent",border:"none",borderBottom:"1px solid #ebe8e3",color:"#0f172a",fontSize:14,outline:"none",fontWeight:500}}/>
-        <div style={{maxHeight:320,overflow:"auto"}}>
-          {res.map((r,i)=><div key={`${r.type}-${r.id}-${i}`} onClick={()=>go(r)} style={{padding:"10px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,background:i===0?"#f5f3ef":"transparent",borderBottom:"1px solid #f5f3ef"}}>
-            <span style={{fontSize:10,color:"#64748b",width:16,fontFamily:MN}}>{r.type==="tab"?r.icon:r.type==="client"?CM[r.id]?.short||"●":fW(r.id)}</span>
-            <div style={{flex:1}}><div style={{fontSize:12,color:"#0f172a",fontWeight:600}}>{r.label}</div>{r.sub&&<div style={{fontSize:9,color:"#64748b"}}>{r.sub}</div>}</div>
+    <div onClick={()=>setCmd(false)} style={{position:"fixed",inset:0,background:"rgba(15,23,42,.25)",backdropFilter:"blur(6px)",display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:mobile?40:100,padding:mobile?"40px 12px":undefined,zIndex:1000}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:440,maxWidth:"100%",background:"#fff",border:"1px solid #d6d3cd",borderRadius:16,boxShadow:"0 25px 60px rgba(0,0,0,.15)",overflow:"hidden"}}>
+        <input ref={ref} value={q} onChange={e=>setQ(e.target.value)} placeholder="Search shows, views, actions..." onKeyDown={onKey} style={{width:"100%",padding:mobile?"16px 18px":"14px 18px",background:"transparent",border:"none",borderBottom:"1px solid #ebe8e3",color:"#0f172a",fontSize:mobile?16:14,outline:"none",fontWeight:500}}/>
+        <div ref={listRef} style={{maxHeight:360,overflow:"auto"}}>
+          {res.length===0&&<div style={{padding:"22px 18px",textAlign:"center",fontSize:11,color:"#94a3b8"}}>No matches. Press <kbd style={{fontFamily:MN,fontSize:10,padding:"1px 5px",background:"#f1f5f9",borderRadius:3}}>Esc</kbd> to close.</div>}
+          {res.map((r,i)=>{const active=i===sel1;return <div key={`${r.type}-${r.id}-${i}`} data-idx={i} onClick={()=>go(r)} onMouseEnter={()=>setSel1(i)} style={{padding:mobile?"12px 18px":"10px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,background:active?"#EDE9FE":"transparent",borderBottom:"1px solid #f5f3ef",borderLeft:active?"3px solid #5B21B6":"3px solid transparent"}}>
+            <span style={{fontSize:11,color:active?"#5B21B6":"#64748b",width:16,fontFamily:MN,fontWeight:700}}>{r.type==="tab"||r.type==="action"?r.icon:r.type==="client"?CM[r.id]?.short||"●":fW(r.id)}</span>
+            <div style={{flex:1,minWidth:0}}><div style={{fontSize:mobile?13:12,color:"#0f172a",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.label}</div>{r.sub&&<div style={{fontSize:10,color:"#64748b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.sub}</div>}</div>
             {r.cId&&<div style={{width:7,height:7,borderRadius:"50%",background:CM[r.cId]?.color||"#94a3b8"}}/>}
-            <span style={{fontSize:8,color:"#94a3b8",fontFamily:MN}}>{r.type}</span>
-          </div>)}
+            <span style={{fontSize:8,color:active?"#5B21B6":"#94a3b8",fontFamily:MN,letterSpacing:"0.04em",textTransform:"uppercase"}}>{r.type}</span>
+          </div>;})}
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:12,padding:"7px 14px",borderTop:"1px solid #ebe8e3",background:"#faf9f6",fontSize:9,color:"#64748b",fontFamily:MN}}>
+          <span><kbd style={{fontFamily:MN,padding:"1px 5px",background:"#fff",border:"1px solid #d6d3cd",borderRadius:3}}>↑↓</kbd> navigate</span>
+          <span><kbd style={{fontFamily:MN,padding:"1px 5px",background:"#fff",border:"1px solid #d6d3cd",borderRadius:3}}>↵</kbd> select</span>
+          <span><kbd style={{fontFamily:MN,padding:"1px 5px",background:"#fff",border:"1px solid #d6d3cd",borderRadius:3}}>esc</kbd> close</span>
+          <span style={{marginLeft:"auto"}}>⌘K</span>
         </div>
       </div>
     </div>
