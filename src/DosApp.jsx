@@ -1994,6 +1994,46 @@ function VenueBrief({vg,sel,data,upd}){
         </div>
       </div>
 
+      {/* Venue compatibility */}
+      {(()=>{
+        const rigChecks=checkRigVsVenue(vg);
+        const rigCritical=rigChecks.filter(i=>i.severity==="CRITICAL").length;
+        const rigHigh=rigChecks.filter(i=>i.severity==="HIGH").length;
+        return(
+          <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:12,marginBottom:8,marginTop:4}}>
+            <div style={{...UI.sectionLabel,marginBottom:4}}>Venue Compatibility — {vg.venue}</div>
+            <div style={{fontSize:9,color:"#64748b",marginBottom:8}}>
+              {[vg.stageDims&&`Stage: ${vg.stageDims.slice(0,80)}`,vg.rigging&&`Rigging: ${vg.rigging.slice(0,60)}`].filter(Boolean).map((s,i)=><div key={i} style={{fontFamily:MN}}>{s}</div>)}
+            </div>
+            {rigChecks.length===0&&<div style={{padding:"16px 0",textAlign:"center"}}>
+              <div style={{fontSize:22,marginBottom:4}}>✓</div>
+              <div style={{fontSize:11,fontWeight:700,color:"#047857"}}>No compatibility issues detected</div>
+              <div style={{fontSize:9,color:"#94a3b8",marginTop:4}}>Parameters on file are compatible with touring rig. Advance TBC items per fields above.</div>
+            </div>}
+            {rigChecks.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {[...rigChecks].sort((a,b)=>({CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3}[a.severity]-{CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3}[b.severity])).map(issue=>{
+                const sv=SEV_STYLES[issue.severity]||SEV_STYLES.LOW;
+                return(
+                  <div key={issue.id} style={{background:issue.severity==="CRITICAL"?"#FEF2F2":issue.severity==="HIGH"?"#FFF7ED":"#fff",border:`1px solid ${sv.b}`,borderRadius:8,padding:"8px 10px"}}>
+                    <div style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:3}}>
+                      <span style={{fontSize:8,fontWeight:800,padding:"1px 6px",borderRadius:8,background:sv.bg,color:sv.c,flexShrink:0}}>{issue.severity}</span>
+                      <span style={{fontSize:8,fontWeight:700,color:"#64748b",flexShrink:0}}>{issue.category}</span>
+                      <span style={{fontSize:9,fontWeight:600,color:"#0f172a",flex:1}}>{issue.finding}</span>
+                    </div>
+                    <div style={{fontSize:8,color:"#475569"}}><span style={{fontWeight:600}}>Action:</span> {issue.action}</div>
+                  </div>
+                );
+              })}
+              <div style={{fontSize:8,color:"#94a3b8",fontFamily:MN,marginTop:2}}>
+                {rigCritical>0&&<span style={{color:"#DC2626",fontWeight:700,marginRight:6}}>{rigCritical} CRITICAL</span>}
+                {rigHigh>0&&<span style={{color:"#C2410C",fontWeight:700,marginRight:6}}>{rigHigh} HIGH</span>}
+                Based on venue data on file. Some flags may resolve via advance.
+              </div>
+            </div>}
+          </div>
+        );
+      })()}
+
       {/* Document links */}
       <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:8,padding:12,marginTop:4}}>
         <div style={{...UI.sectionLabel,marginBottom:8}}>Document Links</div>
@@ -2203,38 +2243,48 @@ function ProdTab(){
           </div>
         </div>
 
-        {/* Venue compatibility */}
+        {/* Fixture schedule */}
         <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:12}}>
-          <div style={{...UI.sectionLabel,marginBottom:4}}>Venue Compatibility — {vg?vg.venue:"No venue selected"}</div>
-          {vg&&<div style={{fontSize:9,color:"#64748b",marginBottom:8}}>
-            {[vg.stageDims&&`Stage: ${vg.stageDims.slice(0,80)}`,vg.rigging&&`Rigging: ${vg.rigging.slice(0,60)}`].filter(Boolean).map((s,i)=><div key={i} style={{fontFamily:MN}}>{s}</div>)}
-          </div>}
-          {!vg&&<div style={{padding:"20px 0",textAlign:"center",color:"#94a3b8",fontSize:10}}>Select an EU show to run venue compatibility check.</div>}
-          {vg&&rigChecks.length===0&&<div style={{padding:"16px 0",textAlign:"center"}}>
-            <div style={{fontSize:22,marginBottom:4}}>✓</div>
-            <div style={{fontSize:11,fontWeight:700,color:"#047857"}}>No compatibility issues detected</div>
-            <div style={{fontSize:9,color:"#94a3b8",marginTop:4}}>Parameters on file are compatible with touring rig. Advance TBC items per Venue Brief.</div>
-          </div>}
-          {vg&&rigChecks.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {[...rigChecks].sort((a,b)=>({CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3}[a.severity]-{CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3}[b.severity])).map(issue=>{
-              const sv=SEV_STYLES[issue.severity]||SEV_STYLES.LOW;
-              return(
-                <div key={issue.id} style={{background:issue.severity==="CRITICAL"?"#FEF2F2":issue.severity==="HIGH"?"#FFF7ED":"#fff",border:`1px solid ${sv.b}`,borderRadius:8,padding:"8px 10px"}}>
-                  <div style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:3}}>
-                    <span style={{fontSize:8,fontWeight:800,padding:"1px 6px",borderRadius:8,background:sv.bg,color:sv.c,flexShrink:0}}>{issue.severity}</span>
-                    <span style={{fontSize:8,fontWeight:700,color:"#64748b",flexShrink:0}}>{issue.category}</span>
-                    <span style={{fontSize:9,fontWeight:600,color:"#0f172a",flex:1}}>{issue.finding}</span>
-                  </div>
-                  <div style={{fontSize:8,color:"#475569"}}><span style={{fontWeight:600}}>Action:</span> {issue.action}</div>
+          <div style={{...UI.sectionLabel,marginBottom:8}}>Fixture Schedule (Sht-1 Symbol Key + VWX)</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 40px 60px 60px 50px",gap:0,padding:"4px 8px",background:"#f8f7f5",borderRadius:"6px 6px 0 0",borderBottom:"1px solid #e2e8f0"}}>
+            {["Fixture","Qty","W/unit","Binder","Δ"].map(h=><span key={h} style={{fontSize:8,fontWeight:800,color:"#94a3b8",letterSpacing:"0.04em"}}>{h}</span>)}
+          </div>
+          {DESIGN_RIG.fixtures.map((f,i)=>{
+            const hasDelta=f.delta!=null&&f.delta!==0;
+            const deltaColor=f.delta>0?"#DC2626":f.delta<0?"#C2410C":"#047857";
+            return(
+              <div key={f.name} style={{display:"grid",gridTemplateColumns:"1fr 40px 60px 60px 50px",gap:0,padding:"4px 8px",background:hasDelta?"#FEF2F2":i%2===0?"#fff":"#fafafa",borderBottom:"1px solid #f1f5f9",alignItems:"center"}}>
+                <div>
+                  <div style={{fontSize:9,fontWeight:600,color:"#0f172a"}}>{f.name}</div>
+                  {f.note&&<div style={{fontSize:7,color:"#94a3b8",fontStyle:"italic"}}>{f.note}</div>}
+                  <div style={{fontSize:7,color:"#b0b8c8"}}>{f.dept} · {f.position} · {f.source}</div>
                 </div>
-              );
-            })}
-            <div style={{fontSize:8,color:"#94a3b8",fontFamily:MN,marginTop:2}}>
-              {rigCritical>0&&<span style={{color:"#DC2626",fontWeight:700,marginRight:6}}>{rigCritical} CRITICAL</span>}
-              {rigHigh>0&&<span style={{color:"#C2410C",fontWeight:700,marginRight:6}}>{rigHigh} HIGH</span>}
-              Based on venue data on file. Some flags may resolve via advance.
-            </div>
-          </div>}
+                <span style={{fontSize:10,fontWeight:700,fontFamily:MN,textAlign:"center",color:f.qty==null?"#94a3b8":"#0f172a"}}>{f.qty??"-"}</span>
+                <span style={{fontSize:9,fontFamily:MN,color:"#475569",textAlign:"right"}}>{f.power_w?`${f.power_w}W`:"—"}</span>
+                <span style={{fontSize:9,fontFamily:MN,color:"#64748b",textAlign:"center"}}>{f.binder_qty??"-"}</span>
+                <span style={{fontSize:10,fontWeight:700,fontFamily:MN,textAlign:"center",color:hasDelta?deltaColor:"#047857"}}>{f.delta==null?"?":f.delta===0?"✓":f.delta>0?`+${f.delta}`:f.delta}</span>
+              </div>
+            );
+          })}
+          <div style={{padding:"4px 8px",fontSize:8,color:"#94a3b8"}}>Δ = design qty − binder qty · red = under-quoted · amber = over-quoted</div>
+        </div>
+
+        {/* Design vs quote discrepancies */}
+        <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:12}}>
+          <div style={{...UI.sectionLabel,marginBottom:8}}>Design vs Quote Discrepancies</div>
+          {DESIGN_RIG.specDiscrepancies.map((disc,i)=>{
+            const sv=SEV_STYLES[disc.severity]||SEV_STYLES.LOW;
+            return(
+              <div key={i} style={{padding:"7px 10px",borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafafa"}}>
+                <div style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:3}}>
+                  <span style={{fontSize:8,fontWeight:800,padding:"1px 6px",borderRadius:8,background:sv.bg,color:sv.c,flexShrink:0}}>{disc.severity}</span>
+                  <span style={{fontSize:8,fontWeight:700,color:"#64748b",flexShrink:0}}>{disc.category}</span>
+                  <span style={{fontSize:9,color:"#0f172a",flex:1}}>{disc.finding}</span>
+                </div>
+                <div style={{fontSize:8,color:"#475569",paddingLeft:2}}><span style={{fontWeight:600}}>Action:</span> {disc.action}</div>
+              </div>
+            );
+          })}
         </div>
 
       </div>}
