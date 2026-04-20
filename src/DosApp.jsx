@@ -2237,50 +2237,6 @@ function ProdTab(){
           </div>}
         </div>
 
-        {/* Fixture schedule */}
-        <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:12}}>
-          <div style={{...UI.sectionLabel,marginBottom:8}}>Fixture Schedule (Sht-1 Symbol Key + VWX)</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 40px 60px 60px 50px",gap:0,padding:"4px 8px",background:"#f8f7f5",borderRadius:"6px 6px 0 0",borderBottom:"1px solid #e2e8f0"}}>
-            {["Fixture","Qty","W/unit","Binder","Δ"].map(h=><span key={h} style={{fontSize:8,fontWeight:800,color:"#94a3b8",letterSpacing:"0.04em"}}>{h}</span>)}
-          </div>
-          {DESIGN_RIG.fixtures.map((f,i)=>{
-            const hasDelta=f.delta!=null&&f.delta!==0;
-            const deltaColor=f.delta>0?"#DC2626":f.delta<0?"#C2410C":"#047857";
-            return(
-              <div key={f.name} style={{display:"grid",gridTemplateColumns:"1fr 40px 60px 60px 50px",gap:0,padding:"4px 8px",background:hasDelta?"#FEF2F2":i%2===0?"#fff":"#fafafa",borderBottom:"1px solid #f1f5f9",alignItems:"center"}}>
-                <div>
-                  <div style={{fontSize:9,fontWeight:600,color:"#0f172a"}}>{f.name}</div>
-                  {f.note&&<div style={{fontSize:7,color:"#94a3b8",fontStyle:"italic"}}>{f.note}</div>}
-                  <div style={{fontSize:7,color:"#b0b8c8"}}>{f.dept} · {f.position} · {f.source}</div>
-                </div>
-                <span style={{fontSize:10,fontWeight:700,fontFamily:MN,textAlign:"center",color:f.qty==null?"#94a3b8":"#0f172a"}}>{f.qty??"-"}</span>
-                <span style={{fontSize:9,fontFamily:MN,color:"#475569",textAlign:"right"}}>{f.power_w?`${f.power_w}W`:"—"}</span>
-                <span style={{fontSize:9,fontFamily:MN,color:"#64748b",textAlign:"center"}}>{f.binder_qty??"-"}</span>
-                <span style={{fontSize:10,fontWeight:700,fontFamily:MN,textAlign:"center",color:hasDelta?deltaColor:"#047857"}}>{f.delta==null?"?":f.delta===0?"✓":f.delta>0?`+${f.delta}`:f.delta}</span>
-              </div>
-            );
-          })}
-          <div style={{padding:"4px 8px",fontSize:8,color:"#94a3b8"}}>Δ = design qty − binder qty · red = under-quoted · amber = over-quoted</div>
-        </div>
-
-        {/* Design vs quote discrepancies */}
-        <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:12}}>
-          <div style={{...UI.sectionLabel,marginBottom:8}}>Design vs Quote Discrepancies</div>
-          {DESIGN_RIG.specDiscrepancies.map((disc,i)=>{
-            const sv=SEV_STYLES[disc.severity]||SEV_STYLES.LOW;
-            return(
-              <div key={i} style={{padding:"7px 10px",borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafafa"}}>
-                <div style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:3}}>
-                  <span style={{fontSize:8,fontWeight:800,padding:"1px 6px",borderRadius:8,background:sv.bg,color:sv.c,flexShrink:0}}>{disc.severity}</span>
-                  <span style={{fontSize:8,fontWeight:700,color:"#64748b",flexShrink:0}}>{disc.category}</span>
-                  <span style={{fontSize:9,color:"#0f172a",flex:1}}>{disc.finding}</span>
-                </div>
-                <div style={{fontSize:8,color:"#475569",paddingLeft:2}}><span style={{fontWeight:600}}>Action:</span> {disc.action}</div>
-              </div>
-            );
-          })}
-        </div>
-
       </div>}
 
       {/* Upload tab */}
