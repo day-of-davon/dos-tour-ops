@@ -508,7 +508,7 @@ export default function App(){
       <div style={{fontFamily:"'Outfit',system-ui",background:"#F5F3EF",color:"#0f172a",minHeight:"100vh",width:"100%",maxWidth:"100vw",overflowX:"hidden",display:"flex",flexDirection:"column"}}>
         <TopBar ss={ss}/>
         <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,width:"100%",maxWidth:900,overflowX:"hidden"}}>
-          {tab==="dashboard"&&<Dash/>}{tab==="advance"&&<AdvTab/>}{tab==="ros"&&<ROSTab/>}{tab==="transport"&&<TransTab/>}{tab==="finance"&&<FinTab/>}{tab==="crew"&&<CrewTab/>}{tab==="production"&&<ProdTab/>}
+          {tab==="dashboard"&&<Dash/>}{tab==="advance"&&<AdvTab/>}{tab==="ros"&&<ScheduleTab/>}{tab==="transport"&&<TransTab/>}{tab==="finance"&&<FinTab/>}{tab==="crew"&&<CrewTab/>}{tab==="production"&&<ProdTab/>}
         </div>
         {cmd&&<CmdP/>}
         {exp&&<ExportModal onClose={()=>setExp(false)}/>}
@@ -1246,18 +1246,26 @@ function DayScheduleView({show,bus,split,sel}){
   );
 }
 
+// Router: dispatches to ROSTab for show days, DayScheduleView for off/travel/split days.
+// Separating into sibling components keeps React hook order stable when switching day types.
+function ScheduleTab(){
+  const{shows,sel,tourDays}=useContext(Ctx);
+  const show=shows[sel];
+  const td=tourDays?.[sel];
+  const isNonShow=(show&&(show.type==="off"||show.type==="travel"))||(td&&(td.type==="off"||td.type==="travel"||td.type==="split"));
+  if(isNonShow){
+    const effShow=show||{type:td.type,notes:td.bus?.note};
+    return <DayScheduleView show={effShow} bus={BUS_DATA_MAP[sel]||td?.bus||null} split={SPLIT_DAYS[sel]||td?.split||null} sel={sel}/>;
+  }
+  if(!show)return <div style={{padding:40,textAlign:"center",color:"#64748b",fontSize:11}}>No event scheduled for this date.</div>;
+  return <ROSTab/>;
+}
+
 function ROSTab(){
-  const{shows,uShow,gRos,uRos,ros,sel,setSel,cShows,role,aC,tourDays}=useContext(Ctx);
+  const{shows,uShow,gRos,uRos,ros,sel,setSel,cShows,role,aC}=useContext(Ctx);
   const[editB,setEditB]=useState(null);const[dOver,setDOver]=useState(null);
   const dId=useRef(null);const client=CM[aC];const show=shows[sel];const blocks=gRos(sel);
-  // Synthesized tour day (travel/off/split) — render DayScheduleView without a real show record
-  if(!show){
-    const td=tourDays?.[sel];
-    if(td&&(td.type==="off"||td.type==="travel"||td.type==="split")){
-      return <DayScheduleView show={{type:td.type,notes:td.bus?.note}} bus={td.bus||null} split={td.split||null} sel={sel}/>;
-    }
-    return null;
-  }
+  if(!show)return null;
   const today=new Date().toISOString().slice(0,10);const upcoming=cShows.filter(s=>s.date>=today);
 
   const times=useMemo(()=>{
