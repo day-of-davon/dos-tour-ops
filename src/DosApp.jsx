@@ -683,16 +683,7 @@ function FlightsSection(){
 
     // Schedule: dep item
     const depMin=hhmmToMin(f.dep);
-    const depItem={id:`fl_dep_${f.id}`,isDayItem:true,flightId:f.id,label:`✈ ${f.flightNo||f.carrier} ${f.from}→${f.to}`,time:f.dep,startMin:depMin,notes:`${(f.pax||[]).join(", ")}${f.confirmNo?` · Conf: ${f.confirmNo}`:""}`,type:"custom",color:"#1E40AF",phase:"pre",duration:90,roles:["tm","pm"]};
-    const depItems=(gRos(f.depDate)||[]).filter(i=>i.flightId!==f.id);
-    uRos(f.depDate,[...depItems,depItem]);
-    // Arrival item (if different day)
-    if(f.arrDate&&f.arrDate!==f.depDate){
-      const arrMin=hhmmToMin(f.arr);
-      const arrItem={id:`fl_arr_${f.id}`,isDayItem:true,flightId:f.id,label:`✈ Arrive ${f.to} (${f.flightNo||f.carrier})`,time:f.arr,startMin:arrMin,notes:(f.pax||[]).join(", "),type:"custom",color:"#1E40AF",phase:"pre",duration:30,roles:["tm","pm"]};
-      const arrItems=(gRos(f.arrDate)||[]).filter(i=>i.id!==`fl_arr_${f.id}`);
-      uRos(f.arrDate,[...arrItems,arrItem]);
-    }
+    // Flights float independently on the day view — no ROS anchoring
 
     // Finance: flight expense on dep date
     if(f.cost&&f.cost>0){
@@ -1424,6 +1415,32 @@ function AnchorTimes({b,setBF}){
   );
 }
 
+function FlightDayStrip({sel}){
+  const{flights}=useContext(Ctx);
+  const dayFlights=Object.values(flights).filter(f=>f.status==="confirmed"&&(f.depDate===sel||f.arrDate===sel));
+  if(!dayFlights.length)return null;
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:8}}>
+      {dayFlights.map(f=>{
+        const isDep=f.depDate===sel;
+        const isArr=f.arrDate===sel&&f.arrDate!==f.depDate;
+        const isOvernight=f.arrDate&&f.arrDate!==f.depDate;
+        return(
+          <div key={f.id} style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8,padding:"7px 11px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+            <span style={{fontSize:9,fontWeight:800,color:"#1E40AF",fontFamily:MN}}>{f.from}<span style={{fontWeight:400,padding:"0 4px",color:"#93C5FD"}}>→</span>{f.to}</span>
+            <span style={{fontSize:9,fontWeight:700,color:"#1D4ED8"}}>{f.flightNo||f.carrier}</span>
+            {isDep&&f.dep&&<span style={{fontSize:8,background:"#DBEAFE",color:"#1E40AF",padding:"2px 6px",borderRadius:5,fontWeight:700,fontFamily:MN}}>DEP {f.dep}</span>}
+            {isArr&&f.arr&&<span style={{fontSize:8,background:"#D1FAE5",color:"#047857",padding:"2px 6px",borderRadius:5,fontWeight:700,fontFamily:MN}}>ARR {f.arr}</span>}
+            {isDep&&isOvernight&&<span style={{fontSize:8,color:"#64748b"}}>arrives {f.arrDate?.slice(5)}</span>}
+            {f.pax?.length>0&&<span style={{fontSize:8,color:"#475569"}}>{f.pax.join(", ")}</span>}
+            {f.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"#94a3b8"}}>#{f.confirmNo}</span>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function DayScheduleView({show,bus,split,sel}){
   const{uShow,uRos,gRos,shows,aC}=useContext(Ctx);
   const isTravel=show.type==="travel";
@@ -1472,6 +1489,7 @@ function DayScheduleView({show,bus,split,sel}){
 
   return(
     <div className="fi" style={{padding:"16px 20px",maxWidth:680}}>
+      <FlightDayStrip sel={sel}/>
       {/* Header */}
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
         <div style={{flex:1,minWidth:0}}>
@@ -1872,6 +1890,7 @@ function ROSTab(){
         </div>
       </div>
       <div style={{padding:"10px 20px 30px",background:"#F5F3EF"}}>
+        <FlightDayStrip sel={sel}/>
         {phases.filter(ph=>!(ph.k==="mg"&&effShow.mgSkip)&&!(ph.k==="bus_in"&&effShow.busSkip)).map(ph=>{const pb=blocks.filter(b=>ph.k==="bus_in"?b.phase==="bus_in":ph.k==="curfew"?b.id==="curfew":ph.k==="doors"?b.phase==="doors":ph.k==="mg"?b.phase==="mg":b.phase===ph.k);const canAdd=!["bus_in","curfew","doors","mg"].includes(ph.k);
           return(<div key={ph.k} style={{marginBottom:6}}><div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0 3px"}}><div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",color:"#64748b"}}>{ph.l}</div><div style={{flex:1,height:1,background:"#d6d3cd"}}/><div style={{fontSize:8,color:"#94a3b8",fontStyle:"italic"}}>{ph.s}</div>{canAdd&&<button onClick={()=>addBlock(ph.k)} title="Add block" style={{background:"none",border:"1px dashed #cbd5e1",borderRadius:5,color:"#64748b",fontSize:9,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>+ Block</button>}</div><div style={{display:"flex",flexDirection:"column",gap:3}}>{pb.map(b=>renderB(b))}</div>{!pb.length&&canAdd&&<div style={{fontSize:9,color:"#94a3b8",fontStyle:"italic",padding:"4px 0"}}>No blocks — click + Block to add.</div>}</div>);
         })}
@@ -2069,13 +2088,7 @@ function FlightsListView(){
   const confirmFlight=f=>{
     setConfirmingId(f.id);
     uFlight(f.id,{...f,status:"confirmed",confirmedAt:new Date().toISOString()});
-    const depMin=hhmmToMin(f.dep);
-    const depItem={id:`fl_dep_${f.id}`,isDayItem:true,flightId:f.id,label:`✈ ${f.flightNo||f.carrier} ${f.from}→${f.to}`,time:f.dep,startMin:depMin,notes:`${(f.pax||[]).join(", ")}${f.confirmNo?` · Conf: ${f.confirmNo}`:""}`,type:"custom",color:"#1E40AF",phase:"pre",duration:90,roles:["tm","pm"]};
-    uRos(f.depDate,[...(gRos(f.depDate)||[]).filter(i=>i.flightId!==f.id),depItem]);
-    if(f.arrDate&&f.arrDate!==f.depDate){
-      const arrItem={id:`fl_arr_${f.id}`,isDayItem:true,flightId:f.id,label:`✈ Arrive ${f.to} (${f.flightNo||f.carrier})`,time:f.arr,startMin:hhmmToMin(f.arr),notes:(f.pax||[]).join(", "),type:"custom",color:"#1E40AF",phase:"pre",duration:30,roles:["tm","pm"]};
-      uRos(f.arrDate,[...(gRos(f.arrDate)||[]).filter(i=>i.id!==`fl_arr_${f.id}`),arrItem]);
-    }
+    // Flights float independently on the day view — no ROS anchoring
     if(f.cost&&f.cost>0){
       const existing=finance[f.depDate]?.flightExpenses||[];
       uFin(f.depDate,{flightExpenses:[...existing.filter(e=>e.flightId!==f.id),{flightId:f.id,label:`${f.flightNo||f.carrier} ${f.from}→${f.to}`,amount:f.cost,currency:f.currency||"USD",pax:f.pax||[],carrier:f.carrier}]});
