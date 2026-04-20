@@ -89,7 +89,20 @@ module.exports = async function handler(req, res) {
   const { googleToken, tourStart = "2026-04-01", tourEnd = "2026-06-30" } = req.body || {};
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
 
-  const queries = [
+  // Priority queries: wide net over recent emails — run first, guaranteed slots
+  const recentQueries = [
+    `(flight OR airline OR airways OR "boarding pass" OR "e-ticket") newer_than:14d`,
+    `subject:(confirmation) newer_than:14d`,
+    `subject:(booking) newer_than:14d`,
+    `subject:(itinerary) newer_than:14d`,
+    `subject:(receipt) newer_than:14d`,
+    `"booking reference" newer_than:14d`,
+    `"confirmation number" newer_than:14d`,
+    `"flight number" newer_than:14d`,
+  ];
+
+  // Carrier-specific queries over full window
+  const carrierQueries = [
     // Broad subject sweeps
     `subject:(flight confirmation) newer_than:365d`,
     `subject:(e-ticket) newer_than:365d`,
@@ -134,18 +147,32 @@ module.exports = async function handler(req, res) {
     `from:(noreply@qatarairways.com) newer_than:365d`,
   ];
 
-  const seenIds = new Set();
-  for (const q of queries) {
+  const recentIds = new Set();
+  for (const q of recentQueries) {
     try {
-      const ids = await gmailSearch(googleToken, q, 20);
-      ids.forEach(id => seenIds.add(id));
+      const ids = await gmailSearch(googleToken, q, 30);
+      ids.forEach(id => recentIds.add(id));
     } catch (e) {
-      console.error("[flights] search error:", e.message);
+      console.error("[flights] recent search error:", e.message);
       if (e.message.includes("401")) return res.status(402).json({ error: "gmail_token_expired" });
     }
   }
 
-  const ids = [...seenIds].slice(0, 60);
+  const carrierIds = new Set();
+  for (const q of carrierQueries) {
+    try {
+      const ids = await gmailSearch(googleToken, q, 20);
+      ids.forEach(id => carrierIds.add(id));
+    } catch (e) {
+      console.error("[flights] carrier search error:", e.message);
+      if (e.message.includes("401")) return res.status(402).json({ error: "gmail_token_expired" });
+    }
+  }
+
+  // Recent results get priority slots; carrier results fill the rest
+  const combined = [...recentIds];
+  for (const id of carrierIds) { if (!recentIds.has(id)) combined.push(id); }
+  const ids = combined.slice(0, 80);
   if (!ids.length) return res.json({ flights: [], threadsFound: 0 });
 
   const threads = (await Promise.all(ids.map(id => gmailGetThread(googleToken, id))))
