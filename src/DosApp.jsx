@@ -7,6 +7,21 @@ import { supabase } from "./lib/supabase";
 
 const SK={SHOWS:"dos-v7-shows",ROS:"dos-v7-ros",ADVANCES:"dos-v7-advances",FINANCE:"dos-v7-finance",SETTINGS:"dos-v7-settings",CREW:"dos-v7-crew",PRODUCTION:"dos-v7-production",FLIGHTS:"dos-v7-flights"};
 const hhmmToMin=s=>{if(!s)return null;const[h,m]=s.split(":").map(Number);return isNaN(h)||isNaN(m)?null:h*60+m;};
+// Group same-day flight legs by itinerary (confirmNo / bookingRef / pax signature) and tag
+// each with role: final leg of a multi-leg chain = "arr", all prior legs = "dep". Single-leg
+// groups stay "dep". Overnight arrivals (arrs) are always "arr".
+const flightItinKey=f=>f.confirmNo||f.bookingRef||((f.pax||[]).slice().sort().join("|")||f.id);
+const tagFlightRoles=(deps,arrs)=>{
+  const groups={};
+  deps.forEach(f=>{const k=flightItinKey(f);(groups[k]=groups[k]||[]).push(f);});
+  const depTagged=[];
+  Object.values(groups).forEach(g=>{
+    if(g.length===1){depTagged.push({f:g[0],role:"dep"});return;}
+    const sorted=g.slice().sort((a,b)=>`${a.depDate||""} ${a.dep||""}`.localeCompare(`${b.depDate||""} ${b.dep||""}`));
+    sorted.forEach((f,i)=>depTagged.push({f,role:i===sorted.length-1?"arr":"dep"}));
+  });
+  return[...depTagged,...arrs.map(f=>({f,role:"arr"}))];
+};
 const MN="'JetBrains Mono',monospace";
 
 const CLIENTS=[
@@ -1518,7 +1533,7 @@ function FlightDayStrip({sel}){
       </div>
       {open&&(
         <div style={{borderTop:"1px solid #BFDBFE",display:"flex",flexDirection:"column",gap:0}}>
-          {[...deps.map(f=>({f,role:"dep"})),...arrs.map(f=>({f,role:"arr"}))].map(({f,role},i,arr)=>{
+          {tagFlightRoles(deps,arrs).map(({f,role},i,arr)=>{
             const isDep=role==="dep";
             const sameDay=f.depDate===f.arrDate;
             const live=liveStatuses[f.id];
@@ -1601,13 +1616,12 @@ function DayScheduleView({show,bus,split,sel}){
       const arrMin=hhmmToMin(bus.arr);
       items.push({type:"bus",id:"bus",sortMin:depMin??-1,bus,depMin,arrMin});
     }
-    // Departing flights
-    Object.values(flights).filter(f=>f.status==="confirmed"&&f.depDate===sel).forEach(f=>{
-      items.push({type:"flight",id:f.id,sortMin:hhmmToMin(f.dep)??-1,f,role:"dep"});
-    });
-    // Arriving flights (overnight — arrived from prev day)
-    Object.values(flights).filter(f=>f.status==="confirmed"&&f.arrDate===sel&&f.arrDate!==f.depDate).forEach(f=>{
-      items.push({type:"flight",id:`${f.id}_arr`,sortMin:hhmmToMin(f.arr)??-1,f,role:"arr"});
+    // Flights — tag last leg of a multi-leg same-day chain as "arr" (see tagFlightRoles)
+    const dayDeps=Object.values(flights).filter(f=>f.status==="confirmed"&&f.depDate===sel);
+    const dayArrs=Object.values(flights).filter(f=>f.status==="confirmed"&&f.arrDate===sel&&f.arrDate!==f.depDate);
+    tagFlightRoles(dayDeps,dayArrs).forEach(({f,role})=>{
+      const isArrOnly=role==="arr"&&f.arrDate===sel&&f.arrDate!==f.depDate;
+      items.push({type:"flight",id:isArrOnly?`${f.id}_arr`:f.id,sortMin:(isArrOnly?hhmmToMin(f.arr):hhmmToMin(f.dep))??-1,f,role});
     });
     // Schedule items
     dayItems.forEach(b=>{
