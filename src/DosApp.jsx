@@ -295,7 +295,7 @@ const CM=CLIENTS.reduce((a,c)=>{a[c.id]=c;return a},{});
 // Only these users can see festival clients in the selector
 const FESTIVAL_ACCESS_EMAILS=["d.johnson@dayofshow.net","olivia@dayofshow.net"];
 const ROLES=[{id:"tm",label:"TM",c:"#5B21B6"},{id:"production",label:"PROD",c:"#92400E"},{id:"hospitality",label:"HOSPO",c:"#065F46"},{id:"transport",label:"TRANSPORT",c:"#1E40AF"}];
-const TABS=[{id:"advance",label:"Advance",icon:"◎"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Transport",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"}];
+const TABS=[{id:"advance",label:"Advance",icon:"◎"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"}];
 const DEFAULT_CREW=[
   {id:"ag", name:"Alex Gumuchian",        role:"Headliner (bbno$)",          email:"alexgumuchian@gmail.com"},
   {id:"jb", name:"Julien Bruce",           role:"Support (Jungle Bobby)",     email:""},
@@ -3212,6 +3212,9 @@ function TravelDayView(){
   const pax=(seg)=>(seg?.pax||[]).filter(Boolean);
   const paxMatch=name=>(crew||[]).find(c=>c.name&&c.name.toLowerCase().includes(String(name).split(" ")[0].toLowerCase()));
 
+  const busDay=BUS_DATA_MAP[sel]||null;
+  const dayLabel=curDay?.type==="travel"?"Travel Day":curDay?.type==="split"?"Split Day":curDay?.type==="off"?"Off Day":"Show Day";
+
   return(
     <div style={{display:"flex",flexDirection:"column",gap:12,minHeight:0}}>
       {/* Header */}
@@ -3224,10 +3227,43 @@ function TravelDayView(){
         </div>
         <div style={{textAlign:"right",fontSize:11,color:"#C7D2FE",flexShrink:0}}>
           <div style={{fontWeight:700,fontSize:12,color:"#fff"}}>{fFull(sel)}</div>
-          <div style={{fontSize:10,marginTop:2,letterSpacing:"0.04em",textTransform:"uppercase",color:"#A5B4FC"}}>{curDay?.type==="travel"?"Travel Day":curDay?.type==="split"?"Split Day":curDay?.type==="off"?"Off Day":"Show Day"}</div>
+          <div style={{fontSize:10,marginTop:2,letterSpacing:"0.04em",textTransform:"uppercase",color:"#A5B4FC"}}>{dayLabel}</div>
           <button onClick={()=>setDateMenu(true)} style={{marginTop:8,background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",fontSize:10,padding:"4px 10px",borderRadius:5,cursor:"pointer",fontWeight:700}}>☰ Change Day</button>
         </div>
       </div>
+
+      {/* EU Bus Schedule context for selected date */}
+      {busDay&&(
+        <div style={{background:busDay.show?"#F0FDF4":"#EFF6FF",border:`1px solid ${busDay.show?"#86EFAC":"#BFDBFE"}`,borderRadius:10,padding:"10px 14px",display:"flex",gap:14,alignItems:"flex-start",flexWrap:"wrap"}}>
+          <div style={{display:"flex",flexDirection:"column",gap:2,flexShrink:0}}>
+            <div style={{fontSize:8,fontWeight:800,color:busDay.show?"#047857":"#1D4ED8",letterSpacing:"0.08em",textTransform:"uppercase"}}>{busDay.show?"Show Day":"Travel Day"} · EU Day {busDay.day}</div>
+            <div style={{fontSize:13,fontWeight:800,color:busDay.show?"#065F46":"#1E3A8A"}}>{busDay.show?(busDay.venue||busDay.route):busDay.route}</div>
+            <div style={{fontSize:9,color:busDay.show?"#047857":"#3B82F6",fontFamily:MN}}>{busDay.date} · {busDay.dow}</div>
+          </div>
+          {!busDay.show&&(
+            <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
+              {busDay.dep!=="—"&&<div style={{background:"#fff",border:"1px solid #BFDBFE",borderRadius:6,padding:"5px 10px",textAlign:"center"}}>
+                <div style={{fontSize:8,color:"#64748b",fontWeight:700,letterSpacing:"0.06em"}}>DEP</div>
+                <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#1D4ED8"}}>{busDay.dep}</div>
+              </div>}
+              {busDay.arr!=="—"&&<div style={{background:"#fff",border:"1px solid #BFDBFE",borderRadius:6,padding:"5px 10px",textAlign:"center"}}>
+                <div style={{fontSize:8,color:"#64748b",fontWeight:700,letterSpacing:"0.06em"}}>ARR</div>
+                <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#1D4ED8"}}>{busDay.arr}</div>
+              </div>}
+              {busDay.km>0&&<div style={{textAlign:"center"}}>
+                <div style={{fontSize:8,color:"#64748b",fontWeight:700,letterSpacing:"0.06em"}}>KM</div>
+                <div style={{fontFamily:MN,fontSize:12,fontWeight:700,color:"#1E3A8A"}}>{busDay.km}</div>
+              </div>}
+              {busDay.drive!=="—"&&<div style={{textAlign:"center"}}>
+                <div style={{fontSize:8,color:"#64748b",fontWeight:700,letterSpacing:"0.06em"}}>DRIVE</div>
+                <div style={{fontFamily:MN,fontSize:12,fontWeight:700,color:busDay.flag==="⚠"?"#B91C1C":"#1E3A8A"}}>{busDay.drive}{busDay.flag&&<span style={{marginLeft:4}}>{busDay.flag}</span>}</div>
+              </div>}
+            </div>
+          )}
+          {busDay.note&&<div style={{fontSize:9,color:"#475569",fontStyle:"italic",alignSelf:"center",maxWidth:240}}>{busDay.note}</div>}
+          <div style={{marginLeft:"auto",fontSize:8,color:"#94a3b8",fontFamily:MN,alignSelf:"flex-end",flexShrink:0}}>Pieter Smit T26-021201</div>
+        </div>
+      )}
 
       {/* Add bar */}
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -3444,7 +3480,7 @@ function TransTab(){
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
       <div style={{padding:"7px 20px",borderBottom:"1px solid #d6d3cd",background:"#fff",display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"nowrap",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
-        {[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["calendar","Tour Calendar"],["bus","EU Bus Schedule"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`],["festival","Festival Dispatch"]].map(([v,l])=>(
+        {[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["bus","EU Bus Schedule"],["calendar","Tour Calendar"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`],["festival","Festival Dispatch"]].map(([v,l])=>(
           <button key={v} onClick={()=>setView(v)} style={{padding:"4px 12px",borderRadius:6,border:"1px solid #d6d3cd",background:view===v?"#5B21B6":"#f5f3ef",color:view===v?"#fff":"#64748b",fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
         ))}
         {view==="bus"&&<div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
@@ -4067,7 +4103,7 @@ function CmdP(){
     const a=[{type:"action",id:"open_now",label:"Go to Now",sub:"Dashboard / next 72h",icon:"◉",run:()=>setTab("dashboard")},
       {type:"action",id:"open_advance",label:"Open Advance tracker",sub:"current show",icon:"◎",run:()=>setTab("advance")},
       {type:"action",id:"open_ros",label:"Open Schedule",sub:"ROS for current show",icon:"▦",run:()=>setTab("ros")},
-      {type:"action",id:"open_transport",label:"Open Transport",sub:"bus + dispatch",icon:"◈",run:()=>setTab("transport")},
+      {type:"action",id:"open_transport",label:"Open Logistics",sub:"bus + dispatch",icon:"◈",run:()=>setTab("transport")},
       {type:"action",id:"open_finance",label:"Open Finance",sub:"settlement + payout",icon:"◐",run:()=>setTab("finance")},
       {type:"action",id:"open_dates",label:"Open Dates menu",sub:"full tour calendar",icon:"☰",run:()=>setDateMenu(true)},
       {type:"action",id:"export",label:"Export / Import snapshot",sub:"JSON download",icon:"⇅",run:()=>setExp(true)}];
