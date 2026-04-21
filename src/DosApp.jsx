@@ -920,18 +920,16 @@ function StatusBtn({status,setStatus,mobile}){
   </div>;
 }
 
-function IntelSection({title,count,children,actions}){
-  const[open,setOpen]=useState(true);
+function IntelSection({title,count,children,actions,defaultOpen=false}){
   return(
-    <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,overflow:"hidden"}}>
-      <div onClick={()=>setOpen(v=>!v)} style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",cursor:"pointer",borderBottom:open?"1px solid #ebe8e3":"none"}}>
-        <span style={{fontSize:10,color:"#64748b",width:10}}>{open?"▾":"▸"}</span>
+    <details open={defaultOpen||undefined} style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,overflow:"hidden"}}>
+      <summary style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",cursor:"pointer",borderBottom:"1px solid #ebe8e3"}}>
         <span style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em"}}>{title}</span>
         {count!=null&&<span style={{fontSize:9,color:"#94a3b8",fontFamily:MN}}>({count})</span>}
-        <span style={{marginLeft:"auto",display:"flex",gap:6}} onClick={e=>e.stopPropagation()}>{actions}</span>
-      </div>
-      {open&&<div style={{padding:"8px 12px 10px"}}>{children}</div>}
-    </div>
+        {actions&&<span style={{marginLeft:"auto",display:"flex",gap:6}} onClick={e=>e.stopPropagation()}>{actions}</span>}
+      </summary>
+      <div style={{padding:"8px 12px 10px"}}>{children}</div>
+    </details>
   );
 }
 
@@ -1044,7 +1042,7 @@ function matchPaxToCrew(paxNames,crewList){
 }
 
 function FlightsSection(){
-  const{flights,uFlight,setFlights,uRos,gRos,uFin,finance,crew,setShowCrew,shows,aC}=useContext(Ctx);
+  const{flights,uFlight,setFlights,uRos,gRos,uFin,finance,crew,setShowCrew,shows,aC,sorted}=useContext(Ctx);
   const a=useAuth();
   const[scanning,setScanning]=useState(false);
   const[scanMsg,setScanMsg]=useState("");
@@ -1054,6 +1052,7 @@ function FlightsSection(){
   const allFlights=Object.values(flights).sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0);
   const pending=allFlights.filter(f=>f.status==="pending");
   const confirmed=allFlights.filter(f=>f.status==="confirmed");
+  const unresolved=allFlights.filter(f=>f.status==="unresolved");
 
   const scanFlights=async(opts={})=>{
     try{
@@ -1063,9 +1062,10 @@ function FlightsSection(){
       if(!googleToken){setScanMsg("Gmail access not available — re-login with Google.");return;}
       if(opts.reset){setFlights({});setPendingImport([]);}
       setScanning(true);setScanMsg(opts.reset?"Reset. Rescanning Gmail…":"Scanning Gmail for flight confirmations…");
-      const showsArr=Object.values(shows||{}).filter(s=>s.clientId===aC);
+      const showsArr=Object.values(shows||{}).filter(s=>s.clientId===aC).map(s=>({id:s.id||s.date,date:s.date,venue:s.venue,city:s.city,type:s.type}));
       const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken,tourStart:"2026-04-01",tourEnd:"2026-06-30",focus:FOCUS_CARRIERS,shows:showsArr})});
       if(resp.status===402){setScanMsg("Gmail session expired — please re-login.");setScanning(false);return;}
+      if(!resp.ok){setScanMsg(`Scan error ${resp.status} — try again.`);setScanning(false);return;}
       const data=await resp.json();
       if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
       const newFlights=data.flights||[];
@@ -1079,7 +1079,11 @@ function FlightsSection(){
       const matchedCount=novel.filter(f=>f.suggestedShowDate).length;
       const matchTag=matchedCount?` · ${matchedCount} matched to shows`:"";
       setScanMsg(`Added ${novel.length} flight${novel.length>1?"s":""}${freshTag}${matchTag} — confirm to sync crew.`);
-    }catch(e){setScanMsg(`Scan failed: ${e.message}`);}
+    }catch(e){
+      const msg=e.message||"";
+      if(msg.includes("string did not match")||msg.includes("Invalid URL")||msg.includes("not a valid URL"))setScanMsg("Auth session error — re-login with Google to refresh.");
+      else setScanMsg(`Scan failed: ${msg}`);
+    }
     setScanning(false);
   };
 
@@ -1132,7 +1136,7 @@ function FlightsSection(){
     setTimeout(()=>setConfirmingId(null),1200);
   };
 
-  const dismissFlight=id=>uFlight(id,{...flights[id],status:"dismissed"});
+  const dismissFlight=id=>uFlight(id,{...flights[id],status:"unresolved"});
   const deleteFlight=id=>uFlight(id,null);
 
   return(
@@ -1198,22 +1202,46 @@ function FlightsSection(){
 
       {/* Confirmed */}
       {confirmed.length>0&&(
-        <IntelSection title="CONFIRMED" count={confirmed.length}>
+        <IntelSection title="CONFIRMED" count={confirmed.length} defaultOpen={true}>
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {groupByReservation(confirmed).map(g=>(
               <div key={g.key} style={{display:"flex",flexDirection:"column",gap:3,...(g.isSolo?{}:{borderLeft:"2px solid #BBF7D0",paddingLeft:8})}}>
                 <ReservationHeader g={g}/>
-                {g.segs.map(f=>(
-                  <div key={f.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:7}}>
-                    <span style={{fontSize:9,color:"#047857",fontWeight:800,fontFamily:MN,flexShrink:0}}>{f.depDate}</span>
-                    <span style={{fontSize:11,fontWeight:700,color:"#0f172a",fontFamily:MN,flexShrink:0}}>{f.from}→{f.to}</span>
-                    <span style={{fontSize:10,color:"#475569",flexShrink:0}}>{f.flightNo||f.carrier}</span>
-                    {f.dep&&<span style={{fontSize:9,fontFamily:MN,color:"#64748b"}}>{f.dep}</span>}
-                    <span style={{fontSize:9,color:"#64748b",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(f.pax||[]).join(", ")}</span>
-                    <span style={{fontSize:9,color:"#047857",fontWeight:700,flexShrink:0}}>✓</span>
-                    <button onClick={()=>deleteFlight(f.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12,flexShrink:0}}>×</button>
-                  </div>
-                ))}
+                {g.segs.map(f=>{
+                  const inShow=matchShowByAirport(f.to,f.toCity,f.arrDate||f.depDate,sorted||[],"inbound");
+                  const outShow=matchShowByAirport(f.from,f.fromCity,f.depDate,sorted||[],"outbound");
+                  const show=inShow||outShow;
+                  return(
+                    <div key={f.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:7,flexWrap:"wrap"}}>
+                      <span style={{fontSize:9,color:"#047857",fontWeight:800,fontFamily:MN,flexShrink:0}}>{f.depDate}</span>
+                      <span style={{fontSize:11,fontWeight:700,color:"#0f172a",fontFamily:MN,flexShrink:0}}>{f.from}→{f.to}</span>
+                      <span style={{fontSize:10,color:"#475569",flexShrink:0}}>{f.flightNo||f.carrier}</span>
+                      {f.dep&&<span style={{fontSize:9,fontFamily:MN,color:"#64748b"}}>{f.dep}</span>}
+                      <span style={{fontSize:9,color:"#64748b",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(f.pax||[]).join(", ")}</span>
+                      {show&&<span style={{fontSize:8,padding:"1px 6px",borderRadius:4,background:inShow?"#D1FAE5":"#FEF3C7",color:inShow?"#047857":"#92400E",fontWeight:700,flexShrink:0}}>{show.city} {fD(show.date)}</span>}
+                      <span style={{fontSize:9,color:"#047857",fontWeight:700,flexShrink:0}}>✓</span>
+                      <button onClick={()=>dismissFlight(f.id)} title="Move to unresolved" style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12,flexShrink:0}}>×</button>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </IntelSection>
+      )}
+
+      {/* Unresolved */}
+      {unresolved.length>0&&(
+        <IntelSection title="UNRESOLVED" count={unresolved.length}>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {unresolved.map(f=>(
+              <div key={f.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",background:"#FEF9F9",border:"1px solid #FECACA",borderRadius:7,flexWrap:"wrap"}}>
+                <span style={{fontSize:9,color:"#B91C1C",fontWeight:800,fontFamily:MN,flexShrink:0}}>{f.depDate}</span>
+                <span style={{fontSize:11,fontWeight:700,color:"#0f172a",fontFamily:MN,flexShrink:0}}>{f.from}→{f.to}</span>
+                <span style={{fontSize:10,color:"#475569",flexShrink:0}}>{f.flightNo||f.carrier}</span>
+                <span style={{fontSize:9,color:"#64748b",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(f.pax||[]).join(", ")}</span>
+                <button onClick={()=>uFlight(f.id,{...f,status:"pending"})} style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700,flexShrink:0}}>↩ Restore</button>
+                <button onClick={()=>deleteFlight(f.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12,flexShrink:0}}>×</button>
               </div>
             ))}
           </div>
@@ -1595,12 +1623,6 @@ function TopBar({ss}){
         </div>}
         <div style={{display:"flex",alignItems:"center",gap:mobile?4:8,flexShrink:0,minWidth:0,maxWidth:"100%"}}>
           {ss&&!mobile&&<span style={{fontSize:9,color:ss==="saved"?"#047857":"#94a3b8",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
-          {!mobile&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
-            <span style={{fontSize:7,color:"#94a3b8",fontFamily:MN,fontWeight:700,letterSpacing:"0.08em"}}>OM</span>
-            <div style={{display:"flex",gap:1,background:"#ebe8e3",borderRadius:7,padding:2}}>
-              {ROLES.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:9,fontWeight:role===r.id?700:500,padding:"3px 8px",borderRadius:5,border:"none",cursor:"pointer",background:role===r.id?"#fff":"transparent",color:role===r.id?r.c:"#64748b",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
-            </div>
-          </div>}
           <button onClick={()=>setUploadOpen(true)} title="Upload document" style={{background:"#ebe8e3",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>{mobile?"↑":"↑ Upload"}</button>
           <button onClick={()=>setExp(true)} title="Export / Import" style={{background:"#ebe8e3",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>⇅</button>
           <button onClick={()=>setCmd(true)} title="Command palette (⌘K)" style={{background:"#ebe8e3",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>{mobile?"⌘":"⌘K"}</button>
@@ -2823,6 +2845,7 @@ function FlightsListView(){
   const allFlights=Object.values(flights);
   const pending=allFlights.filter(f=>f.status==="pending").sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0);
   const confirmed=allFlights.filter(f=>f.status==="confirmed").sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||a.dep?.localeCompare(b.dep||"")||0);
+  const unresolved=allFlights.filter(f=>f.status==="unresolved").sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0);
   const byDate=confirmed.reduce((m,f)=>{(m[f.depDate]||(m[f.depDate]=[])).push(f);return m;},{});
   const dates=Object.keys(byDate).sort();
 
@@ -3070,7 +3093,7 @@ function FlightsListView(){
             {pending.map(f=>{const isConf=confirmingId===f.id;return(
               <FlightCard key={f.id} f={f} crew={crew} onUpdatePax={newPax=>updatePax(f,newPax)} actions={<>
                 <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"#1E40AF",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
-                <button onClick={()=>uFlight(f.id,{...f,status:"dismissed"})} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Dismiss</button>
+                <button onClick={()=>uFlight(f.id,{...f,status:"unresolved"})} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Dismiss</button>
                 {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
               </>}/>
             );})}
@@ -3107,7 +3130,7 @@ function FlightsListView(){
                         {!inShow&&!outShow&&<span style={{fontSize:9,color:"#94a3b8",fontStyle:"italic"}}>No show match — add city to airport table to match.</span>}
                         <button onClick={()=>goToSchedule(f.depDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700}}>→ Schedule {f.depDate?.slice(5)}</button>
                         {f.arrDate&&f.arrDate!==f.depDate&&<button onClick={()=>goToSchedule(f.arrDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700}}>→ Arr {f.arrDate?.slice(5)}</button>}
-                        <button onClick={()=>uFlight(f.id,{...f,status:"dismissed"})} style={{marginLeft:"auto",fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#94a3b8",cursor:"pointer"}}>Remove</button>
+                        <button onClick={()=>uFlight(f.id,{...f,status:"unresolved"})} style={{marginLeft:"auto",fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#94a3b8",cursor:"pointer"}}>Remove</button>
                       </>}
                     />
                   );
@@ -3116,9 +3139,23 @@ function FlightsListView(){
             </div>
           ))}
         </div>
-      ):(pendingImport.length===0&&pending.length===0&&(
+      ):(pendingImport.length===0&&pending.length===0&&unresolved.length===0&&(
         <div style={{padding:"40px 0",textAlign:"center",color:"#94a3b8"}}><div style={{fontSize:22,marginBottom:8,opacity:0.25}}>✈</div><div style={{fontSize:11}}>No flights yet.</div><div style={{fontSize:10,marginTop:4}}>Hit "Scan Gmail for Flights" above to import from email.</div></div>
       ))}
+
+      {/* Unresolved */}
+      {unresolved.length>0&&(
+        <IntelSection title="UNRESOLVED" count={unresolved.length}>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {unresolved.map(f=>(
+              <FlightCard key={f.id} f={f} crew={crew} actions={<>
+                <button onClick={()=>uFlight(f.id,{...f,status:"pending"})} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700}}>↩ Restore</button>
+                <button onClick={()=>uFlight(f.id,null)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #FECACA",background:"transparent",color:"#B91C1C",cursor:"pointer"}}>Delete</button>
+              </>}/>
+            ))}
+          </div>
+        </IntelSection>
+      )}
     </div>
   );
 }
