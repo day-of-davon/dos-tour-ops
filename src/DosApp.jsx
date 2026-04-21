@@ -3413,6 +3413,7 @@ function SegmentDrawer({seg,crew,sorted,onChange,onClose}){
 function TransTab(){
   const{flights,uFlight,sel,labelIntel}=useContext(Ctx);
   const[view,setView]=useState("travel");
+  const[crewFlightsOpen,setCrewFlightsOpen]=useState(false);
 
   const importBusLegs=()=>{
     const base=new Date('2026-05-02T12:00:00');
@@ -3472,18 +3473,23 @@ function TransTab(){
           </div>
         )}
         {view==="flights"&&<>{labelIntel?.crewFlights?.length>0&&(
-          <div style={{background:"#F0F9FF",border:"1px solid #BAE6FD",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
-            <div style={{fontSize:9,fontWeight:800,color:"#0369A1",letterSpacing:"0.08em",marginBottom:8}}>CREW FLIGHTS · LABEL SCAN ({labelIntel.crewFlights.length} deduped)</div>
-            {labelIntel.crewFlights.map(f=>(
-              <div key={f.id} style={{display:"flex",gap:8,padding:"5px 0",borderBottom:"1px solid #BAE6FD",alignItems:"center"}}>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.subject}</div>
-                  <div style={{fontSize:9,color:"#0369A1"}}>{f.from} · {f.date}</div>
-                  {f.showId&&<div style={{fontSize:8,color:"#64748b",fontFamily:MN}}>{f.showId}</div>}
+          <div style={{background:"#F0F9FF",border:"1px solid #BAE6FD",borderRadius:10,marginBottom:12,overflow:"hidden"}}>
+            <div onClick={()=>setCrewFlightsOpen(v=>!v)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",cursor:"pointer",userSelect:"none"}}>
+              <div style={{fontSize:9,fontWeight:800,color:"#0369A1",letterSpacing:"0.08em"}}>CREW FLIGHTS · LABEL SCAN ({labelIntel.crewFlights.length} deduped)</div>
+              <div style={{fontSize:11,color:"#0369A1",lineHeight:1}}>{crewFlightsOpen?"▲":"▼"}</div>
+            </div>
+            {crewFlightsOpen&&<div style={{padding:"0 14px 12px"}}>
+              {labelIntel.crewFlights.map(f=>(
+                <div key={f.id} style={{display:"flex",gap:8,padding:"5px 0",borderBottom:"1px solid #BAE6FD",alignItems:"center"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.subject}</div>
+                    <div style={{fontSize:9,color:"#0369A1"}}>{f.from} · {f.date}</div>
+                    {f.showId&&<div style={{fontSize:8,color:"#64748b",fontFamily:MN}}>{f.showId}</div>}
+                  </div>
+                  <a href={gmailUrl(f.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",flexShrink:0}}>email ↗</a>
                 </div>
-                <a href={gmailUrl(f.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",flexShrink:0}}>email ↗</a>
-              </div>
-            ))}
+              ))}
+            </div>}
           </div>
         )}<FlightsSection/></>}
         {view==="festival"&&(
