@@ -299,7 +299,7 @@ Confirmation codes (critical):
 
 Skip hotel, train, rental car confirmations — flights and private charters only.`;
 
-  const BATCH = 15;
+  const BATCH = 12;
   const threadBatches = [];
   for (let i = 0; i < threads.length; i += BATCH) threadBatches.push(threads.slice(i, i + BATCH));
 
@@ -336,7 +336,7 @@ Return this exact JSON:
   ]
 }`;
 
-  const callClaude = async (prompt, sys = sysPrompt, maxTokens = 4096) => {
+  const callClaude = async (prompt, sys = sysPrompt, maxTokens = 4096, model = "claude-sonnet-4-6") => {
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -345,7 +345,7 @@ Return this exact JSON:
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model,
         max_tokens: maxTokens,
         system: sys,
         messages: [{ role: "user", content: prompt }],
@@ -401,7 +401,7 @@ Return this exact JSON:
 
     let verifyResult;
     try {
-      verifyResult = await callClaude(buildVerifyPrompt(batch, flights), verifySys, 2048);
+      verifyResult = await callClaude(buildVerifyPrompt(batch, flights), verifySys, 2048, "claude-haiku-4-5-20251001");
     } catch (e) {
       console.warn("[flights] verify error:", e.message);
       return flights.map(f => ({ ...f, parseVerified: null }));
