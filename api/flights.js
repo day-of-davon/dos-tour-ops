@@ -246,8 +246,9 @@ function buildCitySet(iata, cityStr) {
 }
 
 // ── Show matching ─────────────────────────────────────────────────────────────
-// Inbound window: arrives 0-2 days before the show (day-before travel is common).
-// Outbound window: departs 0-2 days after the show.
+// Inbound window: arrives 0-3 days before the show.
+// 3d covers crew joining early for soundcheck day or bus-join setup on EU tour.
+// Outbound window: departs 0-2 days after the show (same-day or next-morning fly-out).
 // When no airport code is mapped, falls back to date proximity alone.
 function matchFlightToShow(flight, shows) {
   if (!Array.isArray(shows) || !shows.length || !flight.depDate) return null;
@@ -264,7 +265,7 @@ function matchFlightToShow(flight, shows) {
     const arrDelta = (new Date(sd + "T12:00:00") - new Date(arrDate + "T12:00:00")) / 86400000;
     const depDelta = (new Date(depDate + "T12:00:00") - new Date(sd + "T12:00:00")) / 86400000;
 
-    if (arrDelta >= 0 && arrDelta <= 2 && (arrCities.size === 0 || arrCities.has(sc))) {
+    if (arrDelta >= 0 && arrDelta <= 3 && (arrCities.size === 0 || arrCities.has(sc))) {
       if (!inbound || arrDelta < inbound.delta)
         inbound = { showDate: sd, role: "inbound", showId: s.id || sd, venue: s.venue, delta: arrDelta };
     }
@@ -369,27 +370,44 @@ module.exports = async function handler(req, res) {
   const claudeThreads = threads.filter(t => !jsonLdTids.has(t.id));
   console.log(`[flights] jsonld-shortcircuit: ${jsonLdTids.size} threads / ${jsonLdFlights.length} flights | claude: ${claudeThreads.length} threads`);
 
+  // Known crew for this tour — used to disambiguate pax names extracted in airline format.
+  // Airlines print "JOHNSON/DAVON" or "NUDELMAN/DANIEL". Knowing the roster prevents
+  // Claude from guessing wrong capitalization or splitting compound surnames.
+  const CREW_ROSTER = [
+    "Davon Johnson (TM/TD)", "Mike Sheck (PM)", "Dan Nudelman (PM)",
+    "Alex Gumuchian (artist, bbno$)", "Julien Bruce (Jungle Bobby)",
+    "Mat Senechal (bass/keys)", "Taylor Madrigal (DJ Tip)", "Andrew Campbell (Bishu DJ)",
+    "Ruairi Matthews (FOH)", "Nick Foerster (monitors)", "Saad A. (audio/BNE)",
+    "Gabe Greenwood (LD)", "Cody Leggett (lasers)", "Michael Heid (visual/set)",
+    "Grace Offerdahl (merch)", "Nathan McCoy (merch dir)", "Megan Putnam (hospo/GL)",
+    "O'Len Davis (content)", "Guillaume Bessette (bus driver)",
+    "Olivia Mims (transport coordinator)",
+  ];
+
   const sysPrompt = `You are a flight itinerary parser for concert touring operations. Extract structured flight segment data from email bodies.
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.
 
 Rules:
 - Each object in flights[] is one flight leg. Split multi-leg itineraries into separate objects.
 - Dates: YYYY-MM-DD. Times: HH:MM 24-hour (e.g. "6:30 AM" → "06:30", "10:15 PM" → "22:15").
-- IATA airport codes preferred (3 uppercase letters). Fall back to city name if code absent.
-- cost: number only, no symbol. null if not present.
+- IATA airport codes: 3 uppercase letters. If the email shows a city name instead of IATA, use the correct IATA code for that airport. Common: Dublin=DUB, Manchester=MAN, London Heathrow=LHR, London Gatwick=LGW, Paris CDG=CDG, Paris Orly=ORY, Amsterdam=AMS, Zurich=ZRH, Prague=PRG, Berlin=BER, Warsaw=WAW, Brussels=BRU, Milan Malpensa=MXP.
+- cost: number only, no currency symbol. null if not present.
 - currency: 3-letter ISO code (USD, GBP, EUR, CAD). null if not present.
 
 Passenger extraction (critical):
 - Scan the ENTIRE body for any section labeled: "Passengers", "Travelers", "Traveler", "Passenger", "Guest", "Name", or any passenger table.
-- Airlines often print names in ALL-CAPS airline format: "JOHNSON/DAVON MR" → "Davon Johnson", "NUDELMAN/DANIEL" → "Daniel Nudelman", "DAVIS/OLEN Q" → "Olen Q Davis". Convert to Title Case.
-- Also check "Booked by", "Purchased by", "Primary contact" lines as fallback if no pax section exists.
-- For forwarded emails: the original booking content may appear after "---------- Forwarded message ---------" or "Begin forwarded message". Parse the forwarded body too.
-- pax: array of all passenger full names. Empty array only if truly no names found.
+- Airlines often print names in ALL-CAPS airline format: "JOHNSON/DAVON MR" → "Davon Johnson", "NUDELMAN/DANIEL" → "Daniel Nudelman", "DAVIS/OLEN Q" → "O'Len Davis". Convert to Title Case.
+- Known tour crew to assist recognition: ${CREW_ROSTER.join(", ")}.
+- Also check "Booked by", "Purchased by", "Primary contact" lines as fallback if no pax section found.
+- For forwarded emails: content appears after "---------- Forwarded message ---------". Parse the forwarded body too — that's where the actual booking data lives.
+- If a booking references multiple passengers across separate ticket rows, list all of them in pax[].
+- pax: array of all passenger full names. Empty array ONLY if truly no names found anywhere.
 
 Confirmation codes (critical):
 - pnr: 6-character alphanumeric airline record locator / PNR (e.g. "F9OCAU", "ABC123"). Distinct from order/booking numbers.
 - confirmNo: booking/order/e-ticket number if different from PNR. null if same as pnr or absent.
 - Look for labels: "Confirmation Code", "Record Locator", "Booking Reference", "PNR", "E-Ticket Number", "Ticket #".
+- Do NOT confuse a booking order number (e.g. "Order #28471922") with a PNR — those go in confirmNo, not pnr.
 
 Skip hotel, train, rental car confirmations — flights and private charters only.`;
 
@@ -455,8 +473,15 @@ Return this exact JSON:
     throw lastErr;
   };
 
-  const verifySys = `You are a flight data verifier. You check extracted flight records against their source emails for accuracy.
-IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.`;
+  const verifySys = `You are a flight data verifier for concert touring operations. You check extracted flight records against source emails for accuracy.
+IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.
+
+Focus especially on:
+1. IATA codes — verify the 3-letter code matches the actual airport in the email, not just the city. London has LHR/LGW/STN/LCY; Paris has CDG/ORY; confirm which one the email specifies.
+2. Passenger names — confirm names from the email body (not just the subject). Names may appear in ALL-CAPS airline format e.g. "JOHNSON/DAVON" = "Davon Johnson".
+3. PNR vs confirmNo — PNR is exactly 6 alphanumeric chars (e.g. "F9OCAU"). Booking order numbers (longer or numeric-heavy) go in confirmNo.
+4. Date/time — ensure depDate and arrDate match the email, especially for overnight flights where arrival date differs from departure date.
+5. Multi-leg — if the email describes a connecting itinerary, each leg should be a separate record.`;
 
   const buildVerifyPrompt = (batch, flights) =>
     `Verify these extracted flight records against their source email threads (matched by tid).
@@ -468,7 +493,8 @@ EXTRACTED FLIGHTS:
 ${JSON.stringify(flights, null, 2)}
 
 For each flight, re-read its source thread and check every field: flightNo, from, fromCity, to, toCity, depDate, dep, arrDate, arr, pax, pnr, confirmNo, cost, currency.
-If a field is wrong, provide the corrected value. If correct or unknown, omit it from corrections.
+If a field is wrong or missing, provide the corrected value. If correct or unknown, omit from corrections.
+Set ok=false if ANY field needs correction. Set ok=true only if the record is fully accurate.
 
 Return this exact JSON:
 {
@@ -484,8 +510,8 @@ Return this exact JSON:
       "tid": "<thread_id>",
       "flightNo": "<flight number for reference>",
       "ok": false,
-      "corrections": { "from": "BNA", "fromCity": "Nashville", "to": "BOS", "toCity": "Boston" },
-      "note": "Email shows BNA→BOS, not ORD→MIA"
+      "corrections": { "from": "BNA", "fromCity": "Nashville", "to": "BOS", "toCity": "Boston", "pax": ["Davon Johnson"] },
+      "note": "Email shows BNA→BOS not ORD→MIA; passenger is Davon Johnson not Dan Nudelman"
     }
   ]
 }`;

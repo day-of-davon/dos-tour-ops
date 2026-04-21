@@ -5,15 +5,52 @@ const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthr
 
 const CACHE_TTL_MINUTES = 60;
 
+// ── Tour context (injected into prompts for accurate owner routing + classification) ──
+const TOUR_CONTEXT = {
+  artist: "bbno$",
+  tour: "Internet Explorer Tour",
+  tm: "Davon Johnson (d.johnson@dayofshow.net)",
+  crew: [
+    "Davon Johnson — TM/TD",
+    "Mike Sheck — PM Advance (mikesheck@l7touring.com)",
+    "Dan Nudelman — PM On-site (dan@noodle.management)",
+    "Sam Alavi — Artist Relations (sam@rightclick.gg)",
+    "Matt Adler — Wasserman agent (madler@the.team)",
+    "Ruairi Matthews — FOH Audio (ruairim@magentasound.ca)",
+    "Alex Gumuchian — Headliner (bbno$)",
+    "Grace Offerdahl — Merch",
+    "Megan Putnam — Hospo/GL",
+    "Olivia Mims — Transport Coordinator",
+    "Tony Yacowar — CPA (tyacowar@dmcl.ca)",
+  ],
+  vendors: [
+    "Pieter Smit — EU nightliner bus (nightliner@pietersmit.com, contact: Toby Jansen)",
+    "Fly By Nite — EU truck/freight (job 56714, contact: Fiona Nolan)",
+    "Neg Earth — LX/VX production (contact: Alex Griffiths)",
+    "TSL Lighting — LX quote J38723 (contact: Gemma Jaques)",
+    "BNP — local production vendor (Red Rocks)",
+  ],
+  ownerMap: "DAVON=Davon Johnson, SHECK=Mike Sheck (advance/promoter comms), DAN=Dan Nudelman (on-site/production), MANAGEMENT=Sam Alavi/Matt Adler/Wasserman, VENDOR=external vendors, CREW=tour crew members, ACCOUNTANT=Tony Yacowar",
+};
+
+function buildTourContextBlock() {
+  return `Tour: ${TOUR_CONTEXT.tour} by ${TOUR_CONTEXT.artist}.
+TM: ${TOUR_CONTEXT.tm}.
+Crew: ${TOUR_CONTEXT.crew.join("; ")}.
+Vendors: ${TOUR_CONTEXT.vendors.join("; ")}.
+Owner routing: ${TOUR_CONTEXT.ownerMap}.`;
+}
+
 function extractHeaders(thread) {
-  const lastMsg = thread.messages?.[thread.messages.length - 1];
-  const headers = lastMsg?.payload?.headers || [];
+  // Use first message for Subject/From — replies and forwards skew metadata.
+  const firstMsg = thread.messages?.[0];
+  const headers = firstMsg?.payload?.headers || [];
   const get = (name) => headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value || "";
   const body = (thread.messages || [])
     .map((m) => extractBody(m.payload))
     .filter(Boolean)
     .join("\n---\n")
-    .slice(0, 1800);
+    .slice(0, 5000); // was 1800 — too short for flight receipts and multi-message threads
   return {
     id: thread.id,
     subject: get("Subject"),
@@ -26,21 +63,67 @@ function extractHeaders(thread) {
 
 // ── Label scan helpers ───────────────────────────────────────────────────────
 
-const FLIGHT_SENDERS = [/@t\.delta\.com/i, /deltaairlines@/i, /receipts@united\.com/i, /no-?reply@.*united/i, /no-?reply@info\.email\.aa\.com/i, /notification@.*aircanada/i, /noreply@.*aa\.com/i, /receipts@southwest/i];
-const SETTLEMENT_SUBJECT = [/settlement/i, /box\s*office\s*report/i, /payout/i, /gross\s*receipts/i, /nightly\s*report/i, /final\s*count/i];
-const FLIGHT_SUBJECT = [/your\s+flight\s+receipt/i, /booking\s+confirmation/i, /flight\s+receipt/i, /e-?ticket/i, /time\s+to\s+check\s+in/i, /it'?s\s+time\s+to\s+check\s+in/i, /trip\s+(confirmation|details)/i, /your\s+.*trip\s+details/i, /reservation\s+confirmed/i, /your\s+purchase\s+with\s+united/i, /flight.*receipt/i, /thanks\s+for\s+your\s+purchase/i];
-const FLIGHT_NOISE_SUBJECT = [/check\s*in\s*(is\s*)?open/i, /time\s+to\s+check\s+in/i, /it'?s\s+time\s+to\s+check\s+in/i, /you'?ve\s+been\s+upgraded/i, /menu\s+for\s+your.*flight/i, /important\s+notice\s+about\s+your\s+bag/i, /gate\s+change/i, /skymiles\s+account\s+has\s+been\s+updated/i, /welcome.*sky\s+club/i];
-const ACTION_REQUIRED_PATTERNS = [/please\s+(sign|fill\s+out|complete|return|confirm|respond|approve)/i, /sign\s+and\s+return/i, /do\s+we\s+know/i, /any\s+update\s+on/i, /checking\s+(back|in\s+here)/i, /following\s+up/i, /just\s+a\s+reminder/i, /bumping\s+this/i, /needed\s+by/i, /deadline/i, /awaiting\s+your/i, /please\s+fill\s+out/i, /wanted\s+to\s+check\s+in/i];
+const FLIGHT_SENDERS = [
+  /@t\.delta\.com/i, /deltaairlines@/i, /receipts@united\.com/i, /no-?reply@.*united/i,
+  /no-?reply@info\.email\.aa\.com/i, /notification@.*aircanada/i, /noreply@.*aa\.com/i,
+  /receipts@southwest/i, /noreply@ba\.com/i, /do_not_reply@ba\.com/i, /noreply@lufthansa/i,
+  /noreply@airfrance/i, /donotreply@klm/i, /noreply@aerlingus/i, /noreply@ryanair/i,
+  /no-reply@easyjet/i, /noreply@wizzair/i, /booking@norwegian/i, /noreply@swiss/i,
+  /noreply@lot\.com/i, /noreply@iberia/i,
+];
+
+const SETTLEMENT_SUBJECT = [
+  /settlement/i, /box\s*office\s*report/i, /payout/i, /gross\s*receipts/i,
+  /nightly\s*report/i, /final\s*count/i, /deal\s*memo/i, /show\s*report/i,
+];
+
+const FLIGHT_SUBJECT = [
+  /your\s+flight\s+receipt/i, /booking\s+confirmation/i, /flight\s+receipt/i,
+  /e-?ticket/i, /time\s+to\s+check\s+in/i, /it'?s\s+time\s+to\s+check\s+in/i,
+  /trip\s+(confirmation|details)/i, /your\s+.*trip\s+details/i, /reservation\s+confirmed/i,
+  /your\s+purchase\s+with\s+united/i, /flight.*receipt/i, /thanks\s+for\s+your\s+purchase/i,
+  /itinerary\s+(confirmation|receipt)/i, /travel\s+itinerary/i,
+];
+
+const FLIGHT_NOISE_SUBJECT = [
+  /check\s*in\s*(is\s*)?open/i, /time\s+to\s+check\s+in/i, /it'?s\s+time\s+to\s+check\s+in/i,
+  /you'?ve\s+been\s+upgraded/i, /menu\s+for\s+your.*flight/i, /important\s+notice\s+about\s+your\s+bag/i,
+  /gate\s+change/i, /skymiles\s+account\s+has\s+been\s+updated/i, /welcome.*sky\s+club/i,
+  /miles?\s+(earned|credited|summary)/i, /your\s+(credit\s+card|rewards)\s+statement/i,
+];
+
+const ACTION_REQUIRED_PATTERNS = [
+  /please\s+(sign|fill\s+out|complete|return|confirm|respond|approve)/i,
+  /sign\s+and\s+return/i, /do\s+we\s+know/i, /any\s+update\s+on/i,
+  /checking\s+(back|in\s+here)/i, /following\s+up/i, /just\s+a\s+reminder/i,
+  /bumping\s+this/i, /needed\s+by/i, /deadline/i, /awaiting\s+your/i,
+  /please\s+fill\s+out/i, /wanted\s+to\s+check\s+in/i,
+  /outstanding/i, /overdue/i, /urgent/i, /asap/i, /time\s*sensitive/i,
+];
+
+// EU touring vendor / production patterns not covered by generic patterns
+const EU_TOURING_SUBJECT = [
+  /pieter\s*smit/i, /nightliner/i, /fly\s*by\s*nite/i, /neg\s*earth/i, /tsl\s*lighting/i,
+  /immigration\s*(form|permit|clearance)/i, /work\s*permit/i, /visa\s*(application|approval)/i,
+  /carnets?/i, /ata\s*carnet/i, /customs\s*clearance/i,
+  /backline/i, /rigging/i, /pyro/i,
+  /hotel\s*(confirmation|reservation|voucher)/i, /room\s*block/i,
+  /ground\s*(transport|transfer)/i, /coach\s+(hire|charter)/i,
+];
 
 function classifyThread(subject, from) {
   const s = subject || ""; const f = from || "";
   if (SETTLEMENT_SUBJECT.some(p => p.test(s))) return "SETTLEMENT";
   if (FLIGHT_SENDERS.some(p => p.test(f)) || FLIGHT_SUBJECT.some(p => p.test(s))) return "CREW_FLIGHT";
-  if (/merch|merchandise/i.test(s)) return "MERCH";
+  if (/merch|merchandise|t-?shirt|inventory/i.test(s)) return "MERCH";
   if (/guest\s*list|comp\s+list|box\s+office/i.test(s)) return "GUEST_LIST";
   if (/advance|rider|stage\s+plot|catering|load.?in|crew\s+call|show\s+day/i.test(s)) return "ADVANCE";
-  if (/production|lighting|backline|rigging|pyro|load\s+out/i.test(s)) return "PRODUCTION";
-  if (/immigration|permit|visa|customs/i.test(s)) return "LEGAL";
+  if (/production|lighting|backline|rigging|pyro|load\s+out|tech\s+spec/i.test(s)) return "PRODUCTION";
+  if (/immigration|permit|visa|customs|carnet|work\s+permit/i.test(s)) return "LEGAL";
+  if (/hotel|accommodation|room\s+block/i.test(s)) return "LOGISTICS";
+  if (/ground\s+transport|transfer|coach|nightliner|truck|freight/i.test(s)) return "LOGISTICS";
+  if (EU_TOURING_SUBJECT.some(p => p.test(s))) return "PRODUCTION";
+  if (/invoice|payment|wire|bank|ach|remittance/i.test(s)) return "FINANCE";
   return "MISC";
 }
 
@@ -58,6 +141,11 @@ function extractFlightKey(subject, snippet) {
   const dep = dateMatch?.[0]?.toLowerCase().replace(/\s+/g, "") || "";
   const routeMatch = (subject || "").match(/\b([A-Z]{3})\s*[→>\-–]+\s*([A-Z]{3})\b/);
   const route = routeMatch ? `${routeMatch[1]}_${routeMatch[2]}`.toLowerCase() : "";
+  // Also try PNR-based dedup — 6-char alphanum codes in subject are usually PNRs
+  const pnrMatch = (subject || "").match(/\b([A-Z0-9]{6})\b/);
+  const pnr = pnrMatch ? pnrMatch[1].toLowerCase() : "";
+  // Prefer PNR key when available (most reliable dedup signal)
+  if (pnr && pnr !== "flight" && pnr !== "ticket") return `pnr__${pnr}`;
   return `${name}__${dep}__${route}`;
 }
 
@@ -66,15 +154,15 @@ function deduplicateFlights(threads) {
   for (const t of threads) {
     if (isFlightNoise(t.subject)) continue;
     const key = extractFlightKey(t.subject, t.bodySnippet);
-    if (key === "____") { standalone.push(t); continue; }
+    if (key === "____" || key === "pnr__") { standalone.push(t); continue; }
     if (!groups[key]) groups[key] = [];
     groups[key].push(t);
   }
   const kept = [...standalone];
   for (const group of Object.values(groups)) {
     group.sort((a, b) => {
-      const aR = /receipt|confirmation|booking/i.test(a.subject) ? 0 : 1;
-      const bR = /receipt|confirmation|booking/i.test(b.subject) ? 0 : 1;
+      const aR = /receipt|confirmation|booking|itinerary/i.test(a.subject) ? 0 : 1;
+      const bR = /receipt|confirmation|booking|itinerary/i.test(b.subject) ? 0 : 1;
       return aR - bR;
     });
     kept.push({ ...group[0], _dedupedFrom: group.length });
@@ -83,7 +171,7 @@ function deduplicateFlights(threads) {
 }
 
 function detectActionSignal(subject, snippet) {
-  const combined = (subject || "") + " " + (snippet || "").slice(0, 300);
+  const combined = (subject || "") + " " + (snippet || "").slice(0, 400);
   for (const p of ACTION_REQUIRED_PATTERNS) {
     if (p.test(combined)) return p.source.replace(/\\s\+/g, "_").replace(/[^a-z_]/gi, "").toLowerCase().slice(0, 30);
   }
@@ -97,18 +185,39 @@ function matchShow(thread, shows) {
     let score = 0;
     const venue = (show.venue || "").toLowerCase().replace(/['']/g, "");
     const city = (show.city || "").toLowerCase().split(",")[0].trim();
-    if (venue.length > 4 && combined.includes(venue)) score += 8;
+    const promoter = (show.promoter || "").toLowerCase();
+    const country = (show.country || "").toLowerCase();
+
+    // Venue match (strongest signal)
+    if (venue.length > 4 && combined.includes(venue)) score += 10;
     else { for (const w of venue.split(/\s+/).filter(w => w.length > 3)) { if (combined.includes(w)) score += 2; } }
-    if (city.length > 3 && combined.includes(city)) score += 3;
+
+    // City match
+    if (city.length > 3 && combined.includes(city)) score += 4;
+
+    // Promoter match
+    if (promoter.length > 3) {
+      const promoterWords = promoter.split(/[/,\s]+/).filter(w => w.length > 4);
+      for (const w of promoterWords) { if (combined.includes(w)) score += 3; }
+    }
+
+    // Country code match (useful for EU shows)
+    if (country.length === 2 && combined.includes(country)) score += 1;
+
+    // Temporal proximity
     const threadMs = new Date(thread.date).getTime();
     if (!isNaN(threadMs)) {
       const showMs = new Date(show.date + "T12:00:00").getTime();
       const diff = Math.abs((showMs - threadMs) / 86400000);
-      if (diff <= 14) score += 2; if (diff <= 3) score += 3;
+      if (diff <= 7) score += 3;
+      else if (diff <= 21) score += 2;
+      else if (diff <= 45) score += 1;
     }
+
+    // Lower threshold from 5 to 4 — better recall, still filters pure noise
     if (score > bestScore) { bestScore = score; best = show; }
   }
-  return bestScore >= 5 ? best : null;
+  return bestScore >= 4 ? best : null;
 }
 
 async function handleLabelScan(req, res, user, supabase) {
@@ -124,23 +233,41 @@ async function handleLabelScan(req, res, user, supabase) {
     }
   }
 
-  // Queries beyond label:bbno$ — airlines rarely label their receipts
+  // Extended window to 90d — EU tour bookings made Jan/Feb are within this range.
+  // Added EU airline and logistics senders missed by the prior 60d queries.
   const EXTRA_QUERIES = [
-    `from:(DeltaAirLines@t.delta.com) newer_than:60d`,
-    `from:(notification@notification.aircanada.ca) newer_than:60d`,
-    `from:(no-reply@info.email.aa.com) newer_than:60d`,
-    `from:(Receipts@united.com) newer_than:60d`,
+    `from:(DeltaAirLines@t.delta.com) newer_than:90d`,
+    `from:(notification@notification.aircanada.ca) newer_than:90d`,
+    `from:(no-reply@info.email.aa.com) newer_than:90d`,
+    `from:(Receipts@united.com) newer_than:90d`,
+    `from:(noreply@ba.com) newer_than:90d`,
+    `from:(do_not_reply@ba.com) newer_than:90d`,
+    `from:(noreply@aerlingus.com) newer_than:90d`,
+    `from:(noreply@ryanair.com) newer_than:90d`,
+    `from:(no-reply@easyjet.com) newer_than:90d`,
+    `from:(noreply@lufthansa.com) newer_than:90d`,
+    `from:(noreply@airfrance.fr) newer_than:90d`,
+    `from:(donotreply@klm.com) newer_than:90d`,
+    `from:(noreply.com) newer_than:30d`,
     `from:(noreply@uber.com) newer_than:30d`,
-    `subject:settlement newer_than:30d`,
-    `subject:"flight receipt" newer_than:60d`,
-    `subject:"booking confirmation" (flight OR airline) newer_than:60d`,
+    `subject:settlement newer_than:45d`,
+    `subject:"flight receipt" newer_than:90d`,
+    `subject:"booking confirmation" (flight OR airline) newer_than:90d`,
+    `subject:"travel itinerary" newer_than:90d`,
+    // EU tour specific
+    `"pieter smit" newer_than:180d`,
+    `"fly by nite" OR "flybynite" newer_than:180d`,
+    `"neg earth" newer_than:180d`,
+    `"tsl lighting" newer_than:180d`,
+    `subject:(immigration OR "work permit" OR carnet) newer_than:90d`,
+    `(DUB OR MAN OR GLA OR LHR OR ZRH OR AMS OR CDG OR PRG OR BER OR WAW) (confirmation OR receipt OR itinerary) newer_than:90d`,
   ];
 
   let threadIds = [];
   try {
     const [labelIds, ...extraResults] = await Promise.all([
-      gmailSearch(googleToken, "label:bbno$", 50),
-      ...EXTRA_QUERIES.map(q => gmailSearch(googleToken, q, 20).catch(() => [])),
+      gmailSearch(googleToken, "label:bbno$", 60), // bumped from 50
+      ...EXTRA_QUERIES.map(q => gmailSearch(googleToken, q, 25).catch(() => [])),
     ]);
     threadIds = [...new Set([...labelIds, ...extraResults.flat()])];
   } catch (e) {
@@ -150,7 +277,7 @@ async function handleLabelScan(req, res, user, supabase) {
 
   const rawThreads = (await Promise.all(threadIds.map(id => gmailGetThread(googleToken, id)))).filter(Boolean).map(t => {
     const h = extractHeaders(t);
-    return { ...h, bodySnippet: (h.bodySnippet || "").slice(0, 400) };
+    return { ...h, bodySnippet: (h.bodySnippet || "").slice(0, 800) }; // was 400
   });
 
   const shows = Array.isArray(showsArr) ? showsArr : [];
@@ -167,10 +294,10 @@ async function handleLabelScan(req, res, user, supabase) {
     if (t.category === "CREW_FLIGHT" && !keptFlightIds.has(t.id)) continue;
     const showId = t._show ? `${t._show.venue}__${t._show.date}`.toLowerCase().replace(/\s+/g, "_") : null;
     if (showId) { if (!byShow[showId]) byShow[showId] = []; byShow[showId].push(t.id); }
-    const base = { id: t.id, subject: t.subject, from: t.from, date: t.date, snippet: (t.bodySnippet || "").slice(0, 160), showId };
+    const base = { id: t.id, subject: t.subject, from: t.from, date: t.date, snippet: (t.bodySnippet || "").slice(0, 200), showId };
     if (t.category === "SETTLEMENT") settlements.push(base);
     else if (t.category === "CREW_FLIGHT") crewFlightsRaw.push(base);
-    else if (["ADVANCE","PRODUCTION","MERCH","LEGAL","GUEST_LIST"].includes(t.category)) advanceItems.push({ ...base, category: t.category });
+    else if (["ADVANCE","PRODUCTION","MERCH","LEGAL","GUEST_LIST","LOGISTICS","FINANCE"].includes(t.category)) advanceItems.push({ ...base, category: t.category });
     const signal = detectActionSignal(t.subject, t.bodySnippet);
     const senderKey = (t.from || "").toLowerCase().replace(/\s+/g, "");
     if (signal || senderCounts[senderKey] >= 2) actionRequired.push({ ...base, signal: signal || "repeat_sender" });
@@ -250,19 +377,29 @@ module.exports = async function handler(req, res) {
     }
   }
 
+  // ── Build per-show Gmail queries ─────────────────────────────────────────────
+  // More signals = more recall: venue name, city, artist, tour name, promoter, date vicinity.
+  const promoterWords = (show.promoter || "")
+    .split(/[/,\s]+/)
+    .map(w => w.trim())
+    .filter(w => w.length > 4 && !/^(the|and|llc|inc|ltd)$/i.test(w));
+
   const queries = [
-    `"${show.venue}" newer_than:30d`,
-    `"${show.city}" newer_than:30d`,
-    `"bbno$" "${show.city}" newer_than:30d`,
-    `"bbno$" "${show.venue}" newer_than:30d`,
-    `"bbno" "${show.venue}" newer_than:30d`,
-    `"bbno" "${show.city}" newer_than:30d`,
-  ];
+    `"${show.venue}" newer_than:45d`,
+    `"${show.city}" "bbno$" newer_than:45d`,
+    `"bbno$" "${show.venue}" newer_than:45d`,
+    `"bbno" "${show.venue}" newer_than:45d`,
+    `"Internet Explorer" "${show.city}" newer_than:45d`,
+    `"${show.city}" newer_than:45d`,
+    ...(promoterWords.length ? [`"${promoterWords[0]}" "${show.city}" newer_than:45d`] : []),
+    ...(show.date ? [`"${show.date}" (bbno OR "${show.city}" OR "${show.venue}") newer_than:60d`] : []),
+    ...(show.country && show.country !== "US" ? [`"${show.venue}" newer_than:90d`] : []),
+  ].filter(Boolean);
 
   const seenIds = new Set();
   for (const q of queries) {
     try {
-      const ids = await gmailSearch(googleToken, q, 15);
+      const ids = await gmailSearch(googleToken, q, 20); // bumped from 15
       ids.forEach((id) => seenIds.add(id));
     } catch (e) {
       console.error("Gmail search error:", e.message);
@@ -270,32 +407,63 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  const ids = [...seenIds].slice(0, 8);
+  const ids = [...seenIds].slice(0, 20); // was 8 — far too restrictive
   const threads = (await Promise.all(ids.map((id) => gmailGetThread(googleToken, id))))
     .filter(Boolean)
     .map(extractHeaders)
-    .map((t) => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 400) }));
+    .map((t) => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 2000) })); // was 400
 
+  // ── Claude system prompt (tour-context-aware) ─────────────────────────────
   const sysPrompt = `You are an email intelligence parser for concert touring operations. You work for Davon Johnson, Tour Manager at Day of Show, LLC.
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.
-Intent categories: ADVANCE, PRODUCTION, SETTLEMENT, LOGISTICS, LEGAL, FINANCE, MERCH, MEDIA, GUEST_LIST, ADMIN, CATERING
-Owner codes: DAVON, SHECK, DAN, MANAGEMENT, VENDOR, CREW, ACCOUNTANT
-Priority: CRITICAL (show <10d), HIGH (<48h), MEDIUM, LOW
-Status phrases: AWAITING RESPONSE, DRAFT READY, CONFIRMED, NEEDS DECISION, PENDING VENDOR, SENT, OVERDUE, RESOLVED`;
 
-  const userPrompt = `Here are Gmail threads (incl. body excerpts) for show: ${show.venue} in ${show.city} on ${show.date} (artist: ${show.artist}).
+${buildTourContextBlock()}
+
+Intent categories:
+- ADVANCE: advance checklist items, rider, stage plot, catering, production specs
+- PRODUCTION: lighting, backline, rigging, pyro, tech specs, load-in coordination
+- SETTLEMENT: box office reports, payouts, deal memos, final counts, gross receipts
+- LOGISTICS: ground transport, hotel confirmations, bus/truck routing, transfers
+- LEGAL: immigration forms, work permits, visas, ATA carnets, customs
+- FINANCE: invoices, wire transfers, payment confirmations, ACH, bank details
+- MERCH: merchandise orders, inventory, sales reports
+- MEDIA: press, photography, credentials, social
+- GUEST_LIST: comps, guest list submissions, VIP
+- ADMIN: contracts, NDAs, general admin
+
+Owner routing rules:
+- SHECK: promoter advance emails, venue production, technical riders, doors/curfew
+- DAN: on-site production, load-in coordination, crew logistics
+- DAVON: TM-directed items, artist-facing, finance approvals, settlements
+- MANAGEMENT: artist bookings, agent communications (Wasserman), deal terms
+- VENDOR: external production vendors (Pieter Smit, Fly By Nite, Neg Earth, TSL, BNP)
+- CREW: individual crew member logistics (Ruairi, Gabe, Grace, etc.)
+- ACCOUNTANT: invoices, tax documents, financial records (Tony Yacowar)
+
+Priority rules:
+- CRITICAL: show is <10 days away, or involves immigration/legal with hard deadlines
+- HIGH: show <48h away, or item is blocking advance checklist
+- MEDIUM: standard advance items, 2-4 weeks out
+- LOW: FYI threads, resolved items, informational
+
+Time extraction: Convert all times to 24h HH:MM format. "7pm" → "19:00", "6:30 AM" → "06:30". Common EU show times: doors 19:00, curfew 23:00.`;
+
+  const userPrompt = `Parse Gmail threads for show: ${show.venue} in ${show.city} on ${show.date}${show.promoter ? ` (Promoter: ${show.promoter})` : ""}${show.country ? ` [${show.country}]` : ""}. Artist: ${TOUR_CONTEXT.artist} — ${TOUR_CONTEXT.tour}.
+
+For each thread: classify intent, identify current status, extract sender name, and write a concise action snippet (≤120 chars).
+Extract follow-up actions with the correct owner (based on crew/owner routing above), priority, and deadline.
+Extract all contacts (name, role, email) from signatures and sender lines.
+Extract every time mention that maps to a show-day field. Fields: doors, curfew, busArrive, crewCall, venueAccess, mgTime, soundcheck, set.
+
 Thread data:
-${JSON.stringify(threads, null, 2)}
-For each thread, classify intent, current status, and sender name. Provide a short snippet (<= 100 chars). Be concise — no verbose descriptions.
-Generate follow-up action items with owner, priority, and deadline.
-Extract key contacts (name, role, email).
-Extract every time mention with the field it applies to and the source thread id. Allowed fields: doors, curfew, busArrive, crewCall, venueAccess, mgTime, soundcheck, set.
+${JSON.stringify(threads.map(t => ({ id: t.id, subject: t.subject, from: t.from, date: t.date, body: t.bodySnippet })), null, 2)}
+
 Return this exact JSON:
 {
-  "threads": [{"id":"t1","tid":"<thread_id>","subject":"<subject>","from":"<sender_name>","intent":"<INTENT>","status":"<STATUS>","date":"<Mon DD>","snippet":"<<=200 chars>"}],
-  "followUps": [{"action":"<action>","owner":"<OWNER>","priority":"<PRIORITY>","deadline":"<Mon DD>"}],
-  "showContacts": [{"name":"<n>","role":"<role>","email":"<email>"}],
-  "schedule": [{"time":"<HH:MM or 7pm>","item":"<short label>","field":"<doors|curfew|busArrive|crewCall|venueAccess|mgTime|soundcheck|set>","tid":"<thread_id>"}],
+  "threads": [{"id":"t1","tid":"<thread_id>","subject":"<subject>","from":"<sender_name>","intent":"<INTENT>","status":"<STATUS>","date":"<Mon DD>","snippet":"<<=120 chars>"}],
+  "followUps": [{"action":"<action>","owner":"<OWNER>","priority":"<PRIORITY>","deadline":"<Mon DD or null>"}],
+  "showContacts": [{"name":"<n>","role":"<role>","email":"<email or null>"}],
+  "schedule": [{"time":"<HH:MM 24h>","item":"<short label>","field":"<doors|curfew|busArrive|crewCall|venueAccess|mgTime|soundcheck|set>","tid":"<thread_id>"}],
   "lastRefreshed": "${new Date().toISOString()}"
 }`;
 

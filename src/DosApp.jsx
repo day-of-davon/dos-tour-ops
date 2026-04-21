@@ -5,13 +5,53 @@ import { supabase } from "./lib/supabase";
 // DOS TOUR OPS v7.0 — Day of Show, LLC
 // Client-first · All dept advance lanes · Custom + editable items · Full settlement
 
-const SK={SHOWS:"dos-v7-shows",ROS:"dos-v7-ros",ADVANCES:"dos-v7-advances",FINANCE:"dos-v7-finance",SETTINGS:"dos-v7-settings",CREW:"dos-v7-crew",PRODUCTION:"dos-v7-production",FLIGHTS:"dos-v7-flights",LODGING:"dos-v7-lodging"};
+const SK={SHOWS:"dos-v7-shows",ROS:"dos-v7-ros",ADVANCES:"dos-v7-advances",FINANCE:"dos-v7-finance",SETTINGS:"dos-v7-settings",CREW:"dos-v7-crew",PRODUCTION:"dos-v7-production",FLIGHTS:"dos-v7-flights",LODGING:"dos-v7-lodging",GUESTLISTS:"dos-v7-guestlists"};
 const hhmmToMin=s=>{if(!s)return null;const[h,m]=s.split(":").map(Number);return isNaN(h)||isNaN(m)?null:h*60+m;};
 // Group same-day flight legs by itinerary (confirmNo / bookingRef / pax signature) and tag
 // each with role: final leg of a multi-leg chain = "arr", all prior legs = "dep". Single-leg
 // groups stay "dep". Overnight arrivals (arrs) are always "arr".
 const flightItinKey=f=>f.confirmNo||f.pnr||f.bookingRef||((f.pax||[]).slice().sort().join("|")||f.id);
 const flightDedupKey=f=>`${f.flightNo||f.carrier||""}__${f.from||""}__${f.to||""}__${f.depDate||""}`;
+// Merge fresh scan data into an existing flight, filling empty fields and unioning pax.
+// Preserves user-set status/confirmedAt and non-empty suggestedCrewIds.
+const FLIGHT_ENRICH_FIELDS=["flightNo","carrier","from","fromCity","to","toCity","depDate","dep","arrDate","arr","cost","currency","pnr","confirmNo","ticketNo","bookingStatus"];
+const enrichFlight=(existing,fresh)=>{
+  const out={...existing};
+  FLIGHT_ENRICH_FIELDS.forEach(k=>{
+    if((out[k]==null||out[k]==="")&&fresh[k]!=null&&fresh[k]!=="")out[k]=fresh[k];
+  });
+  if(Array.isArray(fresh.pax)&&fresh.pax.length){
+    const seen=new Set((out.pax||[]).map(p=>String(p).toLowerCase()));
+    const merged=[...(out.pax||[])];
+    fresh.pax.forEach(p=>{const k=String(p).toLowerCase();if(!seen.has(k)){merged.push(p);seen.add(k);}});
+    out.pax=merged;
+  }
+  if(fresh.parseVerified&&!out.parseVerified){out.parseVerified=true;out.parseNote=fresh.parseNote||null;}
+  if(fresh.fresh48h)out.fresh48h=true;
+  return out;
+};
+// Locate an existing record that matches a freshly scanned flight. Matches by tid first,
+// then by flightNo among the tid's siblings, falling back to a null-flightNo sibling.
+const findFlightMatch=(cur,f)=>{
+  if(cur[f.id])return cur[f.id];
+  const vals=Object.values(cur);
+  const byTid=f.tid?vals.filter(x=>x.tid===f.tid):[];
+  if(byTid.length){
+    if(f.flightNo){
+      const exact=byTid.find(x=>x.flightNo===f.flightNo);
+      if(exact)return exact;
+      const nullLeg=byTid.find(x=>!x.flightNo&&(!f.depDate||!x.depDate||x.depDate===f.depDate));
+      if(nullLeg)return nullLeg;
+    }else{
+      const dateMatch=byTid.find(x=>f.depDate&&x.depDate===f.depDate);
+      if(dateMatch)return dateMatch;
+      return byTid[0];
+    }
+  }
+  const dk=flightDedupKey(f);
+  if(dk&&dk!=="______")return vals.find(x=>flightDedupKey(x)===dk)||null;
+  return null;
+};
 const tagFlightRoles=(deps,arrs)=>{
   const groups={};
   deps.forEach(f=>{const k=flightItinKey(f);(groups[k]=groups[k]||[]).push(f);});
@@ -296,7 +336,48 @@ const CM=CLIENTS.reduce((a,c)=>{a[c.id]=c;return a},{});
 // Only these users can see festival clients in the selector
 const FESTIVAL_ACCESS_EMAILS=["d.johnson@dayofshow.net","olivia@dayofshow.net"];
 const ROLES=[{id:"tm",label:"TM",c:"#5B21B6"},{id:"production",label:"PROD",c:"#92400E"},{id:"hospitality",label:"HOSPO",c:"#065F46"},{id:"transport",label:"TRANSPORT",c:"#a78bfa"}];
-const TABS=[{id:"advance",label:"Advance",icon:"◎"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"}];
+const TABS=[{id:"advance",label:"Advance",icon:"◎"},{id:"guestlist",label:"Guest List",icon:"◉"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"}];
+const GL_DEFAULT_CATEGORIES=[
+  {id:"artist_guest",name:"Artist Guest",side:"artist",zones:["FOH"],qty:6,walkOnQty:2},
+  {id:"artist_family",name:"Artist Family",side:"artist",zones:["VIP","DR"],qty:4,walkOnQty:0},
+  {id:"manager",name:"Manager",side:"artist",zones:["FOH","BS"],qty:2,walkOnQty:0},
+  {id:"agent",name:"Agent",side:"artist",zones:["FOH"],qty:1,walkOnQty:0},
+  {id:"media",name:"Publicist + Media",side:"artist",zones:["FOH","PIT"],qty:4,walkOnQty:0},
+  {id:"feature",name:"Feature Performer",side:"artist",zones:["FOH","BS"],qty:4,walkOnQty:0},
+  {id:"aaa_crew",name:"AAA Crew",side:"artist",zones:["FOH","BS","STG","CAT","DR","VIP","HOSPO","PIT"],qty:99,walkOnQty:0},
+  {id:"promoter",name:"Venue Promoter",side:"venue",zones:["FOH","BS","VIP","HOSPO"],qty:6,walkOnQty:0},
+  {id:"ar_manager",name:"AR Manager",side:"venue",zones:["HOSPO","VIP"],qty:4,walkOnQty:0},
+  {id:"hospo",name:"Hospo Guests",side:"venue",zones:["VIP"],qty:10,walkOnQty:0},
+];
+const GL_STATUS=[
+  {id:"draft",label:"Draft",color:"#6B7280",bg:"#1e1e2e"},
+  {id:"pending_approval",label:"Pending Approval",color:"#D97706",bg:"#2a1f0f"},
+  {id:"open",label:"Open",color:"#059669",bg:"#0f2a1f"},
+  {id:"locked",label:"Locked",color:"#5B21B6",bg:"#1f0f2a"},
+  {id:"closed",label:"Closed",color:"#4B5563",bg:"#0f0f14"},
+];
+const GL_PARTY_ROLES=[
+  {id:"artist",label:"Artist",side:"artist",defaultCategory:"artist_guest"},
+  {id:"manager",label:"Manager",side:"artist",defaultCategory:"manager"},
+  {id:"agent",label:"Agent",side:"artist",defaultCategory:"agent"},
+  {id:"publicist",label:"Publicist",side:"artist",defaultCategory:"media"},
+  {id:"family",label:"Family",side:"artist",defaultCategory:"artist_family"},
+  {id:"feature",label:"Feature Performer",side:"artist",defaultCategory:"feature"},
+  {id:"crew",label:"Crew",side:"artist",defaultCategory:"aaa_crew"},
+  {id:"promoter",label:"Promoter",side:"venue",defaultCategory:"promoter"},
+  {id:"ar_manager",label:"AR Manager",side:"venue",defaultCategory:"ar_manager"},
+  {id:"hospo_mgr",label:"Hospo Manager",side:"venue",defaultCategory:"hospo"},
+  {id:"talent_buyer",label:"Talent Buyer",side:"venue",defaultCategory:"promoter"},
+];
+const GL_DEFAULT_SHOW=()=>({
+  categories:GL_DEFAULT_CATEGORIES.map(c=>({...c})),
+  parties:{},
+  cutoffAt:"",
+  status:"draft",
+  walkOnCap:10,
+  notes:"",
+});
+const glNewId=p=>`${p}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
 const DEFAULT_CREW=[
   {id:"ag", name:"Alex Gumuchian",        role:"Headliner (bbno$)",          email:"alexgumuchian@gmail.com"},
   {id:"jb", name:"Julien Bruce",           role:"Support (Jungle Bobby)",     email:""},
@@ -647,6 +728,7 @@ export default function App(){
   const[tabOrder,setTabOrder]=useState(null);
   const[flights,setFlights]=useState({});
   const[lodging,setLodging]=useState({});
+  const[guestlists,setGuestlists]=useState({});
   const[refreshMsg,setRefreshMsg]=useState("");
   const[selEventId,setSelEventId]=useState(null);
   // Reset sub-event selection whenever the selected day changes
@@ -664,7 +746,7 @@ export default function App(){
   const st=useRef(null);const stp=useRef(null);
 
   useEffect(()=>{(async()=>{
-    const[s,r,a,f,se,cr,pr,fl,lo]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW),sG(SK.PRODUCTION),sG(SK.FLIGHTS),sG(SK.LODGING)]);
+    const[s,r,a,f,se,cr,pr,fl,lo,gl]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW),sG(SK.PRODUCTION),sG(SK.FLIGHTS),sG(SK.LODGING),sG(SK.GUESTLISTS)]);
     const init=ALL_SHOWS.reduce((acc,sh)=>{acc[sh.date]={...sh,doorsConfirmed:false,curfewConfirmed:false,busArriveConfirmed:false,crewCallConfirmed:false,venueAccessConfirmed:false,mgTimeConfirmed:false,etaSource:"schedule",lastModified:Date.now()};return acc;},{});
     const merged={...init};if(s)Object.keys(s).forEach(k=>{if(merged[k])merged[k]={...merged[k],...s[k]};});
     setShows(merged);setRos(r||{});setAdvances(a||{});setFinance(f||{});
@@ -674,7 +756,7 @@ export default function App(){
     if(se?.sidebarOpen!==undefined)setSidebarOpen(se.sidebarOpen);
     if(se?.tourStart)setTourStart(se.tourStart);if(se?.tourEnd)setTourEnd(se.tourEnd);
     if(cr?.crew)setCrew(cr.crew);if(cr?.showCrew)setShowCrew(cr.showCrew);
-    setProduction(pr||{});setFlights(fl||{});setLodging(lo||{});
+    setProduction(pr||{});setFlights(fl||{});setLodging(lo||{});setGuestlists(gl||{});
     const[np,cp,it]=await Promise.all([sGP(PK.NOTES_PRIV),sGP(PK.CHECKLIST_PRIV),sGP(PK.INTEL)]);
     setNotesPriv(np||{});setCheckPriv(cp||{});setIntel(it||{});
     setLoaded(true);
@@ -760,9 +842,9 @@ export default function App(){
 
   const save=useCallback(()=>{
     if(!loaded)return;if(st.current)clearTimeout(st.current);
-    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
-  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,flights,lodging,showOffDays,sidebarOpen,tourStart,tourEnd]);
-  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,showOffDays,sidebarOpen,tourStart,tourEnd]);
+    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging),sS(SK.GUESTLISTS,guestlists)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
+  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,flights,lodging,guestlists,showOffDays,sidebarOpen,tourStart,tourEnd]);
+  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,guestlists,showOffDays,sidebarOpen,tourStart,tourEnd]);
   useEffect(()=>{const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(v=>!v);}if(e.key==="Escape")setCmd(false);};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
   const labelScanFired=useRef(false);
   useEffect(()=>{if(loaded&&!labelScanFired.current){labelScanFired.current=true;refreshLabelIntel();}},[loaded]);// eslint-disable-line
@@ -781,12 +863,19 @@ export default function App(){
         const data=await resp.json();
         if(!data.flights?.length)return;
         setFlights(cur=>{
-          const existingKeys=new Set(Object.values(cur).map(f=>`${f.flightNo||f.carrier||""}__${f.from||""}__${f.to||""}__${f.depDate||""}`));
-          const novel=data.flights.filter(f=>!cur[f.id]&&!existingKeys.has(`${f.flightNo||f.carrier||""}__${f.from||""}__${f.to||""}__${f.depDate||""}`));
-          if(!novel.length)return cur;
           const next={...cur};
-          novel.forEach(f=>{next[f.id]={...f,status:"pending",suggestedCrewIds:matchPaxToCrew(f.pax,crew)};});
-          return next;
+          let added=0,enriched=0;
+          data.flights.forEach(f=>{
+            const match=findFlightMatch(next,f);
+            if(match){
+              const merged=enrichFlight(match,f);
+              if(JSON.stringify(merged)!==JSON.stringify(match)){next[match.id]=merged;enriched++;}
+            }else{
+              next[f.id]={...f,status:"pending",suggestedCrewIds:matchPaxToCrew(f.pax,crew)};
+              added++;
+            }
+          });
+          return(added||enriched)?next:cur;
         });
       }catch(e){console.warn("[bg-flights]",e.message);}
     })();
@@ -799,6 +888,12 @@ export default function App(){
   const uProd=useCallback((d,u)=>setProduction(p=>({...p,[d]:{...(p[d]||{}),...u}})),[]);
   const uFlight=useCallback((id,seg)=>setFlights(p=>{if(!seg){const n={...p};delete n[id];return n;}return{...p,[id]:seg};}),[]);
   const uLodging=useCallback((id,data)=>setLodging(p=>{if(!data){const n={...p};delete n[id];return n;}return{...p,[id]:data};}),[]);
+  const uGuestlist=useCallback((date,updater)=>setGuestlists(p=>{
+    const cur=p[date]||GL_DEFAULT_SHOW();
+    const next=typeof updater==="function"?updater(cur):{...cur,...updater};
+    if(next===null){const n={...p};delete n[date];return n;}
+    return{...p,[date]:next};
+  }),[]);
   const gRos=useCallback(d=>{if(ros[d])return ros[d];if(CUSTOM_ROS_MAP[d])return CUSTOM_ROS_MAP[d]();const sh=shows?.[d];if(sh?.type==="off"||sh?.type==="travel")return [];return DEFAULT_ROS();},[ros,shows]);
   const sorted=useMemo(()=>shows?Object.values(shows).sort((a,b)=>a.date.localeCompare(b.date)):[], [shows]);
   const next=useMemo(()=>{const t=new Date().toISOString().slice(0,10);return sorted.find(s=>s.date>=t)||sorted[0];},[sorted]);
@@ -849,7 +944,7 @@ export default function App(){
     setTabOrder(next);
   },[orderedTabs]);
 
-  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd}),[shows,ros,advances,finance,sel,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uProd,refreshLabelIntel]);// eslint-disable-line
+  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd}),[shows,ros,advances,finance,sel,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"#0a0a0f",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#e4e4ef",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"#a0a0b8",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
@@ -862,7 +957,7 @@ export default function App(){
         <div style={{flex:1,display:"flex",flexDirection:"row",minWidth:0,minHeight:0,width:"100%",overflow:"hidden"}}>
           <NavSidebar/>
           <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,minHeight:0,overflow:"hidden"}}>
-            {tab==="advance"&&<AdvTab/>}{tab==="ros"&&<ScheduleTab/>}{tab==="transport"&&<TransTab/>}{tab==="finance"&&<FinTab/>}{tab==="crew"&&<CrewTab/>}{tab==="lodging"&&<LodgingTab/>}{tab==="production"&&<ProdTab/>}
+            {tab==="advance"&&<AdvTab/>}{tab==="guestlist"&&<GuestListTab/>}{tab==="ros"&&<ScheduleTab/>}{tab==="transport"&&<TransTab/>}{tab==="finance"&&<FinTab/>}{tab==="crew"&&<CrewTab/>}{tab==="lodging"&&<LodgingTab/>}{tab==="production"&&<ProdTab/>}
           </div>
         </div>
         {cmd&&<CmdP/>}
@@ -1141,15 +1236,28 @@ function FlightsSection(){
       if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
       const newFlights=data.flights||[];
       const cur=opts.reset?{}:flights;
-      const existingKeys=new Set(Object.values(cur).map(flightDedupKey));
-      const novel=newFlights.filter(f=>!cur[f.id]&&!existingKeys.has(flightDedupKey(f)));
-      if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads — no new flights found.`);setScanning(false);return;}
-      novel.forEach(f=>uFlight(f.id,{...f,status:"pending",suggestedCrewIds:matchPaxToCrew(f.pax,crew)}));
+      const novel=[];const enriched=[];
+      const working={...cur};
+      newFlights.forEach(f=>{
+        const match=findFlightMatch(working,f);
+        if(match){
+          const merged=enrichFlight(match,f);
+          if(JSON.stringify(merged)!==JSON.stringify(match)){working[match.id]=merged;enriched.push(merged);}
+        }else{
+          const rec={...f,status:"pending",suggestedCrewIds:matchPaxToCrew(f.pax,crew)};
+          working[f.id]=rec;novel.push(rec);
+        }
+      });
+      if(!novel.length&&!enriched.length){setScanMsg(`Scanned ${data.threadsFound} threads — no new or updated flights.`);setScanning(false);return;}
+      novel.forEach(f=>uFlight(f.id,working[f.id]));
+      enriched.forEach(f=>uFlight(f.id,f));
       const freshCount=novel.filter(f=>f.fresh48h).length;
       const freshTag=freshCount?` (${freshCount} from last 48h)`:"";
       const matchedCount=novel.filter(f=>f.suggestedShowDate).length;
       const matchTag=matchedCount?` · ${matchedCount} matched to shows`:"";
-      setScanMsg(`Added ${novel.length} flight${novel.length>1?"s":""}${freshTag}${matchTag} — confirm to sync crew.`);
+      const addTag=novel.length?`Added ${novel.length}`:"";
+      const enrTag=enriched.length?`${addTag?" · ":""}Enriched ${enriched.length}`:"";
+      setScanMsg(`${addTag}${enrTag}${freshTag}${matchTag}${novel.length?" — confirm to sync crew.":""}`);
     }catch(e){
       const msg=e.message||"";
       if(msg.includes("string did not match")||msg.includes("Invalid URL")||msg.includes("not a valid URL"))setScanMsg("Auth session error — re-login with Google to refresh.");
@@ -5814,4 +5922,232 @@ function ProdTab(){
       </div>}
     </div>
   );
+}
+
+function GuestListTab(){
+  const{guestlists,uGuestlist,sel,setSel,sorted,shows,mobile,crew}=useContext(Ctx);
+  const showDates=useMemo(()=>(sorted||[]).filter(s=>s.type!=="off"&&s.type!=="travel"&&s.type!=="split").map(s=>s.date),[sorted]);
+  const date=sel&&shows?.[sel]?sel:(showDates[0]||sel);
+  const show=shows?.[date];
+  const gl=guestlists[date]||GL_DEFAULT_SHOW();
+  const glExists=!!guestlists[date];
+  const[addParty,setAddParty]=useState(false);
+  const[partyForm,setPartyForm]=useState({name:"",role:"manager",contact:""});
+  const[expandedParty,setExpandedParty]=useState(null);
+
+  const statusMeta=GL_STATUS.find(s=>s.id===gl.status)||GL_STATUS[0];
+  const parties=gl.parties||{};
+  const partyList=Object.entries(parties);
+
+  const categoryUsage=useMemo(()=>{
+    const m={};
+    gl.categories.forEach(c=>{m[c.id]={qty:c.qty||0,used:0,checkedIn:0,walkOn:c.walkOnQty||0};});
+    partyList.forEach(([,p])=>{
+      (p.entries||[]).forEach(e=>{
+        if(!m[p.categoryId])return;
+        const seats=1+(e.plusOne?1:0);
+        m[p.categoryId].used+=seats;
+        if(e.status==="checked_in")m[p.categoryId].checkedIn+=seats;
+      });
+    });
+    return m;
+  },[gl.categories,partyList]);
+
+  const totals=useMemo(()=>{
+    let allot=0,used=0,checkedIn=0;
+    gl.categories.forEach(c=>{allot+=c.qty||0;});
+    Object.values(categoryUsage).forEach(u=>{used+=u.used;checkedIn+=u.checkedIn;});
+    return{allot,used,checkedIn};
+  },[gl.categories,categoryUsage]);
+
+  function initShow(){uGuestlist(date,GL_DEFAULT_SHOW());}
+  function updateCat(cid,patch){uGuestlist(date,cur=>({...cur,categories:cur.categories.map(c=>c.id===cid?{...c,...patch}:c)}));}
+  function addCategory(){const nc={id:glNewId("cat"),name:"New Category",side:"artist",zones:["FOH"],qty:2,walkOnQty:0};uGuestlist(date,cur=>({...cur,categories:[...cur.categories,nc]}));}
+  function removeCategory(cid){uGuestlist(date,cur=>({...cur,categories:cur.categories.filter(c=>c.id!==cid)}));}
+  function setStatus(s){uGuestlist(date,{status:s});}
+  function setCutoff(v){uGuestlist(date,{cutoffAt:v});}
+  function setWalkOnCap(v){uGuestlist(date,{walkOnCap:parseInt(v)||0});}
+  function setNotes(v){uGuestlist(date,{notes:v});}
+
+  function createParty(){
+    if(!partyForm.name.trim())return;
+    const role=GL_PARTY_ROLES.find(r=>r.id===partyForm.role)||GL_PARTY_ROLES[0];
+    const pid=glNewId("party");
+    uGuestlist(date,cur=>({...cur,parties:{...cur.parties,[pid]:{name:partyForm.name.trim(),role:role.id,side:role.side,contact:partyForm.contact.trim(),categoryId:role.defaultCategory,entries:[]}}}));
+    setPartyForm({name:"",role:"manager",contact:""});setAddParty(false);setExpandedParty(pid);
+  }
+  function updateParty(pid,patch){uGuestlist(date,cur=>({...cur,parties:{...cur.parties,[pid]:{...cur.parties[pid],...patch}}}));}
+  function removeParty(pid){uGuestlist(date,cur=>{const n={...cur.parties};delete n[pid];return{...cur,parties:n};});}
+  function addEntry(pid){const e={id:glNewId("e"),name:"",plusOne:false,note:"",status:"pending",isWalkOn:false};uGuestlist(date,cur=>({...cur,parties:{...cur.parties,[pid]:{...cur.parties[pid],entries:[...(cur.parties[pid].entries||[]),e]}}}));}
+  function updateEntry(pid,eid,patch){uGuestlist(date,cur=>({...cur,parties:{...cur.parties,[pid]:{...cur.parties[pid],entries:cur.parties[pid].entries.map(e=>e.id===eid?{...e,...patch}:e)}}}));}
+  function removeEntry(pid,eid){uGuestlist(date,cur=>({...cur,parties:{...cur.parties,[pid]:{...cur.parties[pid],entries:cur.parties[pid].entries.filter(e=>e.id!==eid)}}}));}
+
+  function exportDoorList(){
+    const rows=[];
+    partyList.forEach(([,p])=>{
+      const cat=gl.categories.find(c=>c.id===p.categoryId);
+      (p.entries||[]).forEach(e=>{
+        rows.push({name:e.name,plusOne:e.plusOne,category:cat?.name||"",zones:cat?.zones?.join("/")||"",submittedBy:p.name,status:e.status,note:e.note});
+        if(e.plusOne)rows.push({name:`${e.name} +1`,plusOne:false,category:cat?.name||"",zones:cat?.zones?.join("/")||"",submittedBy:p.name,status:e.status,note:""});
+      });
+    });
+    rows.sort((a,b)=>a.name.localeCompare(b.name));
+    const payload={show:show?.venue||"",city:show?.city||"",date,status:gl.status,cutoffAt:gl.cutoffAt,totals,door:rows};
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download=`guestlist_${date}_${(show?.venue||"").replace(/\s+/g,"_")}.json`;a.click();URL.revokeObjectURL(url);
+  }
+
+  if(!show){
+    return<div style={{flex:1,padding:mobile?"10px 8px":"14px 16px",color:"#a0a0b8",fontSize:11}}>
+      Select a show date from the sidebar to manage its guest list.
+      {showDates.length>0&&<div style={{marginTop:8}}><button onClick={()=>setSel(showDates[0])} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Go to {showDates[0]}</button></div>}
+    </div>;
+  }
+
+  return(
+    <div style={{flex:1,overflowY:"auto",padding:mobile?"10px 8px":"14px 16px",display:"flex",flexDirection:"column",gap:14,minWidth:0,background:"#0a0a0f"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
+        <div>
+          <div style={{fontSize:14,fontWeight:800,color:"#e4e4ef",letterSpacing:"-0.02em"}}>{show.venue} · {show.city}</div>
+          <div style={{fontSize:10,color:"#a0a0b8",marginTop:1,fontFamily:MN}}>{new Date(date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</div>
+        </div>
+        <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+          {glExists&&<>
+            <span style={{fontSize:9,fontWeight:700,color:statusMeta.color,background:statusMeta.bg,border:`1px solid ${statusMeta.color}`,borderRadius:5,padding:"3px 8px",letterSpacing:"0.05em"}}>{statusMeta.label.toUpperCase()}</span>
+            <select value={gl.status} onChange={e=>setStatus(e.target.value)} style={{background:"#12121a",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"4px 6px",fontSize:10}}>
+              {GL_STATUS.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}
+            </select>
+            <button onClick={exportDoorList} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Export Door List</button>
+          </>}
+          {!glExists&&<button onClick={initShow} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Initialize Guest List</button>}
+        </div>
+      </div>
+
+      {!glExists&&<div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"20px 16px",color:"#b0b0c8",fontSize:11}}>
+        No guest list configured for this show. Initialize to load the tour template ({GL_DEFAULT_CATEGORIES.length} default categories).
+      </div>}
+
+      {glExists&&<>
+        <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+          <GLMetric label="Allotment" value={totals.allot}/>
+          <GLMetric label="Submitted" value={totals.used} sub={totals.allot?`${Math.round(totals.used/totals.allot*100)}%`:""}/>
+          <GLMetric label="Checked In" value={totals.checkedIn}/>
+          <GLMetric label="Remaining" value={Math.max(0,totals.allot-totals.used)}/>
+        </div>
+
+        <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"12px 14px"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",marginBottom:10}}>
+            <span style={{fontSize:10,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em"}}>SHOW CONFIG</span>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"repeat(3,1fr)",gap:10}}>
+            <label style={{display:"flex",flexDirection:"column",gap:3}}>
+              <span style={{fontSize:9,color:"#a0a0b8",letterSpacing:"0.05em"}}>CUTOFF</span>
+              <input type="datetime-local" value={gl.cutoffAt||""} onChange={e=>setCutoff(e.target.value)} style={{background:"#0a0a0f",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"5px 7px",fontSize:11,fontFamily:MN}}/>
+            </label>
+            <label style={{display:"flex",flexDirection:"column",gap:3}}>
+              <span style={{fontSize:9,color:"#a0a0b8",letterSpacing:"0.05em"}}>WALK-ON CAP</span>
+              <input type="number" value={gl.walkOnCap??0} onChange={e=>setWalkOnCap(e.target.value)} style={{background:"#0a0a0f",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"5px 7px",fontSize:11,fontFamily:MN}}/>
+            </label>
+            <label style={{display:"flex",flexDirection:"column",gap:3}}>
+              <span style={{fontSize:9,color:"#a0a0b8",letterSpacing:"0.05em"}}>NOTES</span>
+              <input type="text" value={gl.notes||""} onChange={e=>setNotes(e.target.value)} placeholder="e.g. Venue hard cap 500" style={{background:"#0a0a0f",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"5px 7px",fontSize:11}}/>
+            </label>
+          </div>
+        </div>
+
+        <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"12px 14px"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
+            <span style={{fontSize:10,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em"}}>CATEGORIES · {gl.categories.length}</span>
+            <button onClick={addCategory} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #2a2a3a",background:"transparent",color:"#b0b0c8",cursor:"pointer"}}>+ Category</button>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {gl.categories.map(c=>{
+              const u=categoryUsage[c.id]||{used:0,checkedIn:0};
+              const over=u.used>c.qty;
+              return<div key={c.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr auto":"1.5fr 2fr 70px 70px 90px 24px",gap:6,alignItems:"center",background:"#0a0a0f",border:`1px solid ${over?"#991B1B":"#2a2a3a"}`,borderRadius:6,padding:"6px 8px"}}>
+                <input value={c.name} onChange={e=>updateCat(c.id,{name:e.target.value})} style={{background:"transparent",color:"#e4e4ef",border:"none",fontSize:11,fontWeight:600,padding:2}}/>
+                <input value={(c.zones||[]).join(", ")} onChange={e=>updateCat(c.id,{zones:e.target.value.split(",").map(x=>x.trim()).filter(Boolean)})} placeholder="FOH, BS" style={{background:"transparent",color:"#b0b0c8",border:"none",fontSize:10,fontFamily:MN,padding:2}}/>
+                <input type="number" value={c.qty} onChange={e=>updateCat(c.id,{qty:parseInt(e.target.value)||0})} style={{background:"#12121a",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:4,padding:"3px 5px",fontSize:10,fontFamily:MN,width:"100%"}}/>
+                <input type="number" value={c.walkOnQty||0} onChange={e=>updateCat(c.id,{walkOnQty:parseInt(e.target.value)||0})} placeholder="WO" style={{background:"#12121a",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:4,padding:"3px 5px",fontSize:10,fontFamily:MN,width:"100%"}}/>
+                <span style={{fontSize:10,fontFamily:MN,color:over?"#F87171":"#a0a0b8",textAlign:"right"}}>{u.used}/{c.qty} <span style={{color:"#707088"}}>· {u.checkedIn}✓</span></span>
+                <button onClick={()=>removeCategory(c.id)} style={{background:"transparent",color:"#707088",border:"none",fontSize:14,cursor:"pointer",padding:0}}>×</button>
+              </div>;
+            })}
+          </div>
+        </div>
+
+        <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"12px 14px"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
+            <span style={{fontSize:10,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em"}}>PARTIES · {partyList.length}</span>
+            <button onClick={()=>setAddParty(v=>!v)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>{addParty?"Cancel":"+ Party"}</button>
+          </div>
+          {addParty&&<div style={{background:"#0a0a0f",border:"1px solid #5B21B6",borderRadius:6,padding:10,marginBottom:10,display:"grid",gridTemplateColumns:mobile?"1fr":"2fr 1.2fr 2fr auto",gap:6,alignItems:"center"}}>
+            <input autoFocus placeholder="Party name (e.g. Alex Gumuchian)" value={partyForm.name} onChange={e=>setPartyForm(f=>({...f,name:e.target.value}))} style={{background:"#12121a",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"5px 7px",fontSize:11}}/>
+            <select value={partyForm.role} onChange={e=>setPartyForm(f=>({...f,role:e.target.value}))} style={{background:"#12121a",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"5px 7px",fontSize:11}}>
+              {GL_PARTY_ROLES.map(r=><option key={r.id} value={r.id}>{r.label} ({r.side})</option>)}
+            </select>
+            <input placeholder="Contact email" value={partyForm.contact} onChange={e=>setPartyForm(f=>({...f,contact:e.target.value}))} style={{background:"#12121a",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"5px 7px",fontSize:11,fontFamily:MN}}/>
+            <button onClick={createParty} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:5,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Add</button>
+          </div>}
+          {partyList.length===0&&<div style={{fontSize:10,color:"#707088",textAlign:"center",padding:"12px 8px"}}>No parties yet. Add a party to start collecting entries.</div>}
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {partyList.map(([pid,p])=>{
+              const cat=gl.categories.find(c=>c.id===p.categoryId);
+              const used=(p.entries||[]).reduce((s,e)=>s+1+(e.plusOne?1:0),0);
+              const expanded=expandedParty===pid;
+              const sideColor=p.side==="venue"?"#0891B2":"#7C3AED";
+              return<div key={pid} style={{background:"#0a0a0f",border:`1px solid ${expanded?sideColor:"#2a2a3a"}`,borderRadius:6,overflow:"hidden"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",cursor:"pointer"}} onClick={()=>setExpandedParty(expanded?null:pid)}>
+                  <span style={{fontSize:8,fontWeight:800,color:sideColor,background:p.side==="venue"?"#0a2a2e":"#1f0f2a",border:`1px solid ${sideColor}`,borderRadius:3,padding:"1px 5px",letterSpacing:"0.06em"}}>{p.side.toUpperCase()}</span>
+                  <span style={{fontSize:11,fontWeight:700,color:"#e4e4ef",flex:1}}>{p.name}</span>
+                  <span style={{fontSize:10,color:"#a0a0b8",fontFamily:MN}}>{cat?.name||"—"}</span>
+                  <span style={{fontSize:10,color:used>(cat?.qty||0)?"#F87171":"#a0a0b8",fontFamily:MN}}>{used}/{cat?.qty||0}</span>
+                  <span style={{fontSize:10,color:"#707088"}}>{expanded?"▾":"▸"}</span>
+                </div>
+                {expanded&&<div style={{padding:"0 10px 10px 10px",display:"flex",flexDirection:"column",gap:6,borderTop:"1px solid #2a2a3a"}}>
+                  <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"1.5fr 2fr auto",gap:6,alignItems:"center",marginTop:8}}>
+                    <select value={p.categoryId||""} onChange={e=>updateParty(pid,{categoryId:e.target.value})} style={{background:"#12121a",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"4px 6px",fontSize:10}}>
+                      {gl.categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    <input value={p.contact||""} onChange={e=>updateParty(pid,{contact:e.target.value})} placeholder="contact email" style={{background:"#12121a",color:"#b0b0c8",border:"1px solid #2a2a3a",borderRadius:5,padding:"4px 6px",fontSize:10,fontFamily:MN}}/>
+                    <button onClick={()=>{if(confirm(`Remove ${p.name}?`))removeParty(pid);}} style={{background:"transparent",color:"#F87171",border:"1px solid #2a2a3a",borderRadius:5,padding:"4px 10px",fontSize:10,cursor:"pointer"}}>Remove party</button>
+                  </div>
+                  <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                    {(p.entries||[]).map(e=>{
+                      const checked=e.status==="checked_in";
+                      return<div key={e.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr auto":"24px 2fr 60px 2fr 90px 24px",gap:6,alignItems:"center",background:checked?"#0f2a1f":"#12121a",border:`1px solid ${checked?"#059669":"#2a2a3a"}`,borderRadius:5,padding:"5px 7px"}}>
+                        <input type="checkbox" checked={checked} onChange={ev=>updateEntry(pid,e.id,{status:ev.target.checked?"checked_in":"pending",checkedInAt:ev.target.checked?new Date().toISOString():null})} style={{accentColor:"#059669",cursor:"pointer"}}/>
+                        <input value={e.name} onChange={ev=>updateEntry(pid,e.id,{name:ev.target.value})} placeholder="Guest name" style={{background:"transparent",color:"#e4e4ef",border:"none",fontSize:11,padding:2}}/>
+                        <label style={{fontSize:10,color:"#a0a0b8",display:"flex",alignItems:"center",gap:4,fontFamily:MN,cursor:"pointer"}}>
+                          <input type="checkbox" checked={!!e.plusOne} onChange={ev=>updateEntry(pid,e.id,{plusOne:ev.target.checked})} style={{accentColor:"#5B21B6",cursor:"pointer"}}/>+1
+                        </label>
+                        <input value={e.note||""} onChange={ev=>updateEntry(pid,e.id,{note:ev.target.value})} placeholder="note (dietary, access, …)" style={{background:"transparent",color:"#b0b0c8",border:"none",fontSize:10,padding:2}}/>
+                        <select value={e.status} onChange={ev=>updateEntry(pid,e.id,{status:ev.target.value})} style={{background:"#0a0a0f",color:"#b0b0c8",border:"1px solid #2a2a3a",borderRadius:4,padding:"2px 4px",fontSize:9}}>
+                          <option value="pending">Pending</option>
+                          <option value="approved">Approved</option>
+                          <option value="checked_in">Checked In</option>
+                          <option value="no_show">No Show</option>
+                          <option value="denied">Denied</option>
+                        </select>
+                        <button onClick={()=>removeEntry(pid,e.id)} style={{background:"transparent",color:"#707088",border:"none",fontSize:13,cursor:"pointer",padding:0}}>×</button>
+                      </div>;
+                    })}
+                  </div>
+                  <button onClick={()=>addEntry(pid)} style={{alignSelf:"flex-start",background:"transparent",color:"#7C3AED",border:"1px dashed #5B21B6",borderRadius:5,padding:"4px 10px",fontSize:10,fontWeight:600,cursor:"pointer"}}>+ Entry</button>
+                </div>}
+              </div>;
+            })}
+          </div>
+        </div>
+      </>}
+    </div>
+  );
+}
+
+function GLMetric({label,value,sub}){
+  return<div style={{flex:"1 1 120px",background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"10px 12px",minWidth:110}}>
+    <div style={{fontSize:9,fontWeight:700,color:"#a0a0b8",letterSpacing:"0.08em"}}>{label.toUpperCase()}</div>
+    <div style={{fontSize:20,fontWeight:800,color:"#e4e4ef",fontFamily:MN,lineHeight:1.1,marginTop:2}}>{value}{sub&&<span style={{fontSize:10,color:"#707088",marginLeft:6}}>{sub}</span>}</div>
+  </div>;
 }
