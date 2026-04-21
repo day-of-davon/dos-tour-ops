@@ -30,6 +30,20 @@
 
 - [2026-04-21 04:00 UTC] https://railway.com/deploy/n8n-production-stack — n8n Railway production stack template includes queue-mode: main UI + worker + webhook processor + Postgres + Redis, one-click deploy, ~$5/mo Hobby plan — more robust than bare n8n deploy; use this template for Phase 4 n8n setup, not the bare template.
 
+- [2026-04-21 05:30 UTC] https://github.com/supabase/supabase/releases/tag/v1.26.03 — Supabase Edge Functions rate limiting live as of March 6, 2026: outbound fetch() calls from Edge Functions to other Edge Functions within the same project are now rate-limited; avoid nested Edge Function call patterns in dos-platform agent architecture.
+
+- [2026-04-21 05:30 UTC] https://github.com/orgs/supabase/discussions/42531 — Supabase OpenAPI schema endpoint via anon key deprecated March 11, 2026: returns "Access to schema is forbidden" — service_role key required for schema introspection; update dev tooling and any schema-diffing scripts for Phase 0 Josh audit to use service_role.
+
+- [2026-04-21 05:30 UTC] https://github.com/VROOM-Project/pyvroom — pyvroom 1.15.0 (March 2026) additional details beyond prior entry: new max_jobs param per vehicle for load distribution control; performance improved to avg 360ms for 100-delivery problems; optimality gap reduced to 1.63% (was 1.81%).
+
+- [2026-04-21 05:30 UTC] https://n8n.io/pricing/ — n8n removed all active workflow limits across all plans (April 2026); billing now execution-only; Community Edition (self-hosted) remains 100% free with unlimited workflows and executions — Phase 4 n8n on Railway has no workflow-count ceiling regardless of growth.
+
+- [2026-04-21 05:30 UTC] https://www.eventric.com/ — Master Tour has expanded product line to include Master Tour Venue, Crew, and Ticketing modules; CLAUDE.md competitive entry understates their scope (previously: itineraries, day sheets, 150K contacts, offline only); reassess competitive gap, particularly on Crew tab which DOS has not yet shipped.
+
+- [2026-04-21 05:30 UTC] https://noadohler.com/live-music-industry-shakeup-touring-tech-tools-and-ticketing-trends-in-2026/ — TourSync launched 2026: creator workflow tools + real-time ticketing analytics + fan discovery marketplace; source is personal blog (low authority), not independently verified — flag for monitoring, not yet confirmed competitive threat.
+
+- [2026-04-21 05:30 UTC] https://techcrunch.com/2025/10/03/supabase-nabs-5b-valuation-four-months-after-hitting-2b/ — Supabase reached $5B valuation Oct 2025 (up from $2B in Jun 2025); infrastructure dependency risk low; Supabase is well-capitalized and scaling; confirms safe bet for both v7 and dos-platform long-term.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
