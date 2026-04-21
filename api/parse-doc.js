@@ -25,6 +25,22 @@ function extractJson(text) {
   return null;
 }
 
+function buildVerifyPrompt(parsed) {
+  return `Verify this extracted data against the source document. Check every field for accuracy.
+
+EXTRACTED DATA:
+${JSON.stringify(parsed, null, 2)}
+
+Return this exact JSON:
+{
+  "ok": true,
+  "note": null,
+  "corrections": {}
+}
+
+If any fields are wrong, set ok=false, describe the issue in note, and put corrected values in corrections using the same structure as the extracted data (e.g. corrections.receipt.amount, corrections.flights[0].from, corrections.show.date). Only include fields that need correction.`;
+}
+
 const SYS = `You are a touring industry document parser for Davon Johnson, Tour Manager at Day of Show, LLC.
 Classify and extract structured data from any uploaded document related to concert touring operations.
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.`;
@@ -173,27 +189,63 @@ module.exports = async function handler(req, res) {
       ] }]
     : [{ role: "user", content: `${userPromptText}\n\nDOCUMENT CONTENT:\n${extractedText}` }];
 
-  const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4096, system: SYS, messages }),
-  });
+  const callClaude = async (sys, msgs, maxTokens = 4096) => {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: maxTokens, system: sys, messages: msgs }),
+    });
+    if (!resp.ok) throw Object.assign(new Error(`Anthropic ${resp.status}`), { detail: await resp.text() });
+    const data = await resp.json();
+    console.log("[parse-doc] stop_reason:", data.stop_reason);
+    return (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+  };
 
-  if (!anthropicResp.ok) {
-    const err = await anthropicResp.text();
-    return res.status(502).json({ error: `Anthropic error: ${anthropicResp.status}`, detail: err });
+  let rawText;
+  try {
+    rawText = await callClaude(SYS, messages);
+  } catch (e) {
+    return res.status(502).json({ error: `Anthropic error: ${e.message}`, detail: e.detail });
   }
-
-  const anthropicData = await anthropicResp.json();
-  const rawText = (anthropicData.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
-  console.log("[parse-doc] stop_reason:", anthropicData.stop_reason, "| docType extracted from:", filename);
 
   const parsed = extractJson(rawText);
   if (!parsed) return res.status(422).json({ error: "Could not parse response", raw: rawText.slice(0, 600) });
 
-  return res.json({ ...parsed, filename });
+  // Verification pass — re-check extracted fields against source document
+  const VERIFY_SYS = `You are a document data verifier. You check extracted structured data against the source document for accuracy.
+IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.`;
+
+  const verifyMsgs = usePdfNative
+    ? [{ role: "user", content: [
+        { type: "document", source: { type: "base64", media_type: "application/pdf", data: fileBase64 } },
+        { type: "text", text: buildVerifyPrompt(parsed) },
+      ] }]
+    : [{ role: "user", content: `${buildVerifyPrompt(parsed)}\n\nDOCUMENT CONTENT:\n${extractedText}` }];
+
+  let verified = parsed;
+  try {
+    const verifyText = await callClaude(VERIFY_SYS, verifyMsgs, 2048);
+    const verifyResult = extractJson(verifyText);
+    if (verifyResult) {
+      // Apply field-level corrections
+      if (verifyResult.corrections) {
+        if (verifyResult.corrections.receipt && parsed.receipt)
+          verified = { ...verified, receipt: { ...parsed.receipt, ...verifyResult.corrections.receipt } };
+        if (verifyResult.corrections.flights && Array.isArray(verifyResult.corrections.flights))
+          verified = { ...verified, flights: verifyResult.corrections.flights };
+        if (verifyResult.corrections.show && parsed.show)
+          verified = { ...verified, show: { ...parsed.show, ...verifyResult.corrections.show } };
+      }
+      verified = { ...verified, parseVerified: verifyResult.ok !== false, parseNote: verifyResult.note || null };
+    }
+  } catch (e) {
+    console.warn("[parse-doc] verify error:", e.message);
+    verified = { ...parsed, parseVerified: null };
+  }
+
+  return res.json({ ...verified, filename });
 };

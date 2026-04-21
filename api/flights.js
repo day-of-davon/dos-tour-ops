@@ -336,7 +336,7 @@ Return this exact JSON:
   ]
 }`;
 
-  const callClaude = async (prompt) => {
+  const callClaude = async (prompt, sys = sysPrompt, maxTokens = 4096) => {
     const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -346,8 +346,8 @@ Return this exact JSON:
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-6",
-        max_tokens: 4096,
-        system: sysPrompt,
+        max_tokens: maxTokens,
+        system: sys,
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -358,12 +358,72 @@ Return this exact JSON:
     return extractJson(text);
   };
 
+  const verifySys = `You are a flight data verifier. You check extracted flight records against their source emails for accuracy.
+IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.`;
+
+  const buildVerifyPrompt = (batch, flights) =>
+    `Verify these extracted flight records against their source email threads (matched by tid).
+
+SOURCE THREADS:
+${batch.map(t => `tid:${t.id}\nSubject: ${t.subject}\nBody: ${t.body}`).join("\n\n---\n\n")}
+
+EXTRACTED FLIGHTS:
+${JSON.stringify(flights, null, 2)}
+
+For each flight, re-read its source thread and check every field: flightNo, from, fromCity, to, toCity, depDate, dep, arrDate, arr, pax, pnr, confirmNo, cost, currency.
+If a field is wrong, provide the corrected value. If correct or unknown, omit it from corrections.
+
+Return this exact JSON:
+{
+  "results": [
+    {
+      "tid": "<thread_id>",
+      "flightNo": "<flight number for reference>",
+      "ok": true,
+      "corrections": {},
+      "note": null
+    },
+    {
+      "tid": "<thread_id>",
+      "flightNo": "<flight number for reference>",
+      "ok": false,
+      "corrections": { "from": "BNA", "fromCity": "Nashville", "to": "BOS", "toCity": "Boston" },
+      "note": "Email shows BNA→BOS, not ORD→MIA"
+    }
+  ]
+}`;
+
+  // Parse a batch then immediately verify it — corrections applied before returning
+  const parseAndVerifyBatch = async (batch, offset) => {
+    const parsed = await callClaude(buildPrompt(batch, offset));
+    const flights = Array.isArray(parsed?.flights) ? parsed.flights : [];
+    if (!flights.length) return flights;
+
+    let verifyResult;
+    try {
+      verifyResult = await callClaude(buildVerifyPrompt(batch, flights), verifySys, 2048);
+    } catch (e) {
+      console.warn("[flights] verify error:", e.message);
+      return flights.map(f => ({ ...f, parseVerified: null }));
+    }
+
+    const byTid = {};
+    (verifyResult?.results || []).forEach(r => { byTid[r.tid] = r; });
+
+    return flights.map(f => {
+      const v = byTid[f.tid];
+      if (!v) return { ...f, parseVerified: null };
+      const corrected = { ...f, ...v.corrections };
+      return { ...corrected, parseVerified: v.ok, parseNote: v.note || null };
+    });
+  };
+
   let rawFlights = [];
   try {
     const results = await Promise.all(
-      threadBatches.map((batch, i) => callClaude(buildPrompt(batch, i * BATCH)))
+      threadBatches.map((batch, i) => parseAndVerifyBatch(batch, i * BATCH))
     );
-    rawFlights = results.flatMap(r => Array.isArray(r?.flights) ? r.flights : []);
+    rawFlights = results.flat();
   } catch (e) {
     console.error("[flights] anthropic error:", e.message);
     return res.status(502).json({ error: `Anthropic request failed: ${e.message}`, detail: e.detail });
