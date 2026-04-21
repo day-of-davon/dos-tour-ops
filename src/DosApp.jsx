@@ -1727,13 +1727,6 @@ function AdvTab(){
 
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)",position:"relative"}}>
-      <div style={{padding:"5px 20px",borderBottom:"1px solid #d6d3cd",background:"#fff",display:"flex",gap:2,overflowX:"auto",flexShrink:0}}>
-        {upcoming.slice(0,14).map(s=>{const isSel=s.date===sel;const adv2=advances[s.date]||{};const p2=[...AT,...(adv2.customItems||[])].filter(t=>((adv2.items||{})[t.id]?.status||"pending")==="pending").length;
-          return(<button key={s.date} onClick={()=>setSel(s.date)} style={{flexShrink:0,padding:"3px 9px",borderRadius:6,border:isSel?`2px solid ${client.color}`:"1px solid #d6d3cd",background:isSel?"#fff":"#f5f3ef",color:isSel?"#0f172a":"#64748b",fontSize:9,fontWeight:isSel?700:500,cursor:"pointer",position:"relative"}}>
-            <div style={{fontFamily:MN,fontSize:9}}>{fD(s.date)}</div><div style={{fontSize:8}}>{s.city}</div>
-            <div style={{position:"absolute",top:1,right:1,width:5,height:5,borderRadius:"50%",background:p2===0?"#047857":p2<10?"#F59E0B":"#B91C1C"}}/>
-          </button>);})}
-      </div>
       <div style={{padding:"6px 20px",borderBottom:"1px solid #ebe8e3",background:"#fff",display:"flex",gap:8,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
         <span style={{fontWeight:700,fontSize:12}}>{show.venue}</span>
         <span style={{fontSize:11,color:"#64748b"}}>{show.city} · {fFull(sel)}</span>
@@ -4047,27 +4040,6 @@ function CrewTab(){
 
   return(
     <div className="fi" style={{display:"flex",height:"calc(100vh - 115px)"}}>
-      {/* Date sidebar */}
-      <div style={{width:190,borderRight:"1px solid #d6d3cd",background:"#fff",overflow:"auto",flexShrink:0}}>
-        <div style={{padding:"7px 12px",fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.08em",borderBottom:"1px solid #ebe8e3"}}>DATES</div>
-        {tourDaysSorted.map(td=>{
-          const d=td.date;const isSel=sel===d;
-          const hasData=!!showCrew[d]&&Object.keys(showCrew[d]).length>0;
-          const isShow=dayType(d)==="show";
-          const att=hasData?Object.values(showCrew[d]).filter(x=>x.attending).length:0;
-          return(
-            <div key={d} onClick={()=>setSel(d)} className="br rh" style={{padding:"7px 12px",cursor:"pointer",borderBottom:"1px solid #f5f3ef",background:isSel?"#f5f3ef":"transparent",borderLeft:isSel?"3px solid #5B21B6":"3px solid transparent"}}>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:1}}>
-                <span style={{fontFamily:MN,fontSize:9,color:"#64748b"}}>{fD(d)}</span>
-                {att>0&&<span style={{fontSize:7,padding:"1px 4px",borderRadius:3,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>{att}</span>}
-              </div>
-              <div style={{fontSize:10,fontWeight:600,color:isShow?"#0f172a":"#94a3b8",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{dateLabel(d)}</div>
-              <div style={{fontSize:8,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.04em"}}>{isShow?"Show":dayType(d)}</div>
-            </div>
-          );
-        })}
-      </div>
-
       {/* Main panel */}
       <div style={{flex:1,overflow:"auto",display:"flex",flexDirection:"column"}}>
       {/* Header */}
@@ -4778,27 +4750,6 @@ function LodgingTab(){
 
   return(
     <div style={{display:"flex",flex:1,minHeight:0,height:"100%",background:"#F5F3EF"}}>
-      {/* Date sidebar */}
-      <div style={{width:mobile?60:130,flexShrink:0,borderRight:"1px solid #e2e0dc",overflowY:"auto",background:"#faf9f7",display:"flex",flexDirection:"column"}}>
-        <div style={{padding:"10px 8px 4px",fontSize:9,fontWeight:700,color:"#94a3b8",letterSpacing:"0.08em",textTransform:"uppercase",fontFamily:MN}}>Dates</div>
-        {tourDaysSorted.map(day=>{
-          const cnt=badgeCount(day.date);
-          const isSel=day.date===sel;
-          const d=new Date(day.date+"T12:00:00");
-          const mo=d.toLocaleString("en-US",{month:"short"});
-          const dt=d.getDate();
-          const wd=d.toLocaleString("en-US",{weekday:"short"}).toUpperCase();
-          return(
-            <button key={day.date} onClick={()=>setSel(day.date)} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"7px 4px",background:isSel?"#EDE9FE":"transparent",border:"none",cursor:"pointer",borderLeft:isSel?"3px solid #5B21B6":"3px solid transparent",transition:"background 0.12s",position:"relative"}}>
-              <div style={{fontSize:9,fontWeight:700,color:isSel?"#5B21B6":"#94a3b8",fontFamily:MN,letterSpacing:"0.06em"}}>{wd}</div>
-              <div style={{fontSize:16,fontWeight:800,color:isSel?"#5B21B6":"#0f172a",lineHeight:1.1}}>{dt}</div>
-              {!mobile&&<div style={{fontSize:9,color:isSel?"#7C3AED":"#64748b"}}>{mo}</div>}
-              {cnt>0&&<div style={{position:"absolute",top:4,right:6,background:"#5B21B6",color:"#fff",borderRadius:99,fontSize:8,fontWeight:800,minWidth:14,height:14,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",fontFamily:MN}}>{cnt}</div>}
-            </button>
-          );
-        })}
-      </div>
-
       {/* Main content */}
       <div style={{flex:1,overflowY:"auto",padding:mobile?"10px 8px":"14px 16px",display:"flex",flexDirection:"column",gap:14,minWidth:0}}>
         {/* Header */}
