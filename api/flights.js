@@ -25,7 +25,7 @@ function extractHeaders(thread) {
     .map(m => extractBody(m.payload))
     .filter(Boolean)
     .join("\n---\n")
-    .slice(0, 3000);
+    .slice(0, 2000);
   return { id: thread.id, subject: get("Subject"), from: get("From"), date: get("Date"), body };
 }
 
@@ -233,8 +233,6 @@ module.exports = async function handler(req, res) {
   const seen = new Set();
   const CAP = 30;
 
-  // High queries run in parallel — all are high-signal and we want them all.
-  // Low queries run sequentially and abort as soon as cap is hit.
   const runParallel = async (queries) => {
     const results = await Promise.allSettled(queries.map(q => gmailSearch(googleToken, q, 25)));
     for (const r of results) {
@@ -242,22 +240,10 @@ module.exports = async function handler(req, res) {
       else if (r.reason?.message?.includes("401")) throw Object.assign(new Error("gmail_401"), { status: 402 });
     }
   };
-  const runSerial = async (queries) => {
-    for (const q of queries) {
-      if (seen.size >= CAP) break;
-      try {
-        const ids = await gmailSearch(googleToken, q, 25);
-        ids.forEach(id => seen.add(id));
-      } catch (e) {
-        console.error("[flights] search error:", e.message);
-        if (e.message.includes("401")) throw Object.assign(new Error("gmail_401"), { status: 402 });
-      }
-    }
-  };
 
   try {
     await runParallel(high);
-    if (seen.size < CAP) await runSerial(low);
+    if (seen.size < CAP) await runParallel(low);
   } catch (e) {
     if (e.status === 402) return res.status(402).json({ error: "gmail_token_expired" });
     return res.status(500).json({ error: e.message });
