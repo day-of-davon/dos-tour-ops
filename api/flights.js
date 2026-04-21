@@ -257,12 +257,12 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: e.message });
   }
 
-  const ids = [...seen].slice(0, 50);
+  const ids = [...seen].slice(0, 30);
   if (!ids.length) return res.json({ flights: [], threadsFound: 0 });
 
   let threads, freshIds;
   try {
-    threads = (await fetchBatched(googleToken, ids, 50)).map(extractHeaders);
+    threads = (await fetchBatched(googleToken, ids, 30)).map(extractHeaders);
     const cutoff48h = Date.now() - 48 * 3600 * 1000;
     freshIds = new Set(
       threads
@@ -298,7 +298,7 @@ Confirmation codes (critical):
 
 Skip hotel, train, rental car confirmations — flights and private charters only.`;
 
-  const BATCH = 25;
+  const BATCH = 15;
   const threadBatches = [];
   for (let i = 0; i < threads.length; i += BATCH) threadBatches.push(threads.slice(i, i + BATCH));
 
