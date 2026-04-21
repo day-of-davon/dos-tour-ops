@@ -239,29 +239,30 @@ module.exports = async function handler(req, res) {
   const seen = new Set();
 
   try {
-    const PARALLELISM = 20;
-    for (let i = 0; i < queries.length; i += PARALLELISM) {
-      await Promise.all(queries.slice(i, i + PARALLELISM).map(async q => {
-        try {
-          const ids = await gmailSearch(googleToken, q, 25);
-          ids.forEach(id => seen.add(id));
-        } catch (e) {
-          console.error("[flights] search error:", e.message);
-          if (e.message.includes("401")) throw Object.assign(new Error("gmail_401"), { status: 402 });
-        }
-      }));
-    }
+    // Fire all queries concurrently — Gmail handles fan-out fine and this saves ~4-6s vs batching
+    let threw402 = false;
+    await Promise.all(queries.map(async q => {
+      if (threw402) return;
+      try {
+        const ids = await gmailSearch(googleToken, q, 25);
+        ids.forEach(id => seen.add(id));
+      } catch (e) {
+        console.error("[flights] search error:", e.message);
+        if (e.message.includes("401")) { threw402 = true; throw Object.assign(new Error("gmail_401"), { status: 402 }); }
+      }
+    }));
+    if (threw402) return res.status(402).json({ error: "gmail_token_expired" });
   } catch (e) {
     if (e.status === 402) return res.status(402).json({ error: "gmail_token_expired" });
     return res.status(500).json({ error: e.message });
   }
 
-  const ids = [...seen].slice(0, 80);
+  const ids = [...seen].slice(0, 50);
   if (!ids.length) return res.json({ flights: [], threadsFound: 0 });
 
   let threads, freshIds;
   try {
-    threads = (await fetchBatched(googleToken, ids)).map(extractHeaders);
+    threads = (await fetchBatched(googleToken, ids, 50)).map(extractHeaders);
     const cutoff48h = Date.now() - 48 * 3600 * 1000;
     freshIds = new Set(
       threads
@@ -297,9 +298,14 @@ Confirmation codes (critical):
 
 Skip hotel, train, rental car confirmations — flights and private charters only.`;
 
-  const userPrompt = `Extract all flight segments from these email threads. Tour date range: ${tourStart} to ${tourEnd}.
+  const BATCH = 25;
+  const threadBatches = [];
+  for (let i = 0; i < threads.length; i += BATCH) threadBatches.push(threads.slice(i, i + BATCH));
 
-${threads.map((t, i) => `[${i}] tid:${t.id}
+  const buildPrompt = (batch, offset) =>
+    `Extract all flight segments from these email threads. Tour date range: ${tourStart} to ${tourEnd}.
+
+${batch.map((t, i) => `[${i + offset}] tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}
 Date: ${t.date}
@@ -329,9 +335,8 @@ Return this exact JSON:
   ]
 }`;
 
-  let anthropicData;
-  try {
-    const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
+  const callClaude = async (prompt) => {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -339,27 +344,31 @@ Return this exact JSON:
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 8192,
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 4096,
         system: sysPrompt,
-        messages: [{ role: "user", content: userPrompt }],
+        messages: [{ role: "user", content: prompt }],
       }),
     });
-    if (!anthropicResp.ok) {
-      const err = await anthropicResp.text();
-      return res.status(502).json({ error: `Anthropic error: ${anthropicResp.status}`, detail: err });
-    }
-    anthropicData = await anthropicResp.json();
+    if (!resp.ok) throw Object.assign(new Error(`Anthropic ${resp.status}`), { detail: await resp.text() });
+    const data = await resp.json();
+    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+    console.log("[flights] stop_reason:", data.stop_reason, "| model:", data.model);
+    return extractJson(text);
+  };
+
+  let rawFlights = [];
+  try {
+    const results = await Promise.all(
+      threadBatches.map((batch, i) => callClaude(buildPrompt(batch, i * BATCH)))
+    );
+    rawFlights = results.flatMap(r => Array.isArray(r?.flights) ? r.flights : []);
   } catch (e) {
     console.error("[flights] anthropic error:", e.message);
-    return res.status(502).json({ error: `Anthropic request failed: ${e.message}` });
+    return res.status(502).json({ error: `Anthropic request failed: ${e.message}`, detail: e.detail });
   }
 
-  const textContent = (anthropicData.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
-  console.log("[flights] stop_reason:", anthropicData.stop_reason, "| threads:", threads.length, "| after:", after);
-
-  const parsed = extractJson(textContent);
-  const rawFlights = Array.isArray(parsed?.flights) ? parsed.flights : [];
+  console.log("[flights] threads:", threads.length, "| batches:", threadBatches.length, "| raw:", rawFlights.length, "| after:", after);
 
   const flights = rawFlights
     .filter(f => f.flightNo || f.carrier)
