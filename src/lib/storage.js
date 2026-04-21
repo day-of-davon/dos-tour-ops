@@ -27,26 +27,10 @@ export async function setShared(key, value) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const { data: existing } = await supabase
+  const { error } = await supabase
     .from("app_storage")
-    .select("id")
-    .eq("team_id", TEAM_ID)
-    .eq("key", key)
-    .maybeSingle();
-
-  if (existing) {
-    const { error } = await supabase
-      .from("app_storage")
-      .update({ value, updated_at: new Date().toISOString() })
-      .eq("team_id", TEAM_ID)
-      .eq("key", key);
-    if (error) { console.error("setShared update:", error); return null; }
-  } else {
-    const { error } = await supabase
-      .from("app_storage")
-      .insert({ user_id: user.id, team_id: TEAM_ID, key, value });
-    if (error) { console.error("setShared insert:", error); return null; }
-  }
+    .upsert({ user_id: user.id, team_id: TEAM_ID, key, value }, { onConflict: "team_id,key" });
+  if (error) { console.error("setShared:", error); return null; }
   return { key, value };
 }
 
@@ -70,28 +54,10 @@ export const storage = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
 
-    const { data: existing } = await supabase
+    const { error } = await supabase
       .from("app_storage")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("key", key)
-      .is("team_id", null)
-      .maybeSingle();
-
-    if (existing) {
-      const { error } = await supabase
-        .from("app_storage")
-        .update({ value, updated_at: new Date().toISOString() })
-        .eq("user_id", user.id)
-        .eq("key", key)
-        .is("team_id", null);
-      if (error) { console.error("storage.set update:", error); return null; }
-    } else {
-      const { error } = await supabase
-        .from("app_storage")
-        .insert({ user_id: user.id, team_id: null, key, value });
-      if (error) { console.error("storage.set insert:", error); return null; }
-    }
+      .upsert({ user_id: user.id, team_id: null, key, value }, { onConflict: "user_id,key" });
+    if (error) { console.error("storage.set:", error); return null; }
     return { key, value };
   },
 
