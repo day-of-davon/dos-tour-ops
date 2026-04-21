@@ -1456,7 +1456,7 @@ function NavSidebar(){
 }
 
 function TopBar({ss}){
-  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays}=useContext(Ctx);
+  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,mobile}=useContext(Ctx);
   const[dragId,setDragId]=useState(null);
   const[overId,setOverId]=useState(null);
   const a=useAuth();const userEmail=(a?.user?.email||"").toLowerCase();
