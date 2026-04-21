@@ -610,6 +610,37 @@ const STATUS_STYLE={
 };
 function statusStyle(s){return STATUS_STYLE[s]||STATUS_STYLE.Unknown;}
 
+const resKey=f=>(f.bookingRef||f.confirmNo||f.tid||`solo_${f.id}`).toString().trim().toUpperCase();
+const groupByReservation=list=>{
+  const m=new Map();
+  list.forEach(f=>{const k=resKey(f);if(!m.has(k))m.set(k,[]);m.get(k).push(f);});
+  const groups=[...m.entries()].map(([k,segs])=>{
+    const sorted=[...segs].sort((a,b)=>(a.depDate||"").localeCompare(b.depDate||"")||(a.dep||"").localeCompare(b.dep||""));
+    const paxUnion=[...new Set(sorted.flatMap(s=>s.pax||[]))];
+    const costs=sorted.filter(s=>typeof s.cost==="number");
+    const totalCost=costs.length?costs.reduce((a,b)=>a+b.cost,0):null;
+    const currency=costs[0]?.currency||"";
+    const carriers=[...new Set(sorted.map(s=>s.carrier).filter(Boolean))];
+    const pnr=sorted.find(s=>s.bookingRef)?.bookingRef||sorted.find(s=>s.confirmNo)?.confirmNo||"";
+    return{key:k,segs:sorted,paxUnion,totalCost,currency,carriers,pnr,firstDate:sorted[0]?.depDate||"",tid:sorted.find(s=>s.tid)?.tid||null,isSolo:k.startsWith("SOLO_")};
+  });
+  return groups.sort((a,b)=>a.firstDate.localeCompare(b.firstDate));
+};
+
+function ReservationHeader({g}){
+  if(g.isSolo)return null;
+  return(
+    <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 2px",flexWrap:"wrap"}}>
+      <span style={{fontSize:8,fontWeight:800,color:"#5B21B6",letterSpacing:"0.06em",background:"#EDE9FE",padding:"2px 7px",borderRadius:10}}>RES · {g.segs.length} SEG</span>
+      {g.pnr&&<span style={{fontSize:10,fontFamily:MN,fontWeight:700,color:"#0f172a"}}>{g.pnr}</span>}
+      {g.carriers.length>0&&<span style={{fontSize:9,color:"#475569"}}>{g.carriers.join(", ")}</span>}
+      {g.paxUnion.length>0&&<span style={{fontSize:9,color:"#64748b",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.paxUnion.join(", ")}</span>}
+      {g.totalCost!=null&&<span style={{fontSize:9,fontFamily:MN,fontWeight:700,color:"#047857"}}>{g.currency||"$"}{g.totalCost.toFixed(2)}</span>}
+      {g.tid&&<a href={gmailUrl(g.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none"}}>email ↗</a>}
+    </div>
+  );
+}
+
 function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing}){
   const st=liveStatus?statusStyle(liveStatus.status):null;
   const delayed=liveStatus?.delayMinutes>0;
@@ -755,13 +786,19 @@ function FlightsSection(){
             <span style={{fontSize:9,fontWeight:800,color:"#1E40AF",letterSpacing:"0.06em"}}>NEW — REVIEW BEFORE IMPORTING</span>
             <button onClick={importAll} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import All ({pendingImport.length})</button>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {pendingImport.map(f=>(
-              <FlightCard key={f.id} f={f} actions={<>
-                <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
-                <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Skip</button>
-                {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
-              </>}/>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {groupByReservation(pendingImport).map(g=>(
+              <div key={g.key} style={{display:"flex",flexDirection:"column",gap:4,...(g.isSolo?{}:{borderLeft:"2px solid #C4B5FD",paddingLeft:8})}}>
+                <ReservationHeader g={g}/>
+                {g.segs.map(f=>(
+                  <FlightCard key={f.id} f={f} actions={<>
+                    <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
+                    <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Skip</button>
+                    {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
+                  </>}/>
+                ))}
+                {!g.isSolo&&g.segs.length>1&&<button onClick={()=>g.segs.forEach(f=>importFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px dashed #C4B5FD",background:"#EDE9FE",color:"#5B21B6",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Import All {g.segs.length} Segments</button>}
+              </div>
             ))}
           </div>
         </div>
@@ -770,17 +807,23 @@ function FlightsSection(){
       {/* Pending confirmation */}
       {pending.length>0&&(
         <IntelSection title="PENDING CONFIRMATION" count={pending.length}>
-          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {pending.map(f=>{
-              const isConf=confirmingId===f.id;
-              return(
-                <FlightCard key={f.id} f={f} actions={<>
-                  <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"#1E40AF",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
-                  <button onClick={()=>dismissFlight(f.id)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Dismiss</button>
-                  {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
-                </>}/>
-              );
-            })}
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {groupByReservation(pending).map(g=>(
+              <div key={g.key} style={{display:"flex",flexDirection:"column",gap:4,...(g.isSolo?{}:{borderLeft:"2px solid #C4B5FD",paddingLeft:8})}}>
+                <ReservationHeader g={g}/>
+                {g.segs.map(f=>{
+                  const isConf=confirmingId===f.id;
+                  return(
+                    <FlightCard key={f.id} f={f} actions={<>
+                      <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"#1E40AF",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
+                      <button onClick={()=>dismissFlight(f.id)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Dismiss</button>
+                      {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
+                    </>}/>
+                  );
+                })}
+                {!g.isSolo&&g.segs.length>1&&<button onClick={()=>g.segs.forEach(f=>confirmFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px dashed #C4B5FD",background:"#EDE9FE",color:"#5B21B6",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Confirm All {g.segs.length} Segments</button>}
+              </div>
+            ))}
           </div>
         </IntelSection>
       )}
@@ -788,16 +831,21 @@ function FlightsSection(){
       {/* Confirmed */}
       {confirmed.length>0&&(
         <IntelSection title="CONFIRMED" count={confirmed.length}>
-          <div style={{display:"flex",flexDirection:"column",gap:4}}>
-            {confirmed.map(f=>(
-              <div key={f.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:7}}>
-                <span style={{fontSize:9,color:"#047857",fontWeight:800,fontFamily:MN,flexShrink:0}}>{f.depDate}</span>
-                <span style={{fontSize:11,fontWeight:700,color:"#0f172a",fontFamily:MN,flexShrink:0}}>{f.from}→{f.to}</span>
-                <span style={{fontSize:10,color:"#475569",flexShrink:0}}>{f.flightNo||f.carrier}</span>
-                {f.dep&&<span style={{fontSize:9,fontFamily:MN,color:"#64748b"}}>{f.dep}</span>}
-                <span style={{fontSize:9,color:"#64748b",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(f.pax||[]).join(", ")}</span>
-                <span style={{fontSize:9,color:"#047857",fontWeight:700,flexShrink:0}}>✓</span>
-                <button onClick={()=>deleteFlight(f.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12,flexShrink:0}}>×</button>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {groupByReservation(confirmed).map(g=>(
+              <div key={g.key} style={{display:"flex",flexDirection:"column",gap:3,...(g.isSolo?{}:{borderLeft:"2px solid #BBF7D0",paddingLeft:8})}}>
+                <ReservationHeader g={g}/>
+                {g.segs.map(f=>(
+                  <div key={f.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:7}}>
+                    <span style={{fontSize:9,color:"#047857",fontWeight:800,fontFamily:MN,flexShrink:0}}>{f.depDate}</span>
+                    <span style={{fontSize:11,fontWeight:700,color:"#0f172a",fontFamily:MN,flexShrink:0}}>{f.from}→{f.to}</span>
+                    <span style={{fontSize:10,color:"#475569",flexShrink:0}}>{f.flightNo||f.carrier}</span>
+                    {f.dep&&<span style={{fontSize:9,fontFamily:MN,color:"#64748b"}}>{f.dep}</span>}
+                    <span style={{fontSize:9,color:"#64748b",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(f.pax||[]).join(", ")}</span>
+                    <span style={{fontSize:9,color:"#047857",fontWeight:700,flexShrink:0}}>✓</span>
+                    <button onClick={()=>deleteFlight(f.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12,flexShrink:0}}>×</button>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
@@ -2503,13 +2551,19 @@ function FlightsListView(){
             <span style={{fontSize:9,fontWeight:800,color:"#1E40AF",letterSpacing:"0.06em"}}>NEW — REVIEW BEFORE IMPORTING</span>
             <button onClick={importAll} style={{fontSize:9,padding:"3px 10px",borderRadius:5,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import All ({pendingImport.length})</button>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {pendingImport.map(f=>(
-              <FlightCard key={f.id} f={f} actions={<>
-                <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
-                <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Skip</button>
-                {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
-              </>}/>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {groupByReservation(pendingImport).map(g=>(
+              <div key={g.key} style={{display:"flex",flexDirection:"column",gap:4,...(g.isSolo?{}:{borderLeft:"2px solid #C4B5FD",paddingLeft:8})}}>
+                <ReservationHeader g={g}/>
+                {g.segs.map(f=>(
+                  <FlightCard key={f.id} f={f} actions={<>
+                    <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
+                    <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Skip</button>
+                    {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
+                  </>}/>
+                ))}
+                {!g.isSolo&&g.segs.length>1&&<button onClick={()=>g.segs.forEach(f=>importFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px dashed #C4B5FD",background:"#EDE9FE",color:"#5B21B6",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Import All {g.segs.length} Segments</button>}
+              </div>
             ))}
           </div>
         </div>
