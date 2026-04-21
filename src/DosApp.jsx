@@ -1025,10 +1025,10 @@ function FlightsSection(){
       const existingKeys=new Set(Object.values(cur).map(f=>`${f.flightNo}__${f.depDate}`));
       const novel=newFlights.filter(f=>!cur[f.id]&&!existingKeys.has(`${f.flightNo}__${f.depDate}`));
       if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads — no new flights found.`);setScanning(false);return;}
-      setPendingImport(novel);
+      novel.forEach(f=>uFlight(f.id,{...f,status:"pending"}));
       const freshCount=novel.filter(f=>f.fresh48h).length;
       const freshTag=freshCount?` (${freshCount} from last 48h)`:"";
-      setScanMsg(`Found ${novel.length} new flight${novel.length>1?"s":""}${freshTag} in ${data.threadsFound} threads.`);
+      setScanMsg(`Added ${novel.length} flight${novel.length>1?"s":""}${freshTag} to travel days — confirm to sync crew.`);
     }catch(e){setScanMsg(`Scan failed: ${e.message}`);}
     setScanning(false);
   };
@@ -2792,8 +2792,8 @@ function FlightsListView(){
       const freshCount=novel.filter(f=>f.fresh48h).length;
       const freshTag=freshCount?` (${freshCount} from last 48h)`:"";
       if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads${data.freshThreads?` (${data.freshThreads} from last 48h)`:""} — no new flights.`);setScanning(false);return;}
-      setPendingImport(novel);
-      setScanMsg(`Found ${novel.length} new flight${novel.length>1?"s":""}${freshTag} in ${data.threadsFound} threads.`);
+      novel.forEach(f=>uFlight(f.id,{...f,status:"pending"}));
+      setScanMsg(`Added ${novel.length} flight${novel.length>1?"s":""}${freshTag} to travel days — confirm to sync crew.`);
     }catch(e){setScanMsg(`Scan failed: ${e.message}`);}
     setScanning(false);
   };
