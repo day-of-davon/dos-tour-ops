@@ -115,7 +115,7 @@ const findItineraryLegs=(f,allFlightsObj)=>{
 //   rail:   carrier, trainNo, from/to, dep/arr, pax
 //   hotel:  hotelName, from (address), checkIn/checkOut dates, pax
 const SEG_META={
-  air:   {label:"Flight",  icon:"✈", color:"#1E40AF", bg:"#DBEAFE", border:"#BFDBFE"},
+  air:   {label:"Flight",  icon:"✈", color:"#a78bfa", bg:"#DBEAFE", border:"#BFDBFE"},
   ground:{label:"Ground",  icon:"🚗", color:"#B45309", bg:"#FEF3C7", border:"#FDE68A"},
   bus:   {label:"Bus",     icon:"🚌", color:"#1D4ED8", bg:"#DBEAFE", border:"#BFDBFE"},
   rail:  {label:"Rail",    icon:"🚆", color:"#065F46", bg:"#D1FAE5", border:"#6EE7B7"},
@@ -289,13 +289,13 @@ const MN="'JetBrains Mono',monospace";
 const CLIENTS=[
   {id:"bbn",name:"bbno$",type:"artist",status:"active",color:"#5B21B6",short:"BBN"},
   {id:"wkn",name:"Wakaan",type:"festival",status:"active",color:"#065F46",short:"WKN"},
-  {id:"bwc",name:"Beyond Wonderland",type:"festival",status:"active",color:"#1E40AF",short:"BWC"},
+  {id:"bwc",name:"Beyond Wonderland",type:"festival",status:"active",color:"#a78bfa",short:"BWC"},
   {id:"elm",name:"Elements",type:"festival",status:"active",color:"#92400E",short:"ELM"},
 ];
 const CM=CLIENTS.reduce((a,c)=>{a[c.id]=c;return a},{});
 // Only these users can see festival clients in the selector
 const FESTIVAL_ACCESS_EMAILS=["d.johnson@dayofshow.net","olivia@dayofshow.net"];
-const ROLES=[{id:"tm",label:"TM",c:"#5B21B6"},{id:"production",label:"PROD",c:"#92400E"},{id:"hospitality",label:"HOSPO",c:"#065F46"},{id:"transport",label:"TRANSPORT",c:"#1E40AF"}];
+const ROLES=[{id:"tm",label:"TM",c:"#5B21B6"},{id:"production",label:"PROD",c:"#92400E"},{id:"hospitality",label:"HOSPO",c:"#065F46"},{id:"transport",label:"TRANSPORT",c:"#a78bfa"}];
 const TABS=[{id:"advance",label:"Advance",icon:"◎"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"}];
 const DEFAULT_CREW=[
   {id:"ag", name:"Alex Gumuchian",        role:"Headliner (bbno$)",          email:"alexgumuchian@gmail.com"},
@@ -336,7 +336,7 @@ const DEPTS=[
   {id:"artist_team",label:"Artist Team",color:"#5B21B6",bg:"#EDE9FE"},
   {id:"venue",label:"Venue / Promoter",color:"#065F46",bg:"#D1FAE5"},
   {id:"ar_hospo",label:"AR / Hospo",color:"#047857",bg:"#ECFDF5"},
-  {id:"transport",label:"Transport",color:"#1E40AF",bg:"#DBEAFE"},
+  {id:"transport",label:"Transport",color:"#a78bfa",bg:"#DBEAFE"},
   {id:"production",label:"Production",color:"#B45309",bg:"#FEF3C7"},
   {id:"vendors",label:"Vendors",color:"#7C3AED",bg:"#F5F3FF"},
   {id:"site_ops",label:"Site Ops",color:"#0E7490",bg:"#ECFEFF"},
@@ -401,14 +401,14 @@ const SC={
   pending:{l:"Pending",c:"#a0a0b8",b:"#1e1e2e"},
   sent:{l:"Sent",c:"#c0c0d0",b:"#2a2a3a"},
   received:{l:"Received",c:"#c0c0d0",b:"#2a2a3a"},
-  in_progress:{l:"In Progress",c:"#1E40AF",b:"#DBEAFE"},
+  in_progress:{l:"In Progress",c:"#a78bfa",b:"#DBEAFE"},
   respond:{l:"Respond",c:"#92400E",b:"#FEF3C7"},
   follow_up:{l:"Follow Up",c:"#92400E",b:"#FEF3C7"},
   escalate:{l:"Escalate",c:"#B91C1C",b:"#FEE2E2"},
   confirmed:{l:"Confirmed",c:"#047857",b:"#D1FAE5"},
   na:{l:"N/A",c:"#707088",b:"#1e1e2e"},
   // Back-compat
-  responded:{l:"In Progress",c:"#1E40AF",b:"#DBEAFE"},
+  responded:{l:"In Progress",c:"#a78bfa",b:"#DBEAFE"},
 };
 const TEAM_MEMBERS=[
   {id:"davon",label:"Davon",initials:"DJ"},
@@ -565,7 +565,7 @@ const SPLIT_DAYS={
   "2026-05-01":{
     parties:[
       {id:"worcester",label:"Worcester Show",location:"Worcester, MA",event:"WPI — Pretty Polly",type:"show",color:"#047857",bg:"#D1FAE5",crew:["ag","jb","mse","tip","ac","rm"],note:"Performing crew. Advance past due."},
-      {id:"eu_prog",label:"EU Programming",location:"En Route / Europe",event:"Pre-tour advance + logistics",type:"travel",color:"#1E40AF",bg:"#DBEAFE",crew:["dj","ms","dn"],note:"TM + PM advance work ahead of Dublin Day 1."}
+      {id:"eu_prog",label:"EU Programming",location:"En Route / Europe",event:"Pre-tour advance + logistics",type:"travel",color:"#a78bfa",bg:"#DBEAFE",crew:["dj","ms","dn"],note:"TM + PM advance work ahead of Dublin Day 1."}
     ]
   }
 };
@@ -856,7 +856,7 @@ export default function App(){
   return(
     <Ctx.Provider value={ctxValue}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-      <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:#0a0a0f}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:#606080;border-radius:3px}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#1e1e2e!important}.rh:hover{background:#1e1e2e!important}`}</style>
+      <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0;transition:background 0.13s ease}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:#0a0a0f}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#3b1868;border-radius:4px}::-webkit-scrollbar-thumb:hover{background:#6D28D9}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#15152a!important}.rh:hover{background:#15152a!important}button{transition:opacity 0.12s ease,background 0.12s ease,box-shadow 0.12s ease}input:focus,select:focus,textarea:focus{outline:none!important;box-shadow:0 0 0 2px rgba(109,40,217,0.45)!important;border-color:#6D28D9!important}details summary::-webkit-details-marker{display:none}::selection{background:rgba(91,33,182,0.35);color:#e4e4ef}`}</style>
       <div style={{fontFamily:"'Outfit',system-ui",background:"#0a0a0f",color:"#e4e4ef",height:"100vh",width:"100%",maxWidth:"100vw",overflow:"hidden",display:"flex",flexDirection:"column"}}>
         <TopBar ss={ss}/>
         <div style={{flex:1,display:"flex",flexDirection:"row",minWidth:0,minHeight:0,width:"100%",overflow:"hidden"}}>
@@ -979,7 +979,7 @@ function ReservationHeader({g}){
       {g.carriers.length>0&&<span style={{fontSize:9,color:"#b0b0c8"}}>{g.carriers.join(", ")}</span>}
       {g.paxUnion.length>0&&<span style={{fontSize:9,color:"#a0a0b8",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.paxUnion.join(", ")}</span>}
       {g.totalCost!=null&&<span style={{fontSize:9,fontFamily:MN,fontWeight:700,color:"#047857"}}>{g.currency||"$"}{g.totalCost.toFixed(2)}</span>}
-      {g.tid&&<a href={gmailUrl(g.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none"}}>email ↗</a>}
+      {g.tid&&<a href={gmailUrl(g.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none"}}>email ↗</a>}
     </div>
   );
 }
@@ -991,7 +991,7 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
   return(
     <div style={{background:"#12121a",border:`1px solid ${isFresh?"#5B21B6":st&&delayed?"#FCD34D":st?.c==="#B91C1C"?"#FCA5A5":"#2a2a3a"}`,borderRadius:9,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6,boxShadow:isFresh?"0 0 0 2px #EDE9FE":undefined}}>
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-        <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#1E40AF"}}>{f.from}<span style={{fontSize:10,color:"#707088",fontWeight:400,padding:"0 5px"}}>→</span>{f.to}</div>
+        <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#a78bfa"}}>{f.from}<span style={{fontSize:10,color:"#707088",fontWeight:400,padding:"0 5px"}}>→</span>{f.to}</div>
         <div style={{fontSize:10,fontWeight:700,color:"#e4e4ef"}}>{f.flightNo||f.carrier}</div>
         {f.carrier&&f.flightNo&&<div style={{fontSize:9,color:"#a0a0b8"}}>{f.carrier}</div>}
         {isFresh&&<span title="Booked within the last 48 hours" style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#EDE9FE",color:"#5B21B6",fontWeight:800,letterSpacing:"0.06em"}}>NEW · 48H</span>}
@@ -1221,12 +1221,12 @@ function FlightsSection(){
   return(
     <div style={{display:"flex",flexDirection:"column",gap:8}}>
       <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-        <span style={{fontSize:10,fontWeight:800,color:"#1E40AF",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
-        <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"#DBEAFE",color:"#1E40AF",fontWeight:700}}>{confirmed.length} confirmed · {pending.length} pending</span>
+        <span style={{fontSize:10,fontWeight:800,color:"#a78bfa",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
+        <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"#DBEAFE",color:"#a78bfa",fontWeight:700}}>{confirmed.length} confirmed · {pending.length} pending</span>
         {scanMsg&&<span style={{fontSize:9,color:scanning?"#5B21B6":"#a0a0b8",fontFamily:MN}}>{scanMsg}</span>}
         <div style={{marginLeft:"auto",display:"flex",gap:6}}>
           <button onClick={()=>{if(confirm(`Clear all ${allFlights.length} flights and rescan Gmail?`))scanFlights({reset:true});}} disabled={scanning} style={{background:scanning?"#2a2a3a":"#B91C1C",color:scanning?"#a0a0b8":"#12121a",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>Reset & Rescan</button>
-          <button onClick={()=>scanFlights()} disabled={scanning} style={{background:scanning?"#2a2a3a":"#1E40AF",color:scanning?"#a0a0b8":"#12121a",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail"}</button>
+          <button onClick={()=>scanFlights()} disabled={scanning} style={{background:scanning?"#2a2a3a":"#a78bfa",color:scanning?"#a0a0b8":"#12121a",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail"}</button>
         </div>
       </div>
 
@@ -1234,8 +1234,8 @@ function FlightsSection(){
       {pendingImport.length>0&&(
         <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:10,padding:"10px 12px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-            <span style={{fontSize:9,fontWeight:800,color:"#1E40AF",letterSpacing:"0.06em"}}>NEW — REVIEW BEFORE IMPORTING</span>
-            <button onClick={importAll} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import All ({pendingImport.length})</button>
+            <span style={{fontSize:9,fontWeight:800,color:"#a78bfa",letterSpacing:"0.06em"}}>NEW — REVIEW BEFORE IMPORTING</span>
+            <button onClick={importAll} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#a78bfa",color:"#fff",cursor:"pointer",fontWeight:700}}>Import All ({pendingImport.length})</button>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {groupByReservation(pendingImport).map(g=>(
@@ -1243,9 +1243,9 @@ function FlightsSection(){
                 <ReservationHeader g={g}/>
                 {g.segs.map(f=>(
                   <FlightCard key={f.id} f={f} crew={crew} actions={<>
-                    <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
+                    <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#a78bfa",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
                     <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #2a2a3a",background:"transparent",color:"#a0a0b8",cursor:"pointer"}}>Skip</button>
-                    {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
+                    {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
                   </>}/>
                 ))}
                 {!g.isSolo&&g.segs.length>1&&<button onClick={()=>g.segs.forEach(f=>importFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px dashed #C4B5FD",background:"#EDE9FE",color:"#5B21B6",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Import All {g.segs.length} Segments</button>}
@@ -1266,9 +1266,9 @@ function FlightsSection(){
                   const isConf=confirmingId===f.id;
                   return(
                     <FlightCard key={f.id} f={f} actions={<>
-                      <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"#1E40AF",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
+                      <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"#a78bfa",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
                       <button onClick={()=>dismissFlight(f.id)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #2a2a3a",background:"transparent",color:"#a0a0b8",cursor:"pointer"}}>Dismiss</button>
-                      {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
+                      {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
                     </>}/>
                   );
                 })}
@@ -1319,7 +1319,7 @@ function FlightsSection(){
                 <span style={{fontSize:11,fontWeight:700,color:"#e4e4ef",fontFamily:MN,flexShrink:0}}>{f.from}→{f.to}</span>
                 <span style={{fontSize:10,color:"#b0b0c8",flexShrink:0}}>{f.flightNo||f.carrier}</span>
                 <span style={{fontSize:9,color:"#a0a0b8",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(f.pax||[]).join(", ")}</span>
-                <button onClick={()=>uFlight(f.id,{...f,status:"pending"})} style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700,flexShrink:0}}>↩ Restore</button>
+                <button onClick={()=>uFlight(f.id,{...f,status:"pending"})} style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#a78bfa",cursor:"pointer",fontWeight:700,flexShrink:0}}>↩ Restore</button>
                 <button onClick={()=>deleteFlight(f.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12,flexShrink:0}}>×</button>
               </div>
             ))}
@@ -1417,7 +1417,7 @@ function IntelPanel(){
               <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.subject}</div>
               <div style={{fontSize:9,color:"#92400E"}}>{item.signal} · {item.from}</div>
             </div>
-            <a href={gmailUrl(item.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",flexShrink:0}}>open ↗</a>
+            <a href={gmailUrl(item.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",flexShrink:0}}>open ↗</a>
           </div>
         ))}
       </div>
@@ -1580,12 +1580,12 @@ function NavSidebar(){
   const selRef=useRef(null);
   useEffect(()=>{if(selRef.current&&listRef.current){selRef.current.scrollIntoView({block:"start",behavior:"smooth"});};},[sel,sidebarOpen,tab]);
 
-  const typeColor=t=>t==="travel"?{bg:"#DBEAFE",c:"#1E40AF"}:t==="off"?{bg:"#1e1e2e",c:"#707088"}:t==="split"?{bg:"#FEF3C7",c:"#92400E"}:{bg:"#D1FAE5",c:"#047857"};
+  const typeColor=t=>t==="travel"?{bg:"#DBEAFE",c:"#a78bfa"}:t==="off"?{bg:"#1e1e2e",c:"#707088"}:t==="split"?{bg:"#FEF3C7",c:"#92400E"}:{bg:"#D1FAE5",c:"#047857"};
 
   if(!sidebarOpen)return null;
 
   return(
-    <div style={{width:200,flexShrink:0,background:"#12121a",borderRight:"1px solid #2a2a3a",display:"flex",flexDirection:"column",height:"100%",minHeight:0,overflow:"hidden"}}>
+    <div style={{width:200,flexShrink:0,background:"#0c0c18",borderRight:"1px solid #1a1a2e",display:"flex",flexDirection:"column",height:"100%",minHeight:0,overflow:"hidden"}}>
       {/* Mini stats */}
       {next&&(
         <div style={{padding:"10px 12px 8px",borderBottom:"1px solid #2a2a3a"}}>
@@ -1608,8 +1608,8 @@ function NavSidebar(){
       {/* Off/travel toggle */}
       <div style={{padding:"7px 12px",borderBottom:"1px solid #2a2a3a",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <span style={{fontSize:9,fontWeight:600,color:"#a0a0b8"}}>Off / travel days</span>
-        <button onClick={()=>setShowOffDays(v=>!v)} style={{position:"relative",width:28,height:16,borderRadius:99,border:"none",cursor:"pointer",background:showOffDays?"#5B21B6":"#2a2a3a",padding:0,transition:"background 0.2s",flexShrink:0}}>
-          <span style={{position:"absolute",top:2,left:showOffDays?14:2,width:12,height:12,borderRadius:99,background:"#12121a",transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,.2)"}}/>
+        <button onClick={()=>setShowOffDays(v=>!v)} style={{position:"relative",width:28,height:16,borderRadius:99,border:"none",cursor:"pointer",background:showOffDays?"#6D28D9":"#1e1e32",padding:0,transition:"background 0.2s ease",flexShrink:0,boxShadow:"inset 0 1px 3px rgba(0,0,0,0.4)"}}>
+          <span style={{position:"absolute",top:2,left:showOffDays?14:2,width:12,height:12,borderRadius:99,background:showOffDays?"#fff":"#9090b8",transition:"left 0.2s ease,background 0.2s ease",boxShadow:"0 1px 4px rgba(0,0,0,.4)"}}/>
         </button>
       </div>
       {/* Date list */}
@@ -1620,21 +1620,21 @@ function NavSidebar(){
           const isOff=d.type==="off"||d.type==="travel";
           const pc=d.type==="show"?pendingCount(d.date):0;
           const days=dU(d.date);
-          const urgColor=days<=7?"#B91C1C":days<=14?"#92400E":days<=21?"#1E40AF":"#707088";
+          const urgColor=days<=7?"#B91C1C":days<=14?"#92400E":days<=21?"#a78bfa":"#707088";
           const dateStr=new Date(d.date+"T12:00:00");
           const mo=dateStr.toLocaleString("en-US",{month:"short"});
           const dt=dateStr.getDate();
           const wd=dateStr.toLocaleString("en-US",{weekday:"short"});
           return(
-            <div key={d.date} ref={isSel?selRef:null} onClick={()=>setSel(d.date)} className="rh" style={{display:"flex",alignItems:"center",gap:0,padding:"6px 10px 6px 0",cursor:"pointer",background:isSel?"#EDE9FE":"transparent",borderLeft:isSel?"3px solid #5B21B6":"3px solid transparent",opacity:isOff?0.7:1}}>
+            <div key={d.date} ref={isSel?selRef:null} onClick={()=>setSel(d.date)} className="rh" style={{display:"flex",alignItems:"center",gap:0,padding:"6px 10px 6px 0",cursor:"pointer",background:isSel?"rgba(91,33,182,0.16)":"transparent",borderLeft:isSel?"3px solid #7C3AED":"3px solid transparent",opacity:isOff?0.65:1,boxShadow:isSel?"inset 0 0 0 1px rgba(124,58,237,0.18)":undefined}}>
               <div style={{width:46,flexShrink:0,textAlign:"center"}}>
-                <div style={{fontSize:8,fontWeight:700,color:isSel?"#5B21B6":"#707088",fontFamily:MN,letterSpacing:"0.04em"}}>{wd.toUpperCase()}</div>
-                <div style={{fontSize:14,fontWeight:800,color:isSel?"#5B21B6":"#e4e4ef",lineHeight:1}}>{dt}</div>
-                <div style={{fontSize:8,color:isSel?"#7C3AED":"#707088"}}>{mo}</div>
+                <div style={{fontSize:8,fontWeight:700,color:isSel?"#a78bfa":"#707088",fontFamily:MN,letterSpacing:"0.04em"}}>{wd.toUpperCase()}</div>
+                <div style={{fontSize:14,fontWeight:800,color:isSel?"#c4b5fd":"#e4e4ef",lineHeight:1}}>{dt}</div>
+                <div style={{fontSize:8,color:isSel?"#9333ea":"#707088"}}>{mo}</div>
               </div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:1}}>
-                  <span style={{fontSize:10,fontWeight:600,color:isSel?"#3730A3":"#e4e4ef",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.city||d.venue||"—"}</span>
+                  <span style={{fontSize:10,fontWeight:600,color:isSel?"#c4b5fd":"#e4e4ef",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.city||d.venue||"—"}</span>
                   {!isOff&&<span style={{fontSize:7,padding:"1px 4px",borderRadius:99,fontWeight:700,...tc,flexShrink:0}}>{d.type==="show"?"▶":"⇢"}</span>}
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:4}}>
@@ -1682,7 +1682,7 @@ function TopBar({ss}){
   const stepDate=dir=>{if(curIdx<0)return;const ni=curIdx+dir;if(ni<0||ni>=stepList.length)return;setSel(stepList[ni].date);};
   const canPrev=curIdx>0;const canNext=curIdx>=0&&curIdx<stepList.length-1;
   return(
-    <div style={{borderBottom:"1px solid #2a2a3a",background:"#12121a",width:"100%",maxWidth:"100%",overflow:"visible"}}>
+    <div style={{borderBottom:"1px solid #1a1a2e",background:"#0e0e1a",width:"100%",maxWidth:"100%",overflow:"visible",boxShadow:"0 1px 0 rgba(109,40,217,0.15),0 2px 12px rgba(0,0,0,0.45)"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px 5px",minWidth:0,gap:8,width:"100%"}}>
         <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flexShrink:1,overflow:"hidden"}}>
           <span style={{fontSize:16,fontWeight:800,color:"#e4e4ef",letterSpacing:"-0.03em",flexShrink:0}}>DOS</span>
@@ -1774,7 +1774,7 @@ function DateDrawer({onClose}){
     if(td){if(td.type==="travel"&&td.bus?.route)return td.bus.route;if(td.type==="split")return"Split Day";if(td.type==="off")return"Off";}
     return fD(sel);
   },[sel,tourDays,shows]);
-  const typeStyle=t=>t==="travel"?{bg:"#DBEAFE",c:"#1E40AF",l:"Travel"}:t==="off"?{bg:"#0a0a0f",c:"#707088",l:"Off"}:t==="split"?{bg:"#FEF3C7",c:"#92400E",l:"Split"}:t==="show"?{bg:"#D1FAE5",c:"#047857",l:"Show"}:null;
+  const typeStyle=t=>t==="travel"?{bg:"#DBEAFE",c:"#a78bfa",l:"Travel"}:t==="off"?{bg:"#0a0a0f",c:"#707088",l:"Off"}:t==="split"?{bg:"#FEF3C7",c:"#92400E",l:"Split"}:t==="show"?{bg:"#D1FAE5",c:"#047857",l:"Show"}:null;
   // Merge tour days with non-tour shows (post-EU shows, festivals). Use tourDays for Apr16-May31, fall back to sorted for everything else.
   const rows=useMemo(()=>{
     const tourIds=new Set((tourDaysSorted||[]).map(d=>d.date));
@@ -1836,7 +1836,7 @@ function Dash(){
       </div>
       <div style={{fontSize:9,fontWeight:800,color:client.color,letterSpacing:"0.1em",marginBottom:5}}>{client.name.toUpperCase()} — UPCOMING</div>
       <div style={{display:"flex",flexDirection:"column",gap:3}}>
-        {upcoming.map(show=>{const days=dU(show.date),uc=days<=7?"#B91C1C":days<=14?"#92400E":days<=21?"#1E40AF":"#707088";const pc=pendingCount(show.date);
+        {upcoming.map(show=>{const days=dU(show.date),uc=days<=7?"#B91C1C":days<=14?"#92400E":days<=21?"#a78bfa":"#707088";const pc=pendingCount(show.date);
           return(<div key={show.date} onClick={()=>{setSel(show.date);setTab("ros");}} className="br rh" style={{display:"grid",gridTemplateColumns:"34px 58px 1fr auto 54px 30px",alignItems:"center",gap:6,padding:"9px 12px",background:"#12121a",border:"1px solid #2a2a3a",borderRadius:9,cursor:"pointer",borderLeft:`3px solid ${uc}`}}>
             <div style={{fontFamily:MN,fontSize:9,color:"#a0a0b8"}}>{fW(show.date)}</div>
             <div style={{fontFamily:MN,fontSize:10,color:"#5B21B6",fontWeight:700}}>{fD(show.date)}</div>
@@ -2156,13 +2156,13 @@ function FlightDayStrip({sel}){
   return(
     <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:10,marginBottom:10,overflow:"hidden"}}>
       <div onClick={()=>setOpen(v=>!v)} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",cursor:"pointer",userSelect:"none"}}>
-        <span style={{fontSize:10,fontWeight:800,color:"#1E40AF",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
-        {deps.length>0&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#DBEAFE",color:"#1E40AF",fontWeight:700}}>{deps.length} DEP</span>}
+        <span style={{fontSize:10,fontWeight:800,color:"#a78bfa",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
+        {deps.length>0&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#DBEAFE",color:"#a78bfa",fontWeight:700}}>{deps.length} DEP</span>}
         {arrs.length>0&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#D1FAE5",color:"#047857",fontWeight:700}}>{arrs.length} ARR</span>}
         {stripMsg&&<span style={{fontSize:9,color:"#a0a0b8",fontFamily:MN,marginLeft:4}}>{stripMsg}</span>}
         <div style={{marginLeft:"auto",display:"flex",gap:5,alignItems:"center"}} onClick={e=>e.stopPropagation()}>
-          {hasAny>0&&<button onClick={refreshTimes} disabled={refreshing} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"1px solid #93C5FD",background:refreshing?"#DBEAFE":"#12121a",color:"#1E40AF",cursor:refreshing?"default":"pointer",fontWeight:700,flexShrink:0}}>{refreshing?"…":"↻ Times"}</button>}
-          <button onClick={scanFlights} disabled={scanning} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"none",background:scanning?"#DBEAFE":"#1E40AF",color:scanning?"#1E40AF":"#12121a",cursor:scanning?"default":"pointer",fontWeight:700,flexShrink:0}}>{scanning?"Scanning…":"Scan Gmail"}</button>
+          {hasAny>0&&<button onClick={refreshTimes} disabled={refreshing} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"1px solid #93C5FD",background:refreshing?"#DBEAFE":"#12121a",color:"#a78bfa",cursor:refreshing?"default":"pointer",fontWeight:700,flexShrink:0}}>{refreshing?"…":"↻ Times"}</button>}
+          <button onClick={scanFlights} disabled={scanning} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"none",background:scanning?"#DBEAFE":"#a78bfa",color:scanning?"#a78bfa":"#12121a",cursor:scanning?"default":"pointer",fontWeight:700,flexShrink:0}}>{scanning?"Scanning…":"Scan Gmail"}</button>
         </div>
         <span style={{fontSize:10,color:"#93C5FD",flexShrink:0}}>{open?"▾":"▸"}</span>
       </div>
@@ -2186,13 +2186,13 @@ function FlightDayStrip({sel}){
               <div key={f.id} style={{padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #DBEAFE":"none",display:"grid",gridTemplateColumns:"auto 1fr auto",gap:"6px 12px",alignItems:"start",...liveStyle}}>
                 {/* Left: type badge */}
                 <div style={{display:"flex",flexDirection:"column",gap:3,alignItems:"center",paddingTop:1}}>
-                  <span style={{fontSize:7,fontWeight:800,padding:"2px 5px",borderRadius:4,background:isDep?"#1E40AF":"#047857",color:"#fff",letterSpacing:"0.06em"}}>{isDep?"DEP":"ARR"}</span>
+                  <span style={{fontSize:7,fontWeight:800,padding:"2px 5px",borderRadius:4,background:isDep?"#a78bfa":"#047857",color:"#fff",letterSpacing:"0.06em"}}>{isDep?"DEP":"ARR"}</span>
                   {live?.status&&<span style={{fontSize:7,fontWeight:700,padding:"1px 4px",borderRadius:3,...(STATUS_STYLE[live.status]||STATUS_STYLE.Unknown),background:(STATUS_STYLE[live.status]||STATUS_STYLE.Unknown).bg,color:(STATUS_STYLE[live.status]||STATUS_STYLE.Unknown).c}}>{(STATUS_STYLE[live.status]||STATUS_STYLE.Unknown).label}</span>}
                 </div>
                 {/* Center: flight info */}
                 <div>
                   <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:3}}>
-                    <span style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#1E40AF"}}>{f.from}<span style={{fontSize:10,color:"#93C5FD",fontWeight:400,padding:"0 4px"}}>→</span>{f.to}</span>
+                    <span style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#a78bfa"}}>{f.from}<span style={{fontSize:10,color:"#93C5FD",fontWeight:400,padding:"0 4px"}}>→</span>{f.to}</span>
                     <span style={{fontSize:10,fontWeight:700,color:"#1D4ED8"}}>{f.flightNo||f.carrier}</span>
                     {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:"#a0a0b8"}}>{f.carrier}</span>}
                     {f.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"#707088"}}>#{f.confirmNo}</span>}
@@ -2211,8 +2211,8 @@ function FlightDayStrip({sel}){
                 <div style={{textAlign:"right"}}>
                   <div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"flex-end"}}>
                     {f.dep&&<div style={{display:"flex",alignItems:"center",gap:5}}>
-                      <span style={{fontSize:8,color:"#1E40AF",fontWeight:700}}>DEP</span>
-                      <span style={{fontFamily:MN,fontSize:12,fontWeight:800,color:live?.depActual&&live.depActual!==f.dep?"#B45309":"#1E40AF"}}>{live?.depActual||f.dep}</span>
+                      <span style={{fontSize:8,color:"#a78bfa",fontWeight:700}}>DEP</span>
+                      <span style={{fontFamily:MN,fontSize:12,fontWeight:800,color:live?.depActual&&live.depActual!==f.dep?"#B45309":"#a78bfa"}}>{live?.depActual||f.dep}</span>
                       {live?.depActual&&live.depActual!==f.dep&&<span style={{fontFamily:MN,fontSize:9,color:"#707088",textDecoration:"line-through"}}>{f.dep}</span>}
                     </div>}
                     {f.arr&&<div style={{display:"flex",alignItems:"center",gap:5}}>
@@ -2318,7 +2318,7 @@ function DayScheduleView({show,bus,split,sel}){
           <div style={{fontSize:10,color:"#a0a0b8",fontFamily:MN}}>{fFull(sel)}</div>
         </div>
         <button onClick={()=>setEditDay(v=>!v)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:`1px solid ${editDay?"#5B21B6":"#2a2a3a"}`,background:editDay?"#EDE9FE":"#17171f",color:editDay?"#5B21B6":"#b0b0c8",cursor:"pointer",fontWeight:600,flexShrink:0}}>✏ Edit</button>
-        <div style={{fontSize:8,fontWeight:800,padding:"3px 9px",borderRadius:6,background:isTravel?"#DBEAFE":isSplit?"#FEF3C7":"#1e1e2e",color:isTravel?"#1E40AF":isSplit?"#92400E":"#a0a0b8",letterSpacing:"0.06em",flexShrink:0}}>
+        <div style={{fontSize:8,fontWeight:800,padding:"3px 9px",borderRadius:6,background:isTravel?"#DBEAFE":isSplit?"#FEF3C7":"#1e1e2e",color:isTravel?"#a78bfa":isSplit?"#92400E":"#a0a0b8",letterSpacing:"0.06em",flexShrink:0}}>
           {isTravel?"TRAVEL":isSplit?"SPLIT":"OFF"}
         </div>
       </div>
@@ -2395,13 +2395,13 @@ function DayScheduleView({show,bus,split,sel}){
               return(
                 <div key="bus" style={{display:"flex",alignItems:"flex-start",gap:8,padding:"10px 12px",background:"#12121a",border:"1px solid #2a2a3a",borderRadius:8}}>
                   <div style={{width:44,flexShrink:0,textAlign:"right"}}>
-                    {depMin!=null&&<div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#1E40AF"}}>{fmt(depMin)}</div>}
+                    {depMin!=null&&<div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#a78bfa"}}>{fmt(depMin)}</div>}
                     {arrMin!=null&&<div style={{fontFamily:MN,fontSize:9,color:"#a0a0b8"}}>{fmt(arrMin)}</div>}
                   </div>
-                  <div style={{width:3,alignSelf:"stretch",background:"#1E40AF",borderRadius:2,opacity:0.4,flexShrink:0}}/>
+                  <div style={{width:3,alignSelf:"stretch",background:"#a78bfa",borderRadius:2,opacity:0.4,flexShrink:0}}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                      <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:"#DBEAFE",color:"#1E40AF",letterSpacing:"0.04em"}}>BUS</span>
+                      <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:"#DBEAFE",color:"#a78bfa",letterSpacing:"0.04em"}}>BUS</span>
                       <span style={{fontSize:11,fontWeight:700,color:"#e4e4ef"}}>{b.route}</span>
                       {b.flag==="⚠"&&<span style={{fontSize:9,color:"#DC2626"}}>⚠</span>}
                     </div>
@@ -2423,15 +2423,15 @@ function DayScheduleView({show,bus,split,sel}){
               return(
                 <div key={entry.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"10px 12px",background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8}}>
                   <div style={{width:44,flexShrink:0,textAlign:"right"}}>
-                    {isDep&&f.dep&&<div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#1E40AF"}}>{f.dep}</div>}
+                    {isDep&&f.dep&&<div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#a78bfa"}}>{f.dep}</div>}
                     {isDep&&f.arr&&<div style={{fontFamily:MN,fontSize:9,color:"#047857"}}>{f.arr}{!sameDay?` (${f.arrDate?.slice(5)})`:""}</div>}
                     {!isDep&&f.arr&&<div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#047857"}}>{f.arr}</div>}
                   </div>
-                  <div style={{width:3,alignSelf:"stretch",background:isDep?"#1E40AF":"#047857",borderRadius:2,opacity:0.5,flexShrink:0}}/>
+                  <div style={{width:3,alignSelf:"stretch",background:isDep?"#a78bfa":"#047857",borderRadius:2,opacity:0.5,flexShrink:0}}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
-                      <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:f.type==="bus"?(isDep?"#5B21B6":"#065F46"):isDep?"#1E40AF":"#047857",color:"#fff",letterSpacing:"0.04em"}}>{f.type==="bus"?(isDep?"🚌 DEP":"🚌 ARR"):isDep?"✈ DEP":"✈ ARR"}</span>
-                      <span style={{fontFamily:MN,fontSize:11,fontWeight:800,color:"#1E40AF"}}>{f.from}<span style={{fontWeight:400,color:"#93C5FD",padding:"0 3px"}}>→</span>{f.to}</span>
+                      <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:f.type==="bus"?(isDep?"#5B21B6":"#065F46"):isDep?"#a78bfa":"#047857",color:"#fff",letterSpacing:"0.04em"}}>{f.type==="bus"?(isDep?"🚌 DEP":"🚌 ARR"):isDep?"✈ DEP":"✈ ARR"}</span>
+                      <span style={{fontFamily:MN,fontSize:11,fontWeight:800,color:"#a78bfa"}}>{f.from}<span style={{fontWeight:400,color:"#93C5FD",padding:"0 3px"}}>→</span>{f.to}</span>
                       <span style={{fontSize:10,fontWeight:700,color:"#1D4ED8"}}>{f.flightNo||f.carrier}</span>
                       {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:"#a0a0b8"}}>{f.carrier}</span>}
                     </div>
@@ -2761,7 +2761,7 @@ function ROSTab(){
         {subEvent&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>{subEvent.name}</span>}
         {effShow.notes&&<span style={{color:"#92400E",fontWeight:600,fontSize:9}}>{effShow.notes}</span>}
         <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-          <button onClick={()=>uEffShow({busSkip:!effShow.busSkip})} title="Toggle Bus Arrival" style={{background:effShow.busSkip?"#17171f":"#DBEAFE",border:`1px solid ${effShow.busSkip?"#2a2a3a":"#1E40AF"}`,borderRadius:5,color:effShow.busSkip?"#707088":"#1E40AF",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{effShow.busSkip?"+ Bus":"✓ Bus"}</button>
+          <button onClick={()=>uEffShow({busSkip:!effShow.busSkip})} title="Toggle Bus Arrival" style={{background:effShow.busSkip?"#17171f":"#DBEAFE",border:`1px solid ${effShow.busSkip?"#2a2a3a":"#a78bfa"}`,borderRadius:5,color:effShow.busSkip?"#707088":"#a78bfa",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{effShow.busSkip?"+ Bus":"✓ Bus"}</button>
           <button onClick={()=>uEffShow({mgSkip:!effShow.mgSkip})} title="Toggle Meet & Greet" style={{background:effShow.mgSkip?"#17171f":"#D1FAE5",border:`1px solid ${effShow.mgSkip?"#2a2a3a":"#065F46"}`,borderRadius:5,color:effShow.mgSkip?"#707088":"#065F46",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{effShow.mgSkip?"+ M&G":"✓ M&G"}</button>
           <button onClick={()=>{uRos(rosKey,null);setEditB(null);}} style={{background:"#17171f",border:"1px solid #2a2a3a",borderRadius:5,color:"#a0a0b8",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:600}}>Reset</button>
         </div>
@@ -2772,7 +2772,7 @@ function ROSTab(){
           return(<div key={ph.k} style={{marginBottom:6}}><div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0 3px"}}><div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",color:"#a0a0b8"}}>{ph.l}</div><div style={{flex:1,height:1,background:"#2a2a3a"}}/><div style={{fontSize:8,color:"#707088",fontStyle:"italic"}}>{ph.s}</div>{canAdd&&<button onClick={()=>addBlock(ph.k)} title="Add block" style={{background:"none",border:"1px dashed #606080",borderRadius:5,color:"#a0a0b8",fontSize:9,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>+ Block</button>}</div><div style={{display:"flex",flexDirection:"column",gap:3}}>{pb.map(b=>renderB(b))}</div>{!pb.length&&canAdd&&<div style={{fontSize:9,color:"#707088",fontStyle:"italic",padding:"4px 0"}}>No blocks — click + Block to add.</div>}</div>);
         })}
         <div style={{marginTop:12,padding:"12px 14px",background:"#12121a",border:"1px solid #2a2a3a",borderRadius:12,display:"flex",gap:12,flexWrap:"wrap"}}>
-          {[{l:"Bus ETA",v:fmt(effShow.busArrive),c:"#1E40AF",hide:effShow.busSkip},{l:"Crew Call",v:fmt(effShow.crewCall),c:"#92400E"},{l:"M&G",v:fmt(effShow.mgTime),c:"#065F46",hide:effShow.mgSkip},{l:"Doors",v:fmt(effShow.doors),c:"#166534"},{l:"Headline",v:times.bbno_set?`${fmt(times.bbno_set.s)}–${fmt(times.bbno_set.e)}`:"--",c:"#B91C1C"},{l:"Settlement",v:times.settlement?fmt(times.settlement.s):"--",c:"#854D0E"},{l:"Curfew",v:fmt(effShow.curfew),c:"#7F1D1D"},{l:"Bus Out",v:times.bus_depart?fmt(times.bus_depart.s):"--",c:"#1E40AF",hide:effShow.busSkip}].filter(s=>!s.hide).map((s,i)=><div key={i}><div style={{fontSize:8,color:"#a0a0b8",marginBottom:1,fontWeight:600}}>{s.l}</div><div style={{fontFamily:MN,fontSize:12,color:s.c,fontWeight:800}}>{s.v}</div></div>)}
+          {[{l:"Bus ETA",v:fmt(effShow.busArrive),c:"#a78bfa",hide:effShow.busSkip},{l:"Crew Call",v:fmt(effShow.crewCall),c:"#92400E"},{l:"M&G",v:fmt(effShow.mgTime),c:"#065F46",hide:effShow.mgSkip},{l:"Doors",v:fmt(effShow.doors),c:"#166534"},{l:"Headline",v:times.bbno_set?`${fmt(times.bbno_set.s)}–${fmt(times.bbno_set.e)}`:"--",c:"#B91C1C"},{l:"Settlement",v:times.settlement?fmt(times.settlement.s):"--",c:"#854D0E"},{l:"Curfew",v:fmt(effShow.curfew),c:"#7F1D1D"},{l:"Bus Out",v:times.bus_depart?fmt(times.bus_depart.s):"--",c:"#a78bfa",hide:effShow.busSkip}].filter(s=>!s.hide).map((s,i)=><div key={i}><div style={{fontSize:8,color:"#a0a0b8",marginBottom:1,fontWeight:600}}>{s.l}</div><div style={{fontFamily:MN,fontSize:12,color:s.c,fontWeight:800}}>{s.v}</div></div>)}
         </div>
       </div>
     </div>
@@ -2828,7 +2828,7 @@ function TourCalendar(){
   },[busMap,showMap]);
   const TS={
     show:{l:"SHOW",c:"#047857",b:"#D1FAE5"},
-    travel:{l:"TRAVEL",c:"#1E40AF",b:"#DBEAFE"},
+    travel:{l:"TRAVEL",c:"#a78bfa",b:"#DBEAFE"},
     off:{l:"OFF",c:"#a0a0b8",b:"#1e1e2e"},
     split:{l:"SPLIT",c:"#92400E",b:"#FEF3C7"},
   };
@@ -2837,7 +2837,7 @@ function TourCalendar(){
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:8}}>
         {[
           {l:"Shows",v:days.filter(d=>d.type==="show").length,c:"#047857",b:"#D1FAE5"},
-          {l:"Travel Days",v:days.filter(d=>d.type==="travel").length,c:"#1E40AF",b:"#DBEAFE"},
+          {l:"Travel Days",v:days.filter(d=>d.type==="travel").length,c:"#a78bfa",b:"#DBEAFE"},
           {l:"Off Days",v:days.filter(d=>d.type==="off").length,c:"#a0a0b8",b:"#1e1e2e"},
           {l:"Split Days",v:days.filter(d=>d.type==="split").length,c:"#92400E",b:"#FEF3C7"},
         ].map((s,i)=>(
@@ -3172,14 +3172,14 @@ function FlightsListView(){
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
       {/* Scan bar */}
       <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"10px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-        <span style={{fontSize:10,fontWeight:800,color:"#1E40AF",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
-        <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"#DBEAFE",color:"#1E40AF",fontWeight:700}}>{confirmed.length} confirmed · {pending.length} pending</span>
+        <span style={{fontSize:10,fontWeight:800,color:"#a78bfa",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
+        <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"#DBEAFE",color:"#a78bfa",fontWeight:700}}>{confirmed.length} confirmed · {pending.length} pending</span>
         {scanMsg&&<span style={{fontSize:9,color:scanning?"#5B21B6":"#a0a0b8",fontFamily:MN}}>{scanMsg}</span>}
         {reassignMsg&&<span style={{fontSize:9,color:"#065F46",fontFamily:MN,fontWeight:600}}>{reassignMsg}</span>}
         <div style={{marginLeft:"auto",display:"flex",gap:6,flexWrap:"wrap"}}>
           {confirmed.length>0&&<button onClick={reassignAllFlights} title="Re-match all confirmed flights to tour shows by airport proximity + date window" style={{background:"#17171f",color:"#065F46",border:"1px solid #6EE7B7",borderRadius:6,fontSize:10,padding:"5px 12px",cursor:"pointer",fontWeight:700}}>⟲ Re-match to Shows</button>}
           {confirmed.length>0&&<button onClick={refreshAllStatus} disabled={refreshingAll} style={{background:refreshingAll?"#2a2a3a":"#17171f",color:refreshingAll?"#707088":"#5B21B6",border:"1px solid #2a2a3a",borderRadius:6,fontSize:10,padding:"5px 12px",cursor:refreshingAll?"default":"pointer",fontWeight:700}}>{refreshingAll?"Refreshing…":"⟳ Refresh Status"}</button>}
-          <button onClick={scanFlights} disabled={scanning} style={{background:scanning?"#2a2a3a":"#1E40AF",color:scanning?"#a0a0b8":"#12121a",border:"none",borderRadius:6,fontSize:10,padding:"5px 14px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail for Flights"}</button>
+          <button onClick={scanFlights} disabled={scanning} style={{background:scanning?"#2a2a3a":"#a78bfa",color:scanning?"#a0a0b8":"#12121a",border:"none",borderRadius:6,fontSize:10,padding:"5px 14px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail for Flights"}</button>
         </div>
       </div>
 
@@ -3187,8 +3187,8 @@ function FlightsListView(){
       {pendingImport.length>0&&(
         <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:10,padding:"10px 12px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-            <span style={{fontSize:9,fontWeight:800,color:"#1E40AF",letterSpacing:"0.06em"}}>NEW — REVIEW BEFORE IMPORTING</span>
-            <button onClick={importAll} style={{fontSize:9,padding:"3px 10px",borderRadius:5,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import All ({pendingImport.length})</button>
+            <span style={{fontSize:9,fontWeight:800,color:"#a78bfa",letterSpacing:"0.06em"}}>NEW — REVIEW BEFORE IMPORTING</span>
+            <button onClick={importAll} style={{fontSize:9,padding:"3px 10px",borderRadius:5,border:"none",background:"#a78bfa",color:"#fff",cursor:"pointer",fontWeight:700}}>Import All ({pendingImport.length})</button>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {groupByReservation(pendingImport).map(g=>(
@@ -3196,9 +3196,9 @@ function FlightsListView(){
                 <ReservationHeader g={g}/>
                 {g.segs.map(f=>(
                   <FlightCard key={f.id} f={f} crew={crew} actions={<>
-                    <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
+                    <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#a78bfa",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
                     <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #2a2a3a",background:"transparent",color:"#a0a0b8",cursor:"pointer"}}>Skip</button>
-                    {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
+                    {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
                   </>}/>
                 ))}
                 {!g.isSolo&&g.segs.length>1&&<button onClick={()=>g.segs.forEach(f=>importFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px dashed #C4B5FD",background:"#EDE9FE",color:"#5B21B6",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Import All {g.segs.length} Segments</button>}
@@ -3215,9 +3215,9 @@ function FlightsListView(){
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {pending.map(f=>{const isConf=confirmingId===f.id;return(
               <FlightCard key={f.id} f={f} crew={crew} onUpdatePax={newPax=>updatePax(f,newPax)} actions={<>
-                <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"#1E40AF",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
+                <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"#a78bfa",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
                 <button onClick={()=>uFlight(f.id,{...f,status:"unresolved"})} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #2a2a3a",background:"transparent",color:"#a0a0b8",cursor:"pointer"}}>Dismiss</button>
-                {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
+                {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
               </>}/>
             );})}
           </div>
@@ -3251,8 +3251,8 @@ function FlightsListView(){
                         {matchBadge(outShow,"← OUT","#FEF3C7","#92400E")}
                         {matchBadge(inShow,"IN →","#D1FAE5","#047857")}
                         {!inShow&&!outShow&&<span style={{fontSize:9,color:"#707088",fontStyle:"italic"}}>No show match — add city to airport table to match.</span>}
-                        <button onClick={()=>goToSchedule(f.depDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700}}>→ Schedule {f.depDate?.slice(5)}</button>
-                        {f.arrDate&&f.arrDate!==f.depDate&&<button onClick={()=>goToSchedule(f.arrDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700}}>→ Arr {f.arrDate?.slice(5)}</button>}
+                        <button onClick={()=>goToSchedule(f.depDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#a78bfa",cursor:"pointer",fontWeight:700}}>→ Schedule {f.depDate?.slice(5)}</button>
+                        {f.arrDate&&f.arrDate!==f.depDate&&<button onClick={()=>goToSchedule(f.arrDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#a78bfa",cursor:"pointer",fontWeight:700}}>→ Arr {f.arrDate?.slice(5)}</button>}
                         <button onClick={()=>uFlight(f.id,{...f,status:"unresolved"})} style={{marginLeft:"auto",fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #2a2a3a",background:"transparent",color:"#707088",cursor:"pointer"}}>Remove</button>
                       </>}
                     />
@@ -3272,7 +3272,7 @@ function FlightsListView(){
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {unresolved.map(f=>(
               <FlightCard key={f.id} f={f} crew={crew} actions={<>
-                <button onClick={()=>uFlight(f.id,{...f,status:"pending"})} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700}}>↩ Restore</button>
+                <button onClick={()=>uFlight(f.id,{...f,status:"pending"})} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#a78bfa",cursor:"pointer",fontWeight:700}}>↩ Restore</button>
                 <button onClick={()=>uFlight(f.id,null)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #FECACA",background:"transparent",color:"#B91C1C",cursor:"pointer"}}>Delete</button>
               </>}/>
             ))}
@@ -3602,7 +3602,7 @@ function TransTab(){
                     <div style={{fontSize:9,color:"#0369A1"}}>{f.from} · {f.date}</div>
                     {f.showId&&<div style={{fontSize:8,color:"#a0a0b8",fontFamily:MN}}>{f.showId}</div>}
                   </div>
-                  <a href={gmailUrl(f.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",flexShrink:0}}>email ↗</a>
+                  <a href={gmailUrl(f.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",flexShrink:0}}>email ↗</a>
                 </div>
               ))}
             </div>}
@@ -3698,7 +3698,7 @@ function FinLedger(){
     </th>;
   };
 
-  const CAT_COLOR={Flight:{bg:"#DBEAFE",c:"#1E40AF"},Hotel:{bg:"#FEF9C3",c:"#854D0E"},Payout:{bg:"#EDE9FE",c:"#5B21B6"},Settlement:{bg:"#D1FAE5",c:"#047857"}};
+  const CAT_COLOR={Flight:{bg:"#DBEAFE",c:"#a78bfa"},Hotel:{bg:"#FEF9C3",c:"#854D0E"},Payout:{bg:"#EDE9FE",c:"#5B21B6"},Settlement:{bg:"#D1FAE5",c:"#047857"}};
 
   return(
     <div style={{flex:1,overflow:"auto",padding:"14px 20px 30px",display:"flex",flexDirection:"column",gap:12}}>
@@ -3789,7 +3789,7 @@ function FinTab(){
           return(<div key={s.date} onClick={()=>setSelS(s.date)} className="br rh" style={{padding:"7px 12px",cursor:"pointer",borderBottom:"1px solid #17171f",background:isSel?"#17171f":"transparent"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:1}}>
               <span style={{fontFamily:MN,fontSize:9,color:"#a0a0b8"}}>{fD(s.date)}</span>
-              <span style={{fontSize:7,padding:"1px 4px",borderRadius:3,background:ok?"#D1FAE5":ip?"#DBEAFE":"#FEF3C7",color:ok?"#047857":ip?"#1E40AF":"#92400E",fontWeight:700}}>{ok?"Done":ip?"Active":"Pending"}</span>
+              <span style={{fontSize:7,padding:"1px 4px",borderRadius:3,background:ok?"#D1FAE5":ip?"#DBEAFE":"#FEF3C7",color:ok?"#047857":ip?"#a78bfa":"#92400E",fontWeight:700}}>{ok?"Done":ip?"Active":"Pending"}</span>
             </div>
             <div style={{fontSize:10,fontWeight:600,color:past?"#707088":"#e4e4ef"}}>{s.city}</div>
             <div style={{fontSize:9,color:"#707088"}}>{s.venue}</div>
@@ -3806,14 +3806,14 @@ function FinTab(){
             </div>
             {(()=>{const ps=(labelIntel?.settlements||[]).filter(s=>s.showId===showIdFor(shows?.[selS]||{}));return ps.length>0?(
               <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8,padding:"10px 12px",marginBottom:10}}>
-                <div style={{fontSize:9,fontWeight:800,color:"#1E40AF",letterSpacing:"0.08em",marginBottom:6}}>INBOX SETTLEMENTS ({ps.length})</div>
+                <div style={{fontSize:9,fontWeight:800,color:"#a78bfa",letterSpacing:"0.08em",marginBottom:6}}>INBOX SETTLEMENTS ({ps.length})</div>
                 {ps.map(s=>(
                   <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0",borderBottom:"1px solid #BFDBFE"}}>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.subject}</div>
                       <div style={{fontSize:9,color:"#a0a0b8"}}>{s.from} · {s.date}</div>
                     </div>
-                    <a href={gmailUrl(s.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",flexShrink:0}}>open ↗</a>
+                    <a href={gmailUrl(s.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",flexShrink:0}}>open ↗</a>
                   </div>
                 ))}
               </div>
@@ -3861,7 +3861,7 @@ function FinTab(){
                 </tr>)}
                 </tbody>
               </table>
-              {[...new Set((fin.flightExpenses||[]).map(fe=>fe.currency).filter(Boolean))].map(cur=>{const t=(fin.flightExpenses||[]).filter(fe=>fe.currency===cur&&fe.amount!=null).reduce((s,fe)=>s+parseFloat(fe.amount||0),0);return t>0?<div key={cur} style={{marginTop:6,padding:"5px 8px",background:"#EFF6FF",borderRadius:5,fontSize:9,color:"#1E40AF"}}><span style={{fontWeight:700}}>Flight total {cur}: </span><span style={{fontFamily:MN,fontWeight:700}}>{t.toFixed(2)}</span></div>:null;})}
+              {[...new Set((fin.flightExpenses||[]).map(fe=>fe.currency).filter(Boolean))].map(cur=>{const t=(fin.flightExpenses||[]).filter(fe=>fe.currency===cur&&fe.amount!=null).reduce((s,fe)=>s+parseFloat(fe.amount||0),0);return t>0?<div key={cur} style={{marginTop:6,padding:"5px 8px",background:"#EFF6FF",borderRadius:5,fontSize:9,color:"#a78bfa"}}><span style={{fontWeight:700}}>Flight total {cur}: </span><span style={{fontFamily:MN,fontWeight:700}}>{t.toFixed(2)}</span></div>:null;})}
             </div>}
             <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"14px"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
@@ -3917,8 +3917,8 @@ function FinTab(){
 const DOC_TYPE_META={
   RECEIPT:{label:"Receipt",bg:"#FEF3C7",c:"#92400E",icon:"🧾"},
   INVOICE:{label:"Invoice",bg:"#FEF3C7",c:"#92400E",icon:"📋"},
-  FLIGHT_CONFIRMATION:{label:"Flight Confirmation",bg:"#DBEAFE",c:"#1E40AF",icon:"✈"},
-  TRAVEL_ITINERARY:{label:"Travel Itinerary",bg:"#DBEAFE",c:"#1E40AF",icon:"🗺"},
+  FLIGHT_CONFIRMATION:{label:"Flight Confirmation",bg:"#DBEAFE",c:"#a78bfa",icon:"✈"},
+  TRAVEL_ITINERARY:{label:"Travel Itinerary",bg:"#DBEAFE",c:"#a78bfa",icon:"🗺"},
   SHOW_CONTRACT:{label:"Show Contract",bg:"#D1FAE5",c:"#047857",icon:"📄"},
   VENUE_TECH_PACK:{label:"Venue Tech Pack",bg:"#EDE9FE",c:"#5B21B6",icon:"🔧"},
   EXPENSE_REPORT:{label:"Expense Report",bg:"#FEF3C7",c:"#92400E",icon:"📊"},
@@ -4114,7 +4114,7 @@ function FileUploadModal({onClose}){
               <div style={{display:"flex",flexDirection:"column",gap:5}}>
                 {result.flights.map((f,i)=>(
                   <div key={i} style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:7,padding:"8px 10px",display:"flex",alignItems:"center",gap:10}}>
-                    <span style={{fontSize:9,fontWeight:800,padding:"2px 5px",borderRadius:3,background:"#1E40AF",color:"#fff",flexShrink:0}}>{f.flightNo||f.carrier}</span>
+                    <span style={{fontSize:9,fontWeight:800,padding:"2px 5px",borderRadius:3,background:"#a78bfa",color:"#fff",flexShrink:0}}>{f.flightNo||f.carrier}</span>
                     <span style={{fontSize:10,color:"#e4e4ef",flex:1}}>{f.fromCity||f.from} → {f.toCity||f.to}</span>
                     <span style={{fontFamily:MN,fontSize:9,color:"#a0a0b8",whiteSpace:"nowrap"}}>{f.depDate} {f.dep}</span>
                     {f.pax?.length>0&&<span style={{fontSize:9,color:"#707088"}}>{f.pax.join(", ")}</span>}
@@ -4167,7 +4167,7 @@ function FileUploadModal({onClose}){
                   <button onClick={applyReceipt} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"#92400E",color:"#fff",cursor:"pointer",fontWeight:700}}>Add to Ledger</button>
                 )}
                 {isFlight&&result.flights?.length>0&&(
-                  <button onClick={applyFlights} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import {result.flights.length} Flight{result.flights.length>1?"s":""}</button>
+                  <button onClick={applyFlights} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"#a78bfa",color:"#fff",cursor:"pointer",fontWeight:700}}>Import {result.flights.length} Flight{result.flights.length>1?"s":""}</button>
                 )}
                 {isContract&&result.show?.date&&(
                   <button onClick={applyContract} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"#047857",color:"#fff",cursor:"pointer",fontWeight:700}}>Create Show</button>
@@ -4271,7 +4271,7 @@ function LifecyclePills({crewId,date,state,slots,onJump,compact}){
   const missing=slots.filter(s=>s.state==="missing").length;
   return(
     <div style={{display:"inline-flex",alignItems:"center",gap:4,flexWrap:"wrap"}} title={`${stateLabel}${missing?` — ${missing} missing`:""}`}>
-      {!compact&&<span style={{fontSize:7,padding:"1px 5px",borderRadius:3,background:state==="fly-one-off"?"#EDE9FE":"#DBEAFE",color:state==="fly-one-off"?"#5B21B6":"#1E40AF",fontWeight:800,letterSpacing:"0.06em"}}>{stateLabel}</span>}
+      {!compact&&<span style={{fontSize:7,padding:"1px 5px",borderRadius:3,background:state==="fly-one-off"?"#EDE9FE":"#DBEAFE",color:state==="fly-one-off"?"#5B21B6":"#a78bfa",fontWeight:800,letterSpacing:"0.06em"}}>{stateLabel}</span>}
       {slots.map(s=>{const col=color(s.state);return(
         <button key={s.key} onClick={e=>{e.stopPropagation();onJump?.(s);}} title={`${s.label} — ${s.state==="ok"?"confirmed":s.state==="missing"?"missing":s.state==="unknown"?"not tracked":"not applicable"}`} style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:compact?9:10,padding:compact?"2px 5px":"2px 7px",borderRadius:10,border:`1px solid ${col.bd}`,background:col.bg,color:col.c,cursor:"pointer",fontWeight:700,lineHeight:1}}>
           <span style={{fontSize:compact?9:10}}>{s.icon}</span>
@@ -4463,7 +4463,7 @@ function CrewTab(){
                 <div style={{background:"#17171f",borderTop:"1px solid #17171f",borderBottom:"1px solid #17171f",padding:"12px 14px",display:"flex",flexDirection:"column",gap:12}}>
                   {/* Lodging badge */}
                   {(()=>{const crewHotels=Object.values(lodging).filter(h=>h.checkIn<=sel&&h.checkOut>=sel&&(h.rooms||[]).some(r=>r.crewId===c.id));return crewHotels.length>0&&(<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",padding:"5px 8px",background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:7}}>
-                    <span style={{fontSize:9,fontWeight:700,color:"#1E40AF",letterSpacing:"0.04em"}}>LODGING</span>
+                    <span style={{fontSize:9,fontWeight:700,color:"#a78bfa",letterSpacing:"0.04em"}}>LODGING</span>
                     {crewHotels.map(h=>{const room=(h.rooms||[]).find(r=>r.crewId===c.id);return(<span key={h.id} style={{fontSize:11,color:"#e4e4ef",fontWeight:600}}>{h.name}{room?.roomNo&&<span style={{fontFamily:MN,color:"#a0a0b8",marginLeft:4}}>#{room.roomNo}</span>}{room?.type&&<span style={{color:"#707088",fontSize:9,marginLeft:4}}>{room.type}</span>}</span>);})}
                     <button onClick={()=>setTab("lodging")} style={{marginLeft:"auto",fontSize:9,padding:"2px 7px",borderRadius:5,border:"none",background:"#3B82F6",color:"#fff",cursor:"pointer",fontWeight:700}}>→ Lodging</button>
                   </div>);})()}
@@ -4616,7 +4616,7 @@ const MANIFEST_SEED=[
 
 const PROD_DEPTS=["ALL","LIGHTING","VIDEO","AUDIO","LASERS","POWER_DISTRO","STAGING","SFX","TRANSPORT","OTHER"];
 const SEV_STYLES={CRITICAL:{bg:"#FEF2F2",c:"#DC2626",b:"#FECACA"},HIGH:{bg:"#FFF7ED",c:"#C2410C",b:"#FED7AA"},MEDIUM:{bg:"#FEFCE8",c:"#A16207",b:"#FEF08A"},LOW:{bg:"#F0FDF4",c:"#166534",b:"#BBF7D0"}};
-const POS_STYLES={fly:{bg:"#EDE9FE",c:"#5B21B6"},ground:{bg:"#DCFCE7",c:"#166534"},tower:{bg:"#FEF3C7",c:"#92400E"},touring_carry:{bg:"#DBEAFE",c:"#1E40AF"},TBD:{bg:"#1e1e2e",c:"#a0a0b8"}};
+const POS_STYLES={fly:{bg:"#EDE9FE",c:"#5B21B6"},ground:{bg:"#DCFCE7",c:"#166534"},tower:{bg:"#FEF3C7",c:"#92400E"},touring_carry:{bg:"#DBEAFE",c:"#a78bfa"},TBD:{bg:"#1e1e2e",c:"#a0a0b8"}};
 
 // Venue Grid 4.21 — seeded from bbno$ EU Production Binder
 const VENUE_GRID={
@@ -4933,7 +4933,7 @@ function VenueBrief({vg,sel,data,upd}){
       <div style={{display:"grid",gridTemplateColumns:window.innerWidth>600?"1fr 1fr":"1fr",gap:0}}>
         <div style={{paddingRight:6}}>
           {/* Venue info */}
-          <VBSection title="Venue" accent="#1E40AF">
+          <VBSection title="Venue" accent="#a78bfa">
             <VBRow label="Capacity" value={vg.capacity?.toLocaleString()}/>
             <VBRow label="Address" value={vg.address}/>
             <VBRow label="Design Ver" value={vg.designVer}/>
@@ -5054,14 +5054,14 @@ function VenueBrief({vg,sel,data,upd}){
 const HOTEL_STATUS_META={
   pending:{label:"Pending",bg:"#FEF3C7",c:"#92400E"},
   confirmed:{label:"Confirmed",bg:"#D1FAE5",c:"#047857"},
-  checked_in:{label:"Checked In",bg:"#DBEAFE",c:"#1E40AF"},
+  checked_in:{label:"Checked In",bg:"#DBEAFE",c:"#a78bfa"},
   checked_out:{label:"Checked Out",bg:"#1e1e2e",c:"#b0b0c8"},
   cancelled:{label:"Cancelled",bg:"#FEE2E2",c:"#991B1B"},
 };
 const ROOM_STATUS_META={
   pending:{label:"Pending",bg:"#FEF3C7",c:"#92400E"},
   confirmed:{label:"Confirmed",bg:"#D1FAE5",c:"#047857"},
-  occupied:{label:"Occupied",bg:"#DBEAFE",c:"#1E40AF"},
+  occupied:{label:"Occupied",bg:"#DBEAFE",c:"#a78bfa"},
   released:{label:"Released",bg:"#1e1e2e",c:"#b0b0c8"},
 };
 const HOTEL_TODOS_DEFAULT=["Confirm room block","Collect confirmation #","Share room list with crew","Arrange early check-in (if needed)","Confirm late check-out","Collect receipt","Verify billing address"];

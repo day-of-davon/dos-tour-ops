@@ -9,12 +9,6 @@ function nDaysAgo(n) {
   const d = new Date(); d.setDate(d.getDate() - n);
   return toGmailDate(d.toISOString().slice(0, 10));
 }
-function addDays(dateStr, n) {
-  const d = new Date(dateStr + "T12:00:00");
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
-}
-
 // ── Thread extraction ─────────────────────────────────────────────────────────
 // Detect forwarded-email wrappers and pull the inner sender. Crew often forward
 // personal bookings from Davon/Olivia; outer From is the forwarder, inner From
