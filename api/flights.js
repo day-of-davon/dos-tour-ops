@@ -389,7 +389,7 @@ Return this exact JSON:
 
     let verifyResult;
     try {
-      verifyResult = await callClaude(buildVerifyPrompt(batch, flights), verifySys, 2048, "claude-haiku-4-5-20251001");
+      verifyResult = await callClaude(buildVerifyPrompt(batch, flights), verifySys, 2048);
     } catch (e) {
       console.warn("[flights] verify error:", e.message);
       return flights.map(f => ({ ...f, parseVerified: null }));
