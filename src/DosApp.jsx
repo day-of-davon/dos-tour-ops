@@ -3412,6 +3412,11 @@ function FinLedger(){
       (fin.payouts||[]).forEach(p=>{
         out.push({id:p.id||`po_${date}_${Math.random()}`,date,show:showLabel,cat:"Payout",desc:`${p.dept||""}${p.role?` · ${p.role}`:""}`,payee:p.name||"—",amount:parseFloat(p.amount||0),currency:p.currency||"USD",status:p.status||"pending",ref:p.method||""});
       });
+      // Lodging expenses
+      (fin.ledgerEntries||[]).forEach(le=>{
+        if(!le.amount&&le.amount!==0)return;
+        out.push({id:le.id||`le_${date}_${Math.random()}`,date:le.date||date,show:showLabel,cat:"Hotel",desc:le.description||"",payee:le.vendor||"—",amount:parseFloat(le.amount||0),currency:le.currency||"USD",status:"confirmed",ref:le.source||""});
+      });
       // Settlement amount
       if(fin.settlementAmount&&parseFloat(fin.settlementAmount)>0){
         out.push({id:`sa_${date}`,date,show:showLabel,cat:"Settlement",desc:"Settlement payment",payee:"—",amount:parseFloat(fin.settlementAmount),currency:"USD",status:fin.stages?.payment_initiated?"confirmed":"pending",ref:fin.wireRef||""});
@@ -3442,7 +3447,7 @@ function FinLedger(){
     </th>;
   };
 
-  const CAT_COLOR={Flight:{bg:"#DBEAFE",c:"#1E40AF"},Payout:{bg:"#EDE9FE",c:"#5B21B6"},Settlement:{bg:"#D1FAE5",c:"#047857"}};
+  const CAT_COLOR={Flight:{bg:"#DBEAFE",c:"#1E40AF"},Hotel:{bg:"#FEF9C3",c:"#854D0E"},Payout:{bg:"#EDE9FE",c:"#5B21B6"},Settlement:{bg:"#D1FAE5",c:"#047857"}};
 
   return(
     <div style={{flex:1,overflow:"auto",padding:"14px 20px 30px",display:"flex",flexDirection:"column",gap:12}}>
@@ -4855,6 +4860,11 @@ function LodgingTab(){
   const importHotel=h=>{
     uLodging(h.id,{...h,status:"pending",rooms:h.rooms||[],todos:HOTEL_TODOS_DEFAULT.map(t=>({text:t,done:false}))});
     setPendingImport(p=>p.filter(x=>x.id!==h.id));
+    if(h.cost&&h.cost>0&&h.checkIn){
+      const dateKey=h.checkIn;
+      const existing=(finance[dateKey]?.ledgerEntries||[]).filter(e=>e.hotelId!==h.id);
+      uFin(dateKey,{ledgerEntries:[...existing,{id:`lodging_${h.id}`,date:dateKey,vendor:h.name||"Hotel",amount:parseFloat(h.cost),currency:h.currency||"USD",category:"Hotel",description:h.checkOut?`${h.checkIn}–${h.checkOut} · ${h.name||"Hotel"}`:h.name||"Hotel",source:"lodging",hotelId:h.id}]});
+    }
   };
   const importAll=()=>{pendingImport.forEach(h=>importHotel(h));};
 
