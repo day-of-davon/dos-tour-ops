@@ -304,6 +304,11 @@ module.exports = async function handler(req, res) {
   if (!ids.length) return res.json({ flights: [], threadsFound: 0 });
 
   const threads = (await fetchBatched(googleToken, ids)).map(extractHeaders);
+  const cutoff48h = Date.now() - 48 * 3600 * 1000;
+  const freshIds = new Set(threads.filter(t => {
+    const ms = t.date ? new Date(t.date).getTime() : NaN;
+    return !isNaN(ms) && ms >= cutoff48h;
+  }).map(t => t.id));
 
   const sysPrompt = `You are a flight itinerary parser for concert touring operations. Extract structured flight segment data from email bodies.
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.
