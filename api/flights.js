@@ -86,18 +86,36 @@ module.exports = async function handler(req, res) {
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ error: "Invalid token" });
 
-  const { googleToken, tourStart = "2026-04-01", tourEnd = "2026-06-30" } = req.body || {};
+  const { googleToken, tourStart = "2026-04-01", tourEnd = "2026-06-30", focus = [] } = req.body || {};
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
 
-  // Freshest pass: anything in the last 48h that even vaguely looks travel-related.
-  // Higher per-query cap (40) and loose keywords — the volume is low over 2 days so
-  // noise is tolerable. Guarantees just-booked confirmations surface without waiting
-  // for a full tour-window rescan.
-  const freshQueries = [
-    `(flight OR airline OR airways OR airport OR "boarding pass" OR itinerary OR booking) newer_than:2d`,
-    `(confirmation OR reservation OR receipt) newer_than:2d`,
-    `subject:(your OR flight OR ticket OR trip) newer_than:2d`,
-  ];
+  // Focus carriers — broadened per-carrier queries run first with high cap
+  const FOCUS_QUERIES = {
+    delta: [
+      `from:(delta.com) newer_than:365d`,
+      `from:(t.delta.com) newer_than:365d`,
+      `"delta air lines" (confirmation OR itinerary OR "e-ticket" OR "boarding pass") newer_than:365d`,
+      `subject:(delta) (flight OR confirmation OR itinerary) newer_than:365d`,
+    ],
+    american: [
+      `from:(aa.com) newer_than:365d`,
+      `from:(americanairlines.com) newer_than:365d`,
+      `"american airlines" (confirmation OR itinerary OR "e-ticket" OR "boarding pass") newer_than:365d`,
+      `subject:(american airlines) (flight OR confirmation OR itinerary) newer_than:365d`,
+    ],
+    united: [
+      `from:(united.com) newer_than:365d`,
+      `from:(unitedairlines.com) newer_than:365d`,
+      `"united airlines" (confirmation OR itinerary OR "e-ticket" OR "boarding pass") newer_than:365d`,
+      `subject:(united) (flight OR confirmation OR itinerary) newer_than:365d`,
+    ],
+    "air canada": [
+      `from:(aircanada.com) newer_than:365d`,
+      `"air canada" (confirmation OR itinerary OR "e-ticket" OR "boarding pass") newer_than:365d`,
+      `subject:(air canada) (flight OR confirmation OR itinerary) newer_than:365d`,
+    ],
+  };
+  const focusQueries = focus.flatMap(k => FOCUS_QUERIES[String(k).toLowerCase()] || []);
 
   // Priority queries: wide net over recent emails — run first, guaranteed slots
   const recentQueries = [
@@ -157,13 +175,13 @@ module.exports = async function handler(req, res) {
     `from:(noreply@qatarairways.com) newer_than:365d`,
   ];
 
-  const freshIds = new Set();
-  for (const q of freshQueries) {
+  const focusIds = new Set();
+  for (const q of focusQueries) {
     try {
       const ids = await gmailSearch(googleToken, q, 40);
-      ids.forEach(id => freshIds.add(id));
+      ids.forEach(id => focusIds.add(id));
     } catch (e) {
-      console.error("[flights] fresh search error:", e.message);
+      console.error("[flights] focus search error:", e.message);
       if (e.message.includes("401")) return res.status(402).json({ error: "gmail_token_expired" });
     }
   }
@@ -190,13 +208,12 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // Thread slot priority: fresh (0-48h) > recent (0-14d) > carrier (0-365d).
-  // Fresh always gets its full quota even if that means evicting older carrier hits.
-  const combined = [...freshIds];
-  for (const id of recentIds) { if (!freshIds.has(id)) combined.push(id); }
-  for (const id of carrierIds) { if (!freshIds.has(id) && !recentIds.has(id)) combined.push(id); }
-  const ids = combined.slice(0, 90);
-  if (!ids.length) return res.json({ flights: [], threadsFound: 0, freshThreads: 0 });
+  // Focus carriers first, then recent, then broader carrier sweep
+  const combined = [...focusIds];
+  for (const id of recentIds) { if (!focusIds.has(id)) combined.push(id); }
+  for (const id of carrierIds) { if (!focusIds.has(id) && !recentIds.has(id)) combined.push(id); }
+  const ids = combined.slice(0, 120);
+  if (!ids.length) return res.json({ flights: [], threadsFound: 0 });
 
   const threads = (await Promise.all(ids.map(id => gmailGetThread(googleToken, id))))
     .filter(Boolean)
