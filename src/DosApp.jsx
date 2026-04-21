@@ -774,16 +774,17 @@ export default function App(){
       try{
         const{data:{session}}=await supabase.auth.getSession();
         if(!session?.provider_token)return;
-        const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken:session.provider_token,tourStart,tourEnd,focus:FOCUS_CARRIERS})});
+        const showsArr=Object.values(shows||{}).map(s=>({id:s.id||s.date,date:s.date,venue:s.venue,city:s.city,type:s.type}));
+        const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken:session.provider_token,tourStart,tourEnd,focus:FOCUS_CARRIERS,shows:showsArr})});
         if(!resp.ok)return;
         const data=await resp.json();
         if(!data.flights?.length)return;
         setFlights(cur=>{
-          const existingKeys=new Set(Object.values(cur).map(f=>`${f.flightNo}__${f.depDate}`));
-          const novel=data.flights.filter(f=>!cur[f.id]&&!existingKeys.has(`${f.flightNo}__${f.depDate}`));
+          const existingKeys=new Set(Object.values(cur).map(f=>`${f.flightNo||f.carrier||""}__${f.from||""}__${f.to||""}__${f.depDate||""}`));
+          const novel=data.flights.filter(f=>!cur[f.id]&&!existingKeys.has(`${f.flightNo||f.carrier||""}__${f.from||""}__${f.to||""}__${f.depDate||""}`));
           if(!novel.length)return cur;
           const next={...cur};
-          novel.forEach(f=>{next[f.id]={...f,status:"pending"};});
+          novel.forEach(f=>{next[f.id]={...f,status:"pending",suggestedCrewIds:matchPaxToCrew(f.pax,crew)};});
           return next;
         });
       }catch(e){console.warn("[bg-flights]",e.message);}
@@ -793,7 +794,7 @@ export default function App(){
   const uShow=useCallback((d,u)=>setShows(p=>({...p,[d]:{...p[d],...u,lastModified:Date.now()}})),[]);
   const uRos=useCallback((d,b)=>setRos(p=>{const n={...p};if(b)n[d]=b;else delete n[d];return n;}),[]);
   const uAdv=useCallback((d,u)=>setAdvances(p=>({...p,[d]:{...(p[d]||{}),...u}})),[]);
-  const uFin=useCallback((d,u)=>setFinance(p=>({...p,[d]:{...(p[d]||{}),...u}})),[]);
+  const uFin=useCallback((d,u)=>setFinance(p=>({...p,[d]:{...(p[d]||{}),...(typeof u==="function"?u(p[d]||{}):u)}})),[]);
   const uProd=useCallback((d,u)=>setProduction(p=>({...p,[d]:{...(p[d]||{}),...u}})),[]);
   const uFlight=useCallback((id,seg)=>setFlights(p=>{if(!seg){const n={...p};delete n[id];return n;}return{...p,[id]:seg};}),[]);
   const uLodging=useCallback((id,data)=>setLodging(p=>{if(!data){const n={...p};delete n[id];return n;}return{...p,[id]:data};}),[]);
@@ -1129,8 +1130,9 @@ function FlightsSection(){
       if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
       const newFlights=data.flights||[];
       const cur=opts.reset?{}:flights;
-      const existingKeys=new Set(Object.values(cur).map(f=>`${f.flightNo}__${f.depDate}`));
-      const novel=newFlights.filter(f=>!cur[f.id]&&!existingKeys.has(`${f.flightNo}__${f.depDate}`));
+      const dedupKey=f=>`${f.flightNo||f.carrier||""}__${f.from||""}__${f.to||""}__${f.depDate||""}`;
+      const existingKeys=new Set(Object.values(cur).map(dedupKey));
+      const novel=newFlights.filter(f=>!cur[f.id]&&!existingKeys.has(dedupKey(f)));
       if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads — no new flights found.`);setScanning(false);return;}
       novel.forEach(f=>uFlight(f.id,{...f,status:"pending",suggestedCrewIds:matchPaxToCrew(f.pax,crew)}));
       const freshCount=novel.filter(f=>f.fresh48h).length;
@@ -1154,40 +1156,48 @@ function FlightsSection(){
 
   const confirmFlight=f=>{
     setConfirmingId(f.id);
-    // Mark confirmed in flights store
     uFlight(f.id,{...f,status:"confirmed",confirmedAt:new Date().toISOString()});
 
-    // Schedule: dep item
-    const depMin=hhmmToMin(f.dep);
-    // Flights float independently on the day view — no ROS anchoring
-
-    // Finance: flight expense on dep date
     if(f.cost&&f.cost>0){
-      const existing=finance[f.depDate]?.flightExpenses||[];
-      uFin(f.depDate,{flightExpenses:[...existing.filter(e=>e.flightId!==f.id),{flightId:f.id,label:`${f.flightNo||f.carrier} ${f.from}→${f.to}`,amount:f.cost,currency:f.currency||"USD",pax:f.pax||[],carrier:f.carrier}]});
+      uFin(f.depDate,prev=>{
+        const existing=(prev?.flightExpenses||[]).filter(e=>e.flightId!==f.id);
+        return{...prev,flightExpenses:[...existing,{flightId:f.id,label:`${f.flightNo||f.carrier} ${f.from}→${f.to}`,amount:f.cost,currency:f.currency||"USD",pax:f.pax||[],carrier:f.carrier}]};
+      });
     }
 
-    // Crew: match pax names → populate inbound + outbound legs
     if(f.pax?.length&&crew?.length){
-      const leg={id:`leg_${f.id}`,flight:f.flightNo||"",carrier:f.carrier||"",from:f.from,fromCity:f.fromCity||f.from,to:f.to,toCity:f.toCity||f.to,depart:f.dep,arrive:f.arr,conf:f.confirmNo||f.bookingRef||"",status:"confirmed",flightId:f.id};
+      const allFlightsObj={...flights,[f.id]:{...f,status:"confirmed"}};
+      const legs=findItineraryLegs(f,allFlightsObj);
+      const firstLeg=legs[0]||f,lastLeg=legs[legs.length-1]||f;
+      const allLegObjs=legs.map(flightToLeg);
+      const inShow=matchShowByAirport(lastLeg.to,lastLeg.toCity,lastLeg.arrDate||lastLeg.depDate,sorted||[],"inbound");
+      const outShow=matchShowByAirport(firstLeg.from,firstLeg.fromCity,firstLeg.depDate,sorted||[],"outbound");
       f.pax.forEach(name=>{
         if(!name)return;
-        const fname=name.split(" ")[0].toLowerCase();
-        const match=crew.find(c=>c.name&&c.name.toLowerCase().includes(fname));
+        const match=matchPaxToCrew([name],crew).map(id=>crew.find(c=>c.id===id)).find(Boolean);
         if(!match)return;
-        const arrD=f.arrDate||f.depDate;
-        const depD=f.depDate;
-        const sameDay=arrD===depD;
-        setShowCrew(p=>{
-          const cur=p[arrD]?.[match.id]||{};
-          const ex=(cur.inbound||[]).filter(l=>l.flightId!==f.id);
-          return{...p,[arrD]:{...p[arrD],[match.id]:{...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,inboundDate:arrD,inboundTime:f.arr||"",inbound:[...ex,leg]}}};
-        });
-        if(!sameDay){
+        if(inShow){
           setShowCrew(p=>{
-            const cur=p[depD]?.[match.id]||{};
-            const ex=(cur.outbound||[]).filter(l=>l.flightId!==f.id);
-            return{...p,[depD]:{...p[depD],[match.id]:{...cur,attending:true,outboundMode:"fly",outboundDate:depD,outboundTime:f.dep||"",outbound:[...ex,leg]}}};
+            const cur=p[inShow.date]?.[match.id]||{};
+            const flightIds=new Set(allLegObjs.map(l=>l.flightId));
+            const existing=(cur.inbound||[]).filter(l=>!flightIds.has(l.flightId));
+            return{...p,[inShow.date]:{...p[inShow.date],[match.id]:{...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,inboundDate:lastLeg.arrDate||lastLeg.depDate,inboundTime:lastLeg.arr||"",inbound:[...existing,...allLegObjs]}}};
+          });
+        }
+        if(outShow){
+          setShowCrew(p=>{
+            const cur=p[outShow.date]?.[match.id]||{};
+            const flightIds=new Set(allLegObjs.map(l=>l.flightId));
+            const existing=(cur.outbound||[]).filter(l=>!flightIds.has(l.flightId));
+            return{...p,[outShow.date]:{...p[outShow.date],[match.id]:{...cur,attending:true,outboundMode:"fly",outboundConfirmed:true,outboundDate:firstLeg.depDate,outboundTime:firstLeg.dep||"",outbound:[...existing,...allLegObjs]}}};
+          });
+        }
+        if(!inShow&&!outShow){
+          const arrD=f.arrDate||f.depDate;
+          setShowCrew(p=>{
+            const cur=p[arrD]?.[match.id]||{};
+            const ex=(cur.inbound||[]).filter(l=>l.flightId!==f.id);
+            return{...p,[arrD]:{...p[arrD],[match.id]:{...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,inboundDate:arrD,inboundTime:f.arr||"",inbound:[...ex,flightToLeg(f)]}}};
           });
         }
       });
@@ -2904,7 +2914,7 @@ function TourCalendar(){
 }
 
 function FlightsListView(){
-  const{flights,uFlight,uRos,gRos,uFin,finance,crew,setShowCrew,setSel,setTab,sorted,tourStart,tourEnd}=useContext(Ctx);
+  const{flights,uFlight,uRos,gRos,uFin,finance,crew,setShowCrew,setSel,setTab,sorted,shows,tourStart,tourEnd}=useContext(Ctx);
   const goToSchedule=(date)=>{setSel(date);setTab("ros");};
   const[scanning,setScanning]=useState(false);
   const[scanMsg,setScanMsg]=useState("");
@@ -2929,16 +2939,18 @@ function FlightsListView(){
       const googleToken=session.provider_token;
       if(!googleToken){setScanMsg("Gmail access not available — re-login with Google.");return;}
       setScanning(true);setScanMsg("Scanning Gmail…");
-      const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken,tourStart,tourEnd})});
+      const showsArr=Object.values(shows||{}).map(s=>({id:s.id||s.date,date:s.date,venue:s.venue,city:s.city,type:s.type}));
+      const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken,tourStart,tourEnd,shows:showsArr})});
       if(resp.status===402){setScanMsg("Gmail session expired — re-login.");setScanning(false);return;}
       const data=await resp.json();
       if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
-      const existingKeys=new Set(allFlights.map(f=>`${f.flightNo}__${f.depDate}`));
-      const novel=(data.flights||[]).filter(f=>!flights[f.id]&&!existingKeys.has(`${f.flightNo}__${f.depDate}`));
+      const dedupKey=f=>`${f.flightNo||f.carrier||""}__${f.from||""}__${f.to||""}__${f.depDate||""}`;
+      const existingKeys=new Set(allFlights.map(dedupKey));
+      const novel=(data.flights||[]).filter(f=>!flights[f.id]&&!existingKeys.has(dedupKey(f)));
       const freshCount=novel.filter(f=>f.fresh48h).length;
       const freshTag=freshCount?` (${freshCount} from last 48h)`:"";
       if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads${data.freshThreads?` (${data.freshThreads} from last 48h)`:""} — no new flights.`);setScanning(false);return;}
-      novel.forEach(f=>uFlight(f.id,{...f,status:"pending"}));
+      novel.forEach(f=>uFlight(f.id,{...f,status:"pending",suggestedCrewIds:matchPaxToCrew(f.pax,crew)}));
       setScanMsg(`Added ${novel.length} flight${novel.length>1?"s":""}${freshTag} to travel days — confirm to sync crew.`);
     }catch(e){setScanMsg(`Scan failed: ${e.message}`);}
     setScanning(false);
@@ -3008,12 +3020,12 @@ function FlightsListView(){
   const confirmFlight=f=>{
     setConfirmingId(f.id);
     uFlight(f.id,{...f,status:"confirmed",confirmedAt:new Date().toISOString()});
-    // Flights float independently on the day view — no ROS anchoring
     if(f.cost&&f.cost>0){
-      const existing=finance[f.depDate]?.flightExpenses||[];
-      uFin(f.depDate,{flightExpenses:[...existing.filter(e=>e.flightId!==f.id),{flightId:f.id,label:`${f.flightNo||f.carrier} ${f.from}→${f.to}`,amount:f.cost,currency:f.currency||"USD",pax:f.pax||[],carrier:f.carrier}]});
+      uFin(f.depDate,prev=>{
+        const existing=(prev?.flightExpenses||[]).filter(e=>e.flightId!==f.id);
+        return{...prev,flightExpenses:[...existing,{flightId:f.id,label:`${f.flightNo||f.carrier} ${f.from}→${f.to}`,amount:f.cost,currency:f.currency||"USD",pax:f.pax||[],carrier:f.carrier}]};
+      });
     }
-    // Include this newly-confirmed flight in the itinerary pool (it may not be in flights yet).
     assignFlightToShows(f,{...flights,[f.id]:{...f,status:"confirmed"}});
     setTimeout(()=>setConfirmingId(null),1200);
   };

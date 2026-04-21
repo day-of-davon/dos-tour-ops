@@ -1,59 +1,6 @@
 // api/lodging-scan.js — Gmail hotel confirmation scraper + Claude parser
 const { createClient } = require("@supabase/supabase-js");
-
-// ── Gmail helpers ────────────────────────────────────────────────────────────
-async function gmailSearch(token, query, max = 20) {
-  const url = new URL("https://gmail.googleapis.com/gmail/v1/users/me/threads");
-  url.searchParams.set("q", query);
-  url.searchParams.set("maxResults", max);
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (!r.ok) throw new Error(`Gmail ${r.status}: ${await r.text()}`);
-  return ((await r.json()).threads || []).map(t => t.id);
-}
-
-async function gmailGetThread(token, id) {
-  const r = await fetch(
-    `https://gmail.googleapis.com/gmail/v1/users/me/threads/${id}?format=full`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  if (!r.ok) return null;
-  return r.json();
-}
-
-async function fetchBatched(token, ids, batchSize = 10) {
-  const out = [];
-  for (let i = 0; i < ids.length; i += batchSize) {
-    const batch = await Promise.all(ids.slice(i, i + batchSize).map(id => gmailGetThread(token, id)));
-    out.push(...batch.filter(Boolean));
-    if (i + batchSize < ids.length) await new Promise(r => setTimeout(r, 150));
-  }
-  return out;
-}
-
-function decodeB64(s) {
-  try { return Buffer.from(String(s || "").replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8"); }
-  catch { return ""; }
-}
-
-function extractBody(payload) {
-  if (!payload) return "";
-  const parts = [payload];
-  let text = "", html = "";
-  while (parts.length) {
-    const p = parts.shift();
-    if (p.parts) parts.push(...p.parts);
-    const data = p.body?.data;
-    if (!data) continue;
-    if (p.mimeType === "text/plain") text += decodeB64(data) + "\n";
-    else if (p.mimeType === "text/html" && !text) html += decodeB64(data) + "\n";
-  }
-  const out = text || html
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
-  return out.replace(/\s+/g, " ").trim();
-}
+const { gmailSearch, gmailGetThread, fetchBatched, extractBody, extractJson } = require("./lib/gmail");
 
 function extractHeaders(thread) {
   const last = thread.messages?.[thread.messages.length - 1];
@@ -63,23 +10,8 @@ function extractHeaders(thread) {
     .map(m => extractBody(m.payload))
     .filter(Boolean)
     .join("\n---\n")
-    .slice(0, 2200);
+    .slice(0, 2000);
   return { id: thread.id, subject: get("Subject"), from: get("From"), date: get("Date"), body };
-}
-
-function extractJson(text) {
-  try { return JSON.parse(text.trim()); } catch {}
-  const fenced = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-  try { return JSON.parse(fenced); } catch {}
-  let depth = 0, start = -1;
-  for (let i = 0; i < text.length; i++) {
-    if (text[i] === "{") { if (start === -1) start = i; depth++; }
-    else if (text[i] === "}") {
-      depth--;
-      if (depth === 0 && start !== -1) { try { return JSON.parse(text.slice(start, i + 1)); } catch {} start = -1; }
-    }
-  }
-  return null;
 }
 
 // ── Query builders ───────────────────────────────────────────────────────────

@@ -1,28 +1,8 @@
 // api/intel.js — Vercel serverless function
 const { createClient } = require("@supabase/supabase-js");
+const { gmailSearch, gmailGetThread, decodeB64, extractBody: _extractBody, extractJson } = require("./lib/gmail");
 
 const CACHE_TTL_MINUTES = 60;
-
-async function gmailSearch(googleToken, query, maxResults = 20) {
-  const url = new URL("https://gmail.googleapis.com/gmail/v1/users/me/threads");
-  url.searchParams.set("q", query);
-  url.searchParams.set("maxResults", maxResults);
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${googleToken}` } });
-  if (!r.ok) { const err = await r.text(); throw new Error(`Gmail search failed (${r.status}): ${err}`); }
-  const data = await r.json();
-  return (data.threads || []).map((t) => t.id);
-}
-
-async function gmailGetThread(googleToken, threadId) {
-  const url = `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=full`;
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${googleToken}` } });
-  if (!r.ok) return null;
-  return r.json();
-}
-
-function decodeB64(s) {
-  try { return Buffer.from(String(s || "").replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8"); } catch { return ""; }
-}
 
 function extractBody(payload) {
   if (!payload) return "";
@@ -367,25 +347,6 @@ Return this exact JSON:
 
   console.log("[intel] stop_reason:", anthropicData.stop_reason, "| text length:", textContent.length);
   console.log("[intel] raw (first 600):", textContent.slice(0, 600));
-
-  // Extract outermost JSON object using bracket counting
-  function extractJson(text) {
-    try { return JSON.parse(text.trim()); } catch {}
-    const fenced = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-    try { return JSON.parse(fenced); } catch {}
-    let depth = 0, start = -1;
-    for (let i = 0; i < text.length; i++) {
-      if (text[i] === "{") { if (start === -1) start = i; depth++; }
-      else if (text[i] === "}") {
-        depth--;
-        if (depth === 0 && start !== -1) {
-          try { return JSON.parse(text.slice(start, i + 1)); } catch {}
-          start = -1;
-        }
-      }
-    }
-    return null;
-  }
 
   // When max_tokens truncates mid-JSON, salvage complete objects from each array key
   function salvageArray(text, key) {

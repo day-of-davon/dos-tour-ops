@@ -1,97 +1,32 @@
 // api/flights.js — Gmail flight confirmation scraper + Claude parser
 const { createClient } = require("@supabase/supabase-js");
-
-// ── Gmail helpers ─────────────────────────────────────────────────────────────
-async function gmailSearch(token, query, max = 25) {
-  const url = new URL("https://gmail.googleapis.com/gmail/v1/users/me/threads");
-  url.searchParams.set("q", query);
-  url.searchParams.set("maxResults", max);
-  const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  if (!r.ok) throw new Error(`Gmail ${r.status}: ${await r.text()}`);
-  return ((await r.json()).threads || []).map(t => t.id);
-}
-
-async function gmailGetThread(token, id) {
-  const r = await fetch(
-    `https://gmail.googleapis.com/gmail/v1/users/me/threads/${id}?format=full`,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  if (!r.ok) return null;
-  return r.json();
-}
-
-async function fetchBatched(token, ids, batchSize = 15) {
-  const out = [];
-  for (let i = 0; i < ids.length; i += batchSize) {
-    const batch = await Promise.all(ids.slice(i, i + batchSize).map(id => gmailGetThread(token, id)));
-    out.push(...batch.filter(Boolean));
-    if (i + batchSize < ids.length) await new Promise(r => setTimeout(r, 80));
-  }
-  return out;
-}
-
-function decodeB64(s) {
-  try { return Buffer.from(String(s || "").replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf-8"); }
-  catch { return ""; }
-}
-
-function extractBody(payload) {
-  if (!payload) return "";
-  const parts = [payload];
-  let text = "", html = "";
-  while (parts.length) {
-    const p = parts.shift();
-    if (p.parts) parts.push(...p.parts);
-    const data = p.body?.data;
-    if (!data) continue;
-    if (p.mimeType === "text/plain") text += decodeB64(data) + "\n";
-    else if (p.mimeType === "text/html" && !text) html += decodeB64(data) + "\n";
-  }
-  const out = text || html
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
-  return out.replace(/\s+/g, " ").trim();
-}
-
-function extractHeaders(thread) {
-  const last = thread.messages?.[thread.messages.length - 1];
-  const headers = last?.payload?.headers || [];
-  const get = name => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || "";
-  const body = (thread.messages || [])
-    .map(m => extractBody(m.payload))
-    .filter(Boolean)
-    .join("\n---\n")
-    .slice(0, 2200);
-  return { id: thread.id, subject: get("Subject"), from: get("From"), date: get("Date"), body };
-}
-
-function extractJson(text) {
-  try { return JSON.parse(text.trim()); } catch {}
-  const fenced = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-  try { return JSON.parse(fenced); } catch {}
-  let depth = 0, start = -1;
-  for (let i = 0; i < text.length; i++) {
-    if (text[i] === "{") { if (start === -1) start = i; depth++; }
-    else if (text[i] === "}") {
-      depth--;
-      if (depth === 0 && start !== -1) { try { return JSON.parse(text.slice(start, i + 1)); } catch {} start = -1; }
-    }
-  }
-  return null;
-}
+const { gmailSearch, fetchBatched, extractBody, extractJson } = require("./lib/gmail");
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
-function gDate(d) { return d.replace(/-/g, "/"); }
+function toGmailDate(d) { return d.replace(/-/g, "/"); }
 function nDaysAgo(n) {
   const d = new Date(); d.setDate(d.getDate() - n);
-  return gDate(d.toISOString().slice(0, 10));
+  return toGmailDate(d.toISOString().slice(0, 10));
 }
 function addDays(dateStr, n) {
   const d = new Date(dateStr + "T12:00:00");
   d.setDate(d.getDate() + n);
   return d.toISOString().slice(0, 10);
+}
+
+// ── Thread extraction ─────────────────────────────────────────────────────────
+function extractHeaders(thread) {
+  // Use the first message for Subject/From/Date — it's the original booking email.
+  // Replies and forwarding wrappers appear as later messages and have wrong metadata.
+  const first = thread.messages?.[0];
+  const headers = first?.payload?.headers || [];
+  const get = name => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || "";
+  const body = (thread.messages || [])
+    .map(m => extractBody(m.payload))
+    .filter(Boolean)
+    .join("\n---\n")
+    .slice(0, 2000);
+  return { id: thread.id, subject: get("Subject"), from: get("From"), date: get("Date"), body };
 }
 
 // ── Query list ────────────────────────────────────────────────────────────────
@@ -194,14 +129,12 @@ function buildFlightQueries(after) {
     `("private jet" OR "charter flight") (confirmation OR itinerary OR booking) ${W}`,
 
     // Destination-specific catches — show city airports
-    // NA hubs
-    `(BOS OR "Boston Logan") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(DEN OR "Denver") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(YYZ OR YTZ OR "Toronto") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(BOS OR PVD OR MHT OR BDL OR ORH OR "Boston" OR "Worcester") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(DEN OR "Denver" OR "Morrison") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(YYZ OR YTZ OR YHM OR "Toronto" OR "Mississauga") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
     `(YOW OR "Ottawa") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    // London — all four airports
+    `(BDL OR PVD OR HPN OR "Uncasville" OR "Hartford" OR "Providence") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
     `(LHR OR LGW OR LTN OR STN OR LCY OR Heathrow OR Gatwick OR Stansted OR Luton) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    // EU show cities
     `(DUB OR Dublin OR MAN OR Manchester OR GLA OR Glasgow) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
     `(ZRH OR Zurich OR CGN OR Cologne OR AMS OR Amsterdam) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
     `(CDG OR ORY OR Paris OR MXP OR LIN OR Milan) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
@@ -216,21 +149,65 @@ function buildFlightQueries(after) {
   ];
 }
 
+// ── Airport → show-city map ───────────────────────────────────────────────────
+const AIRPORT_CITIES = {
+  BOS: ["boston", "worcester", "uncasville"], PVD: ["worcester", "boston", "uncasville"],
+  MHT: ["boston"], BDL: ["worcester", "uncasville"], ORH: ["worcester"], HPN: ["uncasville", "new york"],
+  DEN: ["denver", "morrison"], DUB: ["dublin"], MAN: ["manchester"], GLA: ["glasgow"], EDI: ["glasgow"],
+  LHR: ["london"], LGW: ["london"], STN: ["london"], LCY: ["london"], LTN: ["london"], SEN: ["london"],
+  ZRH: ["zurich"], BSL: ["zurich"], CGN: ["cologne"], DUS: ["cologne"], FRA: ["cologne"],
+  AMS: ["amsterdam"], RTM: ["amsterdam"], CDG: ["paris", "chambord"], ORY: ["paris", "chambord"],
+  BVA: ["paris"], TUF: ["chambord"], LYS: ["villeurbanne", "lyon"],
+  MXP: ["milan"], LIN: ["milan"], BGY: ["milan"], PRG: ["prague"], BER: ["berlin"],
+  BTS: ["bratislava", "vienna"], VIE: ["vienna", "bratislava"], WAW: ["warsaw"], WMI: ["warsaw"],
+  YYZ: ["toronto", "mississauga"], YTZ: ["toronto", "mississauga"], YHM: ["toronto", "mississauga"],
+  YOW: ["ottawa"], YUL: ["montreal"],
+  JFK: ["new york"], LGA: ["new york"], EWR: ["new york"],
+  LAX: ["los angeles"], BUR: ["los angeles"], LGB: ["los angeles"], SNA: ["los angeles"],
+};
+
+function cityKey(s) { return String(s || "").toLowerCase().split(",")[0].trim(); }
+
+function buildCitySet(iata, cityStr) {
+  return new Set([
+    ...(AIRPORT_CITIES[(iata || "").toUpperCase()] || []),
+    cityKey(cityStr),
+  ].filter(Boolean));
+}
+
 // ── Show matching ─────────────────────────────────────────────────────────────
+// Inbound window: arrives 0-2 days before the show (day-before travel is common).
+// Outbound window: departs 0-2 days after the show.
+// When no airport code is mapped, falls back to date proximity alone.
 function matchFlightToShow(flight, shows) {
-  if (!Array.isArray(shows) || !shows.length) return null;
+  if (!Array.isArray(shows) || !shows.length || !flight.depDate) return null;
   const depDate = flight.depDate;
   const arrDate = flight.arrDate || flight.depDate;
-  let best = null;
+  const arrCities = buildCitySet(flight.to, flight.toCity);
+  const depCities = buildCitySet(flight.from, flight.fromCity);
+  let inbound = null, outbound = null;
+
   for (const s of shows) {
     const sd = s.date;
-    if (!sd) continue;
-    if (depDate === addDays(sd, 1)) return { showDate: sd, role: "outbound", showId: s.id || sd, venue: s.venue };
-    if (arrDate === sd || arrDate === addDays(sd, -1)) {
-      best = { showDate: sd, role: "inbound", showId: s.id || sd, venue: s.venue };
+    if (!sd || s.type === "off" || s.type === "travel") continue;
+    const sc = cityKey(s.city);
+    const arrDelta = (new Date(sd + "T12:00:00") - new Date(arrDate + "T12:00:00")) / 86400000;
+    const depDelta = (new Date(depDate + "T12:00:00") - new Date(sd + "T12:00:00")) / 86400000;
+
+    if (arrDelta >= 0 && arrDelta <= 2 && (arrCities.size === 0 || arrCities.has(sc))) {
+      if (!inbound || arrDelta < inbound.delta)
+        inbound = { showDate: sd, role: "inbound", showId: s.id || sd, venue: s.venue, delta: arrDelta };
+    }
+    if (depDelta >= 0 && depDelta <= 2 && (depCities.size === 0 || depCities.has(sc))) {
+      if (!outbound || depDelta < outbound.delta)
+        outbound = { showDate: sd, role: "outbound", showId: s.id || sd, venue: s.venue, delta: depDelta };
     }
   }
-  return best;
+
+  const result = inbound || outbound;
+  if (!result) return null;
+  const { delta: _d, ...clean } = result;
+  return clean;
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -257,14 +234,14 @@ module.exports = async function handler(req, res) {
   } = req.body || {};
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
 
-  const after = sweepFrom ? gDate(sweepFrom) : nDaysAgo(90);
+  const after = sweepFrom ? toGmailDate(sweepFrom) : nDaysAgo(90);
   const queries = buildFlightQueries(after);
   const seen = new Set();
 
   try {
-    const parallelism = 6;
-    for (let i = 0; i < queries.length; i += parallelism) {
-      await Promise.all(queries.slice(i, i + parallelism).map(async q => {
+    const PARALLELISM = 20;
+    for (let i = 0; i < queries.length; i += PARALLELISM) {
+      await Promise.all(queries.slice(i, i + PARALLELISM).map(async q => {
         try {
           const ids = await gmailSearch(googleToken, q, 25);
           ids.forEach(id => seen.add(id));
@@ -279,17 +256,18 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: e.message });
   }
 
-  const ids = [...seen].slice(0, 40);
+  const ids = [...seen].slice(0, 80);
   if (!ids.length) return res.json({ flights: [], threadsFound: 0 });
 
   let threads, freshIds;
   try {
     threads = (await fetchBatched(googleToken, ids)).map(extractHeaders);
     const cutoff48h = Date.now() - 48 * 3600 * 1000;
-    freshIds = new Set(threads.filter(t => {
-      const ms = t.date ? new Date(t.date).getTime() : NaN;
-      return !isNaN(ms) && ms >= cutoff48h;
-    }).map(t => t.id));
+    freshIds = new Set(
+      threads
+        .filter(t => { const ms = new Date(t.date).getTime(); return !isNaN(ms) && ms >= cutoff48h; })
+        .map(t => t.id)
+    );
   } catch (e) {
     console.error("[flights] thread fetch error:", e.message);
     return res.status(500).json({ error: `Thread fetch failed: ${e.message}` });
@@ -325,7 +303,7 @@ ${threads.map((t, i) => `[${i}] tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}
 Date: ${t.date}
-Body: ${t.body.slice(0, 1400)}`).join("\n\n---\n\n")}
+Body: ${t.body}`).join("\n\n---\n\n")}
 
 Return this exact JSON:
 {
@@ -391,7 +369,7 @@ Return this exact JSON:
         ...f,
         id: `fl_${(f.tid || "").slice(-6)}_${(f.flightNo || "").replace(/\s/g, "") || Math.random().toString(36).slice(2, 6)}`,
         status: "pending",
-        fresh48h: freshIds.has(f.tid) || undefined,
+        fresh48h: freshIds.has(f.tid) ? true : undefined,
         suggestedShowDate: showMatch?.showDate || null,
         suggestedRole: showMatch?.role || null,
         suggestedVenue: showMatch?.venue || null,
