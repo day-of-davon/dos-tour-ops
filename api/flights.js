@@ -291,7 +291,7 @@ module.exports = async function handler(req, res) {
   } = req.body || {};
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
 
-  const after = sweepFrom ? gDate(sweepFrom) : nDaysAgo(180);
+  const after = sweepFrom ? gDate(sweepFrom) : nDaysAgo(90);
   const before = null; // open-ended
 
   // Focus carriers — high-cap queries run first
@@ -398,7 +398,7 @@ Return this exact JSON:
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
+        model: "claude-sonnet-4-6",
         max_tokens: 8192,
         system: sysPrompt,
         messages: [{ role: "user", content: userPrompt }],
