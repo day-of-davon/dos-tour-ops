@@ -297,15 +297,27 @@ module.exports = async function handler(req, res) {
 
   const sysPrompt = `You are a flight itinerary parser for concert touring operations. Extract structured flight segment data from email bodies.
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.
+
 Rules:
-- Each object in flights[] represents one flight leg (not a round trip — split into two objects)
-- Dates: YYYY-MM-DD format
-- Times: HH:MM 24-hour format. Convert "6:30 AM" → "06:30", "10:15 PM" → "22:15"
-- IATA codes preferred (3 uppercase letters). If not available, use the city name
-- cost: number only, no currency symbol. null if not found
-- pax: array of passenger full names as strings. Empty array if not found
-- Include private charter and fractional jet flights (NetJets, VistaJet, Wheels Up, etc.)
-- Skip hotel, train, or rental car confirmations — flights only`;
+- Each object in flights[] is one flight leg. Split multi-leg itineraries into separate objects.
+- Dates: YYYY-MM-DD. Times: HH:MM 24-hour (e.g. "6:30 AM" → "06:30", "10:15 PM" → "22:15").
+- IATA airport codes preferred (3 uppercase letters). Fall back to city name if code absent.
+- cost: number only, no symbol. null if not present.
+- currency: 3-letter ISO code (USD, GBP, EUR, CAD). null if not present.
+
+Passenger extraction (critical):
+- Scan the ENTIRE body for any section labeled: "Passengers", "Travelers", "Traveler", "Passenger", "Guest", "Name", or any passenger table.
+- Airlines often print names in ALL-CAPS airline format: "JOHNSON/DAVON MR" → "Davon Johnson", "NUDELMAN/DANIEL" → "Daniel Nudelman", "DAVIS/OLEN Q" → "Olen Q Davis". Convert to Title Case.
+- Also check "Booked by", "Purchased by", "Primary contact" lines as fallback if no pax section exists.
+- For forwarded emails: the original booking content may appear after "---------- Forwarded message ---------" or "Begin forwarded message". Parse the forwarded body too.
+- pax: array of all passenger full names. Empty array only if truly no names found.
+
+Confirmation codes (critical):
+- pnr: 6-character alphanumeric airline record locator / PNR (e.g. "F9OCAU", "ABC123"). Distinct from order/booking numbers.
+- confirmNo: booking/order/e-ticket number if different from PNR. null if same as pnr or absent.
+- Look for labels: "Confirmation Code", "Record Locator", "Booking Reference", "PNR", "E-Ticket Number", "Ticket #".
+
+Skip hotel, train, rental car confirmations — flights and private charters only.`;
 
   const userPrompt = `Extract all flight segments from these email threads. Tour date range: ${tourStart} to ${tourEnd}.
 
@@ -313,27 +325,27 @@ ${threads.map((t, i) => `[${i}] tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}
 Date: ${t.date}
-Body: ${t.body.slice(0, 800)}`).join("\n\n---\n\n")}
+Body: ${t.body.slice(0, 1400)}`).join("\n\n---\n\n")}
 
 Return this exact JSON:
 {
   "flights": [
     {
-      "flightNo": "FR1234",
-      "carrier": "Ryanair",
-      "from": "DUB",
-      "fromCity": "Dublin",
-      "to": "AMS",
-      "toCity": "Amsterdam",
-      "depDate": "2026-05-04",
-      "dep": "06:30",
-      "arrDate": "2026-05-04",
-      "arr": "09:45",
-      "pax": ["Davon Johnson"],
-      "confirmNo": "ABC123",
-      "bookingRef": "XYZ789",
-      "cost": 245.00,
-      "currency": "GBP",
+      "flightNo": "DL154",
+      "carrier": "Delta",
+      "from": "BOS",
+      "fromCity": "Boston",
+      "to": "DUB",
+      "toCity": "Dublin",
+      "depDate": "2026-05-02",
+      "dep": "21:55",
+      "arrDate": "2026-05-03",
+      "arr": "09:30",
+      "pax": ["Davon Johnson", "Daniel Nudelman"],
+      "pnr": "F9OCAU",
+      "confirmNo": null,
+      "cost": 648.50,
+      "currency": "USD",
       "tid": "<thread_id_from_above>"
     }
   ]

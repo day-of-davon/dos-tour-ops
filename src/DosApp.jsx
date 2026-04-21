@@ -1037,13 +1037,64 @@ function matchPaxToCrew(paxNames,crewList){
     const pt=pn.split(/\s+/);
     for(const c of(crewList||[])){
       if(!c.name||c.name==="TBD")continue;
-      const cn=c.name.toLowerCase().trim();
+      // Strip parentheticals like "(Bishu)" before matching
+      const cn=c.name.toLowerCase().replace(/\s*\(.*?\)\s*/g,"").trim();
       const ct=cn.split(/\s+/);
       const overlap=pt.filter(t=>t.length>2&&ct.includes(t)).length;
-      if(overlap>=2||pn===cn||pn.includes(cn)||cn.includes(pn))ids.push(c.id);
+      // Prefix match on first names handles Alex/Alexander, Dan/Daniel, etc.
+      const firstPrefix=pt[0]&&ct[0]&&(pt[0].startsWith(ct[0])||ct[0].startsWith(pt[0]))&&Math.min(pt[0].length,ct[0].length)>=3;
+      const lastMatch=pt.length>1&&ct.length>1&&pt[pt.length-1]===ct[ct.length-1];
+      if(overlap>=2||pn===cn||pn.includes(cn)||cn.includes(pn)||(firstPrefix&&lastMatch))ids.push(c.id);
     }
   }
   return[...new Set(ids)];
+}
+
+// Inline pax editor — used in SegmentDrawer and FlightCard editable mode.
+function PaxEditor({pax,crew,onSave}){
+  const[names,setNames]=useState(pax||[]);
+  const[input,setInput]=useState("");
+  const[open,setOpen]=useState(false);
+  const inp2={background:"#fff",border:"1px solid #d6d3cd",borderRadius:5,fontSize:10,padding:"4px 8px",outline:"none",fontFamily:"'Outfit',system-ui",width:"100%",boxSizing:"border-box"};
+  const sugg=input.length>0?(crew||[]).filter(c=>c.name&&c.name.toLowerCase().includes(input.toLowerCase())).slice(0,5):[];
+
+  const add=name=>{
+    const t=String(name||"").trim();
+    if(!t||names.includes(t))return;
+    const next=[...names,t];
+    setNames(next);onSave(next);setInput("");setOpen(false);
+  };
+  const remove=i=>{const next=names.filter((_,j)=>j!==i);setNames(next);onSave(next);};
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:0,width:"100%"}}>
+      <div style={{fontSize:8,fontWeight:700,color:"#64748b",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:2}}>Passengers</div>
+      {names.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:3}}>
+        {names.map((n,i)=>{
+          const matched=matchPaxToCrew([n],crew||[]).length>0;
+          return(<span key={i} style={{display:"flex",alignItems:"center",gap:2,fontSize:9,padding:"2px 6px",borderRadius:4,background:matched?"#D1FAE5":"#f1f5f9",color:matched?"#047857":"#475569",border:`1px solid ${matched?"#A7F3D0":"#e2e8f0"}`}}>
+            {n}<button onClick={()=>remove(i)} style={{background:"none",border:"none",cursor:"pointer",color:"#94a3b8",fontSize:11,lineHeight:1,padding:"0 0 0 2px"}}>×</button>
+          </span>);
+        })}
+      </div>}
+      <div style={{position:"relative"}}>
+        <input value={input} onChange={e=>{setInput(e.target.value);setOpen(true);}} onFocus={()=>setOpen(true)} onBlur={()=>setTimeout(()=>setOpen(false),160)}
+          onKeyDown={e=>{if(e.key==="Enter"&&input.trim()){add(input);e.preventDefault();}}}
+          placeholder="Add name or search crew…" style={inp2}/>
+        {open&&sugg.length>0&&(
+          <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#fff",border:"1px solid #d6d3cd",borderRadius:5,zIndex:20,maxHeight:130,overflowY:"auto",boxShadow:"0 4px 12px rgba(0,0,0,0.08)"}}>
+            {sugg.map(c=>(
+              <div key={c.id} onMouseDown={()=>add(c.name)} style={{padding:"5px 9px",cursor:"pointer",fontSize:10,display:"flex",gap:6,alignItems:"center"}} className="rh">
+                <span style={{fontWeight:700}}>{c.name.split(" ")[0]}</span>
+                <span style={{color:"#64748b",fontSize:9}}>{c.name.split(" ").slice(1).join(" ")}</span>
+                <span style={{marginLeft:"auto",fontSize:8,color:"#94a3b8"}}>{c.role}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 function FlightsSection(){
