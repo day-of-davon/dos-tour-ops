@@ -5,7 +5,7 @@ import { supabase } from "./lib/supabase";
 // DOS TOUR OPS v7.0 — Day of Show, LLC
 // Client-first · All dept advance lanes · Custom + editable items · Full settlement
 
-const SK={SHOWS:"dos-v7-shows",ROS:"dos-v7-ros",ADVANCES:"dos-v7-advances",FINANCE:"dos-v7-finance",SETTINGS:"dos-v7-settings",CREW:"dos-v7-crew",PRODUCTION:"dos-v7-production",FLIGHTS:"dos-v7-flights"};
+const SK={SHOWS:"dos-v7-shows",ROS:"dos-v7-ros",ADVANCES:"dos-v7-advances",FINANCE:"dos-v7-finance",SETTINGS:"dos-v7-settings",CREW:"dos-v7-crew",PRODUCTION:"dos-v7-production",FLIGHTS:"dos-v7-flights",LODGING:"dos-v7-lodging"};
 const hhmmToMin=s=>{if(!s)return null;const[h,m]=s.split(":").map(Number);return isNaN(h)||isNaN(m)?null:h*60+m;};
 const MN="'JetBrains Mono',monospace";
 
@@ -19,7 +19,7 @@ const CM=CLIENTS.reduce((a,c)=>{a[c.id]=c;return a},{});
 // Only these users can see festival clients in the selector
 const FESTIVAL_ACCESS_EMAILS=["d.johnson@dayofshow.net","olivia@dayofshow.net"];
 const ROLES=[{id:"tm",label:"TM",c:"#5B21B6"},{id:"production",label:"PROD",c:"#92400E"},{id:"hospitality",label:"HOSPO",c:"#065F46"},{id:"transport",label:"TRANSPORT",c:"#1E40AF"}];
-const TABS=[{id:"dashboard",label:"Dashboard",icon:"◉"},{id:"advance",label:"Advance",icon:"◎"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Transport",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"production",label:"Production",icon:"▤"}];
+const TABS=[{id:"dashboard",label:"Dashboard",icon:"◉"},{id:"advance",label:"Advance",icon:"◎"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Transport",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"}];
 const DEFAULT_CREW=[
   {id:"ag", name:"Alex Gumuchian",        role:"Headliner (bbno$)",          email:"alexgumuchian@gmail.com"},
   {id:"jb", name:"Julien Bruce",           role:"Support (Jungle Bobby)",     email:""},
@@ -368,6 +368,7 @@ export default function App(){
   const[production,setProduction]=useState({});
   const[tabOrder,setTabOrder]=useState(null);
   const[flights,setFlights]=useState({});
+  const[lodging,setLodging]=useState({});
   const[refreshMsg,setRefreshMsg]=useState("");
   const[selEventId,setSelEventId]=useState(null);
   // Reset sub-event selection whenever the selected day changes
@@ -381,14 +382,14 @@ export default function App(){
   const st=useRef(null);const stp=useRef(null);
 
   useEffect(()=>{(async()=>{
-    const[s,r,a,f,se,cr,pr,fl]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW),sG(SK.PRODUCTION),sG(SK.FLIGHTS)]);
+    const[s,r,a,f,se,cr,pr,fl,lo]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW),sG(SK.PRODUCTION),sG(SK.FLIGHTS),sG(SK.LODGING)]);
     const init=ALL_SHOWS.reduce((acc,sh)=>{acc[sh.date]={...sh,doorsConfirmed:false,curfewConfirmed:false,busArriveConfirmed:false,crewCallConfirmed:false,venueAccessConfirmed:false,mgTimeConfirmed:false,etaSource:"schedule",lastModified:Date.now()};return acc;},{});
     const merged={...init};if(s)Object.keys(s).forEach(k=>{if(merged[k])merged[k]={...merged[k],...s[k]};});
     setShows(merged);setRos(r||{});setAdvances(a||{});setFinance(f||{});
     if(se?.role)setRole(se.role);if(se?.tab)setTab(se.tab);if(se?.sel)setSel(se.sel);if(se?.aC)setAC(se.aC);
     if(Array.isArray(se?.tabOrder))setTabOrder(se.tabOrder);
     if(cr?.crew)setCrew(cr.crew);if(cr?.showCrew)setShowCrew(cr.showCrew);
-    setProduction(pr||{});setFlights(fl||{});
+    setProduction(pr||{});setFlights(fl||{});setLodging(lo||{});
     const[np,cp,it]=await Promise.all([sGP(PK.NOTES_PRIV),sGP(PK.CHECKLIST_PRIV),sGP(PK.INTEL)]);
     setNotesPriv(np||{});setCheckPriv(cp||{});setIntel(it||{});
     setLoaded(true);
@@ -446,9 +447,9 @@ export default function App(){
 
   const save=useCallback(()=>{
     if(!loaded)return;if(st.current)clearTimeout(st.current);
-    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
-  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,flights]);
-  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights]);
+    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
+  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,flights,lodging]);
+  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging]);
   useEffect(()=>{const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(v=>!v);}if(e.key==="Escape")setCmd(false);};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
 
   const uShow=useCallback((d,u)=>setShows(p=>({...p,[d]:{...p[d],...u,lastModified:Date.now()}})),[]);
@@ -457,6 +458,7 @@ export default function App(){
   const uFin=useCallback((d,u)=>setFinance(p=>({...p,[d]:{...(p[d]||{}),...u}})),[]);
   const uProd=useCallback((d,u)=>setProduction(p=>({...p,[d]:{...(p[d]||{}),...u}})),[]);
   const uFlight=useCallback((id,seg)=>setFlights(p=>{if(!seg){const n={...p};delete n[id];return n;}return{...p,[id]:seg};}),[]);
+  const uLodging=useCallback((id,data)=>setLodging(p=>{if(!data){const n={...p};delete n[id];return n;}return{...p,[id]:data};}),[]);
   const gRos=useCallback(d=>{if(ros[d])return ros[d];if(CUSTOM_ROS_MAP[d])return CUSTOM_ROS_MAP[d]();const sh=shows?.[d];if(sh?.type==="off"||sh?.type==="travel")return [];return DEFAULT_ROS();},[ros,shows]);
   const sorted=useMemo(()=>shows?Object.values(shows).sort((a,b)=>a.date.localeCompare(b.date)):[], [shows]);
   const next=useMemo(()=>{const t=new Date().toISOString().slice(0,10);return sorted.find(s=>s.date>=t)||sorted[0];},[sorted]);
@@ -510,13 +512,13 @@ export default function App(){
   if(!loaded||!shows)return(<div style={{background:"#F5F3EF",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"#64748b",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
   return(
-    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,uploadOpen,setUploadOpen}}>
+    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,uploadOpen,setUploadOpen,lodging,uLodging}}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:#F5F3EF}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:3px}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#f0ede8!important}.rh:hover{background:#f8f7f5!important}`}</style>
       <div style={{fontFamily:"'Outfit',system-ui",background:"#F5F3EF",color:"#0f172a",minHeight:"100vh",width:"100%",maxWidth:"100vw",overflowX:"hidden",display:"flex",flexDirection:"column"}}>
         <TopBar ss={ss}/>
         <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,width:"100%",maxWidth:900,overflowX:"hidden"}}>
-          {tab==="dashboard"&&<Dash/>}{tab==="advance"&&<AdvTab/>}{tab==="ros"&&<ScheduleTab/>}{tab==="transport"&&<TransTab/>}{tab==="finance"&&<FinTab/>}{tab==="crew"&&<CrewTab/>}{tab==="production"&&<ProdTab/>}
+          {tab==="dashboard"&&<Dash/>}{tab==="advance"&&<AdvTab/>}{tab==="ros"&&<ScheduleTab/>}{tab==="transport"&&<TransTab/>}{tab==="finance"&&<FinTab/>}{tab==="crew"&&<CrewTab/>}{tab==="lodging"&&<LodgingTab/>}{tab==="production"&&<ProdTab/>}
         </div>
         {cmd&&<CmdP/>}
         {exp&&<ExportModal onClose={()=>setExp(false)}/>}
@@ -1427,7 +1429,7 @@ function AnchorTimes({b,setBF}){
 }
 
 function FlightDayStrip({sel}){
-  const{flights,uFlight}=useContext(Ctx);
+  const{flights,uFlight,lodging,setTab}=useContext(Ctx);
   const[open,setOpen]=useState(true);
   const[scanning,setScanning]=useState(false);
   const[refreshing,setRefreshing]=useState(false);
@@ -1496,6 +1498,15 @@ function FlightDayStrip({sel}){
         </div>
         <span style={{fontSize:10,color:"#93C5FD",flexShrink:0}}>{open?"▾":"▸"}</span>
       </div>
+      {/* Lodging summary row (always visible) */}
+      {(()=>{const checkIns=Object.values(lodging||{}).filter(h=>h.checkIn===sel);const checkOuts=Object.values(lodging||{}).filter(h=>h.checkOut===sel);const staying=Object.values(lodging||{}).filter(h=>h.checkIn<sel&&h.checkOut>sel);const all=[...checkIns,...checkOuts,...staying];if(!all.length)return null;return(
+        <div onClick={()=>setTab("lodging")} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 12px",borderTop:"1px solid #BBF7D0",background:"#F0FDF4",cursor:"pointer",flexWrap:"wrap"}}>
+          <span style={{fontSize:9,fontWeight:800,color:"#047857",letterSpacing:"0.06em"}}>⌂ LODGING</span>
+          {checkIns.map(h=><span key={h.id} style={{fontSize:9,padding:"1px 6px",borderRadius:8,background:"#047857",color:"#fff",fontWeight:700}}>↓ {h.name}{h.checkInTime?` ${h.checkInTime}`:""}</span>)}
+          {checkOuts.map(h=><span key={h.id} style={{fontSize:9,padding:"1px 6px",borderRadius:8,background:"#94a3b8",color:"#fff",fontWeight:700}}>↑ {h.name}{h.checkOutTime?` ${h.checkOutTime}`:""}</span>)}
+          {staying.map(h=><span key={h.id} style={{fontSize:9,padding:"1px 6px",borderRadius:8,background:"#D1FAE5",color:"#065F46",fontWeight:600,border:"1px solid #A7F3D0"}}>● {h.name}</span>)}
+        </div>
+      );})()}
       {open&&(
         <div style={{borderTop:"1px solid #BFDBFE",display:"flex",flexDirection:"column",gap:0}}>
           {[...deps.map(f=>({f,role:"dep"})),...arrs.map(f=>({f,role:"arr"}))].map(({f,role},i,arr)=>{
@@ -1553,7 +1564,7 @@ function FlightDayStrip({sel}){
 }
 
 function DayScheduleView({show,bus,split,sel}){
-  const{uShow,uRos,gRos,shows,aC,flights}=useContext(Ctx);
+  const{uShow,uRos,gRos,shows,aC,flights,lodging,setTab}=useContext(Ctx);
   const isTravel=show.type==="travel";
   const isSplit=show.type==="split";
   const isStored=!!shows?.[sel];
@@ -1572,7 +1583,7 @@ function DayScheduleView({show,bus,split,sel}){
   const allItems=gRos(sel)||[];
   const dayItems=allItems.filter(b=>b.isDayItem&&!b.flightId);
 
-  // Unified timeline: bus + flights + schedule items sorted by time
+  // Unified timeline: bus + flights + lodging + schedule items sorted by time
   const timeline=useMemo(()=>{
     const items=[];
     // Bus segment
@@ -1589,12 +1600,22 @@ function DayScheduleView({show,bus,split,sel}){
     Object.values(flights).filter(f=>f.status==="confirmed"&&f.arrDate===sel&&f.arrDate!==f.depDate).forEach(f=>{
       items.push({type:"flight",id:`${f.id}_arr`,sortMin:hhmmToMin(f.arr)??-1,f,role:"arr"});
     });
+    // Lodging: check-in on this date
+    Object.values(lodging||{}).filter(h=>h.checkIn===sel).forEach(h=>{
+      const t=h.checkInTime||"15:00";
+      items.push({type:"lodging_in",id:`lodging_in_${h.id}`,sortMin:hhmmToMin(t)??900,h,t});
+    });
+    // Lodging: check-out on this date
+    Object.values(lodging||{}).filter(h=>h.checkOut===sel).forEach(h=>{
+      const t=h.checkOutTime||"12:00";
+      items.push({type:"lodging_out",id:`lodging_out_${h.id}`,sortMin:hhmmToMin(t)??720,h,t});
+    });
     // Schedule items
     dayItems.forEach(b=>{
       items.push({type:"item",id:b.id,sortMin:b.startMin??-1,b});
     });
     return items.sort((a,b)=>a.sortMin-b.sortMin);
-  },[isTravel,bus,flights,sel,dayItems]);
+  },[isTravel,bus,flights,lodging,sel,dayItems]);
 
   const ensureStored=()=>{if(!isStored)uShow(sel,{date:sel,clientId:aC,type:show.type||"off",city:show.city||"",venue:show.venue||"",advance:[],doors:0,curfew:0,busArrive:0,crewCall:0,venueAccess:0,mgTime:0,notes:""});};
   const saveNotes=()=>{ensureStored();uShow(sel,{notes:notesVal});setEditNotes(false);};
@@ -1752,6 +1773,29 @@ function DayScheduleView({show,bus,split,sel}){
                       {f.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"#94a3b8"}}>#{f.confirmNo}</span>}
                       {f.fromCity&&isDep&&<span style={{fontSize:9,color:"#64748b"}}>{f.fromCity}</span>}
                       {f.toCity&&<span style={{fontSize:9,color:"#64748b"}}>{isDep?"→ ":""}{f.toCity}</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            if(entry.type==="lodging_in"||entry.type==="lodging_out"){
+              const{h,t,type:lt}=entry;const isIn=lt==="lodging_in";
+              const rooms=(h.rooms||[]).length;
+              return(
+                <div key={entry.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"9px 12px",background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:8,cursor:"pointer"}} onClick={()=>setTab("lodging")}>
+                  <div style={{width:44,flexShrink:0,textAlign:"right"}}>
+                    <div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:isIn?"#047857":"#64748b"}}>{t}</div>
+                  </div>
+                  <div style={{width:3,alignSelf:"stretch",background:isIn?"#047857":"#94a3b8",borderRadius:2,opacity:0.5,flexShrink:0}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
+                      <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:isIn?"#047857":"#94a3b8",color:"#fff",letterSpacing:"0.04em"}}>{isIn?"CHECK IN":"CHECK OUT"}</span>
+                      <span style={{fontSize:11,fontWeight:700,color:"#0f172a"}}>{h.name}</span>
+                      {h.city&&<span style={{fontSize:9,color:"#64748b"}}>{h.city}</span>}
+                    </div>
+                    <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                      {rooms>0&&<span style={{fontSize:9,color:"#475569"}}>{rooms} room{rooms!==1?"s":""}</span>}
+                      {h.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"#94a3b8"}}>#{h.confirmNo}</span>}
                     </div>
                   </div>
                 </div>
@@ -3007,7 +3051,7 @@ function CmdP(){
 }
 
 function CrewTab(){
-  const{sel,setSel,shows,tourDaysSorted,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights}=useContext(Ctx);
+  const{sel,setSel,shows,tourDaysSorted,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights,lodging,setTab}=useContext(Ctx);
   const[panel,setPanel]=useState(null);
   const[editMode,setEditMode]=useState(false);
   const[flightPicker,setFlightPicker]=useState(null); // {crewId, dir}
@@ -3173,7 +3217,14 @@ function CrewTab(){
                 <div>{cd.attending&&<button onClick={()=>setPanel(isOpen?null:{crewId:c.id})} style={{...UI.expandBtn(isOpen),fontSize:9,padding:"3px 8px"}}>{isOpen?"▾":"▸"}</button>}</div>
               </div>
               {isOpen&&(
-                <div style={{background:"#fafaf9",borderTop:"1px solid #f5f3ef",borderBottom:"1px solid #f5f3ef",padding:"12px 14px",display:"flex",flexDirection:mobile?"column":"row",gap:16}}>
+                <div style={{background:"#fafaf9",borderTop:"1px solid #f5f3ef",borderBottom:"1px solid #f5f3ef",padding:"12px 14px",display:"flex",flexDirection:"column",gap:12}}>
+                  {/* Lodging badge */}
+                  {(()=>{const crewHotels=Object.values(lodging).filter(h=>h.checkIn<=sel&&h.checkOut>=sel&&(h.rooms||[]).some(r=>r.crewId===c.id));return crewHotels.length>0&&(<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",padding:"5px 8px",background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:7}}>
+                    <span style={{fontSize:9,fontWeight:700,color:"#1E40AF",letterSpacing:"0.04em"}}>LODGING</span>
+                    {crewHotels.map(h=>{const room=(h.rooms||[]).find(r=>r.crewId===c.id);return(<span key={h.id} style={{fontSize:11,color:"#0f172a",fontWeight:600}}>{h.name}{room?.roomNo&&<span style={{fontFamily:MN,color:"#64748b",marginLeft:4}}>#{room.roomNo}</span>}{room?.type&&<span style={{color:"#94a3b8",fontSize:9,marginLeft:4}}>{room.type}</span>}</span>);})}
+                    <button onClick={()=>setTab("lodging")} style={{marginLeft:"auto",fontSize:9,padding:"2px 7px",borderRadius:5,border:"none",background:"#3B82F6",color:"#fff",cursor:"pointer",fontWeight:700}}>→ Lodging</button>
+                  </div>);})()}
+                  <div style={{display:"flex",flexDirection:mobile?"column":"row",gap:16}}>
                   {[["inbound","Inbound"],["outbound","Outbound"]].map(([dir,dirLabel])=>{
                     const mode=dir==="inbound"?cd.inboundMode:cd.outboundMode;
                     const conf=dir==="inbound"?cd.inboundConfirmed:cd.outboundConfirmed;
@@ -3257,6 +3308,7 @@ function CrewTab(){
                       </div>
                     );
                   })}
+                  </div>
                 </div>
               )}
             </React.Fragment>
@@ -3749,6 +3801,306 @@ function VenueBrief({vg,sel,data,upd}){
           <a href={`mailto:${vg.advanceEmail}`} style={{fontSize:9,color:"#5B21B6",background:"#EDE9FE",padding:"2px 8px",borderRadius:5,textDecoration:"none",fontWeight:600}}>{vg.advanceContact||"Advance"} ✉</a>
           {vg.techContact&&vg.techContact.includes("@")&&<a href={`mailto:${vg.techContact.match(/[\w.+-]+@[\w-]+\.[\w.]+/)?.[0]}`} style={{fontSize:9,color:"#065F46",background:"#D1FAE5",padding:"2px 8px",borderRadius:5,textDecoration:"none",fontWeight:600}}>Tech Contact ✉</a>}
         </div>}
+      </div>
+    </div>
+  );
+}
+
+// ── LODGING TAB ─────────────────────────────────────────────────────────────
+
+const HOTEL_STATUS_META={
+  pending:{label:"Pending",bg:"#FEF3C7",c:"#92400E"},
+  confirmed:{label:"Confirmed",bg:"#D1FAE5",c:"#047857"},
+  checked_in:{label:"Checked In",bg:"#DBEAFE",c:"#1E40AF"},
+  checked_out:{label:"Checked Out",bg:"#F1F5F9",c:"#475569"},
+  cancelled:{label:"Cancelled",bg:"#FEE2E2",c:"#991B1B"},
+};
+const ROOM_STATUS_META={
+  pending:{label:"Pending",bg:"#FEF3C7",c:"#92400E"},
+  confirmed:{label:"Confirmed",bg:"#D1FAE5",c:"#047857"},
+  occupied:{label:"Occupied",bg:"#DBEAFE",c:"#1E40AF"},
+  released:{label:"Released",bg:"#F1F5F9",c:"#475569"},
+};
+const HOTEL_TODOS_DEFAULT=["Confirm room block","Collect confirmation #","Share room list with crew","Arrange early check-in (if needed)","Confirm late check-out","Collect receipt","Verify billing address"];
+
+function LodgingTab(){
+  const{lodging,uLodging,crew,showCrew,finance,uFin,tourDaysSorted,mobile}=useContext(Ctx);
+  const[selDate,setSelDate]=useState(()=>{
+    const t=new Date().toISOString().slice(0,10);
+    return tourDaysSorted.find(d=>d.date>=t)?.date||tourDaysSorted[0]?.date||"";
+  });
+  const[addOpen,setAddOpen]=useState(false);
+  const[editId,setEditId]=useState(null);
+
+  // Hotels on a given date: those whose checkIn <= date <= checkOut
+  const hotelsForDate=useCallback((date)=>{
+    return Object.values(lodging).filter(h=>h.checkIn<=date&&h.checkOut>=date);
+  },[lodging]);
+
+  // Badge count per day: distinct hotels covering that date
+  const badgeCount=useCallback((date)=>hotelsForDate(date).length,[hotelsForDate]);
+
+  const dayHotels=hotelsForDate(selDate);
+
+  function newHotelId(){return`hotel_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;}
+
+  return(
+    <div style={{display:"flex",flex:1,minHeight:0,height:"100%",background:"#F5F3EF"}}>
+      {/* Date sidebar */}
+      <div style={{width:mobile?60:130,flexShrink:0,borderRight:"1px solid #e2e0dc",overflowY:"auto",background:"#faf9f7",display:"flex",flexDirection:"column"}}>
+        <div style={{padding:"10px 8px 4px",fontSize:9,fontWeight:700,color:"#94a3b8",letterSpacing:"0.08em",textTransform:"uppercase",fontFamily:MN}}>Dates</div>
+        {tourDaysSorted.map(day=>{
+          const cnt=badgeCount(day.date);
+          const isSel=day.date===selDate;
+          const d=new Date(day.date+"T12:00:00");
+          const mo=d.toLocaleString("en-US",{month:"short"});
+          const dt=d.getDate();
+          const wd=d.toLocaleString("en-US",{weekday:"short"}).toUpperCase();
+          return(
+            <button key={day.date} onClick={()=>setSelDate(day.date)} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"7px 4px",background:isSel?"#EDE9FE":"transparent",border:"none",cursor:"pointer",borderLeft:isSel?"3px solid #5B21B6":"3px solid transparent",transition:"background 0.12s",position:"relative"}}>
+              <div style={{fontSize:9,fontWeight:700,color:isSel?"#5B21B6":"#94a3b8",fontFamily:MN,letterSpacing:"0.06em"}}>{wd}</div>
+              <div style={{fontSize:16,fontWeight:800,color:isSel?"#5B21B6":"#0f172a",lineHeight:1.1}}>{dt}</div>
+              {!mobile&&<div style={{fontSize:9,color:isSel?"#7C3AED":"#64748b"}}>{mo}</div>}
+              {cnt>0&&<div style={{position:"absolute",top:4,right:6,background:"#5B21B6",color:"#fff",borderRadius:99,fontSize:8,fontWeight:800,minWidth:14,height:14,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px",fontFamily:MN}}>{cnt}</div>}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Main content */}
+      <div style={{flex:1,overflowY:"auto",padding:mobile?"10px 8px":"14px 16px",display:"flex",flexDirection:"column",gap:14,minWidth:0}}>
+        {/* Header */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
+          <div>
+            <div style={{fontSize:14,fontWeight:800,color:"#0f172a",letterSpacing:"-0.02em"}}>
+              {selDate?new Date(selDate+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"}):"Lodging"}
+            </div>
+            <div style={{fontSize:10,color:"#64748b",marginTop:1}}>{dayHotels.length} hotel{dayHotels.length!==1?"s":""} covering this date</div>
+          </div>
+          <button onClick={()=>setAddOpen(true)} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
+            + Add Hotel
+          </button>
+        </div>
+
+        {dayHotels.length===0&&(
+          <div style={{background:"#fff",border:"1px solid #e2e0dc",borderRadius:10,padding:"28px 20px",textAlign:"center",color:"#94a3b8",fontSize:11}}>
+            No hotels assigned to this date.<br/>
+            <span style={{color:"#5B21B6",cursor:"pointer",fontWeight:600}} onClick={()=>setAddOpen(true)}>+ Add a hotel</span>
+          </div>
+        )}
+
+        {dayHotels.map(hotel=>(
+          <HotelCard key={hotel.id} hotel={hotel} date={selDate} onEdit={()=>setEditId(hotel.id)} crew={crew} uLodging={uLodging} uFin={uFin} finance={finance}/>
+        ))}
+      </div>
+
+      {addOpen&&<HotelFormModal date={selDate} onClose={()=>setAddOpen(false)} onSave={(h)=>{uLodging(h.id,h);setAddOpen(false);}} existingHotels={lodging}/>}
+      {editId&&<HotelFormModal date={selDate} hotel={lodging[editId]} onClose={()=>setEditId(null)} onSave={(h)=>{uLodging(h.id,h);setEditId(null);}} existingHotels={lodging}/>}
+    </div>
+  );
+}
+
+function HotelCard({hotel,date,onEdit,crew,uLodging,uFin,finance}){
+  const[open,setOpen]=useState(true);
+  const[newRoom,setNewRoom]=useState({crewId:"",roomNo:"",type:"Single",cost:"",notes:""});
+  const[addRoomOpen,setAddRoomOpen]=useState(false);
+
+  const meta=HOTEL_STATUS_META[hotel.status||"pending"]||HOTEL_STATUS_META.pending;
+  const rooms=hotel.rooms||[];
+
+  const totalCost=rooms.reduce((s,r)=>s+(parseFloat(r.cost)||0),0);
+
+  function toggleTodo(i){
+    const todos=(hotel.todos||HOTEL_TODOS_DEFAULT.map(t=>({text:t,done:false})));
+    const next=[...todos];next[i]={...next[i],done:!next[i].done};
+    uLodging(hotel.id,{...hotel,todos:next});
+  }
+  function initTodos(){if(!hotel.todos){uLodging(hotel.id,{...hotel,todos:HOTEL_TODOS_DEFAULT.map(t=>({text:t,done:false}))});}}
+
+  function addRoom(){
+    if(!newRoom.crewId)return;
+    const r={id:`rm_${Date.now()}`,...newRoom,cost:parseFloat(newRoom.cost)||0,status:"pending",addedAt:Date.now()};
+    uLodging(hotel.id,{...hotel,rooms:[...rooms,r]});
+    setNewRoom({crewId:"",roomNo:"",type:"Single",cost:"",notes:""});
+    setAddRoomOpen(false);
+  }
+
+  function removeRoom(id){uLodging(hotel.id,{...hotel,rooms:rooms.filter(r=>r.id!==id)});}
+
+  function cycleRoomStatus(id){
+    const order=["pending","confirmed","occupied","released"];
+    const next=rooms.map(r=>{if(r.id!==id)return r;const i=order.indexOf(r.status||"pending");return{...r,status:order[(i+1)%order.length]};});
+    uLodging(hotel.id,{...hotel,rooms:next});
+  }
+
+  function pushToLedger(){
+    if(!totalCost)return;
+    const dateKey=hotel.checkIn||date;
+    const fin=finance[dateKey]||{};
+    const ledger=fin.ledgerEntries||[];
+    const entry={id:`lodging_${hotel.id}_${Date.now()}`,date:dateKey,vendor:hotel.name,amount:totalCost,currency:hotel.currency||"USD",category:"Hotel",description:`${rooms.length} room${rooms.length!==1?"s":""} – ${hotel.name}`,source:"lodging",hotelId:hotel.id};
+    uFin(dateKey,{...fin,ledgerEntries:[...ledger.filter(e=>e.hotelId!==hotel.id),entry]});
+  }
+
+  const todos=hotel.todos||HOTEL_TODOS_DEFAULT.map(t=>({text:t,done:false}));
+  const doneTodos=todos.filter(t=>t.done).length;
+
+  return(
+    <div style={{background:"#fff",border:"1px solid #e2e0dc",borderRadius:10,overflow:"hidden"}}>
+      {/* Card header */}
+      <div style={{padding:"10px 14px",display:"flex",alignItems:"center",gap:8,borderBottom:open?"1px solid #e2e0dc":"none",cursor:"pointer"}} onClick={()=>{setOpen(v=>!v);if(!hotel.todos)initTodos();}}>
+        <span style={{fontSize:13}}>{open?"▾":"▸"}</span>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+            <span style={{fontWeight:800,fontSize:13,color:"#0f172a"}}>{hotel.name||"Unnamed Hotel"}</span>
+            <span style={{fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:99,...meta,display:"inline-block"}}>{meta.label}</span>
+            {hotel.stars&&<span style={{fontSize:10,color:"#F59E0B"}}>{"★".repeat(hotel.stars)}</span>}
+          </div>
+          <div style={{fontSize:10,color:"#64748b",marginTop:1}}>{hotel.city&&`${hotel.city} · `}Check-in {hotel.checkIn} → Check-out {hotel.checkOut}</div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+          {totalCost>0&&<span style={{fontSize:10,fontWeight:700,color:"#047857",fontFamily:MN}}>${totalCost.toFixed(0)}</span>}
+          <button onClick={e=>{e.stopPropagation();onEdit();}} style={{background:"#F1F5F9",border:"none",borderRadius:5,padding:"4px 8px",fontSize:10,cursor:"pointer",color:"#475569"}}>Edit</button>
+          <button onClick={e=>{e.stopPropagation();if(confirm(`Remove ${hotel.name}?`))uLodging(hotel.id,null);}} style={{background:"none",border:"none",cursor:"pointer",color:"#ef4444",fontSize:14,padding:"2px 4px"}}>×</button>
+        </div>
+      </div>
+
+      {open&&(
+        <div style={{padding:"12px 14px",display:"flex",flexDirection:"column",gap:12}}>
+          {/* Details row */}
+          <div style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:11,color:"#475569"}}>
+            {hotel.address&&<span>📍 {hotel.address}</span>}
+            {hotel.phone&&<span>📞 <a href={`tel:${hotel.phone}`} style={{color:"#5B21B6",textDecoration:"none"}}>{hotel.phone}</a></span>}
+            {hotel.confirmNo&&<span style={{fontFamily:MN}}>Conf# <strong>{hotel.confirmNo}</strong></span>}
+            {hotel.bookingRef&&<span style={{fontFamily:MN}}>Ref# <strong>{hotel.bookingRef}</strong></span>}
+            {hotel.checkInTime&&<span>Check-in {hotel.checkInTime}</span>}
+            {hotel.checkOutTime&&<span>Check-out {hotel.checkOutTime}</span>}
+          </div>
+
+          {/* Room assignments */}
+          <div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#0f172a",letterSpacing:"0.04em",textTransform:"uppercase"}}>Rooms ({rooms.length})</div>
+              <button onClick={()=>setAddRoomOpen(v=>!v)} style={{background:"#EDE9FE",color:"#5B21B6",border:"none",borderRadius:5,padding:"3px 8px",fontSize:10,fontWeight:700,cursor:"pointer"}}>+ Assign Room</button>
+            </div>
+            {rooms.length===0&&<div style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>No rooms assigned.</div>}
+            {rooms.map(r=>{
+              const cm=crew.find(c=>c.id===r.crewId);
+              const rMeta=ROOM_STATUS_META[r.status||"pending"]||ROOM_STATUS_META.pending;
+              return(
+                <div key={r.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid #f1f0ee",fontSize:11}}>
+                  <button onClick={()=>cycleRoomStatus(r.id)} style={{fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:99,...rMeta,border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>{rMeta.label}</button>
+                  <span style={{flex:1,fontWeight:600,color:"#0f172a"}}>{cm?.name||r.crewId}</span>
+                  {r.roomNo&&<span style={{fontFamily:MN,color:"#64748b"}}>#{r.roomNo}</span>}
+                  <span style={{color:"#64748b"}}>{r.type}</span>
+                  {r.cost>0&&<span style={{fontFamily:MN,color:"#047857",fontWeight:700}}>${r.cost}</span>}
+                  {r.notes&&<span style={{color:"#94a3b8",fontSize:10}}>{r.notes}</span>}
+                  <button onClick={()=>removeRoom(r.id)} style={{background:"none",border:"none",color:"#ef4444",cursor:"pointer",fontSize:13,padding:"0 2px"}}>×</button>
+                </div>
+              );
+            })}
+            {addRoomOpen&&(
+              <div style={{background:"#faf9f7",border:"1px solid #e2e0dc",borderRadius:7,padding:"10px 10px",marginTop:6,display:"flex",flexDirection:"column",gap:7}}>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  <select value={newRoom.crewId} onChange={e=>setNewRoom(p=>({...p,crewId:e.target.value}))} style={{flex:2,padding:"4px 6px",borderRadius:5,border:"1px solid #e2e0dc",fontSize:11,minWidth:120}}>
+                    <option value="">Select crew member</option>
+                    {crew.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <input placeholder="Room #" value={newRoom.roomNo} onChange={e=>setNewRoom(p=>({...p,roomNo:e.target.value}))} style={{width:70,padding:"4px 6px",borderRadius:5,border:"1px solid #e2e0dc",fontSize:11,fontFamily:MN}}/>
+                  <select value={newRoom.type} onChange={e=>setNewRoom(p=>({...p,type:e.target.value}))} style={{width:90,padding:"4px 6px",borderRadius:5,border:"1px solid #e2e0dc",fontSize:11}}>
+                    {["Single","Double","Twin","Suite","King","Shared"].map(t=><option key={t}>{t}</option>)}
+                  </select>
+                  <input placeholder="Cost" type="number" value={newRoom.cost} onChange={e=>setNewRoom(p=>({...p,cost:e.target.value}))} style={{width:70,padding:"4px 6px",borderRadius:5,border:"1px solid #e2e0dc",fontSize:11,fontFamily:MN}}/>
+                </div>
+                <input placeholder="Notes (optional)" value={newRoom.notes} onChange={e=>setNewRoom(p=>({...p,notes:e.target.value}))} style={{padding:"4px 6px",borderRadius:5,border:"1px solid #e2e0dc",fontSize:11}}/>
+                <div style={{display:"flex",gap:6}}>
+                  <button onClick={addRoom} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:5,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Add Room</button>
+                  <button onClick={()=>setAddRoomOpen(false)} style={{background:"#F1F5F9",color:"#475569",border:"none",borderRadius:5,padding:"5px 10px",fontSize:11,cursor:"pointer"}}>Cancel</button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* To-do checklist */}
+          <div>
+            <div style={{fontSize:10,fontWeight:700,color:"#0f172a",letterSpacing:"0.04em",textTransform:"uppercase",marginBottom:5}}>Checklist ({doneTodos}/{todos.length})</div>
+            <div style={{display:"flex",flexDirection:"column",gap:3}}>
+              {todos.map((t,i)=>(
+                <label key={i} style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",fontSize:11,color:t.done?"#94a3b8":"#0f172a",textDecoration:t.done?"line-through":"none"}}>
+                  <input type="checkbox" checked={!!t.done} onChange={()=>toggleTodo(i)} style={{accentColor:"#5B21B6",width:13,height:13,flexShrink:0}}/>
+                  {t.text}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <div style={{fontSize:10,fontWeight:700,color:"#0f172a",letterSpacing:"0.04em",textTransform:"uppercase",marginBottom:4}}>Notes</div>
+            <textarea value={hotel.notes||""} onChange={e=>uLodging(hotel.id,{...hotel,notes:e.target.value})} placeholder="Parking, shuttle, special requests, room block contact…" rows={2} style={{width:"100%",padding:"6px 8px",borderRadius:6,border:"1px solid #e2e0dc",fontSize:11,resize:"vertical",background:"#faf9f7",fontFamily:"'Outfit',system-ui"}}/>
+          </div>
+
+          {/* Finance row */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:4,borderTop:"1px solid #f1f0ee"}}>
+            <div style={{fontSize:11,color:"#64748b"}}>
+              Total: <strong style={{color:"#047857",fontFamily:MN}}>{hotel.currency||"USD"} {totalCost.toFixed(2)}</strong>
+              {rooms.length>0&&<span style={{color:"#94a3b8",marginLeft:6}}>({rooms.length} room{rooms.length!==1?"s":""})</span>}
+            </div>
+            <button onClick={pushToLedger} disabled={!totalCost} style={{background:totalCost?"#047857":"#e2e0dc",color:"#fff",border:"none",borderRadius:5,padding:"5px 10px",fontSize:10,fontWeight:700,cursor:totalCost?"pointer":"not-allowed"}}>↑ Add to Ledger</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HotelFormModal({date,hotel,onClose,onSave,existingHotels}){
+  const isEdit=!!hotel;
+  const[form,setForm]=useState(hotel||{id:newHotelIdFn(),name:"",address:"",city:"",phone:"",stars:"",checkIn:date,checkOut:date,checkInTime:"15:00",checkOutTime:"12:00",confirmNo:"",bookingRef:"",status:"pending",currency:"USD",notes:"",rooms:[],todos:HOTEL_TODOS_DEFAULT.map(t=>({text:t,done:false}))});
+  function newHotelIdFn(){return`hotel_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;}
+  const f=(k,v)=>setForm(p=>({...p,[k]:v}));
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:80,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={onClose}>
+      <div style={{background:"#fff",borderRadius:12,padding:"20px 22px",width:"100%",maxWidth:460,boxShadow:"0 24px 64px rgba(0,0,0,.18)",display:"flex",flexDirection:"column",gap:12,maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{fontWeight:800,fontSize:14,color:"#0f172a"}}>{isEdit?"Edit Hotel":"Add Hotel"}</div>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:18,cursor:"pointer",color:"#94a3b8"}}>×</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px 10px"}}>
+          {[["name","Hotel Name","full"],["address","Address","full"],["city","City","half"],["phone","Phone","half"],["confirmNo","Confirmation #","half"],["bookingRef","Booking Ref","half"],["checkIn","Check-in Date","half"],["checkOut","Check-out Date","half"],["checkInTime","Check-in Time","half"],["checkOutTime","Check-out Time","half"]].map(([k,lbl,span])=>(
+            <div key={k} style={{gridColumn:span==="full"?"1/-1":"auto"}}>
+              <div style={{fontSize:9,fontWeight:700,color:"#64748b",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.06em"}}>{lbl}</div>
+              <input value={form[k]||""} onChange={e=>f(k,e.target.value)} type={k.includes("Date")?"date":k.includes("Time")?"time":"text"} style={{width:"100%",padding:"5px 8px",borderRadius:6,border:"1px solid #e2e0dc",fontSize:11,fontFamily:k==="confirmNo"||k==="bookingRef"?MN:"inherit"}}/>
+            </div>
+          ))}
+          <div>
+            <div style={{fontSize:9,fontWeight:700,color:"#64748b",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.06em"}}>Stars</div>
+            <select value={form.stars||""} onChange={e=>f("stars",e.target.value?parseInt(e.target.value):"")} style={{width:"100%",padding:"5px 8px",borderRadius:6,border:"1px solid #e2e0dc",fontSize:11}}>
+              <option value="">–</option>
+              {[1,2,3,4,5].map(n=><option key={n} value={n}>{"★".repeat(n)}</option>)}
+            </select>
+          </div>
+          <div>
+            <div style={{fontSize:9,fontWeight:700,color:"#64748b",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.06em"}}>Status</div>
+            <select value={form.status||"pending"} onChange={e=>f("status",e.target.value)} style={{width:"100%",padding:"5px 8px",borderRadius:6,border:"1px solid #e2e0dc",fontSize:11}}>
+              {Object.entries(HOTEL_STATUS_META).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <div style={{fontSize:9,fontWeight:700,color:"#64748b",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.06em"}}>Currency</div>
+            <select value={form.currency||"USD"} onChange={e=>f("currency",e.target.value)} style={{width:"100%",padding:"5px 8px",borderRadius:6,border:"1px solid #e2e0dc",fontSize:11}}>
+              {["USD","EUR","GBP","CAD","AUD","PLN","CZK","SEK","NOK","DKK"].map(c=><option key={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+        <div>
+          <div style={{fontSize:9,fontWeight:700,color:"#64748b",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.06em"}}>Notes</div>
+          <textarea value={form.notes||""} onChange={e=>f("notes",e.target.value)} rows={2} style={{width:"100%",padding:"6px 8px",borderRadius:6,border:"1px solid #e2e0dc",fontSize:11,resize:"vertical"}}/>
+        </div>
+        <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
+          <button onClick={onClose} style={{background:"#F1F5F9",border:"none",borderRadius:6,padding:"7px 14px",fontSize:11,cursor:"pointer",color:"#475569"}}>Cancel</button>
+          <button onClick={()=>onSave(form)} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"7px 16px",fontSize:11,fontWeight:700,cursor:"pointer"}}>{isEdit?"Save Changes":"Add Hotel"}</button>
+        </div>
       </div>
     </div>
   );
