@@ -610,6 +610,7 @@ const STATUS_STYLE={
 };
 function statusStyle(s){return STATUS_STYLE[s]||STATUS_STYLE.Unknown;}
 
+const FOCUS_CARRIERS=["delta","american","united","air canada"];
 const resKey=f=>(f.bookingRef||f.confirmNo||f.tid||`solo_${f.id}`).toString().trim().toUpperCase();
 const groupByReservation=list=>{
   const m=new Map();
@@ -621,8 +622,10 @@ const groupByReservation=list=>{
     const totalCost=costs.length?costs.reduce((a,b)=>a+b.cost,0):null;
     const currency=costs[0]?.currency||"";
     const carriers=[...new Set(sorted.map(s=>s.carrier).filter(Boolean))];
-    const pnr=sorted.find(s=>s.bookingRef)?.bookingRef||sorted.find(s=>s.confirmNo)?.confirmNo||"";
-    return{key:k,segs:sorted,paxUnion,totalCost,currency,carriers,pnr,firstDate:sorted[0]?.depDate||"",tid:sorted.find(s=>s.tid)?.tid||null,isSolo:k.startsWith("SOLO_")};
+    const pnrSeg=sorted.find(s=>s.bookingRef||s.confirmNo);
+    const pnr=pnrSeg?.bookingRef||pnrSeg?.confirmNo||"";
+    const tid=sorted.find(s=>s.tid)?.tid||null;
+    return{key:k,segs:sorted,paxUnion,totalCost,currency,carriers,pnr,firstDate:sorted[0]?.depDate||"",tid,isSolo:k.startsWith("SOLO_")};
   });
   return groups.sort((a,b)=>a.firstDate.localeCompare(b.firstDate));
 };
@@ -698,8 +701,7 @@ function FlightsSection(){
       if(!googleToken){setScanMsg("Gmail access not available — re-login with Google.");return;}
       if(opts.reset){setFlights({});setPendingImport([]);}
       setScanning(true);setScanMsg(opts.reset?"Reset. Rescanning Gmail…":"Scanning Gmail for flight confirmations…");
-      const focus=["delta","american","united","air canada"];
-      const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken,tourStart:"2026-04-01",tourEnd:"2026-06-30",focus})});
+      const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken,tourStart:"2026-04-01",tourEnd:"2026-06-30",focus:FOCUS_CARRIERS})});
       if(resp.status===402){setScanMsg("Gmail session expired — please re-login.");setScanning(false);return;}
       const data=await resp.json();
       if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
@@ -768,7 +770,6 @@ function FlightsSection(){
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:8}}>
-      {/* Header */}
       <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
         <span style={{fontSize:10,fontWeight:800,color:"#1E40AF",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
         <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"#DBEAFE",color:"#1E40AF",fontWeight:700}}>{confirmed.length} confirmed · {pending.length} pending</span>
