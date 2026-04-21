@@ -713,7 +713,56 @@ const STATUS_STYLE={
 };
 function statusStyle(s){return STATUS_STYLE[s]||STATUS_STYLE.Unknown;}
 
-function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing}){
+// Chips editor for a flight's passenger list. Click the PAX field to enter edit mode;
+// remove with ×, add with input (datalist autocomplete from current crew roster).
+// A green check appears on chips whose first name matches a known crew member.
+function PaxEditor({pax,crew,onSave}){
+  const[editing,setEditing]=useState(false);
+  const[draft,setDraft]=useState(pax||[]);
+  const[newName,setNewName]=useState("");
+  const inputRef=useRef(null);
+  const open=()=>{setDraft(pax||[]);setNewName("");setEditing(true);setTimeout(()=>inputRef.current?.focus(),0);};
+  const cancel=()=>{setEditing(false);};
+  const save=()=>{const cleaned=draft.map(s=>s.trim()).filter(Boolean);onSave(cleaned);setEditing(false);};
+  const add=()=>{
+    const v=newName.trim();if(!v)return;
+    if(draft.some(n=>n.toLowerCase()===v.toLowerCase())){setNewName("");return;}
+    setDraft(p=>[...p,v]);setNewName("");
+  };
+  const remove=i=>setDraft(p=>p.filter((_,idx)=>idx!==i));
+  const findMatch=name=>(crew||[]).find(c=>c.name&&c.name.toLowerCase().includes(name.split(" ")[0].toLowerCase()));
+  if(!editing){
+    return(
+      <div onClick={open} title="Click to edit passengers" style={{cursor:"pointer",minWidth:120}}>
+        <div style={{fontSize:8,color:"#94a3b8",fontWeight:600,display:"flex",alignItems:"center",gap:4}}>PAX <span style={{color:"#5B21B6",fontSize:9}}>✎</span></div>
+        <div style={{fontSize:10,color:pax?.length?"#0f172a":"#94a3b8",fontStyle:pax?.length?"normal":"italic"}}>{pax?.length?pax.join(", "):"add passengers"}</div>
+      </div>
+    );
+  }
+  const dlId=`pax-dl-${Math.random().toString(36).slice(2,7)}`;
+  return(
+    <div style={{flexBasis:"100%",padding:"8px 10px",background:"#EDE9FE",border:"1px solid #C4B5FD",borderRadius:7,display:"flex",flexDirection:"column",gap:6}}>
+      <div style={{fontSize:8,color:"#5B21B6",fontWeight:800,letterSpacing:"0.06em"}}>EDIT PAX · green = crew match</div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:4,minHeight:20}}>
+        {draft.map((name,i)=>{const m=findMatch(name);return(
+          <span key={i} style={{fontSize:10,padding:"3px 5px 3px 9px",borderRadius:14,background:m?"#D1FAE5":"#FEF3C7",color:m?"#047857":"#92400E",display:"inline-flex",alignItems:"center",gap:5,fontWeight:600,border:`1px solid ${m?"#6EE7B7":"#FDE68A"}`}}>
+            {name}{m&&<span title={`Matches ${m.name}`} style={{fontSize:7,opacity:.7}}>✓</span>}
+            <button onClick={()=>remove(i)} style={{background:"rgba(0,0,0,.08)",border:"none",cursor:"pointer",fontSize:11,lineHeight:1,padding:"0 5px 1px",borderRadius:"50%",color:"inherit"}}>×</button>
+          </span>);})}
+        {draft.length===0&&<span style={{fontSize:9,color:"#94a3b8",fontStyle:"italic"}}>no passengers yet</span>}
+      </div>
+      <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+        <input ref={inputRef} value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();add();}else if(e.key==="Escape"){e.preventDefault();cancel();}}} list={dlId} placeholder="Add pax name (enter to add)" style={{flex:1,minWidth:140,fontSize:10,padding:"5px 8px",border:"1px solid #d6d3cd",borderRadius:5,outline:"none",fontFamily:"'Outfit',system-ui"}}/>
+        <datalist id={dlId}>{(crew||[]).map(c=><option key={c.id} value={c.name}/>)}</datalist>
+        <button onClick={add} disabled={!newName.trim()} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"none",background:newName.trim()?"#5B21B6":"#e5e7eb",color:newName.trim()?"#fff":"#94a3b8",cursor:newName.trim()?"pointer":"default",fontWeight:700}}>+ Add</button>
+        <button onClick={save} style={{fontSize:9,padding:"4px 12px",borderRadius:5,border:"none",background:"#047857",color:"#fff",cursor:"pointer",fontWeight:700}}>Save</button>
+        <button onClick={cancel} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid #d6d3cd",background:"#fff",color:"#64748b",cursor:"pointer",fontWeight:600}}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax,crew}){
   const st=liveStatus?statusStyle(liveStatus.status):null;
   const delayed=liveStatus?.delayMinutes>0;
   return(
@@ -738,10 +787,12 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing}){
           {liveStatus.fetchedAt&&<div style={{marginLeft:"auto"}}><div style={{fontSize:7,color:"#94a3b8"}}>updated {new Date(liveStatus.fetchedAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div></div>}
         </div>
       )}
-      <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+      <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"flex-start"}}>
         {f.fromCity&&<div><div style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>FROM</div><div style={{fontSize:10,color:"#0f172a"}}>{f.fromCity}</div></div>}
         {f.toCity&&<div><div style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>TO</div><div style={{fontSize:10,color:"#0f172a"}}>{f.toCity}</div></div>}
-        {f.pax?.length>0&&<div><div style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>PAX</div><div style={{fontSize:10,color:"#0f172a"}}>{f.pax.join(", ")}</div></div>}
+        {onUpdatePax
+          ?<PaxEditor pax={f.pax||[]} crew={crew} onSave={onUpdatePax}/>
+          :(f.pax?.length>0&&<div><div style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>PAX</div><div style={{fontSize:10,color:"#0f172a"}}>{f.pax.join(", ")}</div></div>)}
         {f.confirmNo&&<div><div style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>CONF #</div><div style={{fontFamily:MN,fontSize:10,color:"#0f172a",fontWeight:700}}>{f.confirmNo}</div></div>}
         {f.cost&&<div><div style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>COST</div><div style={{fontFamily:MN,fontSize:10,color:"#047857",fontWeight:700}}>{f.currency||"$"}{f.cost}</div></div>}
       </div>
@@ -855,7 +906,7 @@ function FlightsSection(){
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {pendingImport.map(f=>(
-              <FlightCard key={f.id} f={f} actions={<>
+              <FlightCard key={f.id} f={f} crew={crew} onUpdatePax={newPax=>setPendingImport(p=>p.map(x=>x.id===f.id?{...x,pax:(newPax||[]).map(s=>String(s||"").trim()).filter(Boolean)}:x))} actions={<>
                 <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
                 <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Skip</button>
                 {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
@@ -872,7 +923,7 @@ function FlightsSection(){
             {pending.map(f=>{
               const isConf=confirmingId===f.id;
               return(
-                <FlightCard key={f.id} f={f} actions={<>
+                <FlightCard key={f.id} f={f} crew={crew} onUpdatePax={newPax=>uFlight(f.id,{...f,pax:(newPax||[]).map(s=>String(s||"").trim()).filter(Boolean)})} actions={<>
                   <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"#1E40AF",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
                   <button onClick={()=>dismissFlight(f.id)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Dismiss</button>
                   {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
@@ -2452,6 +2503,50 @@ function FlightsListView(){
     setTimeout(()=>setConfirmingId(null),1200);
   };
 
+  // Edit pax on a confirmed/pending flight. For confirmed flights, additionally:
+  //   - pull this itinerary's legs out of removed pax's showCrew records (both inbound + outbound)
+  //   - re-run show matching so newly-added pax get enrolled on matched shows
+  // Pending/import flights just get the pax list updated; matching runs on confirm.
+  const updatePax=(f,newPax)=>{
+    const oldPax=f.pax||[];
+    const cleaned=(newPax||[]).map(s=>String(s||"").trim()).filter(Boolean);
+    const removed=oldPax.filter(p=>!cleaned.some(n=>n.toLowerCase()===p.toLowerCase()));
+    const nextFlight={...f,pax:cleaned};
+    uFlight(f.id,nextFlight);
+    if(f.status!=="confirmed")return;
+    const nextFlightsObj={...flights,[f.id]:nextFlight};
+    const legs=findItineraryLegs(nextFlight,nextFlightsObj);
+    const firstLeg=legs[0]||nextFlight,lastLeg=legs[legs.length-1]||nextFlight;
+    const inShow=matchShowByAirport(lastLeg.to,lastLeg.toCity,lastLeg.arrDate||lastLeg.depDate,sorted||[],"inbound");
+    const outShow=matchShowByAirport(firstLeg.from,firstLeg.fromCity,firstLeg.depDate,sorted||[],"outbound");
+    const itinFlightIds=new Set(legs.map(l=>l.id));
+    // Remove this itinerary's legs from removed-pax crew records on both matched shows.
+    if(removed.length&&(inShow||outShow)){
+      removed.forEach(name=>{
+        const fname=name.split(" ")[0].toLowerCase();
+        const match=(crew||[]).find(c=>c.name&&c.name.toLowerCase().includes(fname));
+        if(!match)return;
+        [inShow,outShow].filter(Boolean).forEach(show=>{
+          setShowCrew(p=>{
+            const cur=p[show.date]?.[match.id];if(!cur)return p;
+            return{...p,[show.date]:{...p[show.date],[match.id]:{
+              ...cur,
+              inbound:(cur.inbound||[]).filter(l=>!itinFlightIds.has(l.flightId)),
+              outbound:(cur.outbound||[]).filter(l=>!itinFlightIds.has(l.flightId)),
+            }}};
+          });
+        });
+      });
+    }
+    // Re-assign for the updated pax list. Idempotent for unchanged names; adds new ones.
+    assignFlightToShows(nextFlight,nextFlightsObj);
+  };
+  // For a flight still in the pending-import tray, edit pax without persisting (pre-import).
+  const updatePendingImportPax=(f,newPax)=>{
+    const cleaned=(newPax||[]).map(s=>String(s||"").trim()).filter(Boolean);
+    setPendingImport(p=>p.map(x=>x.id===f.id?{...x,pax:cleaned}:x));
+  };
+
   // Re-run geographic+chronological matching across all confirmed flights. Useful after adding
   // new shows, correcting city data, or seeding flights ahead of attending confirmation.
   const reassignAllFlights=()=>{
@@ -2532,7 +2627,7 @@ function FlightsListView(){
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {pendingImport.map(f=>(
-              <FlightCard key={f.id} f={f} actions={<>
+              <FlightCard key={f.id} f={f} crew={crew} onUpdatePax={newPax=>updatePendingImportPax(f,newPax)} actions={<>
                 <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
                 <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Skip</button>
                 {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
@@ -2548,7 +2643,7 @@ function FlightsListView(){
           <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.08em",marginBottom:8}}>PENDING CONFIRMATION <span style={{background:"#FEF3C7",color:"#92400E",borderRadius:8,padding:"1px 6px",fontWeight:700,fontSize:8}}>{pending.length}</span></div>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {pending.map(f=>{const isConf=confirmingId===f.id;return(
-              <FlightCard key={f.id} f={f} actions={<>
+              <FlightCard key={f.id} f={f} crew={crew} onUpdatePax={newPax=>updatePax(f,newPax)} actions={<>
                 <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"#1E40AF",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
                 <button onClick={()=>uFlight(f.id,{...f,status:"dismissed"})} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Dismiss</button>
                 {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
@@ -2576,6 +2671,8 @@ function FlightsListView(){
                   const matchBadge=(show,label,bg,c)=>show?<button onClick={()=>goToSchedule(show.date)} title={`${label} match: ${show.venue}`} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:`1px solid ${c}40`,background:bg,color:c,cursor:"pointer",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4}}><span style={{fontSize:7,letterSpacing:"0.06em"}}>{label}</span>{show.city}<span style={{fontFamily:MN,fontSize:8,opacity:.7}}>{fD(show.date)}</span></button>:null;
                   return(
                     <FlightCard key={f.id} f={f}
+                      crew={crew}
+                      onUpdatePax={newPax=>updatePax(f,newPax)}
                       liveStatus={liveStatuses[f.id]||null}
                       refreshing={refreshingId===f.id}
                       onRefreshStatus={f.flightNo?()=>refreshStatus(f):null}
