@@ -103,6 +103,74 @@ const findItineraryLegs=(f,allFlightsObj)=>{
     .sort((a,b)=>`${a.depDate||""} ${a.dep||""}`.localeCompare(`${b.depDate||""} ${b.dep||""}`));
 };
 
+// ── Segment model (unified travel store) ───────────────────────────────────
+// The `flights` store widens into a generic segments store: each record has a `type`
+// ∈ {air, ground, bus, rail, sea, hotel}. Legacy records (no type) are implicitly "air".
+// Ground/bus/etc. segments share the air shape with different fields populated:
+//   air:    flightNo, carrier, from/to (IATA), fromCity/toCity, dep/arr, pax
+//   ground: mode (uber|drive|taxi|lyft|rideshare|friend), provider, from/to (labels or
+//           addresses), fromCity/toCity, dep/arr, pax, distance, duration
+//   bus:    carrier, from/to, dep/arr, pax, route
+//   rail:   carrier, trainNo, from/to, dep/arr, pax
+//   hotel:  hotelName, from (address), checkIn/checkOut dates, pax
+const SEG_META={
+  air:   {label:"Flight",  icon:"✈", color:"#1E40AF", bg:"#DBEAFE", border:"#BFDBFE"},
+  ground:{label:"Ground",  icon:"🚗", color:"#B45309", bg:"#FEF3C7", border:"#FDE68A"},
+  bus:   {label:"Bus",     icon:"🚌", color:"#1D4ED8", bg:"#DBEAFE", border:"#BFDBFE"},
+  rail:  {label:"Rail",    icon:"🚆", color:"#065F46", bg:"#D1FAE5", border:"#6EE7B7"},
+  sea:   {label:"Sea",     icon:"⛴", color:"#0E7490", bg:"#CFFAFE", border:"#67E8F9"},
+  hotel: {label:"Hotel",   icon:"🏨", color:"#5B21B6", bg:"#EDE9FE", border:"#C4B5FD"},
+};
+const segType=s=>s?.type||(s?.flightNo||s?.carrier?"air":"ground");
+const segMeta=s=>SEG_META[segType(s)]||SEG_META.air;
+
+// Airport check-in buffers in minutes before scheduled departure. Split by
+// with-checked-bag vs carry-on-only. Override per segment via seg.airportBuffer.
+const AIRPORT_BUFFERS={
+  // EU hubs (typical Schengen/int'l queues)
+  LHR:{bag:180,carry:120}, LGW:{bag:180,carry:120}, STN:{bag:150,carry:120}, LCY:{bag:90,carry:60}, LTN:{bag:150,carry:120},
+  CDG:{bag:180,carry:120}, ORY:{bag:150,carry:120}, BVA:{bag:120,carry:90},
+  AMS:{bag:150,carry:120}, FRA:{bag:150,carry:120}, MUC:{bag:150,carry:120}, CGN:{bag:120,carry:90}, DUS:{bag:120,carry:90},
+  MXP:{bag:150,carry:120}, LIN:{bag:90,carry:60}, BGY:{bag:120,carry:90},
+  MAD:{bag:150,carry:120}, BCN:{bag:150,carry:120},
+  FCO:{bag:150,carry:120}, VCE:{bag:120,carry:90},
+  ZRH:{bag:120,carry:90}, GVA:{bag:120,carry:90}, BSL:{bag:120,carry:90},
+  VIE:{bag:120,carry:90}, BER:{bag:120,carry:90},
+  DUB:{bag:120,carry:90},
+  MAN:{bag:120,carry:90}, GLA:{bag:90,carry:60}, EDI:{bag:90,carry:60},
+  PRG:{bag:120,carry:90}, BUD:{bag:120,carry:90}, WAW:{bag:120,carry:90}, WMI:{bag:90,carry:60},
+  CPH:{bag:120,carry:90}, ARN:{bag:120,carry:90}, OSL:{bag:120,carry:90}, HEL:{bag:120,carry:90},
+  LIS:{bag:120,carry:90}, OPO:{bag:120,carry:90},
+  BTS:{bag:90,carry:60},
+  // NA hubs
+  JFK:{bag:150,carry:120}, LGA:{bag:120,carry:90}, EWR:{bag:150,carry:120},
+  LAX:{bag:150,carry:120}, BUR:{bag:60,carry:45}, LGB:{bag:60,carry:45}, SNA:{bag:75,carry:60}, ONT:{bag:75,carry:60},
+  SFO:{bag:120,carry:90}, OAK:{bag:90,carry:60}, SJC:{bag:90,carry:60},
+  SEA:{bag:90,carry:60}, PDX:{bag:90,carry:60},
+  ORD:{bag:150,carry:120}, MDW:{bag:120,carry:90},
+  ATL:{bag:150,carry:120}, DFW:{bag:150,carry:120}, IAH:{bag:150,carry:120},
+  DEN:{bag:90,carry:60}, PHX:{bag:90,carry:60}, LAS:{bag:90,carry:60},
+  BOS:{bag:120,carry:90}, PHL:{bag:120,carry:90}, DCA:{bag:120,carry:90}, IAD:{bag:150,carry:120},
+  MIA:{bag:150,carry:120}, FLL:{bag:120,carry:90}, MCO:{bag:120,carry:90}, TPA:{bag:90,carry:60},
+  BNA:{bag:90,carry:60}, BDL:{bag:90,carry:60}, PVD:{bag:90,carry:60}, MHT:{bag:75,carry:60},
+  MSP:{bag:90,carry:60}, DTW:{bag:120,carry:90},
+  // Canada
+  YYZ:{bag:120,carry:90}, YTZ:{bag:60,carry:45}, YUL:{bag:120,carry:90}, YVR:{bag:120,carry:90},
+  YOW:{bag:90,carry:60}, YHZ:{bag:90,carry:60}, YWG:{bag:90,carry:60}, YYC:{bag:90,carry:60},
+  __default:{bag:120,carry:90},
+};
+const airportBufferMin=(iata,hasBag=true)=>{
+  const b=AIRPORT_BUFFERS[(iata||"").toUpperCase()]||AIRPORT_BUFFERS.__default;
+  return hasBag?b.bag:b.carry;
+};
+// Subtract `mins` from "HH:MM" and return "HH:MM" (wraps into negative = previous day warning separately).
+const subtractMinutes=(hhmm,mins)=>{
+  const t=hhmmToMin(hhmm);if(t==null)return"";
+  const diff=t-mins;
+  if(diff<0){const d=1440+diff;return`${String(Math.floor(d/60)).padStart(2,"0")}:${String(d%60).padStart(2,"0")}*`;}
+  return`${String(Math.floor(diff/60)).padStart(2,"0")}:${String(diff%60).padStart(2,"0")}`;
+};
+
 // Serialize a flight record into the compact leg shape used in showCrew.
 const flightToLeg=f=>({
   id:`leg_${f.id}`,
@@ -2704,20 +2772,272 @@ function FlightsListView(){
   );
 }
 
-function TransTab(){
+// Per-date aggregated view of all travel segments (flights + ground transfers + bus + rail + hotel check-ins).
+// Master Tour-style: chronological list on the left, editor drawer on the right. The currently-selected show
+// date (sel) drives what's displayed; header shows a prev/next stepper and jumps to the Travel Dates menu.
+function TravelDayView(){
+  const{flights,uFlight,sel,setSel,setDateMenu,shows,sorted,tourDaysSorted,crew,setShowCrew,showCrew,mobile,pushUndo}=useContext(Ctx);
+  const[activeId,setActiveId]=useState(null);
+  const[addType,setAddType]=useState(null);
+  const[travelNotes,setTravelNotes]=useState("");
+  const curShow=shows?.[sel];
+  const curDay=(tourDaysSorted||[]).find(d=>d.date===sel);
+  const title=curShow?.venue||curShow?.city||(curDay?.type==="travel"?"Travel Day":curDay?.type==="split"?"Split Day":curDay?.type==="off"?"Off Day":"—");
+  const subTitle=curShow?curShow.city:(curDay?.city||"");
+
+  // All non-dismissed segments touching sel (depDate === sel OR arrDate === sel).
+  const daySegs=useMemo(()=>{
+    return Object.values(flights||{})
+      .filter(s=>s&&s.status!=="dismissed")
+      .filter(s=>s.depDate===sel||s.arrDate===sel)
+      .map(s=>{
+        const isDep=s.depDate===sel;
+        const isArrOnly=s.arrDate===sel&&s.arrDate!==s.depDate;
+        const sortMin=(isArrOnly?hhmmToMin(s.arr):hhmmToMin(s.dep))??0;
+        return{...s,_role:isArrOnly?"arr":"dep",_sort:sortMin};
+      })
+      .sort((a,b)=>a._sort-b._sort);
+  },[flights,sel]);
+
+  const active=daySegs.find(s=>s.id===activeId)||null;
+
+  // Add a new segment (local-only until first save; uses timestamp-based id).
+  const handleAdd=(type)=>{
+    const id=`${type==="air"?"fl":"seg"}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
+    const base={id,type,status:"confirmed",depDate:sel,arrDate:sel,dep:"",arr:"",from:"",to:"",fromCity:"",toCity:"",pax:[]};
+    const seed=type==="ground"?{...base,mode:"uber"}:type==="hotel"?{...base,hotelName:"",arr:"15:00",dep:"11:00"}:base;
+    uFlight(id,seed);
+    setActiveId(id);setAddType(null);
+  };
+
+  const pax=(seg)=>(seg?.pax||[]).filter(Boolean);
+  const paxMatch=name=>(crew||[]).find(c=>c.name&&c.name.toLowerCase().includes(String(name).split(" ")[0].toLowerCase()));
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:12,minHeight:0}}>
+      {/* Header */}
+      <div style={{background:"linear-gradient(90deg,#1E1B4B 0%,#312E81 100%)",borderRadius:10,padding:"14px 18px",color:"#fff",display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+        <div style={{minWidth:0}}>
+          <div style={{fontSize:18,fontWeight:800,letterSpacing:"-0.02em"}}>{title}</div>
+          <div style={{fontSize:11,color:"#C7D2FE",marginTop:2}}>{subTitle}</div>
+          <div style={{fontSize:9,fontFamily:MN,color:"#A5B4FC",marginTop:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>Travel Notes</div>
+          <textarea value={travelNotes} onChange={e=>setTravelNotes(e.target.value)} placeholder="Notes for today's travel (scratchpad, not persisted yet)" rows={2} style={{marginTop:4,width:"100%",minWidth:220,maxWidth:560,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:6,padding:"6px 9px",color:"#fff",fontSize:10,fontFamily:"'Outfit',system-ui",resize:"vertical",outline:"none"}}/>
+        </div>
+        <div style={{textAlign:"right",fontSize:11,color:"#C7D2FE",flexShrink:0}}>
+          <div style={{fontWeight:700,fontSize:12,color:"#fff"}}>{fFull(sel)}</div>
+          <div style={{fontSize:10,marginTop:2,letterSpacing:"0.04em",textTransform:"uppercase",color:"#A5B4FC"}}>{curDay?.type==="travel"?"Travel Day":curDay?.type==="split"?"Split Day":curDay?.type==="off"?"Off Day":"Show Day"}</div>
+          <button onClick={()=>setDateMenu(true)} style={{marginTop:8,background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",fontSize:10,padding:"4px 10px",borderRadius:5,cursor:"pointer",fontWeight:700}}>☰ Change Day</button>
+        </div>
+      </div>
+
+      {/* Add bar */}
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <span style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em"}}>ADD SEGMENT</span>
+        {[["air","✈ Flight"],["ground","🚗 Ground"],["bus","🚌 Bus"],["rail","🚆 Rail"],["hotel","🏨 Hotel"]].map(([k,l])=>(
+          <button key={k} onClick={()=>handleAdd(k)} style={{fontSize:10,padding:"4px 11px",borderRadius:6,border:`1px solid ${SEG_META[k].border}`,background:SEG_META[k].bg,color:SEG_META[k].color,cursor:"pointer",fontWeight:700}}>{l}</button>
+        ))}
+        <span style={{marginLeft:"auto",fontSize:9,color:"#94a3b8",fontFamily:MN}}>{daySegs.length} segment{daySegs.length===1?"":"s"} on {fD(sel)}</span>
+      </div>
+
+      {/* Day list + drawer */}
+      <div style={{display:"flex",gap:12,flexWrap:mobile?"wrap":"nowrap",minHeight:0}}>
+        {/* Left: day list */}
+        <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",gap:6}}>
+          {daySegs.length===0&&(
+            <div style={{padding:"28px 0",textAlign:"center",background:"#fff",border:"1px dashed #d6d3cd",borderRadius:10}}>
+              <div style={{fontSize:22,marginBottom:6,opacity:0.25}}>◌</div>
+              <div style={{fontSize:11,fontWeight:600,color:"#0f172a",marginBottom:3}}>No travel on this day</div>
+              <div style={{fontSize:10,color:"#94a3b8"}}>Use the buttons above to add a flight, ground transfer, or hotel check-in.</div>
+            </div>
+          )}
+          {daySegs.map(s=>{
+            const m=segMeta(s);const isActive=s.id===activeId;
+            const timeLabel=s._role==="arr"?`Arr ${s.arr||"—"}`:`${s.dep||"—"}${s.arr?` – ${s.arr}`:""}`;
+            const routeLabel=segType(s)==="hotel"?(s.hotelName||s.to||"Hotel"):`${s.from||"—"}${s.to?` → ${s.to}`:""}`;
+            const detail=segType(s)==="air"?`${s.flightNo||""} ${s.carrier||""}`.trim():segType(s)==="ground"?`${s.mode||"drive"}${s.provider?` · ${s.provider}`:""}`:segType(s)==="hotel"?(s.hotelName||""):(s.carrier||s.mode||"");
+            const paxList=pax(s);
+            return(
+              <div key={s.id} onClick={()=>setActiveId(s.id)} className="rh" style={{display:"grid",gridTemplateColumns:"20px auto 1fr auto",gap:10,padding:"9px 12px",background:"#fff",border:`1px solid ${isActive?m.border:"#d6d3cd"}`,borderLeft:`3px solid ${m.color}`,borderRadius:9,cursor:"pointer",boxShadow:isActive?"0 0 0 2px #EDE9FE":undefined}}>
+                <div style={{fontSize:14,lineHeight:1,paddingTop:2}}>{m.icon}</div>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:2,flexShrink:0,minWidth:90}}>
+                  {paxList.length>0&&<div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+                    {paxList.slice(0,3).map((n,i)=>{const mch=paxMatch(n);return(
+                      <span key={i} style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:mch?"#D1FAE5":"#f1f5f9",color:mch?"#047857":"#475569",fontWeight:700,letterSpacing:"0.02em"}}>{String(n).split(" ")[0].toUpperCase()}</span>
+                    );})}
+                    {paxList.length>3&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:"#f1f5f9",color:"#64748b",fontWeight:700}}>+{paxList.length-3}</span>}
+                  </div>}
+                  <div style={{fontFamily:MN,fontSize:10,fontWeight:700,color:m.color}}>{timeLabel}</div>
+                </div>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#0f172a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{routeLabel}</div>
+                  {detail&&<div style={{fontSize:9,color:"#64748b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{detail}</div>}
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+                  {s._role==="arr"&&<span style={{fontSize:7,padding:"2px 5px",borderRadius:3,background:"#D1FAE5",color:"#047857",fontWeight:800,letterSpacing:"0.06em"}}>ARR</span>}
+                  {s.fresh48h&&<span style={{fontSize:7,padding:"2px 5px",borderRadius:3,background:"#EDE9FE",color:"#5B21B6",fontWeight:800,letterSpacing:"0.06em"}}>NEW</span>}
+                  <button onClick={e=>{e.stopPropagation();if(confirm(`Delete this ${m.label.toLowerCase()}?`)){const prev={...s};uFlight(s.id,{...s,status:"dismissed"});pushUndo(`${m.label} deleted.`,()=>uFlight(s.id,prev));if(activeId===s.id)setActiveId(null);}}} title="Delete segment" style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:13,lineHeight:1,padding:"0 4px"}}>×</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {/* Right: editor drawer */}
+        {active&&<SegmentDrawer key={active.id} seg={active} crew={crew||[]} sorted={sorted||[]} onChange={patch=>uFlight(active.id,{...active,...patch})} onClose={()=>setActiveId(null)}/>}
+      </div>
+    </div>
+  );
+}
+
+// Editor drawer for one segment. Fields adapt to type (air/ground/bus/rail/hotel).
+// For ground transfers going TO a known airport, the pickup-time suggestion uses the
+// matched flight's scheduled dep minus the airport buffer.
+function SegmentDrawer({seg,crew,sorted,onChange,onClose}){
   const{flights}=useContext(Ctx);
-  const[view,setView]=useState("calendar");
+  const t=segType(seg);const m=segMeta(seg);
+  const[hasBag,setHasBag]=useState(seg.hasBag!==false);
+  // Pickup-time suggestion when a ground transfer ends at a known airport. Finds the
+  // matching outbound flight (same-day, same dep airport, pax overlap) and computes
+  // when this ground segment should arrive at the airport: flight.dep - airport buffer.
+  const suggestion=useMemo(()=>{
+    if(t!=="ground"||!seg.to||!seg.depDate)return null;
+    const toIata=String(seg.to).toUpperCase();
+    if(!AIRPORT_BUFFERS[toIata])return null;
+    const buffer=airportBufferMin(toIata,hasBag);
+    const paxSet=new Set((seg.pax||[]).map(n=>String(n||"").toLowerCase()));
+    const sameDay=Object.values(flights||{}).filter(f=>segType(f)==="air"&&f.status!=="dismissed"&&f.depDate===seg.depDate&&String(f.from||"").toUpperCase()===toIata);
+    const match=sameDay.find(f=>{
+      if(!paxSet.size)return true;
+      return(f.pax||[]).some(n=>paxSet.has(String(n||"").toLowerCase()));
+    });
+    if(!match||!match.dep)return{buffer,airport:toIata,match:null,arriveBy:null};
+    return{buffer,airport:toIata,match,arriveBy:subtractMinutes(match.dep,buffer)};
+  },[t,seg.to,seg.depDate,seg.pax,hasBag,flights]);
+
+  const setField=(k,v)=>onChange({[k]:v});
+  const inp={background:"#fff",border:"1px solid #d6d3cd",borderRadius:5,fontSize:11,padding:"5px 8px",outline:"none",fontFamily:"'Outfit',system-ui",width:"100%",boxSizing:"border-box"};
+  const lab={fontSize:8,fontWeight:700,color:"#64748b",letterSpacing:"0.06em",marginBottom:3,textTransform:"uppercase"};
+  const sub=(label,children)=>(<div style={{display:"flex",flexDirection:"column",gap:0,minWidth:0}}><div style={lab}>{label}</div>{children}</div>);
+
+  return(
+    <div style={{width:380,maxWidth:"100%",flexShrink:0,background:"#fff",border:`1px solid ${m.border}`,borderRadius:10,padding:12,display:"flex",flexDirection:"column",gap:10,alignSelf:"flex-start",position:"sticky",top:0}}>
+      <div style={{display:"flex",alignItems:"center",gap:6}}>
+        <span style={{fontSize:16}}>{m.icon}</span>
+        <div style={{fontSize:13,fontWeight:800,color:m.color,letterSpacing:"-0.01em"}}>{m.label}</div>
+        <div style={{marginLeft:"auto",display:"flex",gap:4}}>
+          {[["confirmed","Confirmed","#047857","#D1FAE5"],["pending","Pending","#92400E","#FEF3C7"]].map(([v,l,c,bg])=>(
+            <button key={v} onClick={()=>setField("status",v)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",cursor:"pointer",fontWeight:700,background:seg.status===v?bg:"#f5f3ef",color:seg.status===v?c:"#64748b"}}>{l}</button>
+          ))}
+          <button onClick={onClose} title="Close" style={{background:"none",border:"none",cursor:"pointer",color:"#64748b",fontSize:16,lineHeight:1}}>×</button>
+        </div>
+      </div>
+
+      {/* Type-specific identity row */}
+      {t==="air"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {sub("Flight #",<input value={seg.flightNo||""} onChange={e=>setField("flightNo",e.target.value)} placeholder="AC601" style={{...inp,fontFamily:MN}}/>)}
+          {sub("Carrier",<input value={seg.carrier||""} onChange={e=>setField("carrier",e.target.value)} placeholder="Air Canada" style={inp}/>)}
+        </div>
+      )}
+      {t==="ground"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {sub("Mode",<select value={seg.mode||"uber"} onChange={e=>setField("mode",e.target.value)} style={inp}>{["uber","lyft","drive","taxi","rideshare","friend","shuttle"].map(m=><option key={m} value={m}>{m.charAt(0).toUpperCase()+m.slice(1)}</option>)}</select>)}
+          {sub("Provider / Driver",<input value={seg.provider||""} onChange={e=>setField("provider",e.target.value)} placeholder="e.g. Guillaume, Uber Black" style={inp}/>)}
+        </div>
+      )}
+      {(t==="bus"||t==="rail"||t==="sea")&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {sub(t==="rail"?"Train #":"Operator",<input value={seg.flightNo||seg.carrier||""} onChange={e=>setField(t==="rail"?"flightNo":"carrier",e.target.value)} placeholder={t==="rail"?"Eurostar 9137":"Pieter Smit"} style={inp}/>)}
+          {sub("Confirmation",<input value={seg.confirmNo||""} onChange={e=>setField("confirmNo",e.target.value)} style={{...inp,fontFamily:MN}}/>)}
+        </div>
+      )}
+      {t==="hotel"&&(
+        <div>
+          {sub("Hotel",<input value={seg.hotelName||""} onChange={e=>setField("hotelName",e.target.value)} placeholder="Hotel name" style={inp}/>)}
+        </div>
+      )}
+
+      {/* Route */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        {sub(t==="hotel"?"Address":"From",<input value={seg.from||""} onChange={e=>setField("from",e.target.value)} placeholder={t==="air"?"DUB":t==="ground"?"Hotel Name / Address":"Origin"} style={inp}/>)}
+        {t!=="hotel"&&sub("To",<input value={seg.to||""} onChange={e=>setField("to",e.target.value)} placeholder={t==="air"?"AMS":"Venue / Airport"} style={inp}/>)}
+      </div>
+      {(t==="air"||t==="ground"||t==="bus"||t==="rail"||t==="sea")&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {sub("From City",<input value={seg.fromCity||""} onChange={e=>setField("fromCity",e.target.value)} placeholder="Dublin" style={inp}/>)}
+          {sub("To City",<input value={seg.toCity||""} onChange={e=>setField("toCity",e.target.value)} placeholder="Amsterdam" style={inp}/>)}
+        </div>
+      )}
+
+      {/* Times */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6}}>
+        {sub("Dep Date",<input type="date" value={seg.depDate||""} onChange={e=>setField("depDate",e.target.value)} style={{...inp,fontFamily:MN}}/>)}
+        {sub("Dep Time",<input type="time" value={seg.dep||""} onChange={e=>setField("dep",e.target.value)} style={{...inp,fontFamily:MN}}/>)}
+        {sub("Arr Date",<input type="date" value={seg.arrDate||""} onChange={e=>setField("arrDate",e.target.value)} style={{...inp,fontFamily:MN}}/>)}
+        {sub("Arr Time",<input type="time" value={seg.arr||""} onChange={e=>setField("arr",e.target.value)} style={{...inp,fontFamily:MN}}/>)}
+      </div>
+
+      {/* Ground → airport pickup suggestion */}
+      {suggestion&&(
+        <div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:7,padding:"8px 10px",fontSize:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4,flexWrap:"wrap"}}>
+            <span style={{fontSize:9,fontWeight:800,color:"#92400E",letterSpacing:"0.06em"}}>AIRPORT PICKUP</span>
+            <span style={{marginLeft:"auto",display:"flex",gap:2,background:"#fff",padding:2,borderRadius:5}}>
+              {[[true,"With bag"],[false,"Carry-on"]].map(([v,l])=>(
+                <button key={String(v)} onClick={()=>setHasBag(v)} style={{fontSize:8,padding:"2px 7px",borderRadius:3,border:"none",background:hasBag===v?"#92400E":"transparent",color:hasBag===v?"#fff":"#92400E",cursor:"pointer",fontWeight:700}}>{l}</button>
+              ))}
+            </span>
+          </div>
+          {suggestion.match?(
+            <>
+              <div style={{color:"#78350F"}}>
+                Matched outbound <strong style={{fontFamily:MN}}>{suggestion.match.flightNo||suggestion.match.carrier}</strong> departing <strong style={{fontFamily:MN}}>{suggestion.airport}</strong> at <strong style={{fontFamily:MN}}>{suggestion.match.dep}</strong>. Arrive airport by <strong style={{fontFamily:MN,fontSize:11}}>{suggestion.arriveBy}</strong> ({suggestion.buffer} min buffer).
+              </div>
+              <div style={{display:"flex",gap:5,marginTop:6,flexWrap:"wrap"}}>
+                <button onClick={()=>{setField("arr",suggestion.arriveBy?.replace("*",""));if(!seg.arrDate)setField("arrDate",seg.depDate);}} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"none",background:"#92400E",color:"#fff",cursor:"pointer",fontWeight:700}}>Set arrival = {suggestion.arriveBy}</button>
+                {(seg.pax||[]).length===0&&suggestion.match.pax?.length>0&&<button onClick={()=>setField("pax",suggestion.match.pax)} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid #FDE68A",background:"#fff",color:"#92400E",cursor:"pointer",fontWeight:700}}>Copy pax from flight ({suggestion.match.pax.length})</button>}
+              </div>
+            </>
+          ):(
+            <div style={{color:"#78350F"}}>
+              {suggestion.airport} buffer: <strong>{suggestion.buffer} min</strong> before scheduled dep. No matching outbound flight found in the travel day — set pax, or add the flight first.
+            </div>
+          )}
+          <div style={{marginTop:4,fontSize:9,color:"#a16207",fontStyle:"italic"}}>Override manually if local traffic or pickup window differs.</div>
+        </div>
+      )}
+
+      {/* Pax */}
+      <div>
+        <div style={lab}>Passengers</div>
+        <PaxEditor pax={seg.pax||[]} crew={crew} onSave={newPax=>setField("pax",(newPax||[]).map(s=>String(s||"").trim()).filter(Boolean))}/>
+      </div>
+
+      {/* Notes + confirm# + cost */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        {sub("Confirm #",<input value={seg.confirmNo||""} onChange={e=>setField("confirmNo",e.target.value)} style={{...inp,fontFamily:MN}}/>)}
+        {sub("Cost",<input type="number" value={seg.cost||""} onChange={e=>setField("cost",Number(e.target.value)||"")} placeholder="0.00" style={inp}/>)}
+      </div>
+      {sub("Notes",<textarea value={seg.notes||""} onChange={e=>setField("notes",e.target.value)} rows={2} placeholder="Dispatch instructions, pickup location, etc." style={{...inp,resize:"vertical",minHeight:50}}/>)}
+    </div>
+  );
+}
+
+function TransTab(){
+  const{flights,sel}=useContext(Ctx);
+  const[view,setView]=useState("travel");
   const confirmedCount=Object.values(flights).filter(f=>f.status==="confirmed").length;
+  const daySegCount=Object.values(flights).filter(s=>s.status!=="dismissed"&&(s.depDate===sel||s.arrDate===sel)).length;
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
       <div style={{padding:"7px 20px",borderBottom:"1px solid #d6d3cd",background:"#fff",display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"wrap"}}>
-        {[["calendar","Tour Calendar"],["bus","EU Bus Schedule"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`],["festival","Festival Dispatch"]].map(([v,l])=>(
+        {[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["calendar","Tour Calendar"],["bus","EU Bus Schedule"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`],["festival","Festival Dispatch"]].map(([v,l])=>(
           <button key={v} onClick={()=>setView(v)} style={{padding:"4px 12px",borderRadius:6,border:"1px solid #d6d3cd",background:view===v?"#5B21B6":"#f5f3ef",color:view===v?"#fff":"#64748b",fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
         ))}
         {view==="bus"&&<div style={{marginLeft:"auto",fontFamily:MN,fontSize:8,color:"#94a3b8"}}>Pieter Smit T26-021201 · 8,970 km · 31 days</div>}
         {view==="calendar"&&<div style={{marginLeft:"auto",fontFamily:MN,fontSize:8,color:"#94a3b8"}}>Apr 16 – May 31 · Internet Explorer EU 2026</div>}
       </div>
       <div style={{flex:1,overflow:"auto",padding:"12px 20px 30px"}}>
+        {view==="travel"&&<TravelDayView/>}
         {view==="calendar"&&<TourCalendar/>}
         {view==="bus"&&(
           <div>
@@ -2958,7 +3278,7 @@ function CmdP(){
 }
 
 function CrewTab(){
-  const{sel,setSel,shows,tourDaysSorted,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights}=useContext(Ctx);
+  const{sel,setSel,shows,tourDaysSorted,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights,setTab}=useContext(Ctx);
   const[panel,setPanel]=useState(null);
   const[editMode,setEditMode]=useState(false);
   const[flightPicker,setFlightPicker]=useState(null); // {crewId, dir}
@@ -3066,6 +3386,7 @@ function CrewTab(){
         <span style={{fontSize:11,color:"#64748b"}}>{show?.city||""}{show?.city?" · ":""}{fFull(sel)}</span>
         <span style={{fontSize:9,padding:"2px 7px",borderRadius:12,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>{attending.length} attending</span>
         <div style={{marginLeft:"auto",display:"flex",gap:5}}>
+          <button onClick={()=>setTab("transport")} title="Open per-date travel view for all crew" style={{...btn("#f5f3ef","#5B21B6"),border:"1px solid #c4b5fd"}}>🧭 Travel Day →</button>
           <button onClick={()=>setEditMode(v=>!v)} style={btn(editMode?"#0f172a":"#f5f3ef",editMode?"#fff":"#475569")}>{editMode?"Done Editing":"Edit Roster"}</button>
           <button onClick={addMember} style={btn()}>+ Add</button>
         </div>
