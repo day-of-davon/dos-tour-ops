@@ -10,6 +10,7 @@
     "api/intel.js": { "maxDuration": 60 },
     "api/parse-doc.js": { "maxDuration": 60 },
     "api/flights.js": { "maxDuration": 60 },
-    "api/production.js": { "maxDuration": 60 }
+    "api/production.js": { "maxDuration": 60 },
+    "api/lodging-scan.js": { "maxDuration": 60 }
   }
 }
