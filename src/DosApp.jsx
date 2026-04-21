@@ -374,6 +374,7 @@ export default function App(){
   const prevSel=useRef(sel);
   useEffect(()=>{if(prevSel.current!==sel){setSelEventId(null);prevSel.current=sel;}},[sel]);
   const[exp,setExp]=useState(false);
+  const[uploadOpen,setUploadOpen]=useState(false);
   const[undoToast,setUndoToast]=useState(null);
   const[dateMenu,setDateMenu]=useState(false);
   const mobile=useMobile();
@@ -509,7 +510,7 @@ export default function App(){
   if(!loaded||!shows)return(<div style={{background:"#F5F3EF",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"#64748b",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
   return(
-    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight}}>
+    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,uploadOpen,setUploadOpen}}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:#F5F3EF}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:3px}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#f0ede8!important}.rh:hover{background:#f8f7f5!important}`}</style>
       <div style={{fontFamily:"'Outfit',system-ui",background:"#F5F3EF",color:"#0f172a",minHeight:"100vh",width:"100%",maxWidth:"100vw",overflowX:"hidden",display:"flex",flexDirection:"column"}}>
@@ -520,6 +521,7 @@ export default function App(){
         {cmd&&<CmdP/>}
         {exp&&<ExportModal onClose={()=>setExp(false)}/>}
         {dateMenu&&<DateDrawer onClose={()=>setDateMenu(false)}/>}
+        {uploadOpen&&<FileUploadModal onClose={()=>setUploadOpen(false)}/>}
         {undoToast&&<div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",background:"#0f172a",color:"#fff",borderRadius:8,padding:"8px 14px",display:"flex",alignItems:"center",gap:10,fontSize:11,boxShadow:"0 8px 24px rgba(0,0,0,.2)",zIndex:90}}>
           <span>{undoToast.label}</span>
           <button onClick={()=>{undoToast.undo();setUndoToast(null);}} style={{background:"#5B21B6",border:"none",borderRadius:5,color:"#fff",fontSize:10,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>Undo</button>
@@ -996,7 +998,7 @@ function SignOut(){
 }
 
 function TopBar({ss}){
-  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sorted,sel,setSel,setDateMenu,shows,orderedTabs,reorderTabs,tourDays}=useContext(Ctx);
+  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sorted,sel,setSel,setDateMenu,shows,orderedTabs,reorderTabs,tourDays,setUploadOpen}=useContext(Ctx);
   const[dragId,setDragId]=useState(null);
   const[overId,setOverId]=useState(null);
   const a=useAuth();const userEmail=(a?.user?.email||"").toLowerCase();
@@ -1040,6 +1042,7 @@ function TopBar({ss}){
           <div style={{display:"flex",gap:1,background:"#ebe8e3",borderRadius:7,padding:2}}>
             {ROLES.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:9,fontWeight:role===r.id?700:500,padding:"3px 8px",borderRadius:5,border:"none",cursor:"pointer",background:role===r.id?"#fff":"transparent",color:role===r.id?r.c:"#64748b",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
           </div>
+          <button onClick={()=>setUploadOpen(true)} title="Upload document" style={{background:"#ebe8e3",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:9,padding:"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600}}>↑ Upload</button>
           <button onClick={()=>setExp(true)} title="Export / Import" style={{background:"#ebe8e3",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:9,padding:"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600}}>⇅</button>
           <button onClick={()=>setCmd(true)} style={{background:"#ebe8e3",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:9,padding:"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600}}>⌘K</button>
           <SignOut/>
@@ -2452,7 +2455,7 @@ function TransTab(){
 }
 
 function FinLedger(){
-  const{shows,finance,flights}=useContext(Ctx);
+  const{shows,finance,flights,setUploadOpen}=useContext(Ctx);
   const[filterCat,setFilterCat]=useState("all");
   const[filterCur,setFilterCur]=useState("all");
   const[sortCol,setSortCol]=useState("date");
@@ -2513,8 +2516,9 @@ function FinLedger(){
         {["all",...cats].map(c=><button key={c} onClick={()=>setFilterCat(c)} style={{fontSize:9,padding:"3px 9px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,background:filterCat===c?"#0f172a":"#f1f5f9",color:filterCat===c?"#fff":"#475569"}}>{c==="all"?"All":c}</button>)}
         <span style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em",marginLeft:8}}>CURRENCY</span>
         {["all",...curs].map(c=><button key={c} onClick={()=>setFilterCur(c)} style={{fontSize:9,padding:"3px 9px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,background:filterCur===c?"#0f172a":"#f1f5f9",color:filterCur===c?"#fff":"#475569"}}>{c==="all"?"All":c}</button>)}
-        <div style={{marginLeft:"auto",display:"flex",gap:8,flexWrap:"wrap"}}>
+        <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           {Object.entries(totals).map(([cur,amt])=><span key={cur} style={{fontSize:11,fontWeight:800,fontFamily:MN,color:"#0f172a"}}>{cur} {amt.toFixed(2)}</span>)}
+          <button onClick={()=>setUploadOpen(true)} style={{fontSize:9,padding:"3px 10px",borderRadius:6,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>↑ Upload</button>
         </div>
       </div>
       {sorted.length===0?(
@@ -2700,6 +2704,282 @@ function FinTab(){
         )}
       </div>
       </div>}
+    </div>
+  );
+}
+
+const DOC_TYPE_META={
+  RECEIPT:{label:"Receipt",bg:"#FEF3C7",c:"#92400E",icon:"🧾"},
+  INVOICE:{label:"Invoice",bg:"#FEF3C7",c:"#92400E",icon:"📋"},
+  FLIGHT_CONFIRMATION:{label:"Flight Confirmation",bg:"#DBEAFE",c:"#1E40AF",icon:"✈"},
+  TRAVEL_ITINERARY:{label:"Travel Itinerary",bg:"#DBEAFE",c:"#1E40AF",icon:"🗺"},
+  SHOW_CONTRACT:{label:"Show Contract",bg:"#D1FAE5",c:"#047857",icon:"📄"},
+  VENUE_TECH_PACK:{label:"Venue Tech Pack",bg:"#EDE9FE",c:"#5B21B6",icon:"🔧"},
+  EXPENSE_REPORT:{label:"Expense Report",bg:"#FEF3C7",c:"#92400E",icon:"📊"},
+  UNKNOWN:{label:"Unknown",bg:"#F1F5F9",c:"#64748b",icon:"?"},
+};
+
+function FileUploadModal({onClose}){
+  const{uFin,uFlight,uShow,uProd,setSel,setTab,sel,aC,shows,flights,finance}=useContext(Ctx);
+  const[dragging,setDragging]=useState(false);
+  const[file,setFile]=useState(null);
+  const[parsing,setParsing]=useState(false);
+  const[result,setResult]=useState(null);
+  const[error,setError]=useState("");
+  const[applying,setApplying]=useState(false);
+  const[applied,setApplied]=useState("");
+  const[showDateOverride,setShowDateOverride]=useState("");
+  const fileRef=useRef(null);
+
+  const ACCEPT=".pdf,.docx,.xlsx,.xls";
+
+  const handleFile=async(f)=>{
+    if(!f)return;
+    const name=f.name.toLowerCase();
+    if(![".pdf",".docx",".xlsx",".xls"].some(ext=>name.endsWith(ext))){
+      setError("Unsupported file type. Use PDF, DOCX, or XLSX.");return;
+    }
+    setFile(f);setResult(null);setError("");setApplied("");
+    setParsing(true);
+    try{
+      const{data:{session}}=await supabase.auth.getSession();
+      if(!session){setError("No session.");setParsing(false);return;}
+      const buf=await f.arrayBuffer();
+      const b64=btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const resp=await fetch("/api/parse-doc",{
+        method:"POST",
+        headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},
+        body:JSON.stringify({fileBase64:b64,mimeType:f.type,filename:f.name,contextDate:sel}),
+      });
+      const data=await resp.json();
+      if(!resp.ok){setError(data.error||"Parse failed.");setParsing(false);return;}
+      setResult(data);
+    }catch(e){setError(`Upload failed: ${e.message}`);}
+    setParsing(false);
+  };
+
+  const onDrop=e=>{e.preventDefault();setDragging(false);const f=e.dataTransfer.files?.[0];if(f)handleFile(f);};
+
+  // ── Apply actions ─────────────────────────────────────────────────────────
+  const applyReceipt=()=>{
+    if(!result?.receipt)return;
+    const r=result.receipt;
+    const targetDate=showDateOverride||r.date||sel;
+    const entry={id:`upload_${Date.now()}`,name:r.vendor||"Unknown vendor",role:r.description||"",dept:r.category||"Other",amount:r.amount!=null?String(r.amount):"",currency:r.currency||"USD",method:"Upload",status:"pending",date:r.date||targetDate,referenceNo:r.referenceNo||"",payee:r.payee||""};
+    const existing=finance[targetDate]?.payouts||[];
+    uFin(targetDate,{payouts:[...existing,entry]});
+    setApplied(`Added to ledger for ${targetDate}`);setApplying(false);
+  };
+
+  const applyExpenseReport=()=>{
+    if(!result?.expenses?.length)return;
+    let count=0;
+    (result.expenses).forEach((e,i)=>{
+      const targetDate=e.date||sel;
+      const entry={id:`upload_${Date.now()}_${i}`,name:e.vendor||"Unknown",role:e.description||"",dept:e.category||"Other",amount:e.amount!=null?String(e.amount):"",currency:e.currency||"USD",method:"Upload",status:"pending",date:e.date||sel,payee:e.payee||""};
+      const existing=finance[targetDate]?.payouts||[];
+      uFin(targetDate,{payouts:[...existing,entry]});
+      count++;
+    });
+    setApplied(`${count} expenses added to ledger.`);setApplying(false);
+  };
+
+  const applyFlights=()=>{
+    if(!result?.flights?.length)return;
+    const allExisting=Object.values(flights);
+    const existingKeys=new Set(allExisting.map(f=>`${f.flightNo}__${f.depDate}`));
+    let count=0;
+    result.flights.forEach(f=>{
+      const id=`fl_upload_${f.flightNo||""}_${f.depDate||Date.now()}_${Math.random().toString(36).slice(2,6)}`;
+      const key=`${f.flightNo}__${f.depDate}`;
+      if(existingKeys.has(key))return;
+      uFlight(id,{...f,id,status:"pending",source:"upload"});
+      existingKeys.add(key);count++;
+    });
+    setApplied(`${count} flight${count!==1?"s":""} added as pending in Transport.`);setApplying(false);
+  };
+
+  const applyContract=()=>{
+    if(!result?.show)return;
+    const s=result.show;
+    if(!s.date){setError("No date found in contract — enter a date to create the show.");return;}
+    if(shows[s.date]){setError(`Show on ${s.date} already exists.`);return;}
+    const parseTime=t=>{if(!t)return 0;const[h,m]=(t.split(":")||[]).map(Number);return(h||0)*60+(m||0);};
+    uShow(s.date,{date:s.date,clientId:aC,type:"show",city:s.city||"",venue:s.venue||"",promoter:s.promoter||"",country:"",region:"",advance:[],doors:parseTime(s.doors)||19*60,curfew:parseTime(s.curfew)||23*60,busArrive:9*60,crewCall:parseTime("10:30"),venueAccess:9*60,mgTime:16*60+30,notes:[s.notes,s.guarantee?`Guarantee: ${s.guarantee}`:"",s.merch?`Merch: ${s.merch}`:""].filter(Boolean).join(" | ")||""});
+    if(result.contacts?.length){// Contacts get added to advance list
+      const advContacts=result.contacts.map(c=>({name:c.name,email:c.email||"",phone:c.phone||"",role:c.role,dept:"venue",company:c.company||""}));
+      uShow(s.date,{advance:advContacts});
+    }
+    setSel(s.date);setTab("ros");
+    setApplied(`Show created: ${s.venue||s.city} on ${s.date}`);setApplying(false);
+  };
+
+  const applyTechPack=()=>{
+    if(!result?.techPack)return;
+    uProd(sel,{techPackData:result.techPack,techPackContacts:result.contacts||[],techPackFile:file?.name,techPackAt:new Date().toISOString()});
+    setTab("production");
+    setApplied(`Tech pack applied to Production for ${sel}.`);setApplying(false);
+  };
+
+  const dt=result?.docType||"UNKNOWN";
+  const meta=DOC_TYPE_META[dt]||DOC_TYPE_META.UNKNOWN;
+  const isReceipt=dt==="RECEIPT"||dt==="INVOICE";
+  const isFlight=dt==="FLIGHT_CONFIRMATION"||dt==="TRAVEL_ITINERARY";
+  const isContract=dt==="SHOW_CONTRACT";
+  const isTechPack=dt==="VENUE_TECH_PACK";
+  const isExpense=dt==="EXPENSE_REPORT";
+
+  const overlay={position:"fixed",inset:0,background:"rgba(15,23,42,.35)",backdropFilter:"blur(6px)",display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:60,zIndex:1000};
+  const box={width:520,maxWidth:"96vw",maxHeight:"80vh",overflow:"auto",background:"#fff",border:"1px solid #d6d3cd",borderRadius:16,boxShadow:"0 25px 60px rgba(0,0,0,.18)",display:"flex",flexDirection:"column"};
+  const inp2={background:"#f5f3ef",border:"1px solid #d6d3cd",borderRadius:5,fontSize:10,padding:"4px 6px",outline:"none",width:"100%",fontFamily:"'Outfit',system-ui"};
+
+  return(
+    <div onClick={onClose} style={overlay}>
+      <div onClick={e=>e.stopPropagation()} style={box}>
+        {/* Header */}
+        <div style={{padding:"14px 18px 10px",borderBottom:"1px solid #ebe8e3",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+          <span style={{fontSize:12,fontWeight:800,color:"#0f172a"}}>↑ Upload Document</span>
+          <span style={{fontSize:9,color:"#94a3b8",marginLeft:2}}>PDF · DOCX · XLSX</span>
+          <button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",color:"#94a3b8",fontSize:18,lineHeight:1}}>×</button>
+        </div>
+
+        {/* Drop zone */}
+        {!result&&!parsing&&(
+          <div
+            onDragOver={e=>{e.preventDefault();setDragging(true);}}
+            onDragLeave={()=>setDragging(false)}
+            onDrop={onDrop}
+            onClick={()=>fileRef.current?.click()}
+            style={{margin:"16px 18px",border:`2px dashed ${dragging?"#5B21B6":"#d6d3cd"}`,borderRadius:12,padding:"32px 20px",textAlign:"center",cursor:"pointer",background:dragging?"#F5F3FF":"#fafaf9",transition:"all .15s"}}
+          >
+            <div style={{fontSize:28,marginBottom:8}}>📄</div>
+            <div style={{fontSize:12,fontWeight:700,color:"#0f172a",marginBottom:4}}>Drop a file or click to browse</div>
+            <div style={{fontSize:10,color:"#94a3b8"}}>PDF, DOCX, or XLSX — receipts, contracts, tech packs, itineraries, expense reports</div>
+            <input ref={fileRef} type="file" accept={ACCEPT} style={{display:"none"}} onChange={e=>handleFile(e.target.files?.[0])}/>
+          </div>
+        )}
+
+        {/* Parsing state */}
+        {parsing&&(
+          <div style={{padding:"40px 18px",textAlign:"center"}}>
+            <div style={{fontSize:24,marginBottom:10}}>⏳</div>
+            <div style={{fontSize:12,fontWeight:700,color:"#0f172a",marginBottom:4}}>Parsing {file?.name}…</div>
+            <div style={{fontSize:10,color:"#94a3b8"}}>Claude is reading and classifying your document.</div>
+          </div>
+        )}
+
+        {/* Error */}
+        {error&&!parsing&&(
+          <div style={{margin:"0 18px 14px",padding:"8px 12px",background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:7,fontSize:10,color:"#B91C1C"}}>{error}</div>
+        )}
+
+        {/* Result */}
+        {result&&!parsing&&(
+          <div style={{padding:"14px 18px 20px",display:"flex",flexDirection:"column",gap:12}}>
+            {/* Type badge + summary */}
+            <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+              <span style={{fontSize:18,flexShrink:0}}>{meta.icon}</span>
+              <div style={{flex:1}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                  <span style={{fontSize:10,fontWeight:800,padding:"2px 9px",borderRadius:10,background:meta.bg,color:meta.c}}>{meta.label}</span>
+                  <span style={{fontSize:9,color:"#94a3b8"}}>{Math.round((result.confidence||0)*100)}% confidence</span>
+                  <button onClick={()=>{setResult(null);setFile(null);setError("");setApplied("");}} style={{marginLeft:"auto",fontSize:9,color:"#5B21B6",background:"none",border:"none",cursor:"pointer",fontWeight:700}}>↩ Re-upload</button>
+                </div>
+                <div style={{fontSize:11,color:"#0f172a",fontWeight:500}}>{result.summary}</div>
+                {file&&<div style={{fontSize:9,color:"#94a3b8",marginTop:2}}>{file.name}</div>}
+              </div>
+            </div>
+
+            {/* RECEIPT / INVOICE preview */}
+            {isReceipt&&result.receipt&&(
+              <div style={{background:"#f5f3ef",borderRadius:8,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6}}>
+                {[["Vendor",result.receipt.vendor],["Date",result.receipt.date],["Amount",result.receipt.amount!=null?`${result.receipt.amount} ${result.receipt.currency||""}`:null],["Category",result.receipt.category],["Description",result.receipt.description],["Reference",result.receipt.referenceNo]].filter(([,v])=>v).map(([k,v])=>(
+                  <div key={k} style={{display:"flex",gap:10,fontSize:10}}><span style={{color:"#64748b",minWidth:80,fontWeight:600}}>{k}</span><span style={{color:"#0f172a"}}>{v}</span></div>
+                ))}
+                <div style={{display:"flex",gap:8,alignItems:"center",marginTop:4}}>
+                  <span style={{fontSize:9,color:"#64748b",fontWeight:600}}>Apply to date</span>
+                  <input type="date" value={showDateOverride||result.receipt.date||sel} onChange={e=>setShowDateOverride(e.target.value)} style={{...inp2,width:130}}/>
+                </div>
+              </div>
+            )}
+
+            {/* FLIGHT preview */}
+            {isFlight&&result.flights?.length>0&&(
+              <div style={{display:"flex",flexDirection:"column",gap:5}}>
+                {result.flights.map((f,i)=>(
+                  <div key={i} style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:7,padding:"8px 10px",display:"flex",alignItems:"center",gap:10}}>
+                    <span style={{fontSize:9,fontWeight:800,padding:"2px 5px",borderRadius:3,background:"#1E40AF",color:"#fff",flexShrink:0}}>{f.flightNo||f.carrier}</span>
+                    <span style={{fontSize:10,color:"#0f172a",flex:1}}>{f.fromCity||f.from} → {f.toCity||f.to}</span>
+                    <span style={{fontFamily:MN,fontSize:9,color:"#64748b",whiteSpace:"nowrap"}}>{f.depDate} {f.dep}</span>
+                    {f.pax?.length>0&&<span style={{fontSize:9,color:"#94a3b8"}}>{f.pax.join(", ")}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* CONTRACT preview */}
+            {isContract&&result.show&&(
+              <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:8,padding:"10px 12px",display:"flex",flexDirection:"column",gap:5}}>
+                {[["Date",result.show.date],["Venue",result.show.venue],["City",result.show.city],["Promoter",result.show.promoter],["Guarantee",result.show.guarantee],["Capacity",result.show.capacity],["Doors",result.show.doors],["Curfew",result.show.curfew]].filter(([,v])=>v).map(([k,v])=>(
+                  <div key={k} style={{display:"flex",gap:10,fontSize:10}}><span style={{color:"#064E3B",minWidth:80,fontWeight:600}}>{k}</span><span style={{color:"#0f172a"}}>{String(v)}</span></div>
+                ))}
+                {result.contacts?.length>0&&<div style={{marginTop:4,fontSize:9,color:"#047857",fontWeight:700}}>{result.contacts.length} contact{result.contacts.length>1?"s":""} found</div>}
+              </div>
+            )}
+
+            {/* TECH PACK preview */}
+            {isTechPack&&result.techPack&&(
+              <div style={{background:"#F5F3FF",border:"1px solid #DDD6FE",borderRadius:8,padding:"10px 12px",display:"flex",flexDirection:"column",gap:5}}>
+                {[["Venue",result.techPack.venueName],["City",result.techPack.city],["Stage",result.techPack.stageDimensions],["Rigging",result.techPack.riggingPoints],["Power",result.techPack.powerSpec],["Load-in",result.techPack.loadIn],["Curfew",result.techPack.curfew]].filter(([,v])=>v).map(([k,v])=>(
+                  <div key={k} style={{display:"flex",gap:10,fontSize:10}}><span style={{color:"#5B21B6",minWidth:80,fontWeight:600}}>{k}</span><span style={{color:"#0f172a"}}>{v}</span></div>
+                ))}
+                {result.techPack.notes&&<div style={{fontSize:9,color:"#64748b",marginTop:2}}>{result.techPack.notes}</div>}
+              </div>
+            )}
+
+            {/* EXPENSE REPORT preview */}
+            {isExpense&&result.expenses?.length>0&&(
+              <div style={{display:"flex",flexDirection:"column",gap:3,maxHeight:160,overflow:"auto"}}>
+                {result.expenses.map((e,i)=>(
+                  <div key={i} style={{background:"#f5f3ef",borderRadius:5,padding:"5px 8px",display:"flex",gap:8,alignItems:"center",fontSize:9}}>
+                    <span style={{fontFamily:MN,fontWeight:700,color:"#0f172a",minWidth:60}}>{e.amount} {e.currency}</span>
+                    <span style={{flex:1,color:"#475569"}}>{e.vendor}</span>
+                    <span style={{color:"#94a3b8"}}>{e.date}</span>
+                    <span style={{color:"#64748b"}}>{e.category}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Applied confirmation */}
+            {applied&&<div style={{padding:"7px 10px",background:"#D1FAE5",border:"1px solid #6EE7B7",borderRadius:7,fontSize:10,color:"#047857",fontWeight:700}}>✓ {applied}</div>}
+
+            {/* Action buttons */}
+            {!applied&&(
+              <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                {isReceipt&&result.receipt?.amount!=null&&(
+                  <button onClick={applyReceipt} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"#92400E",color:"#fff",cursor:"pointer",fontWeight:700}}>Add to Ledger</button>
+                )}
+                {isFlight&&result.flights?.length>0&&(
+                  <button onClick={applyFlights} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import {result.flights.length} Flight{result.flights.length>1?"s":""}</button>
+                )}
+                {isContract&&result.show?.date&&(
+                  <button onClick={applyContract} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"#047857",color:"#fff",cursor:"pointer",fontWeight:700}}>Create Show</button>
+                )}
+                {isTechPack&&result.techPack&&(
+                  <button onClick={applyTechPack} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Apply to Production</button>
+                )}
+                {isExpense&&result.expenses?.length>0&&(
+                  <button onClick={applyExpenseReport} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"#92400E",color:"#fff",cursor:"pointer",fontWeight:700}}>Import {result.expenses.length} Expenses</button>
+                )}
+                <button onClick={onClose} style={{fontSize:10,padding:"5px 12px",borderRadius:6,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Close</button>
+              </div>
+            )}
+            {applied&&<button onClick={onClose} style={{fontSize:10,padding:"5px 12px",borderRadius:6,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer",width:"fit-content"}}>Done</button>}
+          </div>
+        )}
+      </div>
+>>>>>>> claude/angry-cori-0b34a4
     </div>
   );
 }
