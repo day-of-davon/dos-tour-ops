@@ -3825,11 +3825,7 @@ const ROOM_STATUS_META={
 const HOTEL_TODOS_DEFAULT=["Confirm room block","Collect confirmation #","Share room list with crew","Arrange early check-in (if needed)","Confirm late check-out","Collect receipt","Verify billing address"];
 
 function LodgingTab(){
-  const{lodging,uLodging,crew,showCrew,finance,uFin,tourDaysSorted,mobile}=useContext(Ctx);
-  const[selDate,setSelDate]=useState(()=>{
-    const t=new Date().toISOString().slice(0,10);
-    return tourDaysSorted.find(d=>d.date>=t)?.date||tourDaysSorted[0]?.date||"";
-  });
+  const{lodging,uLodging,crew,showCrew,finance,uFin,tourDaysSorted,mobile,sel,setSel}=useContext(Ctx);
   const[addOpen,setAddOpen]=useState(false);
   const[editId,setEditId]=useState(null);
 
@@ -3841,7 +3837,7 @@ function LodgingTab(){
   // Badge count per day: distinct hotels covering that date
   const badgeCount=useCallback((date)=>hotelsForDate(date).length,[hotelsForDate]);
 
-  const dayHotels=hotelsForDate(selDate);
+  const dayHotels=hotelsForDate(sel);
 
   function newHotelId(){return`hotel_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;}
 
@@ -3852,13 +3848,13 @@ function LodgingTab(){
         <div style={{padding:"10px 8px 4px",fontSize:9,fontWeight:700,color:"#94a3b8",letterSpacing:"0.08em",textTransform:"uppercase",fontFamily:MN}}>Dates</div>
         {tourDaysSorted.map(day=>{
           const cnt=badgeCount(day.date);
-          const isSel=day.date===selDate;
+          const isSel=day.date===sel;
           const d=new Date(day.date+"T12:00:00");
           const mo=d.toLocaleString("en-US",{month:"short"});
           const dt=d.getDate();
           const wd=d.toLocaleString("en-US",{weekday:"short"}).toUpperCase();
           return(
-            <button key={day.date} onClick={()=>setSelDate(day.date)} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"7px 4px",background:isSel?"#EDE9FE":"transparent",border:"none",cursor:"pointer",borderLeft:isSel?"3px solid #5B21B6":"3px solid transparent",transition:"background 0.12s",position:"relative"}}>
+            <button key={day.date} onClick={()=>setSel(day.date)} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"7px 4px",background:isSel?"#EDE9FE":"transparent",border:"none",cursor:"pointer",borderLeft:isSel?"3px solid #5B21B6":"3px solid transparent",transition:"background 0.12s",position:"relative"}}>
               <div style={{fontSize:9,fontWeight:700,color:isSel?"#5B21B6":"#94a3b8",fontFamily:MN,letterSpacing:"0.06em"}}>{wd}</div>
               <div style={{fontSize:16,fontWeight:800,color:isSel?"#5B21B6":"#0f172a",lineHeight:1.1}}>{dt}</div>
               {!mobile&&<div style={{fontSize:9,color:isSel?"#7C3AED":"#64748b"}}>{mo}</div>}
@@ -3874,7 +3870,7 @@ function LodgingTab(){
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
           <div>
             <div style={{fontSize:14,fontWeight:800,color:"#0f172a",letterSpacing:"-0.02em"}}>
-              {selDate?new Date(selDate+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"}):"Lodging"}
+              {sel?new Date(sel+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"}):"Lodging"}
             </div>
             <div style={{fontSize:10,color:"#64748b",marginTop:1}}>{dayHotels.length} hotel{dayHotels.length!==1?"s":""} covering this date</div>
           </div>
@@ -3891,12 +3887,12 @@ function LodgingTab(){
         )}
 
         {dayHotels.map(hotel=>(
-          <HotelCard key={hotel.id} hotel={hotel} date={selDate} onEdit={()=>setEditId(hotel.id)} crew={crew} uLodging={uLodging} uFin={uFin} finance={finance}/>
+          <HotelCard key={hotel.id} hotel={hotel} date={sel} onEdit={()=>setEditId(hotel.id)} crew={crew} uLodging={uLodging} uFin={uFin} finance={finance}/>
         ))}
       </div>
 
-      {addOpen&&<HotelFormModal date={selDate} onClose={()=>setAddOpen(false)} onSave={(h)=>{uLodging(h.id,h);setAddOpen(false);}} existingHotels={lodging}/>}
-      {editId&&<HotelFormModal date={selDate} hotel={lodging[editId]} onClose={()=>setEditId(null)} onSave={(h)=>{uLodging(h.id,h);setEditId(null);}} existingHotels={lodging}/>}
+      {addOpen&&<HotelFormModal date={sel} onClose={()=>setAddOpen(false)} onSave={(h)=>{uLodging(h.id,h);setAddOpen(false);}} existingHotels={lodging}/>}
+      {editId&&<HotelFormModal date={sel} hotel={lodging[editId]} onClose={()=>setEditId(null)} onSave={(h)=>{uLodging(h.id,h);setEditId(null);}} existingHotels={lodging}/>}
     </div>
   );
 }
