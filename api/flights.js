@@ -21,12 +21,12 @@ async function gmailGetThread(token, id) {
 }
 
 // Batch thread fetches to avoid Gmail 429s (10 at a time, 150ms pause between batches)
-async function fetchBatched(token, ids, batchSize = 10) {
+async function fetchBatched(token, ids, batchSize = 15) {
   const out = [];
   for (let i = 0; i < ids.length; i += batchSize) {
     const batch = await Promise.all(ids.slice(i, i + batchSize).map(id => gmailGetThread(token, id)));
     out.push(...batch.filter(Boolean));
-    if (i + batchSize < ids.length) await new Promise(r => setTimeout(r, 150));
+    if (i + batchSize < ids.length) await new Promise(r => setTimeout(r, 80));
   }
   return out;
 }
@@ -328,7 +328,7 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: e.message });
   }
 
-  const ids = [...seen].slice(0, 80);
+  const ids = [...seen].slice(0, 40);
   if (!ids.length) return res.json({ flights: [], threadsFound: 0 });
 
   let threads, freshIds;
@@ -362,7 +362,7 @@ ${threads.map((t, i) => `[${i}] tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}
 Date: ${t.date}
-Body: ${t.body.slice(0, 1000)}`).join("\n\n---\n\n")}
+Body: ${t.body.slice(0, 800)}`).join("\n\n---\n\n")}
 
 Return this exact JSON:
 {
@@ -398,7 +398,7 @@ Return this exact JSON:
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model: "claude-haiku-4-5-20251001",
         max_tokens: 8192,
         system: sysPrompt,
         messages: [{ role: "user", content: userPrompt }],
