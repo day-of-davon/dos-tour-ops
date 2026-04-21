@@ -193,10 +193,19 @@ function buildFlightQueries(after) {
     `from:(jsx.com) ${W}`,
     `("private jet" OR "charter flight") (confirmation OR itinerary OR booking) ${W}`,
 
-    // Destination-specific catches (crew positioning hubs)
-    `(BOS OR "Boston Logan") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline OR departure) ${W}`,
-    `subject:(Boston) (flight OR airline OR confirmation OR itinerary) ${W}`,
-    `(DUB OR Dublin) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline OR departure) ${W}`,
+    // Destination-specific catches — show city airports
+    // NA hubs
+    `(BOS OR "Boston Logan") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(DEN OR "Denver") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(YYZ OR YTZ OR "Toronto") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(YOW OR "Ottawa") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    // London — all four airports
+    `(LHR OR LGW OR LTN OR STN OR LCY OR Heathrow OR Gatwick OR Stansted OR Luton) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    // EU show cities
+    `(DUB OR Dublin OR MAN OR Manchester OR GLA OR Glasgow) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(ZRH OR Zurich OR CGN OR Cologne OR AMS OR Amsterdam) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(CDG OR ORY OR Paris OR MXP OR LIN OR Milan) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(PRG OR Prague OR BER OR Berlin OR BTS OR Bratislava OR WAW OR Warsaw) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
 
     // OTA
     `from:(expedia.com) (flight OR itinerary) ${W}`,
