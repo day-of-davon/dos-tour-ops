@@ -1110,7 +1110,10 @@ function FlightsSection(){
   const[confirmingId,setConfirmingId]=useState(null);
 
   const allFlights=Object.values(flights).sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0);
-  const pending=allFlights.filter(f=>f.status==="pending");
+  const fdk=f=>`${f.flightNo||f.carrier||""}__${f.from||""}__${f.to||""}__${f.depDate||""}`;
+  const pendingRaw=allFlights.filter(f=>f.status==="pending");
+  const pendingByKey=new Map();pendingRaw.forEach(f=>{if(!pendingByKey.has(fdk(f)))pendingByKey.set(fdk(f),f);});
+  const pending=[...pendingByKey.values()];
   const confirmed=allFlights.filter(f=>f.status==="confirmed");
   const unresolved=allFlights.filter(f=>f.status==="unresolved");
 
@@ -2774,7 +2777,19 @@ function ROSTab(){
 }
 
 function TourCalendar(){
-  const{setSel,setTab}=useContext(Ctx);
+  const{setSel,setTab,flights,uFlight}=useContext(Ctx);
+  const importBusLegs=()=>{
+    const base=new Date('2026-05-02T12:00:00');
+    BUS_DATA.forEach(d=>{
+      if(d.dep==="—"||!d.route.includes("→"))return;
+      const dt=new Date(base);dt.setDate(dt.getDate()+d.day-1);
+      const isoDate=dt.toISOString().slice(0,10);
+      if(Object.values(flights).some(f=>f.type==="bus"&&f.depDate===isoDate&&f.status!=="dismissed"))return;
+      const parts=d.route.split("→").map(s=>s.trim());
+      const id=`bus_${isoDate}_${Math.random().toString(36).slice(2,6)}`;
+      uFlight(id,{id,type:"bus",status:"confirmed",depDate:isoDate,arrDate:isoDate,dep:d.dep,arr:d.arr,from:parts[0],to:parts[1]||"",fromCity:parts[0],toCity:parts[1]||"",carrier:"Pieter Smit",flightNo:`T26-021201 Day ${d.day}`,notes:d.note||"",pax:[]});
+    });
+  };
   const[expRows,setExpRows]=useState({});
   const crewById=useMemo(()=>DEFAULT_CREW.reduce((a,c)=>{a[c.id]=c;return a},{}),[]);
   const openDay=iso=>{setSel(iso);setTab("ros");};
@@ -2816,7 +2831,7 @@ function TourCalendar(){
   };
   return(
     <div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:8}}>
         {[
           {l:"Shows",v:days.filter(d=>d.type==="show").length,c:"#047857",b:"#D1FAE5"},
           {l:"Travel Days",v:days.filter(d=>d.type==="travel").length,c:"#1E40AF",b:"#DBEAFE"},
@@ -2828,6 +2843,16 @@ function TourCalendar(){
             <div style={{fontFamily:MN,fontSize:16,fontWeight:800,color:s.c}}>{s.v}</div>
           </div>
         ))}
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"#fff",border:"1px solid #d6d3cd",borderRadius:8,flexWrap:"wrap"}}>
+        {[{l:"Total KM",v:"8,970"},{l:"Drive Days",v:"13"},{l:"HOS Flags",v:"3",warn:true}].map((s,i)=>(
+          <div key={i} style={{display:"flex",alignItems:"baseline",gap:4}}>
+            <span style={{fontFamily:MN,fontSize:13,fontWeight:800,color:s.warn?"#B91C1C":"#0f172a"}}>{s.v}</span>
+            <span style={{fontSize:9,color:"#64748b"}}>{s.l}</span>
+          </div>
+        ))}
+        <span style={{fontSize:9,color:"#94a3b8",fontFamily:MN}}>Pieter Smit T26-021201</span>
+        <button onClick={importBusLegs} style={{marginLeft:"auto",fontSize:9,padding:"3px 10px",borderRadius:5,border:"1px solid #5B21B6",background:"#f5f3ff",color:"#5B21B6",cursor:"pointer",fontWeight:700,fontFamily:MN}}>→ Import Legs to Travel Days</button>
       </div>
       <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,overflow:"hidden"}}>
         {days.map((d,i)=>{
@@ -3548,64 +3573,19 @@ function TransTab(){
   const{flights,uFlight,sel,labelIntel}=useContext(Ctx);
   const[view,setView]=useState("travel");
   const[crewFlightsOpen,setCrewFlightsOpen]=useState(false);
-
-  const importBusLegs=()=>{
-    const base=new Date('2026-05-02T12:00:00');
-    BUS_DATA.forEach(d=>{
-      if(d.dep==="—"||!d.route.includes("→"))return;
-      const dt=new Date(base);dt.setDate(dt.getDate()+d.day-1);
-      const isoDate=dt.toISOString().slice(0,10);
-      const already=Object.values(flights).some(f=>f.type==="bus"&&f.depDate===isoDate&&f.status!=="dismissed");
-      if(already)return;
-      const parts=d.route.split("→").map(s=>s.trim());
-      const id=`bus_${isoDate}_${Math.random().toString(36).slice(2,6)}`;
-      uFlight(id,{id,type:"bus",status:"confirmed",depDate:isoDate,arrDate:isoDate,dep:d.dep,arr:d.arr,from:parts[0],to:parts[1]||"",fromCity:parts[0],toCity:parts[1]||"",carrier:"Pieter Smit",flightNo:`T26-021201 Day ${d.day}`,notes:d.note||"",pax:[]});
-    });
-  };
   const confirmedCount=Object.values(flights).filter(f=>f.status==="confirmed").length;
   const daySegCount=Object.values(flights).filter(s=>s.status!=="dismissed"&&(s.depDate===sel||s.arrDate===sel)).length;
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
       <div style={{padding:"7px 20px",borderBottom:"1px solid #d6d3cd",background:"#fff",display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"nowrap",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
-        {[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["bus","EU Bus Schedule"],["calendar","Tour Calendar"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`],["festival","Festival Dispatch"]].map(([v,l])=>(
+        {[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["calendar","Tour Calendar"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`],["festival","Festival Dispatch"]].map(([v,l])=>(
           <button key={v} onClick={()=>setView(v)} style={{padding:"4px 12px",borderRadius:6,border:"1px solid #d6d3cd",background:view===v?"#5B21B6":"#f5f3ef",color:view===v?"#fff":"#64748b",fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
         ))}
-        {view==="bus"&&<div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
-          <button onClick={importBusLegs} style={{fontSize:9,padding:"3px 10px",borderRadius:5,border:"1px solid #5B21B6",background:"#f5f3ff",color:"#5B21B6",cursor:"pointer",fontWeight:700,fontFamily:MN}}>→ Import to Travel Days</button>
-          <span style={{fontFamily:MN,fontSize:8,color:"#94a3b8"}}>Pieter Smit T26-021201 · 8,970 km · 31 days</span>
-        </div>}
         {view==="calendar"&&<div style={{marginLeft:"auto",fontFamily:MN,fontSize:8,color:"#94a3b8"}}>Apr 16 – May 31 · Internet Explorer EU 2026</div>}
       </div>
       <div style={{flex:1,overflow:"auto",padding:"12px 20px 30px"}}>
         {view==="travel"&&<TravelDayView/>}
         {view==="calendar"&&<TourCalendar/>}
-        {view==="bus"&&(
-          <div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
-              {[{l:"Total KM",v:"8,970"},{l:"Shows",v:"17"},{l:"Drive Days",v:"13"},{l:"HOS Flags",v:"3"}].map((s,i)=><div key={i} style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:8,padding:"10px 12px"}}><div style={{fontSize:9,color:"#64748b",fontWeight:600,marginBottom:2}}>{s.l}</div><div style={{fontFamily:MN,fontSize:16,fontWeight:800}}>{s.v}</div></div>)}
-            </div>
-            <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,overflow:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse",minWidth:580}}>
-                <thead><tr style={{background:"#f5f3ef"}}>{["#","Date","DOW","Route","KM","Drive","Dep","Arr","Show","⚠","Notes"].map(h=><th key={h} style={{padding:"6px 8px",textAlign:"left",fontSize:8,fontWeight:700,color:"#64748b",letterSpacing:"0.05em",borderBottom:"1px solid #d6d3cd",whiteSpace:"nowrap"}}>{h}</th>)}</tr></thead>
-                <tbody>
-                  {BUS_DATA.map(d=><tr key={d.day} style={{background:d.show?"#F0FDF4":"#fff",borderBottom:"1px solid #f5f3ef"}}>
-                    <td style={{padding:"4px 8px",fontFamily:MN,fontSize:9,color:"#94a3b8"}}>{d.day}</td>
-                    <td style={{padding:"4px 8px",fontFamily:MN,fontSize:9,fontWeight:700,color:d.show?"#047857":"#0f172a"}}>{d.date}</td>
-                    <td style={{padding:"4px 8px",fontSize:9,color:"#64748b"}}>{d.dow}</td>
-                    <td style={{padding:"4px 8px",fontSize:9,maxWidth:160}}>{d.show?<span style={{fontWeight:600,color:"#047857"}}>{d.venue}</span>:d.route}</td>
-                    <td style={{padding:"4px 8px",fontFamily:MN,fontSize:9,color:"#475569"}}>{d.km||"—"}</td>
-                    <td style={{padding:"4px 8px",fontFamily:MN,fontSize:9,color:d.flag==="⚠"?"#B91C1C":"#0f172a",fontWeight:d.flag?"700":"400"}}>{d.drive}</td>
-                    <td style={{padding:"4px 8px",fontFamily:MN,fontSize:9,color:"#64748b"}}>{d.dep}</td>
-                    <td style={{padding:"4px 8px",fontFamily:MN,fontSize:9,color:"#64748b"}}>{d.arr}</td>
-                    <td style={{padding:"4px 8px",fontSize:9,color:"#047857"}}>{d.show?"✓":""}</td>
-                    <td style={{padding:"4px 8px",fontSize:11}}>{d.flag}</td>
-                    <td style={{padding:"4px 8px",fontSize:9,color:"#94a3b8",maxWidth:130}}>{d.note}</td>
-                  </tr>)}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
         {view==="flights"&&<>{labelIntel?.crewFlights?.length>0&&(
           <div style={{background:"#F0F9FF",border:"1px solid #BAE6FD",borderRadius:10,marginBottom:12,overflow:"hidden"}}>
             <div onClick={()=>setCrewFlightsOpen(v=>!v)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",cursor:"pointer",userSelect:"none"}}>
