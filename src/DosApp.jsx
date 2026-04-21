@@ -1613,7 +1613,15 @@ function TopBar({ss}){
         <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flexShrink:1,overflow:"hidden"}}>
           <span style={{fontSize:16,fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em",flexShrink:0}}>DOS</span>
           <span style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>v7.0</span>
-          <button onClick={()=>setSidebarOpen(v=>!v)} title="Toggle nav menu" style={{fontSize:12,padding:"3px 7px",borderRadius:5,border:"1px solid #d6d3cd",background:sidebarOpen?"#0f172a":"#f5f3ef",color:sidebarOpen?"#fff":"#475569",cursor:"pointer",flexShrink:0}}>☰</button>
+          <button onClick={()=>{
+            if(!sidebarOpen){
+              const today=new Date().toISOString().slice(0,10);
+              const allDates=[...new Set([...(sorted||[]).map(s=>s.date),...(tourDaysSorted||[]).map(d=>d.date)])].sort();
+              const target=allDates.find(d=>d>=today);
+              if(target)setSel(target);
+            }
+            setSidebarOpen(v=>!v);
+          }} title="Jump to today" style={{fontSize:12,padding:"3px 7px",borderRadius:5,border:"1px solid #d6d3cd",background:sidebarOpen?"#0f172a":"#f5f3ef",color:sidebarOpen?"#fff":"#475569",cursor:"pointer",flexShrink:0}}>☰</button>
           <div style={{display:"flex",alignItems:"center",gap:0,flexShrink:0}}>
             <button onClick={()=>stepDate(-1)} disabled={!canPrev} title="Previous date" style={{fontSize:11,padding:"2px 7px",borderRadius:"5px 0 0 5px",border:"1px solid #d6d3cd",borderRight:"none",background:canPrev?"#f5f3ef":"#faf9f7",color:canPrev?"#0f172a":"#c4bfb6",cursor:canPrev?"pointer":"default"}}>‹</button>
             <button onClick={()=>stepDate(1)} disabled={!canNext} title="Next date" style={{fontSize:11,padding:"2px 7px",borderRadius:"0 5px 5px 0",border:"1px solid #d6d3cd",background:canNext?"#f5f3ef":"#faf9f7",color:canNext?"#0f172a":"#c4bfb6",cursor:canNext?"pointer":"default"}}>›</button>

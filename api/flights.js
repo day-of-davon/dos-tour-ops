@@ -193,6 +193,11 @@ function buildFlightQueries(after) {
     `from:(jsx.com) ${W}`,
     `("private jet" OR "charter flight") (confirmation OR itinerary OR booking) ${W}`,
 
+    // Destination-specific catches (crew positioning hubs)
+    `(BOS OR "Boston Logan") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline OR departure) ${W}`,
+    `subject:(Boston) (flight OR airline OR confirmation OR itinerary) ${W}`,
+    `(DUB OR Dublin) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline OR departure) ${W}`,
+
     // OTA
     `from:(expedia.com) (flight OR itinerary) ${W}`,
     `from:(concur.com) (flight OR itinerary) ${W}`,
