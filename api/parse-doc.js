@@ -1,0 +1,199 @@
+// api/parse-doc.js — Unified document triage + extraction
+// Handles PDF (Claude native), DOCX (mammoth), XLSX (xlsx→CSV)
+// Returns { docType, confidence, summary, receipt, flights, show, contacts, techPack, expenses }
+const { createClient } = require("@supabase/supabase-js");
+
+let mammoth, xlsxLib;
+try { mammoth = require("mammoth"); } catch {}
+try { xlsxLib = require("xlsx"); } catch {}
+
+function extractJson(text) {
+  try { return JSON.parse(text.trim()); } catch {}
+  const fenced = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+  try { return JSON.parse(fenced); } catch {}
+  let depth = 0, start = -1;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === "{") { if (start === -1) start = i; depth++; }
+    else if (text[i] === "}") {
+      depth--;
+      if (depth === 0 && start !== -1) {
+        try { return JSON.parse(text.slice(start, i + 1)); } catch {}
+        start = -1;
+      }
+    }
+  }
+  return null;
+}
+
+const SYS = `You are a touring industry document parser for Davon Johnson, Tour Manager at Day of Show, LLC.
+Classify and extract structured data from any uploaded document related to concert touring operations.
+IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.`;
+
+const PROMPT = (filename, contextDate) => `Classify this document and extract all structured touring-operations data.
+Filename: "${filename}"${contextDate ? `\nCurrent show context date: ${contextDate}` : ""}
+
+Document classes:
+- RECEIPT: hotel, meals, transport, equipment, or expense receipt / invoice for a single purchase
+- INVOICE: vendor invoice (multiple line items or awaiting payment)
+- FLIGHT_CONFIRMATION: airline booking confirmation, e-ticket, boarding pass
+- TRAVEL_ITINERARY: multi-segment itinerary (flights + possibly hotels)
+- SHOW_CONTRACT: concert contract, offer letter, deal memo
+- VENUE_TECH_PACK: venue technical spec sheet, production rider, stage plot, house rig document
+- EXPENSE_REPORT: multi-line expense sheet, per-diem report, settlement backup
+- UNKNOWN
+
+Return ONLY this JSON (null for missing fields, empty arrays when none found):
+{
+  "docType": "<class>",
+  "confidence": <0.0-1.0>,
+  "summary": "<one sentence describing what this document is>",
+  "receipt": {
+    "vendor": "<company or merchant>",
+    "date": "<YYYY-MM-DD or null>",
+    "amount": <number or null>,
+    "currency": "<USD|EUR|GBP|CAD|AUD or null>",
+    "category": "<Hotel|Meals|Transport|Equipment|Production|Venue|Merch|Other>",
+    "description": "<brief line-item description>",
+    "referenceNo": "<invoice or receipt number or null>",
+    "payee": "<person who incurred expense or null>",
+    "crewMembers": ["<name>"]
+  },
+  "flights": [
+    {
+      "flightNo": "<e.g. FR1234 or null>",
+      "carrier": "<airline name>",
+      "from": "<IATA 3-letter or city>",
+      "fromCity": "<full city name>",
+      "to": "<IATA or city>",
+      "toCity": "<full city name>",
+      "depDate": "<YYYY-MM-DD>",
+      "dep": "<HH:MM 24h>",
+      "arrDate": "<YYYY-MM-DD>",
+      "arr": "<HH:MM 24h>",
+      "pax": ["<passenger full name>"],
+      "confirmNo": "<confirmation number or null>",
+      "bookingRef": "<booking reference or null>",
+      "cost": <number or null>,
+      "currency": "<currency or null>"
+    }
+  ],
+  "show": {
+    "date": "<YYYY-MM-DD or null>",
+    "venue": "<venue name or null>",
+    "city": "<City, COUNTRY or null>",
+    "artist": "<artist name or null>",
+    "promoter": "<promoter company or null>",
+    "guarantee": "<e.g. $15,000 or null>",
+    "capacity": <number or null>,
+    "doors": "<HH:MM or null>",
+    "curfew": "<HH:MM or null>",
+    "deposit": "<deposit amount and due date or null>",
+    "merch": "<merch split or null>",
+    "notes": "<key deal points summary or null>"
+  },
+  "contacts": [
+    { "name": "<full name>", "role": "<title or role>", "email": "<email or null>", "phone": "<phone or null>", "company": "<company or null>" }
+  ],
+  "techPack": {
+    "venueName": "<venue name or null>",
+    "city": "<city or null>",
+    "stageDimensions": "<e.g. 40ft wide x 32ft deep or null>",
+    "stageHeight": "<height in inches/cm or null>",
+    "riggingPoints": "<count and weight rating or null>",
+    "houseRig": "<house rig description or null>",
+    "powerSpec": "<3-phase spec or null>",
+    "loadIn": "<load-in time or null>",
+    "curfew": "<hard curfew or null>",
+    "notes": "<key technical notes>"
+  },
+  "expenses": [
+    {
+      "date": "<YYYY-MM-DD or null>",
+      "vendor": "<merchant or vendor>",
+      "amount": <number>,
+      "currency": "<currency>",
+      "category": "<Hotel|Meals|Transport|Equipment|Production|Venue|Merch|Other>",
+      "description": "<description>",
+      "payee": "<person or null>"
+    }
+  ]
+}`;
+
+module.exports = async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Missing auth token" });
+
+  const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
+  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !user) return res.status(401).json({ error: "Invalid token" });
+
+  const { fileBase64, mimeType = "", filename = "", contextDate } = req.body || {};
+  if (!fileBase64) return res.status(400).json({ error: "Missing fileBase64" });
+
+  const name = filename.toLowerCase();
+  const isPdf = mimeType === "application/pdf" || name.endsWith(".pdf");
+  const isDocx = mimeType.includes("wordprocessingml") || name.endsWith(".docx");
+  const isXlsx = mimeType.includes("spreadsheetml") || name.endsWith(".xlsx") || name.endsWith(".xls");
+
+  let extractedText = null;
+  let usePdfNative = false;
+
+  try {
+    if (isPdf) {
+      usePdfNative = true;
+    } else if (isDocx && mammoth) {
+      const buf = Buffer.from(fileBase64, "base64");
+      const result = await mammoth.extractRawText({ buffer: buf });
+      extractedText = result.value.slice(0, 14000);
+    } else if (isXlsx && xlsxLib) {
+      const buf = Buffer.from(fileBase64, "base64");
+      const wb = xlsxLib.read(buf, { type: "buffer" });
+      const sheets = wb.SheetNames.map(n => `=== ${n} ===\n${xlsxLib.utils.sheet_to_csv(wb.Sheets[n])}`);
+      extractedText = sheets.join("\n\n").slice(0, 14000);
+    } else {
+      extractedText = Buffer.from(fileBase64, "base64").toString("utf-8").slice(0, 14000);
+    }
+  } catch (e) {
+    console.error("[parse-doc] extraction error:", e.message);
+    extractedText = `[Extraction failed: ${e.message}]`;
+  }
+
+  const userPromptText = PROMPT(filename, contextDate);
+
+  const messages = usePdfNative
+    ? [{ role: "user", content: [
+        { type: "document", source: { type: "base64", media_type: "application/pdf", data: fileBase64 } },
+        { type: "text", text: userPromptText },
+      ] }]
+    : [{ role: "user", content: `${userPromptText}\n\nDOCUMENT CONTENT:\n${extractedText}` }];
+
+  const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": process.env.ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4096, system: SYS, messages }),
+  });
+
+  if (!anthropicResp.ok) {
+    const err = await anthropicResp.text();
+    return res.status(502).json({ error: `Anthropic error: ${anthropicResp.status}`, detail: err });
+  }
+
+  const anthropicData = await anthropicResp.json();
+  const rawText = (anthropicData.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+  console.log("[parse-doc] stop_reason:", anthropicData.stop_reason, "| docType extracted from:", filename);
+
+  const parsed = extractJson(rawText);
+  if (!parsed) return res.status(422).json({ error: "Could not parse response", raw: rawText.slice(0, 600) });
+
+  return res.json({ ...parsed, filename });
+};
