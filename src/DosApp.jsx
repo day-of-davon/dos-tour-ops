@@ -991,6 +991,7 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
         {f.carrier&&f.flightNo&&<div style={{fontSize:9,color:"#64748b"}}>{f.carrier}</div>}
         {isFresh&&<span title="Booked within the last 48 hours" style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#EDE9FE",color:"#5B21B6",fontWeight:800,letterSpacing:"0.06em"}}>NEW · 48H</span>}
         {st&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:st.bg,color:st.c,fontWeight:700}}>{st.label}{delayed?` +${liveStatus.delayMinutes}m`:""}</span>}
+        {f.suggestedShowDate&&<span title={`${f.suggestedRole==="outbound"?"Departs day after":"Arrives for"} ${f.suggestedVenue||f.suggestedShowDate}`} style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:f.suggestedRole==="outbound"?"#FEF3C7":"#D1FAE5",color:f.suggestedRole==="outbound"?"#92400E":"#065F46",fontWeight:700}}>{f.suggestedRole==="outbound"?"OUT":"IN"} · {f.suggestedShowDate}</span>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
           {onRefreshStatus&&<button onClick={onRefreshStatus} disabled={refreshing} title="Refresh live status" style={{background:"none",border:"none",cursor:refreshing?"default":"pointer",fontSize:10,color:refreshing?"#94a3b8":"#5B21B6",padding:0,lineHeight:1}}>{refreshing?"⟳":"⟳"}</button>}
           <div style={{fontSize:9,fontFamily:MN,color:"#475569",fontWeight:600}}>{f.depDate}{f.dep?` · ${f.dep}`:""}{f.arr?`–${f.arr}`:""}</div>
@@ -1040,7 +1041,8 @@ function FlightsSection(){
       if(!googleToken){setScanMsg("Gmail access not available — re-login with Google.");return;}
       if(opts.reset){setFlights({});setPendingImport([]);}
       setScanning(true);setScanMsg(opts.reset?"Reset. Rescanning Gmail…":"Scanning Gmail for flight confirmations…");
-      const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken,tourStart:"2026-04-01",tourEnd:"2026-06-30",focus:FOCUS_CARRIERS})});
+      const showsArr=Object.values(shows||{}).filter(s=>s.clientId===aC);
+      const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken,tourStart:"2026-04-01",tourEnd:"2026-06-30",focus:FOCUS_CARRIERS,shows:showsArr})});
       if(resp.status===402){setScanMsg("Gmail session expired — please re-login.");setScanning(false);return;}
       const data=await resp.json();
       if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
@@ -1052,7 +1054,9 @@ function FlightsSection(){
       novel.forEach(f=>uFlight(f.id,{...f,status:"pending"}));
       const freshCount=novel.filter(f=>f.fresh48h).length;
       const freshTag=freshCount?` (${freshCount} from last 48h)`:"";
-      setScanMsg(`Added ${novel.length} flight${novel.length>1?"s":""}${freshTag} to travel days — confirm to sync crew.`);
+      const matchedCount=novel.filter(f=>f.suggestedShowDate).length;
+      const matchTag=matchedCount?` · ${matchedCount} matched to shows`:"";
+      setScanMsg(`Added ${novel.length} flight${novel.length>1?"s":""}${freshTag}${matchTag} — confirm to sync crew.`);
     }catch(e){setScanMsg(`Scan failed: ${e.message}`);}
     setScanning(false);
   };

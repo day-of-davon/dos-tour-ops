@@ -386,29 +386,32 @@ Return this exact JSON:
   ]
 }`;
 
-  let anthropicResp;
+  let anthropicData;
   try {
-    anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8192,
-      system: sysPrompt,
-      messages: [{ role: "user", content: userPrompt }],
-    }),
-  });
-
-  if (!anthropicResp.ok) {
-    const err = await anthropicResp.text();
-    return res.status(502).json({ error: `Anthropic error: ${anthropicResp.status}`, detail: err });
+    const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 8192,
+        system: sysPrompt,
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    });
+    if (!anthropicResp.ok) {
+      const err = await anthropicResp.text();
+      return res.status(502).json({ error: `Anthropic error: ${anthropicResp.status}`, detail: err });
+    }
+    anthropicData = await anthropicResp.json();
+  } catch (e) {
+    console.error("[flights] anthropic error:", e.message);
+    return res.status(502).json({ error: `Anthropic request failed: ${e.message}` });
   }
 
-  const anthropicData = await anthropicResp.json();
   const textContent = (anthropicData.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
   console.log("[flights] stop_reason:", anthropicData.stop_reason, "| threads:", threads.length, "| sweep:", sweepFrom || "14d");
 
@@ -419,11 +422,15 @@ Return this exact JSON:
     .filter(f => f.flightNo || f.carrier)
     .map(f => {
       const fromFresh = freshIds.has(f.tid);
+      const showMatch = matchFlightToShow(f, shows);
       return {
         ...f,
         id: `fl_${(f.tid || "").slice(-6)}_${(f.flightNo || "").replace(/\s/g, "") || Math.random().toString(36).slice(2, 6)}`,
         status: "pending",
         fresh48h: fromFresh || undefined,
+        suggestedShowDate: showMatch?.showDate || null,
+        suggestedRole: showMatch?.role || null,
+        suggestedVenue: showMatch?.venue || null,
       };
     });
 
