@@ -1026,6 +1026,8 @@ function FlightsSection(){
       const novel=newFlights.filter(f=>!cur[f.id]&&!existingKeys.has(`${f.flightNo}__${f.depDate}`));
       if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads — no new flights found.`);setScanning(false);return;}
       setPendingImport(novel);
+      const freshCount=novel.filter(f=>f.fresh48h).length;
+      const freshTag=freshCount?` (${freshCount} from last 48h)`:"";
       setScanMsg(`Found ${novel.length} new flight${novel.length>1?"s":""}${freshTag} in ${data.threadsFound} threads.`);
     }catch(e){setScanMsg(`Scan failed: ${e.message}`);}
     setScanning(false);
