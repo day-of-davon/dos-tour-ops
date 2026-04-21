@@ -763,6 +763,30 @@ export default function App(){
   const labelScanFired=useRef(false);
   useEffect(()=>{if(loaded&&!labelScanFired.current){labelScanFired.current=true;refreshLabelIntel();}},[loaded]);// eslint-disable-line
 
+  const flightScanFired=useRef(false);
+  useEffect(()=>{
+    if(!loaded||flightScanFired.current)return;
+    flightScanFired.current=true;
+    (async()=>{
+      try{
+        const{data:{session}}=await supabase.auth.getSession();
+        if(!session?.provider_token)return;
+        const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken:session.provider_token,tourStart:"2026-04-01",tourEnd:"2026-06-30",focus:FOCUS_CARRIERS})});
+        if(!resp.ok)return;
+        const data=await resp.json();
+        if(!data.flights?.length)return;
+        setFlights(cur=>{
+          const existingKeys=new Set(Object.values(cur).map(f=>`${f.flightNo}__${f.depDate}`));
+          const novel=data.flights.filter(f=>!cur[f.id]&&!existingKeys.has(`${f.flightNo}__${f.depDate}`));
+          if(!novel.length)return cur;
+          const next={...cur};
+          novel.forEach(f=>{next[f.id]={...f,status:"pending"};});
+          return next;
+        });
+      }catch(e){console.warn("[bg-flights]",e.message);}
+    })();
+  },[loaded]);// eslint-disable-line
+
   const uShow=useCallback((d,u)=>setShows(p=>({...p,[d]:{...p[d],...u,lastModified:Date.now()}})),[]);
   const uRos=useCallback((d,b)=>setRos(p=>{const n={...p};if(b)n[d]=b;else delete n[d];return n;}),[]);
   const uAdv=useCallback((d,u)=>setAdvances(p=>({...p,[d]:{...(p[d]||{}),...u}})),[]);
@@ -2588,7 +2612,7 @@ function ROSTab(){
   const phases=[{k:"bus_in",l:"BUS ARRIVAL",s:"Anchor"},{k:"pre",l:"PRE-SHOW",s:"Forward from Crew Call"},{k:"mg",l:"MEET & GREET",s:"Anchor"},{k:"doors",l:"DOORS",s:"Contract anchor"},{k:"show",l:"SHOW",s:"Doors +60min"},{k:"curfew",l:"CURFEW",s:sel==="2026-04-16"?"HARD":"Contract anchor"},{k:"post",l:"POST-SHOW",s:"Relative to set end"}];
 
   return(
-    <div className="fi" style={{display:"flex",flexDirection:"column"}}>
+    <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
       {/* Event switcher — always visible on show days */}
       <EventSwitcher show={show} sel={sel}/>
       <div style={{padding:"6px 20px",borderBottom:"1px solid #ebe8e3",background:"#fff",display:"flex",gap:10,flexWrap:"wrap",fontSize:11,flexShrink:0,alignItems:"center"}}>
@@ -2602,7 +2626,7 @@ function ROSTab(){
           <button onClick={()=>{uRos(rosKey,null);setEditB(null);}} style={{background:"#f5f3ef",border:"1px solid #d6d3cd",borderRadius:5,color:"#64748b",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:600}}>Reset</button>
         </div>
       </div>
-      <div style={{padding:"10px 20px 30px",background:"#F5F3EF"}}>
+      <div style={{padding:"10px 20px 30px",background:"#F5F3EF",flex:1,overflowY:"auto"}}>
         <FlightDayStrip sel={sel}/>
         {phases.filter(ph=>!(ph.k==="mg"&&effShow.mgSkip)&&!(ph.k==="bus_in"&&effShow.busSkip)).map(ph=>{const pb=blocks.filter(b=>ph.k==="bus_in"?b.phase==="bus_in":ph.k==="curfew"?b.id==="curfew":ph.k==="doors"?b.phase==="doors":ph.k==="mg"?b.phase==="mg":b.phase===ph.k);const canAdd=!["bus_in","curfew","doors","mg"].includes(ph.k);
           return(<div key={ph.k} style={{marginBottom:6}}><div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0 3px"}}><div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",color:"#64748b"}}>{ph.l}</div><div style={{flex:1,height:1,background:"#d6d3cd"}}/><div style={{fontSize:8,color:"#94a3b8",fontStyle:"italic"}}>{ph.s}</div>{canAdd&&<button onClick={()=>addBlock(ph.k)} title="Add block" style={{background:"none",border:"1px dashed #cbd5e1",borderRadius:5,color:"#64748b",fontSize:9,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>+ Block</button>}</div><div style={{display:"flex",flexDirection:"column",gap:3}}>{pb.map(b=>renderB(b))}</div>{!pb.length&&canAdd&&<div style={{fontSize:9,color:"#94a3b8",fontStyle:"italic",padding:"4px 0"}}>No blocks — click + Block to add.</div>}</div>);
@@ -5310,7 +5334,7 @@ function ProdTab(){
   if(!show)return<div style={{padding:24,color:"#64748b",fontSize:11}}>Select a show to view production data.</div>;
 
   return(
-    <div className="fi" style={{padding:"16px 20px",maxWidth:900,width:"100%"}}>
+    <div className="fi" style={{padding:"16px 20px",maxWidth:900,width:"100%",height:"calc(100vh - 115px)",overflowY:"auto"}}>
       {/* Header */}
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
         <div style={{flex:1}}>
