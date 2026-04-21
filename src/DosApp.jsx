@@ -1136,7 +1136,7 @@ function FlightsSection(){
         resp=await fetch("/api/flights",flightOpts);
       }
       if(resp.status===402){setScanMsg("Gmail session expired — please re-login.");setScanning(false);return;}
-      if(!resp.ok){setScanMsg(`Scan error ${resp.status} — try again.`);setScanning(false);return;}
+      if(!resp.ok){const body=await resp.text().catch(()=>"");console.error("[flights-scan]",resp.status,body);setScanMsg(`Scan error ${resp.status} — ${body.slice(0,120)||"try again."}`);setScanning(false);return;}
       const data=await resp.json();
       if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
       const newFlights=data.flights||[];
