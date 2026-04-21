@@ -638,6 +638,7 @@ export default function App(){
   const[notesPriv,setNotesPriv]=useState({});
   const[checkPriv,setCheckPriv]=useState({});
   const[intel,setIntel]=useState({});
+  const[labelIntel,setLabelIntel]=useState(null);
   const[refreshing,setRefreshing]=useState(null);
   const[crew,setCrew]=useState(DEFAULT_CREW);
   const[showCrew,setShowCrew]=useState({});
@@ -725,12 +726,42 @@ export default function App(){
     setIntel(p=>({...p,[sid]:{...(p[sid]||{}),isShared:share}}));
   },[]);
 
+  const refreshLabelIntel=useCallback(async(force=false)=>{
+    try{
+      const{data:{session}}=await supabase.auth.getSession();
+      if(!session?.provider_token)return;
+      const showsArr=Object.values(shows||{}).filter(s=>s.clientId===aC);
+      const resp=await fetch("/api/intel",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({action:"labelScan",shows:showsArr,googleToken:session.provider_token,forceRefresh:force,userEmail:session.user?.email})});
+      if(!resp.ok)return;
+      const data=await resp.json();
+      setLabelIntel(data);
+      if(data.byShow){
+        setIntel(prev=>{
+          const next={...prev};
+          for(const[sid,tids]of Object.entries(data.byShow)){
+            const existing=next[sid]||{};
+            const seenTids=new Set((existing.threads||[]).map(t=>t.tid||t.id));
+            const allItems=[...(data.settlements||[]),...(data.crewFlights||[]),...(data.advanceItems||[]),...(data.actionRequired||[])];
+            const newStubs=tids.filter(tid=>!seenTids.has(tid)).map(tid=>{
+              const found=allItems.find(t=>t.id===tid);
+              return found?{tid:found.id,subject:found.subject,from:found.from,date:found.date,snippet:found.snippet,fromLabelScan:true,intent:"MISC"}:{tid,fromLabelScan:true,subject:"",from:"",intent:"MISC"};
+            });
+            if(newStubs.length)next[sid]={...existing,threads:[...(existing.threads||[]),...newStubs]};
+          }
+          return next;
+        });
+      }
+    }catch(e){console.error("[labelScan]",e.message);}
+  },[shows,aC]);
+
   const save=useCallback(()=>{
     if(!loaded)return;if(st.current)clearTimeout(st.current);
     st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
   },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,flights,lodging,showOffDays,sidebarOpen]);
   useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,showOffDays,sidebarOpen]);
   useEffect(()=>{const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(v=>!v);}if(e.key==="Escape")setCmd(false);};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
+  const labelScanFired=useRef(false);
+  useEffect(()=>{if(loaded&&!labelScanFired.current){labelScanFired.current=true;refreshLabelIntel();}},[loaded]);// eslint-disable-line
 
   const uShow=useCallback((d,u)=>setShows(p=>({...p,[d]:{...p[d],...u,lastModified:Date.now()}})),[]);
   const uRos=useCallback((d,b)=>setRos(p=>{const n={...p};if(b)n[d]=b;else delete n[d];return n;}),[]);
@@ -792,7 +823,7 @@ export default function App(){
   if(!loaded||!shows)return(<div style={{background:"#F5F3EF",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"#64748b",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
   return(
-    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen}}>
+    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen}}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:#F5F3EF}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:3px}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#f0ede8!important}.rh:hover{background:#f8f7f5!important}`}</style>
       <div style={{fontFamily:"'Outfit',system-ui",background:"#F5F3EF",color:"#0f172a",height:"100vh",width:"100%",maxWidth:"100vw",overflow:"hidden",display:"flex",flexDirection:"column"}}>
@@ -1145,7 +1176,7 @@ function FlightsSection(){
 }
 
 function IntelPanel(){
-  const{sel,shows,intel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,setIntel,uShow}=useContext(Ctx);
+  const{sel,shows,intel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,setIntel,uShow,labelIntel}=useContext(Ctx);
   const show=shows[sel];const sid=show?showIdFor(show):"";const data=intel[sid]||{};
   const upd=patch=>setIntel(p=>({...p,[sid]:{...(p[sid]||{}),...patch}}));
   const toggleTodo=id=>upd({todos:(data.todos||[]).map(t=>t.id===id?{...t,done:!t.done}:t)});
@@ -1218,6 +1249,20 @@ function IntelPanel(){
       <button onClick={()=>refreshIntel(show,true)} disabled={!!refreshing} style={{background:refreshing?"#ebe8e3":"#5B21B6",color:refreshing?"#64748b":"#fff",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:refreshing?"default":"pointer",fontWeight:700}}>{busy?"Scanning…":"Refresh Intel"}</button>
     </div>
     {refreshMsg&&<div style={{fontSize:10,color:"#5B21B6",fontFamily:MN}}>{refreshMsg}</div>}
+    {labelIntel?.actionRequired?.length>0&&(
+      <div style={{background:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:10,padding:"10px 12px"}}>
+        <div style={{fontSize:9,fontWeight:800,color:"#92400E",letterSpacing:"0.08em",marginBottom:8}}>ACTION REQUIRED · LABEL SCAN ({labelIntel.actionRequired.length})</div>
+        {labelIntel.actionRequired.map(item=>(
+          <div key={item.id} style={{display:"flex",gap:8,padding:"5px 0",borderBottom:"1px solid #FED7AA",alignItems:"flex-start"}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.subject}</div>
+              <div style={{fontSize:9,color:"#92400E"}}>{item.signal} · {item.from}</div>
+            </div>
+            <a href={gmailUrl(item.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",flexShrink:0}}>open ↗</a>
+          </div>
+        ))}
+      </div>
+    )}
     <IntelSection title="SCHEDULE INCONSISTENCIES" count={scheduleFlags.length+(data.manualFlags||[]).length} actions={<button onClick={addManualFlag} style={{...UI.expandBtn(false,"#92400E"),fontSize:9}}>+ Add</button>}>
       {scheduleFlags.length===0&&(data.manualFlags||[]).length===0?<div style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>No inconsistencies.</div>:
       <div style={{display:"flex",flexDirection:"column",gap:6}}>
@@ -3274,7 +3319,7 @@ function SegmentDrawer({seg,crew,sorted,onChange,onClose}){
 }
 
 function TransTab(){
-  const{flights,sel}=useContext(Ctx);
+  const{flights,sel,labelIntel}=useContext(Ctx);
   const[view,setView]=useState("travel");
   const confirmedCount=Object.values(flights).filter(f=>f.status==="confirmed").length;
   const daySegCount=Object.values(flights).filter(s=>s.status!=="dismissed"&&(s.depDate===sel||s.arrDate===sel)).length;
@@ -3317,7 +3362,21 @@ function TransTab(){
             </div>
           </div>
         )}
-        {view==="flights"&&<FlightsSection/>}
+        {view==="flights"&&<>{labelIntel?.crewFlights?.length>0&&(
+          <div style={{background:"#F0F9FF",border:"1px solid #BAE6FD",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+            <div style={{fontSize:9,fontWeight:800,color:"#0369A1",letterSpacing:"0.08em",marginBottom:8}}>CREW FLIGHTS · LABEL SCAN ({labelIntel.crewFlights.length} deduped)</div>
+            {labelIntel.crewFlights.map(f=>(
+              <div key={f.id} style={{display:"flex",gap:8,padding:"5px 0",borderBottom:"1px solid #BAE6FD",alignItems:"center"}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.subject}</div>
+                  <div style={{fontSize:9,color:"#0369A1"}}>{f.from} · {f.date}</div>
+                  {f.showId&&<div style={{fontSize:8,color:"#64748b",fontFamily:MN}}>{f.showId}</div>}
+                </div>
+                <a href={gmailUrl(f.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",flexShrink:0}}>email ↗</a>
+              </div>
+            ))}
+          </div>
+        )}<FlightsSection/></>}
         {view==="festival"&&(
           <div style={{padding:"40px 0",textAlign:"center",color:"#64748b"}}><div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Festival Dispatch</div><div style={{fontSize:11,color:"#94a3b8"}}>Olivia manages driver pool for Beyond Wonderland and Wakaan.<br/>Payout log is in Finance → Payment Batch.</div></div>
         )}
@@ -3435,7 +3494,7 @@ function FinLedger(){
 }
 
 function FinTab(){
-  const{shows,cShows,finance,uFin,pushUndo}=useContext(Ctx);
+  const{shows,cShows,finance,uFin,pushUndo,labelIntel,sel}=useContext(Ctx);
   const today=new Date().toISOString().slice(0,10);
   const[finView,setFinView]=useState("settlement");
   const[selS,setSelS]=useState(null);
@@ -3484,6 +3543,20 @@ function FinTab(){
               <div style={{fontSize:10,color:"#64748b",fontFamily:MN,marginTop:1}}>{fFull(selS)}</div>
               {done&&<div style={{marginTop:6,display:"inline-flex",alignItems:"center",gap:5,padding:"4px 10px",background:"#D1FAE5",borderRadius:8,fontSize:10,fontWeight:800,color:"#047857"}}>SETTLEMENT DONE ✓</div>}
             </div>
+            {(()=>{const ps=(labelIntel?.settlements||[]).filter(s=>s.showId===showIdFor(shows?.[selS]||{}));return ps.length>0?(
+              <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8,padding:"10px 12px",marginBottom:10}}>
+                <div style={{fontSize:9,fontWeight:800,color:"#1E40AF",letterSpacing:"0.08em",marginBottom:6}}>INBOX SETTLEMENTS ({ps.length})</div>
+                {ps.map(s=>(
+                  <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0",borderBottom:"1px solid #BFDBFE"}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.subject}</div>
+                      <div style={{fontSize:9,color:"#64748b"}}>{s.from} · {s.date}</div>
+                    </div>
+                    <a href={gmailUrl(s.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",flexShrink:0}}>open ↗</a>
+                  </div>
+                ))}
+              </div>
+            ):null;})()}
             <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"14px",marginBottom:10}}>
               <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.08em",marginBottom:10}}>SETTLEMENT PIPELINE</div>
               <div style={{marginBottom:8}}>
