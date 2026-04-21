@@ -22,6 +22,14 @@
 
 - [2026-04-20 00:00 UTC] https://www.researchandmarkets.com/reports/4829971/festival-management-software-market-global — Festival Management Software Market: $872.87M (2025) → $982.69M (2026), 13.69% CAGR through 2032 — confirms market size for DOS Platform GTM and investor materials.
 
+- [2026-04-21 04:00 UTC] https://supabase.com/changelog — RLS now enabled by default on all new Supabase projects; Security Advisor tool live with AI-assisted fix suggestions — dos-platform Phase 0 Supabase project will have RLS on by default; use Security Advisor during schema audit with Josh.
+
+- [2026-04-21 04:00 UTC] https://supabase.com/changelog — Supabase projects can now act as a full Identity Provider ("Sign in with [Your App]"); enables federated auth flows — relevant for Phase 9 multi-tenant SSO and white-label enterprise tier.
+
+- [2026-04-21 04:00 UTC] https://supabase.com/aws-reinvent-2025 — Supabase Vector Buckets (specialized vector storage) and Analytics Buckets (Apache Iceberg + Amazon S3 Tables) announced at AWS re:Invent Dec 2025 — Analytics Buckets directly relevant to Phase 6 DOS Market Intel data pipeline; Vector Buckets relevant if semantic search added to advancing or intel features.
+
+- [2026-04-21 04:00 UTC] https://railway.com/deploy/n8n-production-stack — n8n Railway production stack template includes queue-mode: main UI + worker + webhook processor + Postgres + Redis, one-click deploy, ~$5/mo Hobby plan — more robust than bare n8n deploy; use this template for Phase 4 n8n setup, not the bare template.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
