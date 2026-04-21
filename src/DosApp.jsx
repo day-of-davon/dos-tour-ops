@@ -7,6 +7,282 @@ import { supabase } from "./lib/supabase";
 
 const SK={SHOWS:"dos-v7-shows",ROS:"dos-v7-ros",ADVANCES:"dos-v7-advances",FINANCE:"dos-v7-finance",SETTINGS:"dos-v7-settings",CREW:"dos-v7-crew",PRODUCTION:"dos-v7-production",FLIGHTS:"dos-v7-flights",LODGING:"dos-v7-lodging"};
 const hhmmToMin=s=>{if(!s)return null;const[h,m]=s.split(":").map(Number);return isNaN(h)||isNaN(m)?null:h*60+m;};
+// Group same-day flight legs by itinerary (confirmNo / bookingRef / pax signature) and tag
+// each with role: final leg of a multi-leg chain = "arr", all prior legs = "dep". Single-leg
+// groups stay "dep". Overnight arrivals (arrs) are always "arr".
+const flightItinKey=f=>f.confirmNo||f.bookingRef||((f.pax||[]).slice().sort().join("|")||f.id);
+const tagFlightRoles=(deps,arrs)=>{
+  const groups={};
+  deps.forEach(f=>{const k=flightItinKey(f);(groups[k]=groups[k]||[]).push(f);});
+  const depTagged=[];
+  Object.values(groups).forEach(g=>{
+    if(g.length===1){depTagged.push({f:g[0],role:"dep"});return;}
+    const sorted=g.slice().sort((a,b)=>`${a.depDate||""} ${a.dep||""}`.localeCompare(`${b.depDate||""} ${b.dep||""}`));
+    sorted.forEach((f,i)=>depTagged.push({f,role:i===sorted.length-1?"arr":"dep"}));
+  });
+  return[...depTagged,...arrs.map(f=>({f,role:"arr"}))];
+};
+
+// Airport groups for tour show cities. One city → one-or-more IATA codes covering
+// realistic crew routing (primary + common alternates). Extend as routes warrant.
+const CITY_AIRPORTS={
+  dublin:["DUB"],
+  manchester:["MAN"],
+  glasgow:["GLA","EDI"],
+  london:["LHR","LGW","STN","LCY","LTN","SEN"],
+  zurich:["ZRH","BSL"],
+  cologne:["CGN","DUS","FRA"],
+  amsterdam:["AMS","RTM"],
+  paris:["CDG","ORY","BVA"],
+  chambord:["ORY","CDG","TUF"],
+  villeurbanne:["LYS"],
+  lyon:["LYS"],
+  milan:["MXP","LIN","BGY"],
+  prague:["PRG"],
+  berlin:["BER"],
+  bratislava:["BTS","VIE"],
+  vienna:["VIE","BTS"],
+  warsaw:["WAW","WMI"],
+  morrison:["DEN"],
+  denver:["DEN"],
+  worcester:["BOS","PVD","BDL","ORH"],
+  boston:["BOS","PVD","MHT"],
+  mississauga:["YYZ","YTZ","YHM"],
+  toronto:["YYZ","YTZ","YHM"],
+  uncasville:["BDL","PVD","JFK","BOS","HPN"],
+  ottawa:["YOW"],
+  montreal:["YUL","YMX","YHU"],
+  "los angeles":["LAX","BUR","LGB","SNA","ONT"],
+  "new york":["JFK","LGA","EWR","HPN"],
+  halifax:["YHZ"],
+};
+const AIRPORT_TO_CITIES={};
+Object.entries(CITY_AIRPORTS).forEach(([city,codes])=>{
+  codes.forEach(c=>{(AIRPORT_TO_CITIES[c]=AIRPORT_TO_CITIES[c]||[]).push(city);});
+});
+const cityKey=c=>String(c||"").toLowerCase().split(",")[0].trim();
+
+// Match a flight endpoint (iata+date+city) to a tour show via geographic + chronological proximity.
+// direction="inbound": show must occur on/after arrival (0..+7d). direction="outbound": show must
+// occur on/before departure (-7..0d). Returns closest by date among geographic candidates, or null.
+// A single flight can (and frequently does) match BOTH an outbound show (origin side) and an
+// inbound show (destination side); callers run this twice, once per side.
+const matchShowByAirport=(iata,flightCity,flightDate,shows,direction)=>{
+  if(!flightDate||!Array.isArray(shows)||!shows.length)return null;
+  const code=(iata||"").toUpperCase();
+  const iataCities=code?(AIRPORT_TO_CITIES[code]||[]):[];
+  const fc=cityKey(flightCity);
+  const candidates=shows.filter(s=>{
+    if(!s?.date||!s?.city)return false;
+    if(s.type==="off"||s.type==="travel"||s.type==="split")return false;
+    const sc=cityKey(s.city);
+    if(!sc)return false;
+    if(iataCities.includes(sc))return true;
+    if(fc&&(fc===sc||fc.includes(sc)||sc.includes(fc)))return true;
+    return false;
+  });
+  if(!candidates.length)return null;
+  const flightDay=new Date(flightDate+"T12:00:00").getTime();
+  const scored=candidates.map(s=>{
+    const sd=new Date(s.date+"T12:00:00").getTime();
+    return{show:s,delta:Math.round((sd-flightDay)/86400000)};
+  });
+  const inWindow=direction==="inbound"
+    ?scored.filter(x=>x.delta>=-1&&x.delta<=7)
+    :scored.filter(x=>x.delta>=-7&&x.delta<=1);
+  if(!inWindow.length)return null;
+  inWindow.sort((a,b)=>Math.abs(a.delta)-Math.abs(b.delta)||a.show.date.localeCompare(b.show.date));
+  return inWindow[0].show;
+};
+
+// Assemble all legs (pending + confirmed) that share the same itinerary key as `f`, sorted chronologically.
+const findItineraryLegs=(f,allFlightsObj)=>{
+  const key=flightItinKey(f);
+  return Object.values(allFlightsObj)
+    .filter(x=>flightItinKey(x)===key)
+    .sort((a,b)=>`${a.depDate||""} ${a.dep||""}`.localeCompare(`${b.depDate||""} ${b.dep||""}`));
+};
+
+// ── Segment model (unified travel store) ───────────────────────────────────
+// The `flights` store widens into a generic segments store: each record has a `type`
+// ∈ {air, ground, bus, rail, sea, hotel}. Legacy records (no type) are implicitly "air".
+// Ground/bus/etc. segments share the air shape with different fields populated:
+//   air:    flightNo, carrier, from/to (IATA), fromCity/toCity, dep/arr, pax
+//   ground: mode (uber|drive|taxi|lyft|rideshare|friend), provider, from/to (labels or
+//           addresses), fromCity/toCity, dep/arr, pax, distance, duration
+//   bus:    carrier, from/to, dep/arr, pax, route
+//   rail:   carrier, trainNo, from/to, dep/arr, pax
+//   hotel:  hotelName, from (address), checkIn/checkOut dates, pax
+const SEG_META={
+  air:   {label:"Flight",  icon:"✈", color:"#1E40AF", bg:"#DBEAFE", border:"#BFDBFE"},
+  ground:{label:"Ground",  icon:"🚗", color:"#B45309", bg:"#FEF3C7", border:"#FDE68A"},
+  bus:   {label:"Bus",     icon:"🚌", color:"#1D4ED8", bg:"#DBEAFE", border:"#BFDBFE"},
+  rail:  {label:"Rail",    icon:"🚆", color:"#065F46", bg:"#D1FAE5", border:"#6EE7B7"},
+  sea:   {label:"Sea",     icon:"⛴", color:"#0E7490", bg:"#CFFAFE", border:"#67E8F9"},
+  hotel: {label:"Hotel",   icon:"🏨", color:"#5B21B6", bg:"#EDE9FE", border:"#C4B5FD"},
+};
+const segType=s=>s?.type||(s?.flightNo||s?.carrier?"air":"ground");
+const segMeta=s=>SEG_META[segType(s)]||SEG_META.air;
+
+// Airport check-in buffers in minutes before scheduled departure. Split by
+// with-checked-bag vs carry-on-only. Override per segment via seg.airportBuffer.
+const AIRPORT_BUFFERS={
+  // EU hubs (typical Schengen/int'l queues)
+  LHR:{bag:180,carry:120}, LGW:{bag:180,carry:120}, STN:{bag:150,carry:120}, LCY:{bag:90,carry:60}, LTN:{bag:150,carry:120},
+  CDG:{bag:180,carry:120}, ORY:{bag:150,carry:120}, BVA:{bag:120,carry:90},
+  AMS:{bag:150,carry:120}, FRA:{bag:150,carry:120}, MUC:{bag:150,carry:120}, CGN:{bag:120,carry:90}, DUS:{bag:120,carry:90},
+  MXP:{bag:150,carry:120}, LIN:{bag:90,carry:60}, BGY:{bag:120,carry:90},
+  MAD:{bag:150,carry:120}, BCN:{bag:150,carry:120},
+  FCO:{bag:150,carry:120}, VCE:{bag:120,carry:90},
+  ZRH:{bag:120,carry:90}, GVA:{bag:120,carry:90}, BSL:{bag:120,carry:90},
+  VIE:{bag:120,carry:90}, BER:{bag:120,carry:90},
+  DUB:{bag:120,carry:90},
+  MAN:{bag:120,carry:90}, GLA:{bag:90,carry:60}, EDI:{bag:90,carry:60},
+  PRG:{bag:120,carry:90}, BUD:{bag:120,carry:90}, WAW:{bag:120,carry:90}, WMI:{bag:90,carry:60},
+  CPH:{bag:120,carry:90}, ARN:{bag:120,carry:90}, OSL:{bag:120,carry:90}, HEL:{bag:120,carry:90},
+  LIS:{bag:120,carry:90}, OPO:{bag:120,carry:90},
+  BTS:{bag:90,carry:60},
+  // NA hubs
+  JFK:{bag:150,carry:120}, LGA:{bag:120,carry:90}, EWR:{bag:150,carry:120},
+  LAX:{bag:150,carry:120}, BUR:{bag:60,carry:45}, LGB:{bag:60,carry:45}, SNA:{bag:75,carry:60}, ONT:{bag:75,carry:60},
+  SFO:{bag:120,carry:90}, OAK:{bag:90,carry:60}, SJC:{bag:90,carry:60},
+  SEA:{bag:90,carry:60}, PDX:{bag:90,carry:60},
+  ORD:{bag:150,carry:120}, MDW:{bag:120,carry:90},
+  ATL:{bag:150,carry:120}, DFW:{bag:150,carry:120}, IAH:{bag:150,carry:120},
+  DEN:{bag:90,carry:60}, PHX:{bag:90,carry:60}, LAS:{bag:90,carry:60},
+  BOS:{bag:120,carry:90}, PHL:{bag:120,carry:90}, DCA:{bag:120,carry:90}, IAD:{bag:150,carry:120},
+  MIA:{bag:150,carry:120}, FLL:{bag:120,carry:90}, MCO:{bag:120,carry:90}, TPA:{bag:90,carry:60},
+  BNA:{bag:90,carry:60}, BDL:{bag:90,carry:60}, PVD:{bag:90,carry:60}, MHT:{bag:75,carry:60},
+  MSP:{bag:90,carry:60}, DTW:{bag:120,carry:90},
+  // Canada
+  YYZ:{bag:120,carry:90}, YTZ:{bag:60,carry:45}, YUL:{bag:120,carry:90}, YVR:{bag:120,carry:90},
+  YOW:{bag:90,carry:60}, YHZ:{bag:90,carry:60}, YWG:{bag:90,carry:60}, YYC:{bag:90,carry:60},
+  __default:{bag:120,carry:90},
+};
+const airportBufferMin=(iata,hasBag=true)=>{
+  const b=AIRPORT_BUFFERS[(iata||"").toUpperCase()]||AIRPORT_BUFFERS.__default;
+  return hasBag?b.bag:b.carry;
+};
+// Subtract `mins` from "HH:MM" and return "HH:MM" (wraps into negative = previous day warning separately).
+const subtractMinutes=(hhmm,mins)=>{
+  const t=hhmmToMin(hhmm);if(t==null)return"";
+  const diff=t-mins;
+  if(diff<0){const d=1440+diff;return`${String(Math.floor(d/60)).padStart(2,"0")}:${String(d%60).padStart(2,"0")}*`;}
+  return`${String(Math.floor(diff/60)).padStart(2,"0")}:${String(diff%60).padStart(2,"0")}`;
+};
+
+// ── Lodging-mode inference ────────────────────────────────────────────────
+// Bus dates: crew sleep on the Pieter Smit nightliner; hotel rooms are not needed
+// (artist may take one off-day; tracked separately). Any date in BUS_DATA_MAP with
+// a show or travel entry is treated as "bus". Everything else (Red Rocks, NA summer,
+// post-EU one-offs) is "hotel" — requires room + airport/hotel/venue ground chain.
+const lodgingModeFor=(date,tourDaysObj)=>{
+  const td=tourDaysObj?.[date];
+  const bus=td?.bus||BUS_DATA_MAP[date];
+  if(!bus)return"hotel";
+  // Days marked explicitly "off" outside the bus window don't count.
+  if(td?.type==="off"&&!bus)return"hotel";
+  return"bus";
+};
+const daysBetween=(a,b)=>{
+  if(!a||!b)return 0;
+  return Math.round((new Date(b+"T12:00:00")-new Date(a+"T12:00:00"))/86400000);
+};
+// Classify a crew member's role on a given show date based on their attending
+// history: bus-mid (middle of the bus run — on bus, no segments expected),
+// bus-join (first bus day, needs inbound air + ground to bus),
+// bus-leave (last bus day, needs ground to airport + outbound air),
+// bus-solo (attending only one bus day — effectively treat like one-off bus),
+// fly-one-off (standalone fly-in/fly-out show with hotel).
+const crewLifecycleState=(crewId,date,attendingDates,tourDaysObj)=>{
+  const thisMode=lodgingModeFor(date,tourDaysObj);
+  if(thisMode!=="bus")return"fly-one-off";
+  const idx=(attendingDates||[]).indexOf(date);
+  const prev=idx>0?attendingDates[idx-1]:null;
+  const next=idx>=0&&idx<attendingDates.length-1?attendingDates[idx+1]:null;
+  const prevBus=prev?lodgingModeFor(prev,tourDaysObj)==="bus":false;
+  const nextBus=next?lodgingModeFor(next,tourDaysObj)==="bus":false;
+  const gapPrev=prev?daysBetween(prev,date):999;
+  const gapNext=next?daysBetween(date,next):999;
+  // Consider "consecutive on bus" = prev within 3 days and also bus mode.
+  const joinedFromBus=prevBus&&gapPrev<=3;
+  const stayingOnBus=nextBus&&gapNext<=3;
+  if(!joinedFromBus&&!stayingOnBus)return"bus-solo";
+  if(!joinedFromBus)return"bus-join";
+  if(!stayingOnBus)return"bus-leave";
+  return"bus-mid";
+};
+
+// Given a lifecycle state + the data, return an ordered list of lifecycle slots for
+// rendering. Each slot: {key, icon, label, state: "ok"|"missing"|"na"|"unknown"}.
+// "ok" = segment present; "missing" = expected but not found; "na" = not applicable
+// (e.g. hotel slot on a bus-mid day); "unknown" = segment is not tracked as a
+// distinct record (hotel stays without a check-in record).
+const crewLifecycleSlots=({state,crewId,crew,date,showCrew,flights,lodging})=>{
+  const cd=showCrew?.[date]?.[crewId]||{};
+  const cname=(crew||[]).find(c=>c.id===crewId)?.name||"";
+  const fname=cname.split(" ")[0].toLowerCase();
+  const paxIncludes=(pax)=>fname&&(pax||[]).some(n=>String(n||"").toLowerCase().startsWith(fname));
+  const allSegs=Object.values(flights||{}).filter(s=>s&&s.status!=="dismissed");
+  const hasInboundAir=(cd.inbound||[]).some(l=>l.flight||l.flightId)||allSegs.some(s=>segType(s)==="air"&&s.arrDate===date&&paxIncludes(s.pax));
+  const hasOutboundAir=(cd.outbound||[]).some(l=>l.flight||l.flightId)||allSegs.some(s=>segType(s)==="air"&&s.depDate===date&&paxIncludes(s.pax));
+  const groundsArriving=allSegs.filter(s=>segType(s)==="ground"&&s.arrDate===date&&paxIncludes(s.pax));
+  const groundsDeparting=allSegs.filter(s=>segType(s)==="ground"&&s.depDate===date&&paxIncludes(s.pax));
+  // Hotel presence: check the dedicated lodging store (room assigned to this crewId,
+  // covering this date) OR any segment-style hotel record the user may have added.
+  const hotelFromLodging=Object.values(lodging||{}).some(h=>h&&h.checkIn<=date&&h.checkOut>=date&&(h.rooms||[]).some(r=>r.crewId===crewId));
+  const hotelOnDate=hotelFromLodging||allSegs.some(s=>segType(s)==="hotel"&&(s.depDate===date||s.arrDate===date)&&paxIncludes(s.pax));
+  if(state==="bus-mid"){
+    return[{key:"bus",icon:"🚌",label:"On bus",state:"ok"}];
+  }
+  if(state==="bus-join"){
+    return[
+      {key:"fly-in",icon:"✈",label:"Inbound flight",state:hasInboundAir?"ok":"missing"},
+      {key:"gnd-in",icon:"🚗",label:"Airport → Bus pickup",state:groundsArriving.length?"ok":"missing"},
+      {key:"bus",icon:"🚌",label:"On bus",state:"ok"},
+    ];
+  }
+  if(state==="bus-leave"){
+    return[
+      {key:"bus",icon:"🚌",label:"On bus",state:"ok"},
+      {key:"gnd-out",icon:"🚗",label:"Bus → Airport",state:groundsDeparting.length?"ok":"missing"},
+      {key:"fly-out",icon:"✈",label:"Outbound flight",state:hasOutboundAir?"ok":"missing"},
+    ];
+  }
+  if(state==="bus-solo"){
+    // Standalone bus day: needs full chain in and out but lodging is the bus.
+    return[
+      {key:"fly-in",icon:"✈",label:"Inbound flight",state:hasInboundAir?"ok":"missing"},
+      {key:"gnd-in",icon:"🚗",label:"Airport → Bus",state:groundsArriving.length?"ok":"missing"},
+      {key:"bus",icon:"🚌",label:"On bus",state:"ok"},
+      {key:"gnd-out",icon:"🚗",label:"Bus → Airport",state:groundsDeparting.length?"ok":"missing"},
+      {key:"fly-out",icon:"✈",label:"Outbound flight",state:hasOutboundAir?"ok":"missing"},
+    ];
+  }
+  // fly-one-off: full chain with hotel
+  return[
+    {key:"fly-in",icon:"✈",label:"Inbound flight",state:hasInboundAir?"ok":"missing"},
+    {key:"gnd-to-htl",icon:"🚗",label:"Airport → Hotel",state:groundsArriving.length?"ok":"missing"},
+    {key:"hotel",icon:"🏨",label:"Hotel",state:hotelOnDate?"ok":"unknown"},
+    {key:"gnd-to-ven",icon:"🚗",label:"Hotel → Venue",state:groundsDeparting.length?"ok":"missing"},
+    {key:"fly-out",icon:"✈",label:"Outbound flight",state:hasOutboundAir?"ok":"missing"},
+  ];
+};
+
+// Serialize a flight record into the compact leg shape used in showCrew.
+const flightToLeg=f=>({
+  id:`leg_${f.id}`,
+  flight:f.flightNo||"",
+  carrier:f.carrier||"",
+  from:f.from,fromCity:f.fromCity||f.from,
+  to:f.to,toCity:f.toCity||f.to,
+  depart:f.dep,arrive:f.arr,
+  depDate:f.depDate,arrDate:f.arrDate,
+  conf:f.confirmNo||f.bookingRef||"",
+  status:"confirmed",
+  flightId:f.id,
+});
+
 const MN="'JetBrains Mono',monospace";
 
 const CLIENTS=[
@@ -576,11 +852,15 @@ function StatusBtn({status,setStatus,mobile}){
   const onCtx=e=>{e.preventDefault();setOpen(true);};
   const onDown=e=>{if(mobile)return;lp.current=setTimeout(()=>setOpen(true),400);};
   const onUp=()=>{if(lp.current){clearTimeout(lp.current);lp.current=null;}};
-  return <div ref={ref} style={{position:"relative",flexShrink:0}}>
-    <button onClick={onClick} onContextMenu={onCtx} onMouseDown={onDown} onMouseUp={onUp} onMouseLeave={onUp} onTouchStart={onDown} onTouchEnd={onUp}
-      style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",cursor:"pointer",fontWeight:700,background:s.b,color:s.c,minWidth:78}}>{s.l}</button>
-    {open&&<div style={{position:"absolute",top:"100%",right:0,marginTop:3,background:"#fff",border:"1px solid #d6d3cd",borderRadius:7,boxShadow:"0 6px 20px rgba(0,0,0,.1)",zIndex:50,padding:3,minWidth:120}}>
-      {SC_ORDER.map(k=>{const v=SC[k];return <button key={k} onClick={()=>{setStatus(k);setOpen(false);}} style={{display:"block",width:"100%",textAlign:"left",padding:"4px 8px",fontSize:10,border:"none",background:status===k?v.b:"transparent",color:v.c,cursor:"pointer",borderRadius:4,fontWeight:600}}>{v.l}</button>;})}
+  const caretClick=e=>{e.stopPropagation();e.preventDefault();setOpen(v=>!v);};
+  const tip=mobile?`${s.l} — tap to change`:`${s.l} — click to cycle, caret or right-click for all options`;
+  return <div ref={ref} style={{position:"relative",flexShrink:0,display:"inline-flex"}}>
+    <button title={tip} onClick={onClick} onContextMenu={onCtx} onMouseDown={onDown} onMouseUp={onUp} onMouseLeave={onUp} onTouchStart={onDown} onTouchEnd={onUp}
+      style={{fontSize:mobile?10:9,padding:mobile?"5px 9px":"3px 8px",borderTopLeftRadius:5,borderBottomLeftRadius:5,borderTopRightRadius:0,borderBottomRightRadius:0,border:"none",borderRight:`1px solid ${s.c}26`,cursor:"pointer",fontWeight:700,background:s.b,color:s.c,minWidth:mobile?82:78,minHeight:mobile?28:undefined}}>{s.l}</button>
+    <button title="Open all status options" aria-label="Open status menu" onClick={caretClick}
+      style={{fontSize:mobile?10:9,padding:mobile?"5px 7px":"3px 6px",borderTopRightRadius:5,borderBottomRightRadius:5,borderTopLeftRadius:0,borderBottomLeftRadius:0,border:"none",cursor:"pointer",fontWeight:800,background:s.b,color:s.c,minHeight:mobile?28:undefined,opacity:.75}}>▾</button>
+    {open&&<div style={{position:"absolute",top:"100%",right:0,marginTop:3,background:"#fff",border:"1px solid #d6d3cd",borderRadius:7,boxShadow:"0 6px 20px rgba(0,0,0,.1)",zIndex:50,padding:3,minWidth:130}}>
+      {SC_ORDER.map(k=>{const v=SC[k];return <button key={k} onClick={()=>{setStatus(k);setOpen(false);}} style={{display:"block",width:"100%",textAlign:"left",padding:mobile?"7px 10px":"4px 8px",fontSize:mobile?11:10,border:"none",background:status===k?v.b:"transparent",color:v.c,cursor:"pointer",borderRadius:4,fontWeight:600}}>{v.l}</button>;})}
     </div>}
   </div>;
 }
@@ -610,15 +890,66 @@ const STATUS_STYLE={
 };
 function statusStyle(s){return STATUS_STYLE[s]||STATUS_STYLE.Unknown;}
 
-function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing}){
+// Chips editor for a flight's passenger list. Click the PAX field to enter edit mode;
+// remove with ×, add with input (datalist autocomplete from current crew roster).
+// A green check appears on chips whose first name matches a known crew member.
+function PaxEditor({pax,crew,onSave}){
+  const[editing,setEditing]=useState(false);
+  const[draft,setDraft]=useState(pax||[]);
+  const[newName,setNewName]=useState("");
+  const inputRef=useRef(null);
+  const open=()=>{setDraft(pax||[]);setNewName("");setEditing(true);setTimeout(()=>inputRef.current?.focus(),0);};
+  const cancel=()=>{setEditing(false);};
+  const save=()=>{const cleaned=draft.map(s=>s.trim()).filter(Boolean);onSave(cleaned);setEditing(false);};
+  const add=()=>{
+    const v=newName.trim();if(!v)return;
+    if(draft.some(n=>n.toLowerCase()===v.toLowerCase())){setNewName("");return;}
+    setDraft(p=>[...p,v]);setNewName("");
+  };
+  const remove=i=>setDraft(p=>p.filter((_,idx)=>idx!==i));
+  const findMatch=name=>(crew||[]).find(c=>c.name&&c.name.toLowerCase().includes(name.split(" ")[0].toLowerCase()));
+  if(!editing){
+    return(
+      <div onClick={open} title="Click to edit passengers" style={{cursor:"pointer",minWidth:120}}>
+        <div style={{fontSize:8,color:"#94a3b8",fontWeight:600,display:"flex",alignItems:"center",gap:4}}>PAX <span style={{color:"#5B21B6",fontSize:9}}>✎</span></div>
+        <div style={{fontSize:10,color:pax?.length?"#0f172a":"#94a3b8",fontStyle:pax?.length?"normal":"italic"}}>{pax?.length?pax.join(", "):"add passengers"}</div>
+      </div>
+    );
+  }
+  const dlId=`pax-dl-${Math.random().toString(36).slice(2,7)}`;
+  return(
+    <div style={{flexBasis:"100%",padding:"8px 10px",background:"#EDE9FE",border:"1px solid #C4B5FD",borderRadius:7,display:"flex",flexDirection:"column",gap:6}}>
+      <div style={{fontSize:8,color:"#5B21B6",fontWeight:800,letterSpacing:"0.06em"}}>EDIT PAX · green = crew match</div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:4,minHeight:20}}>
+        {draft.map((name,i)=>{const m=findMatch(name);return(
+          <span key={i} style={{fontSize:10,padding:"3px 5px 3px 9px",borderRadius:14,background:m?"#D1FAE5":"#FEF3C7",color:m?"#047857":"#92400E",display:"inline-flex",alignItems:"center",gap:5,fontWeight:600,border:`1px solid ${m?"#6EE7B7":"#FDE68A"}`}}>
+            {name}{m&&<span title={`Matches ${m.name}`} style={{fontSize:7,opacity:.7}}>✓</span>}
+            <button onClick={()=>remove(i)} style={{background:"rgba(0,0,0,.08)",border:"none",cursor:"pointer",fontSize:11,lineHeight:1,padding:"0 5px 1px",borderRadius:"50%",color:"inherit"}}>×</button>
+          </span>);})}
+        {draft.length===0&&<span style={{fontSize:9,color:"#94a3b8",fontStyle:"italic"}}>no passengers yet</span>}
+      </div>
+      <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+        <input ref={inputRef} value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();add();}else if(e.key==="Escape"){e.preventDefault();cancel();}}} list={dlId} placeholder="Add pax name (enter to add)" style={{flex:1,minWidth:140,fontSize:10,padding:"5px 8px",border:"1px solid #d6d3cd",borderRadius:5,outline:"none",fontFamily:"'Outfit',system-ui"}}/>
+        <datalist id={dlId}>{(crew||[]).map(c=><option key={c.id} value={c.name}/>)}</datalist>
+        <button onClick={add} disabled={!newName.trim()} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"none",background:newName.trim()?"#5B21B6":"#e5e7eb",color:newName.trim()?"#fff":"#94a3b8",cursor:newName.trim()?"pointer":"default",fontWeight:700}}>+ Add</button>
+        <button onClick={save} style={{fontSize:9,padding:"4px 12px",borderRadius:5,border:"none",background:"#047857",color:"#fff",cursor:"pointer",fontWeight:700}}>Save</button>
+        <button onClick={cancel} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid #d6d3cd",background:"#fff",color:"#64748b",cursor:"pointer",fontWeight:600}}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax,crew}){
   const st=liveStatus?statusStyle(liveStatus.status):null;
   const delayed=liveStatus?.delayMinutes>0;
+  const isFresh=!!f.fresh48h;
   return(
-    <div style={{background:"#fff",border:`1px solid ${st&&delayed?"#FCD34D":st?.c==="#B91C1C"?"#FCA5A5":"#d6d3cd"}`,borderRadius:9,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6}}>
+    <div style={{background:"#fff",border:`1px solid ${isFresh?"#5B21B6":st&&delayed?"#FCD34D":st?.c==="#B91C1C"?"#FCA5A5":"#d6d3cd"}`,borderRadius:9,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6,boxShadow:isFresh?"0 0 0 2px #EDE9FE":undefined}}>
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
         <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#1E40AF"}}>{f.from}<span style={{fontSize:10,color:"#94a3b8",fontWeight:400,padding:"0 5px"}}>→</span>{f.to}</div>
         <div style={{fontSize:10,fontWeight:700,color:"#0f172a"}}>{f.flightNo||f.carrier}</div>
         {f.carrier&&f.flightNo&&<div style={{fontSize:9,color:"#64748b"}}>{f.carrier}</div>}
+        {isFresh&&<span title="Booked within the last 48 hours" style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#EDE9FE",color:"#5B21B6",fontWeight:800,letterSpacing:"0.06em"}}>NEW · 48H</span>}
         {st&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:st.bg,color:st.c,fontWeight:700}}>{st.label}{delayed?` +${liveStatus.delayMinutes}m`:""}</span>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
           {onRefreshStatus&&<button onClick={onRefreshStatus} disabled={refreshing} title="Refresh live status" style={{background:"none",border:"none",cursor:refreshing?"default":"pointer",fontSize:10,color:refreshing?"#94a3b8":"#5B21B6",padding:0,lineHeight:1}}>{refreshing?"⟳":"⟳"}</button>}
@@ -635,10 +966,12 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing}){
           {liveStatus.fetchedAt&&<div style={{marginLeft:"auto"}}><div style={{fontSize:7,color:"#94a3b8"}}>updated {new Date(liveStatus.fetchedAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div></div>}
         </div>
       )}
-      <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
+      <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"flex-start"}}>
         {f.fromCity&&<div><div style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>FROM</div><div style={{fontSize:10,color:"#0f172a"}}>{f.fromCity}</div></div>}
         {f.toCity&&<div><div style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>TO</div><div style={{fontSize:10,color:"#0f172a"}}>{f.toCity}</div></div>}
-        {f.pax?.length>0&&<div><div style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>PAX</div><div style={{fontSize:10,color:"#0f172a"}}>{f.pax.join(", ")}</div></div>}
+        {onUpdatePax
+          ?<PaxEditor pax={f.pax||[]} crew={crew} onSave={onUpdatePax}/>
+          :(f.pax?.length>0&&<div><div style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>PAX</div><div style={{fontSize:10,color:"#0f172a"}}>{f.pax.join(", ")}</div></div>)}
         {f.confirmNo&&<div><div style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>CONF #</div><div style={{fontFamily:MN,fontSize:10,color:"#0f172a",fontWeight:700}}>{f.confirmNo}</div></div>}
         {f.cost&&<div><div style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>COST</div><div style={{fontFamily:MN,fontSize:10,color:"#047857",fontWeight:700}}>{f.currency||"$"}{f.cost}</div></div>}
       </div>
@@ -674,9 +1007,11 @@ function FlightsSection(){
       // Merge: skip flights already in state (by id), also skip if same flightNo+depDate exists
       const existingKeys=new Set(Object.values(flights).map(f=>`${f.flightNo}__${f.depDate}`));
       const novel=newFlights.filter(f=>!flights[f.id]&&!existingKeys.has(`${f.flightNo}__${f.depDate}`));
-      if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads — no new flights found.`);setScanning(false);return;}
+      const freshCount=novel.filter(f=>f.fresh48h).length;
+      const freshTag=freshCount?` (${freshCount} from last 48h)`:"";
+      if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads${data.freshThreads?` (${data.freshThreads} from last 48h)`:""} — no new flights found.`);setScanning(false);return;}
       setPendingImport(novel);
-      setScanMsg(`Found ${novel.length} new flight${novel.length>1?"s":""} in ${data.threadsFound} threads.`);
+      setScanMsg(`Found ${novel.length} new flight${novel.length>1?"s":""}${freshTag} in ${data.threadsFound} threads.`);
     }catch(e){setScanMsg(`Scan failed: ${e.message}`);}
     setScanning(false);
   };
@@ -752,7 +1087,7 @@ function FlightsSection(){
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {pendingImport.map(f=>(
-              <FlightCard key={f.id} f={f} actions={<>
+              <FlightCard key={f.id} f={f} crew={crew} onUpdatePax={newPax=>setPendingImport(p=>p.map(x=>x.id===f.id?{...x,pax:(newPax||[]).map(s=>String(s||"").trim()).filter(Boolean)}:x))} actions={<>
                 <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
                 <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Skip</button>
                 {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
@@ -769,7 +1104,7 @@ function FlightsSection(){
             {pending.map(f=>{
               const isConf=confirmingId===f.id;
               return(
-                <FlightCard key={f.id} f={f} actions={<>
+                <FlightCard key={f.id} f={f} crew={crew} onUpdatePax={newPax=>uFlight(f.id,{...f,pax:(newPax||[]).map(s=>String(s||"").trim()).filter(Boolean)})} actions={<>
                   <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"#1E40AF",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
                   <button onClick={()=>dismissFlight(f.id)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Dismiss</button>
                   {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
@@ -1130,6 +1465,7 @@ function TopBar({ss}){
   const activeClients=CLIENTS.filter(c=>c.status==="active"&&(c.type!=="festival"||canSeeFestivals));
   // Guard: if current active client isn't in the visible list, reset to bbn
   React.useEffect(()=>{if(!activeClients.find(c=>c.id===aC))setAC("bbn");},[canSeeFestivals]);
+  const stepBtn={background:"#f5f3ef",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:11,padding:mobile?"5px 8px":"3px 7px",cursor:"pointer",fontWeight:700,minHeight:mobile?30:undefined,lineHeight:1};
   return(
     <div style={{borderBottom:"1px solid #d6d3cd",background:"#fff",width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px 5px",minWidth:0,gap:8,width:"100%",maxWidth:900}}>
@@ -1144,34 +1480,44 @@ function TopBar({ss}){
           <div style={{display:"flex",gap:1,background:"#ebe8e3",borderRadius:7,padding:2}}>
             {ROLES.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:9,fontWeight:role===r.id?700:500,padding:"3px 8px",borderRadius:5,border:"none",cursor:"pointer",background:role===r.id?"#fff":"transparent",color:role===r.id?r.c:"#64748b",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
           </div>
-          <button onClick={()=>setUploadOpen(true)} title="Upload document" style={{background:"#ebe8e3",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:9,padding:"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600}}>↑ Upload</button>
-          <button onClick={()=>setExp(true)} title="Export / Import" style={{background:"#ebe8e3",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:9,padding:"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600}}>⇅</button>
-          <button onClick={()=>setCmd(true)} style={{background:"#ebe8e3",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:9,padding:"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600}}>⌘K</button>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:mobile?4:8,flexShrink:0,minWidth:0,maxWidth:"100%"}}>
+          {ss&&!mobile&&<span style={{fontSize:9,color:ss==="saved"?"#047857":"#94a3b8",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
+          {!mobile&&<div style={{display:"flex",gap:1,background:"#ebe8e3",borderRadius:7,padding:2}}>
+            {ROLES.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:9,fontWeight:role===r.id?700:500,padding:"3px 8px",borderRadius:5,border:"none",cursor:"pointer",background:role===r.id?"#fff":"transparent",color:role===r.id?r.c:"#64748b",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
+          </div>}
+          <button onClick={()=>setUploadOpen(true)} title="Upload document" style={{background:"#ebe8e3",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>{mobile?"↑":"↑ Upload"}</button>
+          <button onClick={()=>setExp(true)} title="Export / Import" style={{background:"#ebe8e3",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>⇅</button>
+          <button onClick={()=>setCmd(true)} title="Command palette (⌘K)" style={{background:"#ebe8e3",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>{mobile?"⌘":"⌘K"}</button>
           <SignOut/>
         </div>
       </div>
-      <div style={{padding:"3px 20px 5px"}}>
-        <select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:10,padding:"3px 9px",borderRadius:20,border:`1.5px solid ${curClient?.color||"#d6d3cd"}`,background:curClient?`${curClient.color}14`:"#fff",color:curClient?.color||"#475569",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer"}}>
+      <div style={{padding:mobile?"3px 12px 5px":"3px 20px 5px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:20,border:`1.5px solid ${curClient?.color||"#d6d3cd"}`,background:curClient?`${curClient.color}14`:"#fff",color:curClient?.color||"#475569",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer",minHeight:mobile?30:undefined}}>
           {activeClients.map(c=><option key={c.id} value={c.id} style={{color:"#0f172a",fontWeight:500}}>● {c.name} · {c.type==="festival"?"FEST":"ARTIST"}</option>)}
         </select>
+        {mobile&&<div style={{display:"flex",gap:1,background:"#ebe8e3",borderRadius:7,padding:2,marginLeft:"auto"}}>
+          {ROLES.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:10,fontWeight:role===r.id?700:500,padding:"4px 8px",borderRadius:5,border:"none",cursor:"pointer",background:role===r.id?"#fff":"transparent",color:role===r.id?r.c:"#64748b",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
+        </div>}
+        {mobile&&ss&&<span style={{fontSize:9,color:ss==="saved"?"#047857":"#94a3b8",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
       </div>
-      <div style={{display:"flex",padding:"0 20px",width:"100%",maxWidth:900,overflowX:"auto",overflowY:"hidden",scrollbarWidth:"thin",WebkitOverflowScrolling:"touch"}}>
+      <div style={{display:"flex",padding:mobile?"0 12px":"0 20px",width:"100%",maxWidth:900,overflowX:"auto",overflowY:"hidden",scrollbarWidth:"thin",WebkitOverflowScrolling:"touch"}}>
         {(orderedTabs||TABS).map(t=>{
           const isDrag=dragId===t.id;
           const isOver=overId===t.id&&dragId&&dragId!==t.id;
           return(
             <button
               key={t.id}
-              draggable={!t.disabled}
-              onDragStart={e=>{if(t.disabled)return;setDragId(t.id);e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",t.id);}catch{}}}
+              draggable={!t.disabled&&!mobile}
+              onDragStart={e=>{if(t.disabled||mobile)return;setDragId(t.id);e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/plain",t.id);}catch{}}}
               onDragOver={e=>{if(!dragId||t.disabled)return;e.preventDefault();e.dataTransfer.dropEffect="move";setOverId(t.id);}}
               onDragLeave={()=>{if(overId===t.id)setOverId(null);}}
               onDrop={e=>{e.preventDefault();if(dragId&&dragId!==t.id&&reorderTabs)reorderTabs(dragId,t.id);setDragId(null);setOverId(null);}}
               onDragEnd={()=>{setDragId(null);setOverId(null);}}
               onClick={()=>!t.disabled&&setTab(t.id)}
-              style={{padding:"6px 12px",fontSize:11,fontWeight:tab===t.id?700:500,color:t.disabled?"#c4bfb6":tab===t.id?"#0f172a":"#64748b",background:isOver?"#EDE9FE":"none",border:"none",cursor:t.disabled?"default":isDrag?"grabbing":"grab",borderBottom:tab===t.id?"2px solid #5B21B6":isOver?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:4,flexShrink:0,whiteSpace:"nowrap",opacity:isDrag?0.4:1,transition:"opacity .1s,background .1s",userSelect:"none"}}
+              style={{padding:mobile?"9px 13px":"6px 12px",fontSize:mobile?12:11,fontWeight:tab===t.id?700:500,color:t.disabled?"#c4bfb6":tab===t.id?"#0f172a":"#64748b",background:isOver?"#EDE9FE":"none",border:"none",cursor:t.disabled?"default":mobile?"pointer":isDrag?"grabbing":"grab",borderBottom:tab===t.id?"2px solid #5B21B6":isOver?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:5,flexShrink:0,whiteSpace:"nowrap",opacity:isDrag?0.4:1,transition:"opacity .1s,background .1s",userSelect:"none",minHeight:mobile?40:undefined}}
             >
-              <span style={{fontSize:10}}>{t.icon}</span>{t.label}{t.soon&&<span style={{fontSize:7,color:"#c4bfb6"}}>soon</span>}
+              <span style={{fontSize:mobile?12:10}}>{t.icon}</span>{t.label}{t.soon&&<span style={{fontSize:7,color:"#c4bfb6"}}>soon</span>}
             </button>
           );
         })}
@@ -1609,7 +1955,7 @@ function FlightDayStrip({sel}){
       );})()}
       {open&&(
         <div style={{borderTop:"1px solid #BFDBFE",display:"flex",flexDirection:"column",gap:0}}>
-          {[...deps.map(f=>({f,role:"dep"})),...arrs.map(f=>({f,role:"arr"}))].map(({f,role},i,arr)=>{
+          {tagFlightRoles(deps,arrs).map(({f,role},i,arr)=>{
             const isDep=role==="dep";
             const sameDay=f.depDate===f.arrDate;
             const live=liveStatuses[f.id];
@@ -1692,13 +2038,12 @@ function DayScheduleView({show,bus,split,sel}){
       const arrMin=hhmmToMin(bus.arr);
       items.push({type:"bus",id:"bus",sortMin:depMin??-1,bus,depMin,arrMin});
     }
-    // Departing flights
-    Object.values(flights).filter(f=>f.status==="confirmed"&&f.depDate===sel).forEach(f=>{
-      items.push({type:"flight",id:f.id,sortMin:hhmmToMin(f.dep)??-1,f,role:"dep"});
-    });
-    // Arriving flights (overnight — arrived from prev day)
-    Object.values(flights).filter(f=>f.status==="confirmed"&&f.arrDate===sel&&f.arrDate!==f.depDate).forEach(f=>{
-      items.push({type:"flight",id:`${f.id}_arr`,sortMin:hhmmToMin(f.arr)??-1,f,role:"arr"});
+    // Flights — tag last leg of a multi-leg same-day chain as "arr" (see tagFlightRoles)
+    const dayDeps=Object.values(flights).filter(f=>f.status==="confirmed"&&f.depDate===sel);
+    const dayArrs=Object.values(flights).filter(f=>f.status==="confirmed"&&f.arrDate===sel&&f.arrDate!==f.depDate);
+    tagFlightRoles(dayDeps,dayArrs).forEach(({f,role})=>{
+      const isArrOnly=role==="arr"&&f.arrDate===sel&&f.arrDate!==f.depDate;
+      items.push({type:"flight",id:isArrOnly?`${f.id}_arr`:f.id,sortMin:(isArrOnly?hhmmToMin(f.arr):hhmmToMin(f.dep))??-1,f,role});
     });
     // Lodging: check-in on this date
     Object.values(lodging||{}).filter(h=>h.checkIn===sel).forEach(h=>{
@@ -2356,7 +2701,7 @@ function TourCalendar(){
 }
 
 function FlightsListView(){
-  const{flights,uFlight,uRos,gRos,uFin,finance,crew,setShowCrew,setSel,setTab}=useContext(Ctx);
+  const{flights,uFlight,uRos,gRos,uFin,finance,crew,setShowCrew,setSel,setTab,sorted}=useContext(Ctx);
   const goToSchedule=(date)=>{setSel(date);setTab("ros");};
   const[scanning,setScanning]=useState(false);
   const[scanMsg,setScanMsg]=useState("");
@@ -2365,6 +2710,7 @@ function FlightsListView(){
   const[liveStatuses,setLiveStatuses]=useState({});  // keyed by flight id
   const[refreshingId,setRefreshingId]=useState(null);
   const[refreshingAll,setRefreshingAll]=useState(false);
+  const[reassignMsg,setReassignMsg]=useState("");
 
   const allFlights=Object.values(flights);
   const pending=allFlights.filter(f=>f.status==="pending").sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0);
@@ -2385,15 +2731,75 @@ function FlightsListView(){
       if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
       const existingKeys=new Set(allFlights.map(f=>`${f.flightNo}__${f.depDate}`));
       const novel=(data.flights||[]).filter(f=>!flights[f.id]&&!existingKeys.has(`${f.flightNo}__${f.depDate}`));
-      if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads — no new flights.`);setScanning(false);return;}
+      const freshCount=novel.filter(f=>f.fresh48h).length;
+      const freshTag=freshCount?` (${freshCount} from last 48h)`:"";
+      if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads${data.freshThreads?` (${data.freshThreads} from last 48h)`:""} — no new flights.`);setScanning(false);return;}
       setPendingImport(novel);
-      setScanMsg(`Found ${novel.length} new flight${novel.length>1?"s":""} in ${data.threadsFound} threads.`);
+      setScanMsg(`Found ${novel.length} new flight${novel.length>1?"s":""}${freshTag} in ${data.threadsFound} threads.`);
     }catch(e){setScanMsg(`Scan failed: ${e.message}`);}
     setScanning(false);
   };
 
   const importFlight=f=>{uFlight(f.id,{...f,status:"pending"});setPendingImport(p=>p.filter(x=>x.id!==f.id));};
   const importAll=()=>{pendingImport.forEach(f=>uFlight(f.id,{...f,status:"pending"}));setPendingImport([]);};
+
+  // Apply smart show-matching for one flight: treats the flight as part of a multi-leg itinerary
+  // (all legs sharing confirmNo/bookingRef/pax), runs inbound-side (last leg destination) and
+  // outbound-side (first leg origin) matching independently against the show list. A flight can
+  // attach to BOTH a prior show (outbound) and an upcoming show (inbound) simultaneously.
+  // Returns {inShow, outShow, legs, allLegObjs} so callers can report the matches.
+  const assignFlightToShows=(f,allFlightsObj)=>{
+    const legs=findItineraryLegs(f,allFlightsObj);
+    if(!legs.length)return{inShow:null,outShow:null,legs:[],allLegObjs:[]};
+    const firstLeg=legs[0],lastLeg=legs[legs.length-1];
+    const allLegObjs=legs.map(flightToLeg);
+    const inShow=matchShowByAirport(lastLeg.to,lastLeg.toCity,lastLeg.arrDate||lastLeg.depDate,sorted||[],"inbound");
+    const outShow=matchShowByAirport(firstLeg.from,firstLeg.fromCity,firstLeg.depDate,sorted||[],"outbound");
+    if(!f.pax?.length||!crew?.length)return{inShow,outShow,legs,allLegObjs};
+    f.pax.forEach(name=>{
+      if(!name)return;
+      const fname=name.split(" ")[0].toLowerCase();
+      const match=crew.find(c=>c.name&&c.name.toLowerCase().includes(fname));
+      if(!match)return;
+      if(inShow){
+        setShowCrew(p=>{
+          const cur=p[inShow.date]?.[match.id]||{};
+          const flightIds=new Set(allLegObjs.map(l=>l.flightId));
+          const existing=(cur.inbound||[]).filter(l=>!flightIds.has(l.flightId));
+          return{...p,[inShow.date]:{...p[inShow.date],[match.id]:{
+            ...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,
+            inboundDate:lastLeg.arrDate||lastLeg.depDate,inboundTime:lastLeg.arr||"",
+            inbound:[...existing,...allLegObjs]
+          }}};
+        });
+      }
+      if(outShow){
+        setShowCrew(p=>{
+          const cur=p[outShow.date]?.[match.id]||{};
+          const flightIds=new Set(allLegObjs.map(l=>l.flightId));
+          const existing=(cur.outbound||[]).filter(l=>!flightIds.has(l.flightId));
+          return{...p,[outShow.date]:{...p[outShow.date],[match.id]:{
+            ...cur,attending:true,outboundMode:"fly",outboundConfirmed:true,
+            outboundDate:firstLeg.depDate,outboundTime:firstLeg.dep||"",
+            outbound:[...existing,...allLegObjs]
+          }}};
+        });
+      }
+      // Fallback: no geographic match anywhere — use arrival date as show key (old behavior).
+      if(!inShow&&!outShow){
+        const arrD=f.arrDate||f.depDate;
+        setShowCrew(p=>{
+          const cur=p[arrD]?.[match.id]||{};
+          const ex=(cur.inbound||[]).filter(l=>l.flightId!==f.id);
+          return{...p,[arrD]:{...p[arrD],[match.id]:{
+            ...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,
+            inboundDate:arrD,inboundTime:f.arr||"",inbound:[...ex,flightToLeg(f)]
+          }}};
+        });
+      }
+    });
+    return{inShow,outShow,legs,allLegObjs};
+  };
 
   const confirmFlight=f=>{
     setConfirmingId(f.id);
@@ -2403,31 +2809,73 @@ function FlightsListView(){
       const existing=finance[f.depDate]?.flightExpenses||[];
       uFin(f.depDate,{flightExpenses:[...existing.filter(e=>e.flightId!==f.id),{flightId:f.id,label:`${f.flightNo||f.carrier} ${f.from}→${f.to}`,amount:f.cost,currency:f.currency||"USD",pax:f.pax||[],carrier:f.carrier}]});
     }
-    if(f.pax?.length&&crew?.length){
-      const leg={id:`leg_${f.id}`,flight:f.flightNo||"",carrier:f.carrier||"",from:f.from,fromCity:f.fromCity||f.from,to:f.to,toCity:f.toCity||f.to,depart:f.dep,arrive:f.arr,conf:f.confirmNo||f.bookingRef||"",status:"confirmed",flightId:f.id};
-      f.pax.forEach(name=>{
-        if(!name)return;
+    // Include this newly-confirmed flight in the itinerary pool (it may not be in flights yet).
+    assignFlightToShows(f,{...flights,[f.id]:{...f,status:"confirmed"}});
+    setTimeout(()=>setConfirmingId(null),1200);
+  };
+
+  // Edit pax on a confirmed/pending flight. For confirmed flights, additionally:
+  //   - pull this itinerary's legs out of removed pax's showCrew records (both inbound + outbound)
+  //   - re-run show matching so newly-added pax get enrolled on matched shows
+  // Pending/import flights just get the pax list updated; matching runs on confirm.
+  const updatePax=(f,newPax)=>{
+    const oldPax=f.pax||[];
+    const cleaned=(newPax||[]).map(s=>String(s||"").trim()).filter(Boolean);
+    const removed=oldPax.filter(p=>!cleaned.some(n=>n.toLowerCase()===p.toLowerCase()));
+    const nextFlight={...f,pax:cleaned};
+    uFlight(f.id,nextFlight);
+    if(f.status!=="confirmed")return;
+    const nextFlightsObj={...flights,[f.id]:nextFlight};
+    const legs=findItineraryLegs(nextFlight,nextFlightsObj);
+    const firstLeg=legs[0]||nextFlight,lastLeg=legs[legs.length-1]||nextFlight;
+    const inShow=matchShowByAirport(lastLeg.to,lastLeg.toCity,lastLeg.arrDate||lastLeg.depDate,sorted||[],"inbound");
+    const outShow=matchShowByAirport(firstLeg.from,firstLeg.fromCity,firstLeg.depDate,sorted||[],"outbound");
+    const itinFlightIds=new Set(legs.map(l=>l.id));
+    // Remove this itinerary's legs from removed-pax crew records on both matched shows.
+    if(removed.length&&(inShow||outShow)){
+      removed.forEach(name=>{
         const fname=name.split(" ")[0].toLowerCase();
-        const match=crew.find(c=>c.name&&c.name.toLowerCase().includes(fname));
+        const match=(crew||[]).find(c=>c.name&&c.name.toLowerCase().includes(fname));
         if(!match)return;
-        const arrD=f.arrDate||f.depDate;
-        const depD=f.depDate;
-        const sameDay=arrD===depD;
-        setShowCrew(p=>{
-          const cur=p[arrD]?.[match.id]||{};
-          const ex=(cur.inbound||[]).filter(l=>l.flightId!==f.id);
-          return{...p,[arrD]:{...p[arrD],[match.id]:{...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,inboundDate:arrD,inboundTime:f.arr||"",inbound:[...ex,leg]}}};
-        });
-        if(!sameDay){
+        [inShow,outShow].filter(Boolean).forEach(show=>{
           setShowCrew(p=>{
-            const cur=p[depD]?.[match.id]||{};
-            const ex=(cur.outbound||[]).filter(l=>l.flightId!==f.id);
-            return{...p,[depD]:{...p[depD],[match.id]:{...cur,attending:true,outboundMode:"fly",outboundDate:depD,outboundTime:f.dep||"",outbound:[...ex,leg]}}};
+            const cur=p[show.date]?.[match.id];if(!cur)return p;
+            return{...p,[show.date]:{...p[show.date],[match.id]:{
+              ...cur,
+              inbound:(cur.inbound||[]).filter(l=>!itinFlightIds.has(l.flightId)),
+              outbound:(cur.outbound||[]).filter(l=>!itinFlightIds.has(l.flightId)),
+            }}};
           });
-        }
+        });
       });
     }
-    setTimeout(()=>setConfirmingId(null),1200);
+    // Re-assign for the updated pax list. Idempotent for unchanged names; adds new ones.
+    assignFlightToShows(nextFlight,nextFlightsObj);
+  };
+  // For a flight still in the pending-import tray, edit pax without persisting (pre-import).
+  const updatePendingImportPax=(f,newPax)=>{
+    const cleaned=(newPax||[]).map(s=>String(s||"").trim()).filter(Boolean);
+    setPendingImport(p=>p.map(x=>x.id===f.id?{...x,pax:cleaned}:x));
+  };
+
+  // Re-run geographic+chronological matching across all confirmed flights. Useful after adding
+  // new shows, correcting city data, or seeding flights ahead of attending confirmation.
+  const reassignAllFlights=()=>{
+    const conf=Object.values(flights).filter(f=>f.status==="confirmed");
+    if(!conf.length){setReassignMsg("No confirmed flights to re-assign.");setTimeout(()=>setReassignMsg(""),3000);return;}
+    const seenItin=new Set();
+    let inCount=0,outCount=0,noneCount=0;
+    conf.forEach(f=>{
+      const key=flightItinKey(f);
+      if(seenItin.has(key))return;
+      seenItin.add(key);
+      const{inShow,outShow}=assignFlightToShows(f,flights);
+      if(inShow)inCount++;
+      if(outShow)outCount++;
+      if(!inShow&&!outShow)noneCount++;
+    });
+    setReassignMsg(`Matched ${inCount} inbound, ${outCount} outbound across ${seenItin.size} itinerary${seenItin.size>1?"s":""}. ${noneCount?`${noneCount} unmatched.`:""}`);
+    setTimeout(()=>setReassignMsg(""),5000);
   };
 
   const fetchStatus=async(f)=>{
@@ -2473,7 +2921,9 @@ function FlightsListView(){
         <span style={{fontSize:10,fontWeight:800,color:"#1E40AF",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
         <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"#DBEAFE",color:"#1E40AF",fontWeight:700}}>{confirmed.length} confirmed · {pending.length} pending</span>
         {scanMsg&&<span style={{fontSize:9,color:scanning?"#5B21B6":"#64748b",fontFamily:MN}}>{scanMsg}</span>}
-        <div style={{marginLeft:"auto",display:"flex",gap:6}}>
+        {reassignMsg&&<span style={{fontSize:9,color:"#065F46",fontFamily:MN,fontWeight:600}}>{reassignMsg}</span>}
+        <div style={{marginLeft:"auto",display:"flex",gap:6,flexWrap:"wrap"}}>
+          {confirmed.length>0&&<button onClick={reassignAllFlights} title="Re-match all confirmed flights to tour shows by airport proximity + date window" style={{background:"#f5f3ef",color:"#065F46",border:"1px solid #6EE7B7",borderRadius:6,fontSize:10,padding:"5px 12px",cursor:"pointer",fontWeight:700}}>⟲ Re-match to Shows</button>}
           {confirmed.length>0&&<button onClick={refreshAllStatus} disabled={refreshingAll} style={{background:refreshingAll?"#ebe8e3":"#f5f3ef",color:refreshingAll?"#94a3b8":"#5B21B6",border:"1px solid #d6d3cd",borderRadius:6,fontSize:10,padding:"5px 12px",cursor:refreshingAll?"default":"pointer",fontWeight:700}}>{refreshingAll?"Refreshing…":"⟳ Refresh Status"}</button>}
           <button onClick={scanFlights} disabled={scanning} style={{background:scanning?"#ebe8e3":"#1E40AF",color:scanning?"#64748b":"#fff",border:"none",borderRadius:6,fontSize:10,padding:"5px 14px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail for Flights"}</button>
         </div>
@@ -2488,7 +2938,7 @@ function FlightsListView(){
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {pendingImport.map(f=>(
-              <FlightCard key={f.id} f={f} actions={<>
+              <FlightCard key={f.id} f={f} crew={crew} onUpdatePax={newPax=>updatePendingImportPax(f,newPax)} actions={<>
                 <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
                 <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Skip</button>
                 {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
@@ -2504,7 +2954,7 @@ function FlightsListView(){
           <div style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.08em",marginBottom:8}}>PENDING CONFIRMATION <span style={{background:"#FEF3C7",color:"#92400E",borderRadius:8,padding:"1px 6px",fontWeight:700,fontSize:8}}>{pending.length}</span></div>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {pending.map(f=>{const isConf=confirmingId===f.id;return(
-              <FlightCard key={f.id} f={f} actions={<>
+              <FlightCard key={f.id} f={f} crew={crew} onUpdatePax={newPax=>updatePax(f,newPax)} actions={<>
                 <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"#1E40AF",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
                 <button onClick={()=>uFlight(f.id,{...f,status:"dismissed"})} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Dismiss</button>
                 {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
@@ -2524,18 +2974,30 @@ function FlightsListView(){
                 <div style={{flex:1,height:1,background:"#d6d3cd"}}/>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                {byDate[date].map(f=>(
-                  <FlightCard key={f.id} f={f}
-                    liveStatus={liveStatuses[f.id]||null}
-                    refreshing={refreshingId===f.id}
-                    onRefreshStatus={f.flightNo?()=>refreshStatus(f):null}
-                    actions={<>
-                      <button onClick={()=>goToSchedule(f.depDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700}}>→ Schedule {f.depDate?.slice(5)}</button>
-                      {f.arrDate&&f.arrDate!==f.depDate&&<button onClick={()=>goToSchedule(f.arrDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700}}>→ Arr {f.arrDate?.slice(5)}</button>}
-                      <button onClick={()=>uFlight(f.id,{...f,status:"dismissed"})} style={{marginLeft:"auto",fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#94a3b8",cursor:"pointer"}}>Remove</button>
-                    </>}
-                  />
-                ))}
+                {byDate[date].map(f=>{
+                  const legs=findItineraryLegs(f,flights);
+                  const firstLeg=legs[0]||f;const lastLeg=legs[legs.length-1]||f;
+                  const inShow=matchShowByAirport(lastLeg.to,lastLeg.toCity,lastLeg.arrDate||lastLeg.depDate,sorted||[],"inbound");
+                  const outShow=matchShowByAirport(firstLeg.from,firstLeg.fromCity,firstLeg.depDate,sorted||[],"outbound");
+                  const matchBadge=(show,label,bg,c)=>show?<button onClick={()=>goToSchedule(show.date)} title={`${label} match: ${show.venue}`} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:`1px solid ${c}40`,background:bg,color:c,cursor:"pointer",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4}}><span style={{fontSize:7,letterSpacing:"0.06em"}}>{label}</span>{show.city}<span style={{fontFamily:MN,fontSize:8,opacity:.7}}>{fD(show.date)}</span></button>:null;
+                  return(
+                    <FlightCard key={f.id} f={f}
+                      crew={crew}
+                      onUpdatePax={newPax=>updatePax(f,newPax)}
+                      liveStatus={liveStatuses[f.id]||null}
+                      refreshing={refreshingId===f.id}
+                      onRefreshStatus={f.flightNo?()=>refreshStatus(f):null}
+                      actions={<>
+                        {matchBadge(outShow,"← OUT","#FEF3C7","#92400E")}
+                        {matchBadge(inShow,"IN →","#D1FAE5","#047857")}
+                        {!inShow&&!outShow&&<span style={{fontSize:9,color:"#94a3b8",fontStyle:"italic"}}>No show match — add city to airport table to match.</span>}
+                        <button onClick={()=>goToSchedule(f.depDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700}}>→ Schedule {f.depDate?.slice(5)}</button>
+                        {f.arrDate&&f.arrDate!==f.depDate&&<button onClick={()=>goToSchedule(f.arrDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700}}>→ Arr {f.arrDate?.slice(5)}</button>}
+                        <button onClick={()=>uFlight(f.id,{...f,status:"dismissed"})} style={{marginLeft:"auto",fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#94a3b8",cursor:"pointer"}}>Remove</button>
+                      </>}
+                    />
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -2547,20 +3009,272 @@ function FlightsListView(){
   );
 }
 
-function TransTab(){
+// Per-date aggregated view of all travel segments (flights + ground transfers + bus + rail + hotel check-ins).
+// Master Tour-style: chronological list on the left, editor drawer on the right. The currently-selected show
+// date (sel) drives what's displayed; header shows a prev/next stepper and jumps to the Travel Dates menu.
+function TravelDayView(){
+  const{flights,uFlight,sel,setSel,setDateMenu,shows,sorted,tourDaysSorted,crew,setShowCrew,showCrew,mobile,pushUndo}=useContext(Ctx);
+  const[activeId,setActiveId]=useState(null);
+  const[addType,setAddType]=useState(null);
+  const[travelNotes,setTravelNotes]=useState("");
+  const curShow=shows?.[sel];
+  const curDay=(tourDaysSorted||[]).find(d=>d.date===sel);
+  const title=curShow?.venue||curShow?.city||(curDay?.type==="travel"?"Travel Day":curDay?.type==="split"?"Split Day":curDay?.type==="off"?"Off Day":"—");
+  const subTitle=curShow?curShow.city:(curDay?.city||"");
+
+  // All non-dismissed segments touching sel (depDate === sel OR arrDate === sel).
+  const daySegs=useMemo(()=>{
+    return Object.values(flights||{})
+      .filter(s=>s&&s.status!=="dismissed")
+      .filter(s=>s.depDate===sel||s.arrDate===sel)
+      .map(s=>{
+        const isDep=s.depDate===sel;
+        const isArrOnly=s.arrDate===sel&&s.arrDate!==s.depDate;
+        const sortMin=(isArrOnly?hhmmToMin(s.arr):hhmmToMin(s.dep))??0;
+        return{...s,_role:isArrOnly?"arr":"dep",_sort:sortMin};
+      })
+      .sort((a,b)=>a._sort-b._sort);
+  },[flights,sel]);
+
+  const active=daySegs.find(s=>s.id===activeId)||null;
+
+  // Add a new segment (local-only until first save; uses timestamp-based id).
+  const handleAdd=(type)=>{
+    const id=`${type==="air"?"fl":"seg"}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
+    const base={id,type,status:"confirmed",depDate:sel,arrDate:sel,dep:"",arr:"",from:"",to:"",fromCity:"",toCity:"",pax:[]};
+    const seed=type==="ground"?{...base,mode:"uber"}:type==="hotel"?{...base,hotelName:"",arr:"15:00",dep:"11:00"}:base;
+    uFlight(id,seed);
+    setActiveId(id);setAddType(null);
+  };
+
+  const pax=(seg)=>(seg?.pax||[]).filter(Boolean);
+  const paxMatch=name=>(crew||[]).find(c=>c.name&&c.name.toLowerCase().includes(String(name).split(" ")[0].toLowerCase()));
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:12,minHeight:0}}>
+      {/* Header */}
+      <div style={{background:"linear-gradient(90deg,#1E1B4B 0%,#312E81 100%)",borderRadius:10,padding:"14px 18px",color:"#fff",display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+        <div style={{minWidth:0}}>
+          <div style={{fontSize:18,fontWeight:800,letterSpacing:"-0.02em"}}>{title}</div>
+          <div style={{fontSize:11,color:"#C7D2FE",marginTop:2}}>{subTitle}</div>
+          <div style={{fontSize:9,fontFamily:MN,color:"#A5B4FC",marginTop:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>Travel Notes</div>
+          <textarea value={travelNotes} onChange={e=>setTravelNotes(e.target.value)} placeholder="Notes for today's travel (scratchpad, not persisted yet)" rows={2} style={{marginTop:4,width:"100%",minWidth:220,maxWidth:560,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:6,padding:"6px 9px",color:"#fff",fontSize:10,fontFamily:"'Outfit',system-ui",resize:"vertical",outline:"none"}}/>
+        </div>
+        <div style={{textAlign:"right",fontSize:11,color:"#C7D2FE",flexShrink:0}}>
+          <div style={{fontWeight:700,fontSize:12,color:"#fff"}}>{fFull(sel)}</div>
+          <div style={{fontSize:10,marginTop:2,letterSpacing:"0.04em",textTransform:"uppercase",color:"#A5B4FC"}}>{curDay?.type==="travel"?"Travel Day":curDay?.type==="split"?"Split Day":curDay?.type==="off"?"Off Day":"Show Day"}</div>
+          <button onClick={()=>setDateMenu(true)} style={{marginTop:8,background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",fontSize:10,padding:"4px 10px",borderRadius:5,cursor:"pointer",fontWeight:700}}>☰ Change Day</button>
+        </div>
+      </div>
+
+      {/* Add bar */}
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <span style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em"}}>ADD SEGMENT</span>
+        {[["air","✈ Flight"],["ground","🚗 Ground"],["bus","🚌 Bus"],["rail","🚆 Rail"],["hotel","🏨 Hotel"]].map(([k,l])=>(
+          <button key={k} onClick={()=>handleAdd(k)} style={{fontSize:10,padding:"4px 11px",borderRadius:6,border:`1px solid ${SEG_META[k].border}`,background:SEG_META[k].bg,color:SEG_META[k].color,cursor:"pointer",fontWeight:700}}>{l}</button>
+        ))}
+        <span style={{marginLeft:"auto",fontSize:9,color:"#94a3b8",fontFamily:MN}}>{daySegs.length} segment{daySegs.length===1?"":"s"} on {fD(sel)}</span>
+      </div>
+
+      {/* Day list + drawer */}
+      <div style={{display:"flex",gap:12,flexWrap:mobile?"wrap":"nowrap",minHeight:0}}>
+        {/* Left: day list */}
+        <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",gap:6}}>
+          {daySegs.length===0&&(
+            <div style={{padding:"28px 0",textAlign:"center",background:"#fff",border:"1px dashed #d6d3cd",borderRadius:10}}>
+              <div style={{fontSize:22,marginBottom:6,opacity:0.25}}>◌</div>
+              <div style={{fontSize:11,fontWeight:600,color:"#0f172a",marginBottom:3}}>No travel on this day</div>
+              <div style={{fontSize:10,color:"#94a3b8"}}>Use the buttons above to add a flight, ground transfer, or hotel check-in.</div>
+            </div>
+          )}
+          {daySegs.map(s=>{
+            const m=segMeta(s);const isActive=s.id===activeId;
+            const timeLabel=s._role==="arr"?`Arr ${s.arr||"—"}`:`${s.dep||"—"}${s.arr?` – ${s.arr}`:""}`;
+            const routeLabel=segType(s)==="hotel"?(s.hotelName||s.to||"Hotel"):`${s.from||"—"}${s.to?` → ${s.to}`:""}`;
+            const detail=segType(s)==="air"?`${s.flightNo||""} ${s.carrier||""}`.trim():segType(s)==="ground"?`${s.mode||"drive"}${s.provider?` · ${s.provider}`:""}`:segType(s)==="hotel"?(s.hotelName||""):(s.carrier||s.mode||"");
+            const paxList=pax(s);
+            return(
+              <div key={s.id} onClick={()=>setActiveId(s.id)} className="rh" style={{display:"grid",gridTemplateColumns:"20px auto 1fr auto",gap:10,padding:"9px 12px",background:"#fff",border:`1px solid ${isActive?m.border:"#d6d3cd"}`,borderLeft:`3px solid ${m.color}`,borderRadius:9,cursor:"pointer",boxShadow:isActive?"0 0 0 2px #EDE9FE":undefined}}>
+                <div style={{fontSize:14,lineHeight:1,paddingTop:2}}>{m.icon}</div>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:2,flexShrink:0,minWidth:90}}>
+                  {paxList.length>0&&<div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+                    {paxList.slice(0,3).map((n,i)=>{const mch=paxMatch(n);return(
+                      <span key={i} style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:mch?"#D1FAE5":"#f1f5f9",color:mch?"#047857":"#475569",fontWeight:700,letterSpacing:"0.02em"}}>{String(n).split(" ")[0].toUpperCase()}</span>
+                    );})}
+                    {paxList.length>3&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:"#f1f5f9",color:"#64748b",fontWeight:700}}>+{paxList.length-3}</span>}
+                  </div>}
+                  <div style={{fontFamily:MN,fontSize:10,fontWeight:700,color:m.color}}>{timeLabel}</div>
+                </div>
+                <div style={{minWidth:0}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#0f172a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{routeLabel}</div>
+                  {detail&&<div style={{fontSize:9,color:"#64748b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{detail}</div>}
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+                  {s._role==="arr"&&<span style={{fontSize:7,padding:"2px 5px",borderRadius:3,background:"#D1FAE5",color:"#047857",fontWeight:800,letterSpacing:"0.06em"}}>ARR</span>}
+                  {s.fresh48h&&<span style={{fontSize:7,padding:"2px 5px",borderRadius:3,background:"#EDE9FE",color:"#5B21B6",fontWeight:800,letterSpacing:"0.06em"}}>NEW</span>}
+                  <button onClick={e=>{e.stopPropagation();if(confirm(`Delete this ${m.label.toLowerCase()}?`)){const prev={...s};uFlight(s.id,{...s,status:"dismissed"});pushUndo(`${m.label} deleted.`,()=>uFlight(s.id,prev));if(activeId===s.id)setActiveId(null);}}} title="Delete segment" style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:13,lineHeight:1,padding:"0 4px"}}>×</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {/* Right: editor drawer */}
+        {active&&<SegmentDrawer key={active.id} seg={active} crew={crew||[]} sorted={sorted||[]} onChange={patch=>uFlight(active.id,{...active,...patch})} onClose={()=>setActiveId(null)}/>}
+      </div>
+    </div>
+  );
+}
+
+// Editor drawer for one segment. Fields adapt to type (air/ground/bus/rail/hotel).
+// For ground transfers going TO a known airport, the pickup-time suggestion uses the
+// matched flight's scheduled dep minus the airport buffer.
+function SegmentDrawer({seg,crew,sorted,onChange,onClose}){
   const{flights}=useContext(Ctx);
-  const[view,setView]=useState("calendar");
+  const t=segType(seg);const m=segMeta(seg);
+  const[hasBag,setHasBag]=useState(seg.hasBag!==false);
+  // Pickup-time suggestion when a ground transfer ends at a known airport. Finds the
+  // matching outbound flight (same-day, same dep airport, pax overlap) and computes
+  // when this ground segment should arrive at the airport: flight.dep - airport buffer.
+  const suggestion=useMemo(()=>{
+    if(t!=="ground"||!seg.to||!seg.depDate)return null;
+    const toIata=String(seg.to).toUpperCase();
+    if(!AIRPORT_BUFFERS[toIata])return null;
+    const buffer=airportBufferMin(toIata,hasBag);
+    const paxSet=new Set((seg.pax||[]).map(n=>String(n||"").toLowerCase()));
+    const sameDay=Object.values(flights||{}).filter(f=>segType(f)==="air"&&f.status!=="dismissed"&&f.depDate===seg.depDate&&String(f.from||"").toUpperCase()===toIata);
+    const match=sameDay.find(f=>{
+      if(!paxSet.size)return true;
+      return(f.pax||[]).some(n=>paxSet.has(String(n||"").toLowerCase()));
+    });
+    if(!match||!match.dep)return{buffer,airport:toIata,match:null,arriveBy:null};
+    return{buffer,airport:toIata,match,arriveBy:subtractMinutes(match.dep,buffer)};
+  },[t,seg.to,seg.depDate,seg.pax,hasBag,flights]);
+
+  const setField=(k,v)=>onChange({[k]:v});
+  const inp={background:"#fff",border:"1px solid #d6d3cd",borderRadius:5,fontSize:11,padding:"5px 8px",outline:"none",fontFamily:"'Outfit',system-ui",width:"100%",boxSizing:"border-box"};
+  const lab={fontSize:8,fontWeight:700,color:"#64748b",letterSpacing:"0.06em",marginBottom:3,textTransform:"uppercase"};
+  const sub=(label,children)=>(<div style={{display:"flex",flexDirection:"column",gap:0,minWidth:0}}><div style={lab}>{label}</div>{children}</div>);
+
+  return(
+    <div style={{width:380,maxWidth:"100%",flexShrink:0,background:"#fff",border:`1px solid ${m.border}`,borderRadius:10,padding:12,display:"flex",flexDirection:"column",gap:10,alignSelf:"flex-start",position:"sticky",top:0}}>
+      <div style={{display:"flex",alignItems:"center",gap:6}}>
+        <span style={{fontSize:16}}>{m.icon}</span>
+        <div style={{fontSize:13,fontWeight:800,color:m.color,letterSpacing:"-0.01em"}}>{m.label}</div>
+        <div style={{marginLeft:"auto",display:"flex",gap:4}}>
+          {[["confirmed","Confirmed","#047857","#D1FAE5"],["pending","Pending","#92400E","#FEF3C7"]].map(([v,l,c,bg])=>(
+            <button key={v} onClick={()=>setField("status",v)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",cursor:"pointer",fontWeight:700,background:seg.status===v?bg:"#f5f3ef",color:seg.status===v?c:"#64748b"}}>{l}</button>
+          ))}
+          <button onClick={onClose} title="Close" style={{background:"none",border:"none",cursor:"pointer",color:"#64748b",fontSize:16,lineHeight:1}}>×</button>
+        </div>
+      </div>
+
+      {/* Type-specific identity row */}
+      {t==="air"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {sub("Flight #",<input value={seg.flightNo||""} onChange={e=>setField("flightNo",e.target.value)} placeholder="AC601" style={{...inp,fontFamily:MN}}/>)}
+          {sub("Carrier",<input value={seg.carrier||""} onChange={e=>setField("carrier",e.target.value)} placeholder="Air Canada" style={inp}/>)}
+        </div>
+      )}
+      {t==="ground"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {sub("Mode",<select value={seg.mode||"uber"} onChange={e=>setField("mode",e.target.value)} style={inp}>{["uber","lyft","drive","taxi","rideshare","friend","shuttle"].map(m=><option key={m} value={m}>{m.charAt(0).toUpperCase()+m.slice(1)}</option>)}</select>)}
+          {sub("Provider / Driver",<input value={seg.provider||""} onChange={e=>setField("provider",e.target.value)} placeholder="e.g. Guillaume, Uber Black" style={inp}/>)}
+        </div>
+      )}
+      {(t==="bus"||t==="rail"||t==="sea")&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {sub(t==="rail"?"Train #":"Operator",<input value={seg.flightNo||seg.carrier||""} onChange={e=>setField(t==="rail"?"flightNo":"carrier",e.target.value)} placeholder={t==="rail"?"Eurostar 9137":"Pieter Smit"} style={inp}/>)}
+          {sub("Confirmation",<input value={seg.confirmNo||""} onChange={e=>setField("confirmNo",e.target.value)} style={{...inp,fontFamily:MN}}/>)}
+        </div>
+      )}
+      {t==="hotel"&&(
+        <div>
+          {sub("Hotel",<input value={seg.hotelName||""} onChange={e=>setField("hotelName",e.target.value)} placeholder="Hotel name" style={inp}/>)}
+        </div>
+      )}
+
+      {/* Route */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        {sub(t==="hotel"?"Address":"From",<input value={seg.from||""} onChange={e=>setField("from",e.target.value)} placeholder={t==="air"?"DUB":t==="ground"?"Hotel Name / Address":"Origin"} style={inp}/>)}
+        {t!=="hotel"&&sub("To",<input value={seg.to||""} onChange={e=>setField("to",e.target.value)} placeholder={t==="air"?"AMS":"Venue / Airport"} style={inp}/>)}
+      </div>
+      {(t==="air"||t==="ground"||t==="bus"||t==="rail"||t==="sea")&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+          {sub("From City",<input value={seg.fromCity||""} onChange={e=>setField("fromCity",e.target.value)} placeholder="Dublin" style={inp}/>)}
+          {sub("To City",<input value={seg.toCity||""} onChange={e=>setField("toCity",e.target.value)} placeholder="Amsterdam" style={inp}/>)}
+        </div>
+      )}
+
+      {/* Times */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6}}>
+        {sub("Dep Date",<input type="date" value={seg.depDate||""} onChange={e=>setField("depDate",e.target.value)} style={{...inp,fontFamily:MN}}/>)}
+        {sub("Dep Time",<input type="time" value={seg.dep||""} onChange={e=>setField("dep",e.target.value)} style={{...inp,fontFamily:MN}}/>)}
+        {sub("Arr Date",<input type="date" value={seg.arrDate||""} onChange={e=>setField("arrDate",e.target.value)} style={{...inp,fontFamily:MN}}/>)}
+        {sub("Arr Time",<input type="time" value={seg.arr||""} onChange={e=>setField("arr",e.target.value)} style={{...inp,fontFamily:MN}}/>)}
+      </div>
+
+      {/* Ground → airport pickup suggestion */}
+      {suggestion&&(
+        <div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:7,padding:"8px 10px",fontSize:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4,flexWrap:"wrap"}}>
+            <span style={{fontSize:9,fontWeight:800,color:"#92400E",letterSpacing:"0.06em"}}>AIRPORT PICKUP</span>
+            <span style={{marginLeft:"auto",display:"flex",gap:2,background:"#fff",padding:2,borderRadius:5}}>
+              {[[true,"With bag"],[false,"Carry-on"]].map(([v,l])=>(
+                <button key={String(v)} onClick={()=>setHasBag(v)} style={{fontSize:8,padding:"2px 7px",borderRadius:3,border:"none",background:hasBag===v?"#92400E":"transparent",color:hasBag===v?"#fff":"#92400E",cursor:"pointer",fontWeight:700}}>{l}</button>
+              ))}
+            </span>
+          </div>
+          {suggestion.match?(
+            <>
+              <div style={{color:"#78350F"}}>
+                Matched outbound <strong style={{fontFamily:MN}}>{suggestion.match.flightNo||suggestion.match.carrier}</strong> departing <strong style={{fontFamily:MN}}>{suggestion.airport}</strong> at <strong style={{fontFamily:MN}}>{suggestion.match.dep}</strong>. Arrive airport by <strong style={{fontFamily:MN,fontSize:11}}>{suggestion.arriveBy}</strong> ({suggestion.buffer} min buffer).
+              </div>
+              <div style={{display:"flex",gap:5,marginTop:6,flexWrap:"wrap"}}>
+                <button onClick={()=>{setField("arr",suggestion.arriveBy?.replace("*",""));if(!seg.arrDate)setField("arrDate",seg.depDate);}} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"none",background:"#92400E",color:"#fff",cursor:"pointer",fontWeight:700}}>Set arrival = {suggestion.arriveBy}</button>
+                {(seg.pax||[]).length===0&&suggestion.match.pax?.length>0&&<button onClick={()=>setField("pax",suggestion.match.pax)} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid #FDE68A",background:"#fff",color:"#92400E",cursor:"pointer",fontWeight:700}}>Copy pax from flight ({suggestion.match.pax.length})</button>}
+              </div>
+            </>
+          ):(
+            <div style={{color:"#78350F"}}>
+              {suggestion.airport} buffer: <strong>{suggestion.buffer} min</strong> before scheduled dep. No matching outbound flight found in the travel day — set pax, or add the flight first.
+            </div>
+          )}
+          <div style={{marginTop:4,fontSize:9,color:"#a16207",fontStyle:"italic"}}>Override manually if local traffic or pickup window differs.</div>
+        </div>
+      )}
+
+      {/* Pax */}
+      <div>
+        <div style={lab}>Passengers</div>
+        <PaxEditor pax={seg.pax||[]} crew={crew} onSave={newPax=>setField("pax",(newPax||[]).map(s=>String(s||"").trim()).filter(Boolean))}/>
+      </div>
+
+      {/* Notes + confirm# + cost */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        {sub("Confirm #",<input value={seg.confirmNo||""} onChange={e=>setField("confirmNo",e.target.value)} style={{...inp,fontFamily:MN}}/>)}
+        {sub("Cost",<input type="number" value={seg.cost||""} onChange={e=>setField("cost",Number(e.target.value)||"")} placeholder="0.00" style={inp}/>)}
+      </div>
+      {sub("Notes",<textarea value={seg.notes||""} onChange={e=>setField("notes",e.target.value)} rows={2} placeholder="Dispatch instructions, pickup location, etc." style={{...inp,resize:"vertical",minHeight:50}}/>)}
+    </div>
+  );
+}
+
+function TransTab(){
+  const{flights,sel}=useContext(Ctx);
+  const[view,setView]=useState("travel");
   const confirmedCount=Object.values(flights).filter(f=>f.status==="confirmed").length;
+  const daySegCount=Object.values(flights).filter(s=>s.status!=="dismissed"&&(s.depDate===sel||s.arrDate===sel)).length;
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
       <div style={{padding:"7px 20px",borderBottom:"1px solid #d6d3cd",background:"#fff",display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"wrap"}}>
-        {[["calendar","Tour Calendar"],["bus","EU Bus Schedule"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`],["festival","Festival Dispatch"]].map(([v,l])=>(
+        {[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["calendar","Tour Calendar"],["bus","EU Bus Schedule"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`],["festival","Festival Dispatch"]].map(([v,l])=>(
           <button key={v} onClick={()=>setView(v)} style={{padding:"4px 12px",borderRadius:6,border:"1px solid #d6d3cd",background:view===v?"#5B21B6":"#f5f3ef",color:view===v?"#fff":"#64748b",fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
         ))}
         {view==="bus"&&<div style={{marginLeft:"auto",fontFamily:MN,fontSize:8,color:"#94a3b8"}}>Pieter Smit T26-021201 · 8,970 km · 31 days</div>}
         {view==="calendar"&&<div style={{marginLeft:"auto",fontFamily:MN,fontSize:8,color:"#94a3b8"}}>Apr 16 – May 31 · Internet Explorer EU 2026</div>}
       </div>
       <div style={{flex:1,overflow:"auto",padding:"12px 20px 30px"}}>
+        {view==="travel"&&<TravelDayView/>}
         {view==="calendar"&&<TourCalendar/>}
         {view==="bus"&&(
           <div>
@@ -3123,36 +3837,105 @@ function FileUploadModal({onClose}){
           </div>
         )}
       </div>
->>>>>>> claude/angry-cori-0b34a4
     </div>
   );
 }
 
 function CmdP(){
-  const{sorted,setSel,setTab,setCmd,setAC}=useContext(Ctx);
-  const[q,setQ]=useState("");const ref=useRef(null);
+  const{sorted,setSel,setTab,setCmd,setAC,setExp,setDateMenu,next,sel,shows,refreshIntel,mobile}=useContext(Ctx);
+  const[q,setQ]=useState("");const[sel1,setSel1]=useState(0);const ref=useRef(null);const listRef=useRef(null);
   useEffect(()=>{ref.current?.focus();},[]);
-  const res=useMemo(()=>{const ql=q.toLowerCase().trim();if(!ql)return[...TABS.filter(t=>!t.disabled).map(t=>({type:"tab",id:t.id,label:t.label,icon:t.icon})),...sorted.slice(0,5).map(s=>({type:"show",id:s.date,label:`${fD(s.date)} ${s.city}`,sub:s.venue,cId:s.clientId}))];const it=[];TABS.forEach(t=>{if(!t.disabled&&t.label.toLowerCase().includes(ql))it.push({type:"tab",id:t.id,label:t.label,icon:t.icon});});CLIENTS.forEach(c=>{if(c.name.toLowerCase().includes(ql))it.push({type:"client",id:c.id,label:c.name,sub:c.type});});sorted.forEach(s=>{if(s.city.toLowerCase().includes(ql)||s.venue.toLowerCase().includes(ql)||s.date.includes(ql))it.push({type:"show",id:s.date,label:`${fD(s.date)} ${s.city}`,sub:s.venue,cId:s.clientId});});return it.slice(0,12);},[q,sorted]);
-  const go=item=>{if(item.type==="tab")setTab(item.id);if(item.type==="show"){setSel(item.id);if(item.cId)setAC(item.cId);setTab("ros");}if(item.type==="client"){setAC(item.id);setTab("dashboard");}setCmd(false);};
+  const actions=useMemo(()=>{
+    const a=[{type:"action",id:"open_now",label:"Go to Now",sub:"Dashboard / next 72h",icon:"◉",run:()=>setTab("dashboard")},
+      {type:"action",id:"open_advance",label:"Open Advance tracker",sub:"current show",icon:"◎",run:()=>setTab("advance")},
+      {type:"action",id:"open_ros",label:"Open Schedule",sub:"ROS for current show",icon:"▦",run:()=>setTab("ros")},
+      {type:"action",id:"open_transport",label:"Open Transport",sub:"bus + dispatch",icon:"◈",run:()=>setTab("transport")},
+      {type:"action",id:"open_finance",label:"Open Finance",sub:"settlement + payout",icon:"◐",run:()=>setTab("finance")},
+      {type:"action",id:"open_dates",label:"Open Dates menu",sub:"full tour calendar",icon:"☰",run:()=>setDateMenu(true)},
+      {type:"action",id:"export",label:"Export / Import snapshot",sub:"JSON download",icon:"⇅",run:()=>setExp(true)}];
+    const cur=sel?shows?.[sel]:null;
+    if(cur&&refreshIntel)a.push({type:"action",id:"refresh_intel",label:`Refresh Gmail intel (${cur.city||cur.venue})`,sub:"scan inbox for this show",icon:"↻",run:()=>refreshIntel(cur,true)});
+    if(next)a.push({type:"action",id:"jump_next",label:`Jump to next show (${next.city})`,sub:`${fD(next.date)} · ${dU(next.date)}d`,icon:"→",run:()=>{setSel(next.date);if(next.clientId)setAC(next.clientId);setTab("ros");}});
+    return a;
+  },[next,sel,shows,refreshIntel,setTab,setDateMenu,setExp,setSel,setAC]);
+  const res=useMemo(()=>{
+    const ql=q.toLowerCase().trim();
+    if(!ql)return[...actions.slice(0,5),...sorted.slice(0,5).map(s=>({type:"show",id:s.date,label:`${fD(s.date)} ${s.city}`,sub:s.venue,cId:s.clientId}))];
+    const it=[];
+    actions.forEach(a=>{if(a.label.toLowerCase().includes(ql)||a.sub?.toLowerCase().includes(ql))it.push(a);});
+    TABS.forEach(t=>{if(!t.disabled&&t.label.toLowerCase().includes(ql))it.push({type:"tab",id:t.id,label:t.label,icon:t.icon});});
+    CLIENTS.forEach(c=>{if(c.name.toLowerCase().includes(ql))it.push({type:"client",id:c.id,label:c.name,sub:c.type});});
+    sorted.forEach(s=>{if(s.city.toLowerCase().includes(ql)||s.venue.toLowerCase().includes(ql)||s.date.includes(ql))it.push({type:"show",id:s.date,label:`${fD(s.date)} ${s.city}`,sub:s.venue,cId:s.clientId});});
+    return it.slice(0,14);
+  },[q,sorted,actions]);
+  useEffect(()=>{setSel1(0);},[q]);
+  const go=item=>{
+    if(item.type==="action"){item.run?.();}
+    if(item.type==="tab")setTab(item.id);
+    if(item.type==="show"){setSel(item.id);if(item.cId)setAC(item.cId);setTab("ros");}
+    if(item.type==="client"){setAC(item.id);setTab("dashboard");}
+    setCmd(false);
+  };
+  const onKey=e=>{
+    if(e.key==="Escape")setCmd(false);
+    else if(e.key==="ArrowDown"){e.preventDefault();setSel1(i=>Math.min(i+1,res.length-1));}
+    else if(e.key==="ArrowUp"){e.preventDefault();setSel1(i=>Math.max(i-1,0));}
+    else if(e.key==="Enter"&&res.length)go(res[sel1]||res[0]);
+  };
+  useEffect(()=>{if(!listRef.current)return;const el=listRef.current.querySelector(`[data-idx="${sel1}"]`);el?.scrollIntoView({block:"nearest"});},[sel1]);
   return(
-    <div onClick={()=>setCmd(false)} style={{position:"fixed",inset:0,background:"rgba(15,23,42,.25)",backdropFilter:"blur(6px)",display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:100,zIndex:1000}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:400,background:"#fff",border:"1px solid #d6d3cd",borderRadius:16,boxShadow:"0 25px 60px rgba(0,0,0,.15)",overflow:"hidden"}}>
-        <input ref={ref} value={q} onChange={e=>setQ(e.target.value)} placeholder="Search shows, clients, views..." onKeyDown={e=>{if(e.key==="Escape")setCmd(false);if(e.key==="Enter"&&res.length)go(res[0]);}} style={{width:"100%",padding:"14px 18px",background:"transparent",border:"none",borderBottom:"1px solid #ebe8e3",color:"#0f172a",fontSize:14,outline:"none",fontWeight:500}}/>
-        <div style={{maxHeight:320,overflow:"auto"}}>
-          {res.map((r,i)=><div key={`${r.type}-${r.id}-${i}`} onClick={()=>go(r)} style={{padding:"10px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,background:i===0?"#f5f3ef":"transparent",borderBottom:"1px solid #f5f3ef"}}>
-            <span style={{fontSize:10,color:"#64748b",width:16,fontFamily:MN}}>{r.type==="tab"?r.icon:r.type==="client"?CM[r.id]?.short||"●":fW(r.id)}</span>
-            <div style={{flex:1}}><div style={{fontSize:12,color:"#0f172a",fontWeight:600}}>{r.label}</div>{r.sub&&<div style={{fontSize:9,color:"#64748b"}}>{r.sub}</div>}</div>
+    <div onClick={()=>setCmd(false)} style={{position:"fixed",inset:0,background:"rgba(15,23,42,.25)",backdropFilter:"blur(6px)",display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:mobile?40:100,padding:mobile?"40px 12px":undefined,zIndex:1000}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:440,maxWidth:"100%",background:"#fff",border:"1px solid #d6d3cd",borderRadius:16,boxShadow:"0 25px 60px rgba(0,0,0,.15)",overflow:"hidden"}}>
+        <input ref={ref} value={q} onChange={e=>setQ(e.target.value)} placeholder="Search shows, views, actions..." onKeyDown={onKey} style={{width:"100%",padding:mobile?"16px 18px":"14px 18px",background:"transparent",border:"none",borderBottom:"1px solid #ebe8e3",color:"#0f172a",fontSize:mobile?16:14,outline:"none",fontWeight:500}}/>
+        <div ref={listRef} style={{maxHeight:360,overflow:"auto"}}>
+          {res.length===0&&<div style={{padding:"22px 18px",textAlign:"center",fontSize:11,color:"#94a3b8"}}>No matches. Press <kbd style={{fontFamily:MN,fontSize:10,padding:"1px 5px",background:"#f1f5f9",borderRadius:3}}>Esc</kbd> to close.</div>}
+          {res.map((r,i)=>{const active=i===sel1;return <div key={`${r.type}-${r.id}-${i}`} data-idx={i} onClick={()=>go(r)} onMouseEnter={()=>setSel1(i)} style={{padding:mobile?"12px 18px":"10px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,background:active?"#EDE9FE":"transparent",borderBottom:"1px solid #f5f3ef",borderLeft:active?"3px solid #5B21B6":"3px solid transparent"}}>
+            <span style={{fontSize:11,color:active?"#5B21B6":"#64748b",width:16,fontFamily:MN,fontWeight:700}}>{r.type==="tab"||r.type==="action"?r.icon:r.type==="client"?CM[r.id]?.short||"●":fW(r.id)}</span>
+            <div style={{flex:1,minWidth:0}}><div style={{fontSize:mobile?13:12,color:"#0f172a",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.label}</div>{r.sub&&<div style={{fontSize:10,color:"#64748b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.sub}</div>}</div>
             {r.cId&&<div style={{width:7,height:7,borderRadius:"50%",background:CM[r.cId]?.color||"#94a3b8"}}/>}
-            <span style={{fontSize:8,color:"#94a3b8",fontFamily:MN}}>{r.type}</span>
-          </div>)}
+            <span style={{fontSize:8,color:active?"#5B21B6":"#94a3b8",fontFamily:MN,letterSpacing:"0.04em",textTransform:"uppercase"}}>{r.type}</span>
+          </div>;})}
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:12,padding:"7px 14px",borderTop:"1px solid #ebe8e3",background:"#faf9f6",fontSize:9,color:"#64748b",fontFamily:MN}}>
+          <span><kbd style={{fontFamily:MN,padding:"1px 5px",background:"#fff",border:"1px solid #d6d3cd",borderRadius:3}}>↑↓</kbd> navigate</span>
+          <span><kbd style={{fontFamily:MN,padding:"1px 5px",background:"#fff",border:"1px solid #d6d3cd",borderRadius:3}}>↵</kbd> select</span>
+          <span><kbd style={{fontFamily:MN,padding:"1px 5px",background:"#fff",border:"1px solid #d6d3cd",borderRadius:3}}>esc</kbd> close</span>
+          <span style={{marginLeft:"auto"}}>⌘K</span>
         </div>
       </div>
     </div>
   );
 }
 
+// Compact lifecycle pill row for a single crew member on a specific date.
+// Adapts to bus dates (simpler chain, bus as lodging) vs fly dates/one-offs (full
+// airport ↔ hotel ↔ venue chain with hotel as lodging). Clicking any pill jumps to
+// the Transport → Travel Day view for that date; the user can then complete the
+// gap using the +Ground / +Flight / +Hotel creators.
+function LifecyclePills({crewId,date,state,slots,onJump,compact}){
+  const color=s=>({
+    ok:{bg:"#D1FAE5",c:"#047857",bd:"#6EE7B7"},
+    missing:{bg:"#FEF3C7",c:"#92400E",bd:"#FDE68A"},
+    na:{bg:"#f1f5f9",c:"#94a3b8",bd:"#e2e8f0"},
+    unknown:{bg:"#EDE9FE",c:"#5B21B6",bd:"#C4B5FD"},
+  }[s]||{bg:"#f1f5f9",c:"#94a3b8",bd:"#e2e8f0"});
+  const stateLabel={"bus-mid":"ON BUS","bus-join":"BUS JOIN","bus-leave":"BUS LEAVE","bus-solo":"BUS · SOLO","fly-one-off":"FLY · HOTEL"}[state]||"";
+  const missing=slots.filter(s=>s.state==="missing").length;
+  return(
+    <div style={{display:"inline-flex",alignItems:"center",gap:4,flexWrap:"wrap"}} title={`${stateLabel}${missing?` — ${missing} missing`:""}`}>
+      {!compact&&<span style={{fontSize:7,padding:"1px 5px",borderRadius:3,background:state==="fly-one-off"?"#EDE9FE":"#DBEAFE",color:state==="fly-one-off"?"#5B21B6":"#1E40AF",fontWeight:800,letterSpacing:"0.06em"}}>{stateLabel}</span>}
+      {slots.map(s=>{const col=color(s.state);return(
+        <button key={s.key} onClick={e=>{e.stopPropagation();onJump?.(s);}} title={`${s.label} — ${s.state==="ok"?"confirmed":s.state==="missing"?"missing":s.state==="unknown"?"not tracked":"not applicable"}`} style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:compact?9:10,padding:compact?"2px 5px":"2px 7px",borderRadius:10,border:`1px solid ${col.bd}`,background:col.bg,color:col.c,cursor:"pointer",fontWeight:700,lineHeight:1}}>
+          <span style={{fontSize:compact?9:10}}>{s.icon}</span>
+          {s.state==="ok"&&<span style={{fontSize:7}}>✓</span>}
+          {s.state==="missing"&&<span style={{fontSize:7}}>○</span>}
+        </button>);})}
+    </div>
+  );
+}
+
 function CrewTab(){
-  const{sel,setSel,shows,tourDaysSorted,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights,lodging,setTab}=useContext(Ctx);
+  const{sel,setSel,shows,tourDaysSorted,tourDays,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights,lodging,setTab}=useContext(Ctx);
   const[panel,setPanel]=useState(null);
   const[editMode,setEditMode]=useState(false);
   const[flightPicker,setFlightPicker]=useState(null); // {crewId, dir}
@@ -3218,6 +4001,19 @@ function CrewTab(){
   };
 
   const attending=crew.filter(c=>getCD(c.id).attending);
+  // Per-crew attending dates across the whole tour, sorted. Used to classify
+  // bus-mid vs bus-join vs bus-leave for the lifecycle pills.
+  const attendingDatesByCrew=useMemo(()=>{
+    const m={};
+    Object.entries(showCrew||{}).forEach(([d,perCrew])=>{
+      Object.entries(perCrew||{}).forEach(([cid,rec])=>{
+        if(rec?.attending){(m[cid]=m[cid]||[]).push(d);}
+      });
+    });
+    Object.keys(m).forEach(k=>m[k].sort());
+    return m;
+  },[showCrew]);
+  const jumpToTravelDay=(date)=>{setSel(date);setTab("transport");};
   const panelCrew=panel?crew.find(c=>c.id===panel.crewId):null;
   const panelCD=panel?getCD(panel.crewId):null;
 
@@ -3260,6 +4056,7 @@ function CrewTab(){
         <span style={{fontSize:11,color:"#64748b"}}>{show?.city||""}{show?.city?" · ":""}{fFull(sel)}</span>
         <span style={{fontSize:9,padding:"2px 7px",borderRadius:12,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>{attending.length} attending</span>
         <div style={{marginLeft:"auto",display:"flex",gap:5}}>
+          <button onClick={()=>setTab("transport")} title="Open per-date travel view for all crew" style={{...btn("#f5f3ef","#5B21B6"),border:"1px solid #c4b5fd"}}>🧭 Travel Day →</button>
           <button onClick={()=>setEditMode(v=>!v)} style={btn(editMode?"#0f172a":"#f5f3ef",editMode?"#fff":"#475569")}>{editMode?"Done Editing":"Edit Roster"}</button>
           <button onClick={addMember} style={btn()}>+ Add</button>
         </div>
@@ -3298,7 +4095,25 @@ function CrewTab(){
                     <button onClick={()=>removeMember(c.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:14,flexShrink:0}}>×</button>
                   </div>
                 ):(
-                  <div><div style={{fontWeight:600,fontSize:12,color:cd.attending?"#0f172a":"#94a3b8"}}>{c.name||<span style={{color:"#94a3b8"}}>New member</span>}</div><div style={{fontSize:10,color:"#64748b"}}>{c.role}</div></div>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontWeight:600,fontSize:12,color:cd.attending?"#0f172a":"#94a3b8"}}>{c.name||<span style={{color:"#94a3b8"}}>New member</span>}</div>
+                    <div style={{fontSize:10,color:"#64748b"}}>{c.role}</div>
+                    {cd.attending&&(()=>{
+                      const attDates=attendingDatesByCrew[c.id]||[sel];
+                      const state=crewLifecycleState(c.id,sel,attDates,tourDays);
+                      const slots=crewLifecycleSlots({state,crewId:c.id,crew,date:sel,showCrew,flights,lodging});
+                      const jump=slot=>{
+                        setSel(sel);
+                        if(slot?.key==="hotel")setTab("lodging");
+                        else setTab("transport");
+                      };
+                      return(
+                        <div style={{marginTop:5}}>
+                          <LifecyclePills crewId={c.id} date={sel} state={state} slots={slots} compact={mobile} onJump={jump}/>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 )}
                 {!mobile&&<div>{cd.attending
                   ?<div style={{display:"flex",flexDirection:"column",gap:4}}>
