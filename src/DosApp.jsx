@@ -1121,23 +1121,35 @@ function NavSidebar(){
 }
 
 function TopBar({ss}){
-  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,shows,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen}=useContext(Ctx);
+  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays}=useContext(Ctx);
   const[dragId,setDragId]=useState(null);
   const[overId,setOverId]=useState(null);
   const a=useAuth();const userEmail=(a?.user?.email||"").toLowerCase();
   const curClient=CM[aC];
   const canSeeFestivals=FESTIVAL_ACCESS_EMAILS.some(e=>e.toLowerCase()===userEmail);
   const activeClients=CLIENTS.filter(c=>c.status==="active"&&(c.type!=="festival"||canSeeFestivals));
-  // Guard: if current active client isn't in the visible list, reset to bbn
   React.useEffect(()=>{if(!activeClients.find(c=>c.id===aC))setAC("bbn");},[canSeeFestivals]);
+  const stepList=useMemo(()=>{
+    const tourIds=new Set((tourDaysSorted||[]).map(d=>d.date));
+    const extras=(sorted||[]).filter(s=>!tourIds.has(s.date)).map(s=>({date:s.date,type:s.type||"show"}));
+    const all=[...(tourDaysSorted||[]).map(d=>({date:d.date,type:d.type})),...extras].sort((a,b)=>a.date.localeCompare(b.date));
+    return showOffDays?all:all.filter(d=>d.type!=="off"&&d.type!=="travel");
+  },[tourDaysSorted,sorted,showOffDays]);
+  const curIdx=stepList.findIndex(d=>d.date===sel);
+  const stepDate=dir=>{if(curIdx<0)return;const ni=curIdx+dir;if(ni<0||ni>=stepList.length)return;setSel(stepList[ni].date);};
+  const canPrev=curIdx>0;const canNext=curIdx>=0&&curIdx<stepList.length-1;
   return(
     <div style={{borderBottom:"1px solid #d6d3cd",background:"#fff",width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px 5px",minWidth:0,gap:8,width:"100%",maxWidth:900}}>
-        <div style={{display:"flex",alignItems:"center",gap:10,minWidth:0,flexShrink:1,overflow:"hidden"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flexShrink:1,overflow:"hidden"}}>
           <span style={{fontSize:16,fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em",flexShrink:0}}>DOS</span>
           <span style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>v7.0</span>
           <button onClick={()=>setSidebarOpen(v=>!v)} title="Toggle nav menu" style={{fontSize:12,padding:"3px 7px",borderRadius:5,border:"1px solid #d6d3cd",background:sidebarOpen?"#0f172a":"#f5f3ef",color:sidebarOpen?"#fff":"#475569",cursor:"pointer",flexShrink:0}}>☰</button>
-          {next&&<span style={{fontSize:10,fontFamily:MN,color:"#5B21B6",fontWeight:600,marginLeft:4}}>{next.city} {fD(next.date)} · {dU(next.date)}d</span>}
+          <div style={{display:"flex",alignItems:"center",gap:0,flexShrink:0}}>
+            <button onClick={()=>stepDate(-1)} disabled={!canPrev} title="Previous date" style={{fontSize:11,padding:"2px 7px",borderRadius:"5px 0 0 5px",border:"1px solid #d6d3cd",borderRight:"none",background:canPrev?"#f5f3ef":"#faf9f7",color:canPrev?"#0f172a":"#c4bfb6",cursor:canPrev?"pointer":"default"}}>‹</button>
+            <button onClick={()=>stepDate(1)} disabled={!canNext} title="Next date" style={{fontSize:11,padding:"2px 7px",borderRadius:"0 5px 5px 0",border:"1px solid #d6d3cd",background:canNext?"#f5f3ef":"#faf9f7",color:canNext?"#0f172a":"#c4bfb6",cursor:canNext?"pointer":"default"}}>›</button>
+          </div>
+          {next&&<span style={{fontSize:10,fontFamily:MN,color:"#5B21B6",fontWeight:600}}>{next.city} {fD(next.date)} · {dU(next.date)}d</span>}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0,minWidth:0,maxWidth:"100%"}}>
           {ss&&<span style={{fontSize:9,color:ss==="saved"?"#047857":"#94a3b8",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
