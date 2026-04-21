@@ -1068,7 +1068,10 @@ function FlightsSection(){
       if(opts.reset){setFlights({});setPendingImport([]);}
       setScanning(true);setScanMsg(opts.reset?"Reset. Rescanning Gmail…":"Scanning Gmail for flight confirmations…");
       const showsArr=Object.values(shows||{}).filter(s=>s.clientId===aC).map(s=>({id:s.id||s.date,date:s.date,venue:s.venue,city:s.city,type:s.type}));
-      const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken,tourStart,tourEnd,focus:FOCUS_CARRIERS,shows:showsArr})});
+      const flightBody=JSON.stringify({googleToken,tourStart,tourEnd,focus:FOCUS_CARRIERS,shows:showsArr});
+      const flightOpts={method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:flightBody};
+      let resp=await fetch("/api/flights",flightOpts);
+      if(resp.status===404){setScanMsg("Warming up — retrying…");await new Promise(r=>setTimeout(r,1500));resp=await fetch("/api/flights",flightOpts);}
       if(resp.status===402){setScanMsg("Gmail session expired — please re-login.");setScanning(false);return;}
       if(!resp.ok){setScanMsg(`Scan error ${resp.status} — try again.`);setScanning(false);return;}
       const data=await resp.json();
