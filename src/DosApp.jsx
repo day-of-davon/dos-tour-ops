@@ -1016,9 +1016,31 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
         {f.confirmNo&&<div><div style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>CONF #</div><div style={{fontFamily:MN,fontSize:10,color:"#0f172a",fontWeight:700}}>{f.confirmNo}</div></div>}
         {f.cost&&<div><div style={{fontSize:8,color:"#94a3b8",fontWeight:600}}>COST</div><div style={{fontFamily:MN,fontSize:10,color:"#047857",fontWeight:700}}>{f.currency||"$"}{f.cost}</div></div>}
       </div>
+      {crew&&f.suggestedCrewIds?.length>0&&(
+        <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
+          <span style={{fontSize:8,fontWeight:700,color:"#94a3b8",letterSpacing:"0.06em"}}>CREW</span>
+          {f.suggestedCrewIds.map(id=>{const c=(crew||[]).find(x=>x.id===id);return c?(<span key={id} style={{fontSize:8,padding:"2px 7px",borderRadius:8,background:"#F0FDF4",color:"#065F46",fontWeight:700,border:"1px solid #BBF7D0"}} title={c.role}>{c.name.split(" ").slice(0,2).join(" ")}</span>):null;})}
+        </div>
+      )}
       {actions&&<div style={{display:"flex",gap:5,paddingTop:4,borderTop:"1px solid #f5f3ef"}}>{actions}</div>}
     </div>
   );
+}
+
+function matchPaxToCrew(paxNames,crewList){
+  const ids=[];
+  for(const pax of(paxNames||[])){
+    const pn=pax.toLowerCase().trim();
+    const pt=pn.split(/\s+/);
+    for(const c of(crewList||[])){
+      if(!c.name||c.name==="TBD")continue;
+      const cn=c.name.toLowerCase().trim();
+      const ct=cn.split(/\s+/);
+      const overlap=pt.filter(t=>t.length>2&&ct.includes(t)).length;
+      if(overlap>=2||pn===cn||pn.includes(cn)||cn.includes(pn))ids.push(c.id);
+    }
+  }
+  return[...new Set(ids)];
 }
 
 function FlightsSection(){
@@ -1051,7 +1073,7 @@ function FlightsSection(){
       const existingKeys=new Set(Object.values(cur).map(f=>`${f.flightNo}__${f.depDate}`));
       const novel=newFlights.filter(f=>!cur[f.id]&&!existingKeys.has(`${f.flightNo}__${f.depDate}`));
       if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads — no new flights found.`);setScanning(false);return;}
-      novel.forEach(f=>uFlight(f.id,{...f,status:"pending"}));
+      novel.forEach(f=>uFlight(f.id,{...f,status:"pending",suggestedCrewIds:matchPaxToCrew(f.pax,crew)}));
       const freshCount=novel.filter(f=>f.fresh48h).length;
       const freshTag=freshCount?` (${freshCount} from last 48h)`:"";
       const matchedCount=novel.filter(f=>f.suggestedShowDate).length;
@@ -1137,7 +1159,7 @@ function FlightsSection(){
               <div key={g.key} style={{display:"flex",flexDirection:"column",gap:4,...(g.isSolo?{}:{borderLeft:"2px solid #C4B5FD",paddingLeft:8})}}>
                 <ReservationHeader g={g}/>
                 {g.segs.map(f=>(
-                  <FlightCard key={f.id} f={f} actions={<>
+                  <FlightCard key={f.id} f={f} crew={crew} actions={<>
                     <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
                     <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Skip</button>
                     {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
@@ -3027,7 +3049,7 @@ function FlightsListView(){
               <div key={g.key} style={{display:"flex",flexDirection:"column",gap:4,...(g.isSolo?{}:{borderLeft:"2px solid #C4B5FD",paddingLeft:8})}}>
                 <ReservationHeader g={g}/>
                 {g.segs.map(f=>(
-                  <FlightCard key={f.id} f={f} actions={<>
+                  <FlightCard key={f.id} f={f} crew={crew} actions={<>
                     <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#1E40AF",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
                     <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Skip</button>
                     {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#1E40AF",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
