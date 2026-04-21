@@ -22,6 +22,101 @@ const tagFlightRoles=(deps,arrs)=>{
   });
   return[...depTagged,...arrs.map(f=>({f,role:"arr"}))];
 };
+
+// Airport groups for tour show cities. One city → one-or-more IATA codes covering
+// realistic crew routing (primary + common alternates). Extend as routes warrant.
+const CITY_AIRPORTS={
+  dublin:["DUB"],
+  manchester:["MAN"],
+  glasgow:["GLA","EDI"],
+  london:["LHR","LGW","STN","LCY","LTN","SEN"],
+  zurich:["ZRH","BSL"],
+  cologne:["CGN","DUS","FRA"],
+  amsterdam:["AMS","RTM"],
+  paris:["CDG","ORY","BVA"],
+  chambord:["ORY","CDG","TUF"],
+  villeurbanne:["LYS"],
+  lyon:["LYS"],
+  milan:["MXP","LIN","BGY"],
+  prague:["PRG"],
+  berlin:["BER"],
+  bratislava:["BTS","VIE"],
+  vienna:["VIE","BTS"],
+  warsaw:["WAW","WMI"],
+  morrison:["DEN"],
+  denver:["DEN"],
+  worcester:["BOS","PVD","BDL","ORH"],
+  boston:["BOS","PVD","MHT"],
+  mississauga:["YYZ","YTZ","YHM"],
+  toronto:["YYZ","YTZ","YHM"],
+  uncasville:["BDL","PVD","JFK","BOS","HPN"],
+  ottawa:["YOW"],
+  montreal:["YUL","YMX","YHU"],
+  "los angeles":["LAX","BUR","LGB","SNA","ONT"],
+  "new york":["JFK","LGA","EWR","HPN"],
+  halifax:["YHZ"],
+};
+const AIRPORT_TO_CITIES={};
+Object.entries(CITY_AIRPORTS).forEach(([city,codes])=>{
+  codes.forEach(c=>{(AIRPORT_TO_CITIES[c]=AIRPORT_TO_CITIES[c]||[]).push(city);});
+});
+const cityKey=c=>String(c||"").toLowerCase().split(",")[0].trim();
+
+// Match a flight endpoint (iata+date+city) to a tour show via geographic + chronological proximity.
+// direction="inbound": show must occur on/after arrival (0..+7d). direction="outbound": show must
+// occur on/before departure (-7..0d). Returns closest by date among geographic candidates, or null.
+// A single flight can (and frequently does) match BOTH an outbound show (origin side) and an
+// inbound show (destination side); callers run this twice, once per side.
+const matchShowByAirport=(iata,flightCity,flightDate,shows,direction)=>{
+  if(!flightDate||!Array.isArray(shows)||!shows.length)return null;
+  const code=(iata||"").toUpperCase();
+  const iataCities=code?(AIRPORT_TO_CITIES[code]||[]):[];
+  const fc=cityKey(flightCity);
+  const candidates=shows.filter(s=>{
+    if(!s?.date||!s?.city)return false;
+    if(s.type==="off"||s.type==="travel"||s.type==="split")return false;
+    const sc=cityKey(s.city);
+    if(!sc)return false;
+    if(iataCities.includes(sc))return true;
+    if(fc&&(fc===sc||fc.includes(sc)||sc.includes(fc)))return true;
+    return false;
+  });
+  if(!candidates.length)return null;
+  const flightDay=new Date(flightDate+"T12:00:00").getTime();
+  const scored=candidates.map(s=>{
+    const sd=new Date(s.date+"T12:00:00").getTime();
+    return{show:s,delta:Math.round((sd-flightDay)/86400000)};
+  });
+  const inWindow=direction==="inbound"
+    ?scored.filter(x=>x.delta>=-1&&x.delta<=7)
+    :scored.filter(x=>x.delta>=-7&&x.delta<=1);
+  if(!inWindow.length)return null;
+  inWindow.sort((a,b)=>Math.abs(a.delta)-Math.abs(b.delta)||a.show.date.localeCompare(b.show.date));
+  return inWindow[0].show;
+};
+
+// Assemble all legs (pending + confirmed) that share the same itinerary key as `f`, sorted chronologically.
+const findItineraryLegs=(f,allFlightsObj)=>{
+  const key=flightItinKey(f);
+  return Object.values(allFlightsObj)
+    .filter(x=>flightItinKey(x)===key)
+    .sort((a,b)=>`${a.depDate||""} ${a.dep||""}`.localeCompare(`${b.depDate||""} ${b.dep||""}`));
+};
+
+// Serialize a flight record into the compact leg shape used in showCrew.
+const flightToLeg=f=>({
+  id:`leg_${f.id}`,
+  flight:f.flightNo||"",
+  carrier:f.carrier||"",
+  from:f.from,fromCity:f.fromCity||f.from,
+  to:f.to,toCity:f.toCity||f.to,
+  depart:f.dep,arrive:f.arr,
+  depDate:f.depDate,arrDate:f.arrDate,
+  conf:f.confirmNo||f.bookingRef||"",
+  status:"confirmed",
+  flightId:f.id,
+});
+
 const MN="'JetBrains Mono',monospace";
 
 const CLIENTS=[
@@ -2246,7 +2341,7 @@ function TourCalendar(){
 }
 
 function FlightsListView(){
-  const{flights,uFlight,uRos,gRos,uFin,finance,crew,setShowCrew,setSel,setTab}=useContext(Ctx);
+  const{flights,uFlight,uRos,gRos,uFin,finance,crew,setShowCrew,setSel,setTab,sorted}=useContext(Ctx);
   const goToSchedule=(date)=>{setSel(date);setTab("ros");};
   const[scanning,setScanning]=useState(false);
   const[scanMsg,setScanMsg]=useState("");
@@ -2255,6 +2350,7 @@ function FlightsListView(){
   const[liveStatuses,setLiveStatuses]=useState({});  // keyed by flight id
   const[refreshingId,setRefreshingId]=useState(null);
   const[refreshingAll,setRefreshingAll]=useState(false);
+  const[reassignMsg,setReassignMsg]=useState("");
 
   const allFlights=Object.values(flights);
   const pending=allFlights.filter(f=>f.status==="pending").sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0);
@@ -2285,6 +2381,64 @@ function FlightsListView(){
   const importFlight=f=>{uFlight(f.id,{...f,status:"pending"});setPendingImport(p=>p.filter(x=>x.id!==f.id));};
   const importAll=()=>{pendingImport.forEach(f=>uFlight(f.id,{...f,status:"pending"}));setPendingImport([]);};
 
+  // Apply smart show-matching for one flight: treats the flight as part of a multi-leg itinerary
+  // (all legs sharing confirmNo/bookingRef/pax), runs inbound-side (last leg destination) and
+  // outbound-side (first leg origin) matching independently against the show list. A flight can
+  // attach to BOTH a prior show (outbound) and an upcoming show (inbound) simultaneously.
+  // Returns {inShow, outShow, legs, allLegObjs} so callers can report the matches.
+  const assignFlightToShows=(f,allFlightsObj)=>{
+    const legs=findItineraryLegs(f,allFlightsObj);
+    if(!legs.length)return{inShow:null,outShow:null,legs:[],allLegObjs:[]};
+    const firstLeg=legs[0],lastLeg=legs[legs.length-1];
+    const allLegObjs=legs.map(flightToLeg);
+    const inShow=matchShowByAirport(lastLeg.to,lastLeg.toCity,lastLeg.arrDate||lastLeg.depDate,sorted||[],"inbound");
+    const outShow=matchShowByAirport(firstLeg.from,firstLeg.fromCity,firstLeg.depDate,sorted||[],"outbound");
+    if(!f.pax?.length||!crew?.length)return{inShow,outShow,legs,allLegObjs};
+    f.pax.forEach(name=>{
+      if(!name)return;
+      const fname=name.split(" ")[0].toLowerCase();
+      const match=crew.find(c=>c.name&&c.name.toLowerCase().includes(fname));
+      if(!match)return;
+      if(inShow){
+        setShowCrew(p=>{
+          const cur=p[inShow.date]?.[match.id]||{};
+          const flightIds=new Set(allLegObjs.map(l=>l.flightId));
+          const existing=(cur.inbound||[]).filter(l=>!flightIds.has(l.flightId));
+          return{...p,[inShow.date]:{...p[inShow.date],[match.id]:{
+            ...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,
+            inboundDate:lastLeg.arrDate||lastLeg.depDate,inboundTime:lastLeg.arr||"",
+            inbound:[...existing,...allLegObjs]
+          }}};
+        });
+      }
+      if(outShow){
+        setShowCrew(p=>{
+          const cur=p[outShow.date]?.[match.id]||{};
+          const flightIds=new Set(allLegObjs.map(l=>l.flightId));
+          const existing=(cur.outbound||[]).filter(l=>!flightIds.has(l.flightId));
+          return{...p,[outShow.date]:{...p[outShow.date],[match.id]:{
+            ...cur,attending:true,outboundMode:"fly",outboundConfirmed:true,
+            outboundDate:firstLeg.depDate,outboundTime:firstLeg.dep||"",
+            outbound:[...existing,...allLegObjs]
+          }}};
+        });
+      }
+      // Fallback: no geographic match anywhere — use arrival date as show key (old behavior).
+      if(!inShow&&!outShow){
+        const arrD=f.arrDate||f.depDate;
+        setShowCrew(p=>{
+          const cur=p[arrD]?.[match.id]||{};
+          const ex=(cur.inbound||[]).filter(l=>l.flightId!==f.id);
+          return{...p,[arrD]:{...p[arrD],[match.id]:{
+            ...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,
+            inboundDate:arrD,inboundTime:f.arr||"",inbound:[...ex,flightToLeg(f)]
+          }}};
+        });
+      }
+    });
+    return{inShow,outShow,legs,allLegObjs};
+  };
+
   const confirmFlight=f=>{
     setConfirmingId(f.id);
     uFlight(f.id,{...f,status:"confirmed",confirmedAt:new Date().toISOString()});
@@ -2293,31 +2447,29 @@ function FlightsListView(){
       const existing=finance[f.depDate]?.flightExpenses||[];
       uFin(f.depDate,{flightExpenses:[...existing.filter(e=>e.flightId!==f.id),{flightId:f.id,label:`${f.flightNo||f.carrier} ${f.from}→${f.to}`,amount:f.cost,currency:f.currency||"USD",pax:f.pax||[],carrier:f.carrier}]});
     }
-    if(f.pax?.length&&crew?.length){
-      const leg={id:`leg_${f.id}`,flight:f.flightNo||"",carrier:f.carrier||"",from:f.from,fromCity:f.fromCity||f.from,to:f.to,toCity:f.toCity||f.to,depart:f.dep,arrive:f.arr,conf:f.confirmNo||f.bookingRef||"",status:"confirmed",flightId:f.id};
-      f.pax.forEach(name=>{
-        if(!name)return;
-        const fname=name.split(" ")[0].toLowerCase();
-        const match=crew.find(c=>c.name&&c.name.toLowerCase().includes(fname));
-        if(!match)return;
-        const arrD=f.arrDate||f.depDate;
-        const depD=f.depDate;
-        const sameDay=arrD===depD;
-        setShowCrew(p=>{
-          const cur=p[arrD]?.[match.id]||{};
-          const ex=(cur.inbound||[]).filter(l=>l.flightId!==f.id);
-          return{...p,[arrD]:{...p[arrD],[match.id]:{...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,inboundDate:arrD,inboundTime:f.arr||"",inbound:[...ex,leg]}}};
-        });
-        if(!sameDay){
-          setShowCrew(p=>{
-            const cur=p[depD]?.[match.id]||{};
-            const ex=(cur.outbound||[]).filter(l=>l.flightId!==f.id);
-            return{...p,[depD]:{...p[depD],[match.id]:{...cur,attending:true,outboundMode:"fly",outboundDate:depD,outboundTime:f.dep||"",outbound:[...ex,leg]}}};
-          });
-        }
-      });
-    }
+    // Include this newly-confirmed flight in the itinerary pool (it may not be in flights yet).
+    assignFlightToShows(f,{...flights,[f.id]:{...f,status:"confirmed"}});
     setTimeout(()=>setConfirmingId(null),1200);
+  };
+
+  // Re-run geographic+chronological matching across all confirmed flights. Useful after adding
+  // new shows, correcting city data, or seeding flights ahead of attending confirmation.
+  const reassignAllFlights=()=>{
+    const conf=Object.values(flights).filter(f=>f.status==="confirmed");
+    if(!conf.length){setReassignMsg("No confirmed flights to re-assign.");setTimeout(()=>setReassignMsg(""),3000);return;}
+    const seenItin=new Set();
+    let inCount=0,outCount=0,noneCount=0;
+    conf.forEach(f=>{
+      const key=flightItinKey(f);
+      if(seenItin.has(key))return;
+      seenItin.add(key);
+      const{inShow,outShow}=assignFlightToShows(f,flights);
+      if(inShow)inCount++;
+      if(outShow)outCount++;
+      if(!inShow&&!outShow)noneCount++;
+    });
+    setReassignMsg(`Matched ${inCount} inbound, ${outCount} outbound across ${seenItin.size} itinerary${seenItin.size>1?"s":""}. ${noneCount?`${noneCount} unmatched.`:""}`);
+    setTimeout(()=>setReassignMsg(""),5000);
   };
 
   const fetchStatus=async(f)=>{
@@ -2363,7 +2515,9 @@ function FlightsListView(){
         <span style={{fontSize:10,fontWeight:800,color:"#1E40AF",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
         <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"#DBEAFE",color:"#1E40AF",fontWeight:700}}>{confirmed.length} confirmed · {pending.length} pending</span>
         {scanMsg&&<span style={{fontSize:9,color:scanning?"#5B21B6":"#64748b",fontFamily:MN}}>{scanMsg}</span>}
-        <div style={{marginLeft:"auto",display:"flex",gap:6}}>
+        {reassignMsg&&<span style={{fontSize:9,color:"#065F46",fontFamily:MN,fontWeight:600}}>{reassignMsg}</span>}
+        <div style={{marginLeft:"auto",display:"flex",gap:6,flexWrap:"wrap"}}>
+          {confirmed.length>0&&<button onClick={reassignAllFlights} title="Re-match all confirmed flights to tour shows by airport proximity + date window" style={{background:"#f5f3ef",color:"#065F46",border:"1px solid #6EE7B7",borderRadius:6,fontSize:10,padding:"5px 12px",cursor:"pointer",fontWeight:700}}>⟲ Re-match to Shows</button>}
           {confirmed.length>0&&<button onClick={refreshAllStatus} disabled={refreshingAll} style={{background:refreshingAll?"#ebe8e3":"#f5f3ef",color:refreshingAll?"#94a3b8":"#5B21B6",border:"1px solid #d6d3cd",borderRadius:6,fontSize:10,padding:"5px 12px",cursor:refreshingAll?"default":"pointer",fontWeight:700}}>{refreshingAll?"Refreshing…":"⟳ Refresh Status"}</button>}
           <button onClick={scanFlights} disabled={scanning} style={{background:scanning?"#ebe8e3":"#1E40AF",color:scanning?"#64748b":"#fff",border:"none",borderRadius:6,fontSize:10,padding:"5px 14px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail for Flights"}</button>
         </div>
@@ -2414,18 +2568,28 @@ function FlightsListView(){
                 <div style={{flex:1,height:1,background:"#d6d3cd"}}/>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                {byDate[date].map(f=>(
-                  <FlightCard key={f.id} f={f}
-                    liveStatus={liveStatuses[f.id]||null}
-                    refreshing={refreshingId===f.id}
-                    onRefreshStatus={f.flightNo?()=>refreshStatus(f):null}
-                    actions={<>
-                      <button onClick={()=>goToSchedule(f.depDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700}}>→ Schedule {f.depDate?.slice(5)}</button>
-                      {f.arrDate&&f.arrDate!==f.depDate&&<button onClick={()=>goToSchedule(f.arrDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700}}>→ Arr {f.arrDate?.slice(5)}</button>}
-                      <button onClick={()=>uFlight(f.id,{...f,status:"dismissed"})} style={{marginLeft:"auto",fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#94a3b8",cursor:"pointer"}}>Remove</button>
-                    </>}
-                  />
-                ))}
+                {byDate[date].map(f=>{
+                  const legs=findItineraryLegs(f,flights);
+                  const firstLeg=legs[0]||f;const lastLeg=legs[legs.length-1]||f;
+                  const inShow=matchShowByAirport(lastLeg.to,lastLeg.toCity,lastLeg.arrDate||lastLeg.depDate,sorted||[],"inbound");
+                  const outShow=matchShowByAirport(firstLeg.from,firstLeg.fromCity,firstLeg.depDate,sorted||[],"outbound");
+                  const matchBadge=(show,label,bg,c)=>show?<button onClick={()=>goToSchedule(show.date)} title={`${label} match: ${show.venue}`} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:`1px solid ${c}40`,background:bg,color:c,cursor:"pointer",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4}}><span style={{fontSize:7,letterSpacing:"0.06em"}}>{label}</span>{show.city}<span style={{fontFamily:MN,fontSize:8,opacity:.7}}>{fD(show.date)}</span></button>:null;
+                  return(
+                    <FlightCard key={f.id} f={f}
+                      liveStatus={liveStatuses[f.id]||null}
+                      refreshing={refreshingId===f.id}
+                      onRefreshStatus={f.flightNo?()=>refreshStatus(f):null}
+                      actions={<>
+                        {matchBadge(outShow,"← OUT","#FEF3C7","#92400E")}
+                        {matchBadge(inShow,"IN →","#D1FAE5","#047857")}
+                        {!inShow&&!outShow&&<span style={{fontSize:9,color:"#94a3b8",fontStyle:"italic"}}>No show match — add city to airport table to match.</span>}
+                        <button onClick={()=>goToSchedule(f.depDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700}}>→ Schedule {f.depDate?.slice(5)}</button>
+                        {f.arrDate&&f.arrDate!==f.depDate&&<button onClick={()=>goToSchedule(f.arrDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#1E40AF",cursor:"pointer",fontWeight:700}}>→ Arr {f.arrDate?.slice(5)}</button>}
+                        <button onClick={()=>uFlight(f.id,{...f,status:"dismissed"})} style={{marginLeft:"auto",fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#94a3b8",cursor:"pointer"}}>Remove</button>
+                      </>}
+                    />
+                  );
+                })}
               </div>
             </div>
           ))}
