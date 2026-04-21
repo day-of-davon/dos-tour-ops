@@ -1130,7 +1130,11 @@ function FlightsSection(){
       const flightBody=JSON.stringify({googleToken,tourStart,tourEnd,focus:FOCUS_CARRIERS,shows:showsArr});
       const flightOpts={method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:flightBody};
       let resp=await fetch("/api/flights",flightOpts);
-      if(resp.status===404){setScanMsg("Warming up — retrying…");await new Promise(r=>setTimeout(r,1500));resp=await fetch("/api/flights",flightOpts);}
+      for(let retry=0;resp.status===404&&retry<2;retry++){
+        setScanMsg(`Warming up — retrying…`);
+        await new Promise(r=>setTimeout(r,2500));
+        resp=await fetch("/api/flights",flightOpts);
+      }
       if(resp.status===402){setScanMsg("Gmail session expired — please re-login.");setScanning(false);return;}
       if(!resp.ok){setScanMsg(`Scan error ${resp.status} — try again.`);setScanning(false);return;}
       const data=await resp.json();
@@ -1418,7 +1422,7 @@ function IntelPanel(){
         ))}
       </div>
     )}
-    <IntelSection title="SCHEDULE INCONSISTENCIES" count={scheduleFlags.length+(data.manualFlags||[]).length} actions={<button onClick={addManualFlag} style={{...UI.expandBtn(false,"#92400E"),fontSize:9}}>+ Add</button>}>
+    <IntelSection title="SCHEDULE INCONSISTENCIES" count={scheduleFlags.length+(data.manualFlags||[]).length} defaultOpen={true} actions={<button onClick={addManualFlag} style={{...UI.expandBtn(false,"#92400E"),fontSize:9}}>+ Add</button>}>
       {scheduleFlags.length===0&&(data.manualFlags||[]).length===0?<div style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>No inconsistencies.</div>:
       <div style={{display:"flex",flexDirection:"column",gap:6}}>
         {scheduleFlags.map(f=>{const isC=f.severity==="CONFLICT";const col=isC?"#B91C1C":"#92400E";const bg=isC?"#FEE2E2":"#FEF3C7";
@@ -1450,7 +1454,7 @@ function IntelPanel(){
         </div>)}
       </div>}
     </IntelSection>
-    <IntelSection title="TO-DOS (PRIVATE)" count={(data.todos||[]).length} actions={<button onClick={addTodo} style={{...UI.expandBtn(false,"#5B21B6"),fontSize:9}}>+ Add</button>}>
+    <IntelSection title="TO-DOS (PRIVATE)" count={(data.todos||[]).length} defaultOpen={true} actions={<button onClick={addTodo} style={{...UI.expandBtn(false,"#5B21B6"),fontSize:9}}>+ Add</button>}>
       {(data.todos||[]).length===0?<div style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>No action items yet.</div>:
         (data.todos||[]).map(t=><div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid #f5f3ef"}}>
           <input type="checkbox" checked={!!t.done} onChange={()=>toggleTodo(t.id)}/>
@@ -1460,7 +1464,7 @@ function IntelPanel(){
           <button onClick={()=>delTodo(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12}}>×</button>
         </div>)}
     </IntelSection>
-    <IntelSection title="THREADS (PRIVATE)" count={(data.threads||[]).length} actions={<button onClick={addThread} style={{...UI.expandBtn(false,"#5B21B6"),fontSize:9}}>+ Add</button>}>
+    <IntelSection title="THREADS (PRIVATE)" count={(data.threads||[]).length} defaultOpen={true} actions={<button onClick={addThread} style={{...UI.expandBtn(false,"#5B21B6"),fontSize:9}}>+ Add</button>}>
       {(data.threads||[]).length===0?<div style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>No threads.</div>:
         data.threads.map(t=><div key={t.tid} style={{display:"grid",gridTemplateColumns:"1fr auto auto 28px",gap:8,padding:"5px 0",borderBottom:"1px solid #f5f3ef",fontSize:10,alignItems:"center"}}>
           {t.manual?<input value={t.subject||""} onChange={e=>upd({threads:data.threads.map(x=>x.tid===t.tid?{...x,subject:e.target.value}:x)})} placeholder="Subject" style={UI.input}/>:
@@ -1470,7 +1474,7 @@ function IntelPanel(){
           <button onClick={()=>delThread(t.tid)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12}}>×</button>
         </div>)}
     </IntelSection>
-    <IntelSection title="FOLLOW-UPS" count={(data.followUps||[]).length} actions={<button onClick={addFollowUp} style={{...UI.expandBtn(false,"#5B21B6"),fontSize:9}}>+ Add</button>}>
+    <IntelSection title="FOLLOW-UPS" count={(data.followUps||[]).length} defaultOpen={true} actions={<button onClick={addFollowUp} style={{...UI.expandBtn(false,"#5B21B6"),fontSize:9}}>+ Add</button>}>
       {(data.followUps||[]).length===0?<div style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>No follow-ups.</div>:
         data.followUps.map((f,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 100px 80px 100px 28px",gap:8,padding:"5px 0",borderBottom:"1px solid #f5f3ef",fontSize:10,alignItems:"center"}}>
           {f.manual?<input value={f.action||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,action:e.target.value}:x)})} placeholder="Action" style={UI.input}/>:<span>{f.action}</span>}
@@ -1857,7 +1861,6 @@ function AdvTab(){
   const upcoming=cShows.filter(s=>s.date>=today);
   const[activeDept,setActiveDept]=useState("all");
   const[showEmail,setShowEmail]=useState(false);
-  const[showIntel,setShowIntel]=useState(false);
   const[emailDept,setEmailDept]=useState("all");
   const[addingDept,setAddingDept]=useState(null);
   const[newQ,setNewQ]=useState("");
@@ -1944,13 +1947,12 @@ function AdvTab(){
         <span style={{fontSize:11,color:"#64748b"}}>{show.city} · {fFull(sel)}</span>
         <span style={{fontSize:9,padding:"2px 7px",borderRadius:12,background:totalPending===0?"#D1FAE5":"#FEF3C7",color:totalPending===0?"#047857":"#92400E",fontWeight:700}}>{totalPending===0?"Complete":`${totalPending} pending`}</span>
         <div style={{marginLeft:"auto",display:"flex",gap:5,alignItems:"center"}}>
-          {!showEmail&&!showIntel?<>
+          {!showEmail?<>
             <select value={emailDept} onChange={e=>setEmailDept(e.target.value)} style={{fontSize:9,padding:"3px 6px",borderRadius:5,border:"1px solid #d6d3cd",background:"#f5f3ef",color:"#0f172a",cursor:"pointer"}}>
               {DEPTS.map(d=><option key={d.id} value={d.id}>{d.label}</option>)}
             </select>
             <button onClick={()=>setShowEmail(true)} style={{background:"#5B21B6",border:"none",borderRadius:6,color:"#fff",fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700}}>Generate Email</button>
-            <button onClick={()=>setShowIntel(true)} style={{background:"#0f172a",border:"none",borderRadius:6,color:"#fff",fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700}}>Intel</button>
-          </>:<button onClick={()=>{setShowEmail(false);setShowIntel(false);}} style={{background:"#f5f3ef",border:"1px solid #d6d3cd",borderRadius:6,color:"#475569",fontSize:10,padding:"4px 10px",cursor:"pointer",fontWeight:600}}>← Checklist</button>}
+          </>:<button onClick={()=>setShowEmail(false)} style={{background:"#f5f3ef",border:"1px solid #d6d3cd",borderRadius:6,color:"#475569",fontSize:10,padding:"4px 10px",cursor:"pointer",fontWeight:600}}>← Checklist</button>}
         </div>
       </div>
       {!showEmail&&<div style={{padding:"4px 20px",borderBottom:"1px solid #ebe8e3",background:"#fafaf9",display:"flex",gap:2,overflowX:"auto",flexShrink:0,scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
@@ -1962,7 +1964,7 @@ function AdvTab(){
         })}
       </div>}
       <div style={{flex:1,overflow:"auto",padding:"10px 20px 30px"}}>
-        {showIntel?<IntelPanel/>:showEmail?(
+        {showEmail?(
           <div>
             <div style={{fontSize:10,color:"#64748b",marginBottom:6,fontWeight:600}}>ADVANCE EMAIL — {DM[emailDept]?.label?.toUpperCase()||"ALL DEPTS"}</div>
             <pre style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,padding:"14px",fontSize:9,fontFamily:MN,color:"#0f172a",lineHeight:1.7,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{genEmail()}</pre>
@@ -1970,6 +1972,7 @@ function AdvTab(){
           </div>
         ):(
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <IntelPanel/>
             {showDepts.map(dept=>{
               const dItems=allItems.filter(t=>t.dept===dept.id);
               if(!dItems.length)return null;
@@ -3622,12 +3625,18 @@ function FinLedger(){
 
   const rows=useMemo(()=>{
     const out=[];
+    // Confirmed flights are the authoritative source — build a set of their IDs so
+    // finance.flightExpenses (written at confirm-time) are not double-counted.
+    const confirmedFlightIds=new Set(
+      Object.values(flights||{}).filter(f=>f.status==="confirmed").map(f=>f.id)
+    );
     Object.entries(finance).forEach(([date,fin])=>{
       if(!fin)return;
       const show=shows[date];
       const showLabel=show?`${show.city||""} — ${show.venue||""}`.replace(/^ — |—\s*$/,"").trim():fD(date);
-      // Flight expenses
+      // Flight expenses — skip any already covered by the flights store
       (fin.flightExpenses||[]).forEach(fe=>{
+        if(confirmedFlightIds.has(fe.flightId))return;
         if(!fe.amount&&fe.amount!==0)return;
         out.push({id:fe.flightId||`fe_${date}_${Math.random()}`,date,show:showLabel,cat:"Flight",desc:fe.label||"",payee:(fe.pax||[]).join(", ")||"—",amount:parseFloat(fe.amount||0),currency:fe.currency||"USD",status:"confirmed",ref:fe.carrier||""});
       });
@@ -3645,8 +3654,27 @@ function FinLedger(){
         out.push({id:`sa_${date}`,date,show:showLabel,cat:"Settlement",desc:"Settlement payment",payee:"—",amount:parseFloat(fin.settlementAmount),currency:"USD",status:fin.stages?.payment_initiated?"confirmed":"pending",ref:fin.wireRef||""});
       }
     });
+    // Confirmed flights from flights store
+    Object.values(flights||{}).forEach(f=>{
+      if(f.status!=="confirmed")return;
+      const showDate=f.suggestedShowDate||f.depDate||"";
+      const show=shows[showDate];
+      const showLabel=show?`${show.city||""} — ${show.venue||""}`.replace(/^ — |—\s*$/,"").trim():f.depDate||"";
+      out.push({
+        id:f.id,
+        date:f.depDate||"",
+        show:showLabel,
+        cat:"Flight",
+        desc:`${f.flightNo||f.carrier||"Flight"} · ${f.fromCity||f.from||""} → ${f.toCity||f.to||""}`,
+        payee:(f.pax||[]).join(", ")||"—",
+        amount:f.cost!=null?parseFloat(f.cost):null,
+        currency:f.currency||"USD",
+        status:"confirmed",
+        ref:f.carrier||f.flightNo||"",
+      });
+    });
     return out;
-  },[finance,shows]);
+  },[finance,flights,shows]);
 
   const cats=[...new Set(rows.map(r=>r.cat))].sort();
   const curs=[...new Set(rows.map(r=>r.currency))].sort();
@@ -3655,13 +3683,13 @@ function FinLedger(){
 
   const sorted=[...filtered].sort((a,b)=>{
     let va=a[sortCol],vb=b[sortCol];
-    if(sortCol==="amount"){va=a.amount;vb=b.amount;}
+    if(sortCol==="amount"){va=a.amount??-Infinity;vb=b.amount??-Infinity;}
     if(typeof va==="string")va=va.toLowerCase();
     if(typeof vb==="string")vb=vb.toLowerCase();
     return va<vb?-sortDir:va>vb?sortDir:0;
   });
 
-  const totals=filtered.reduce((m,r)=>{m[r.currency]=(m[r.currency]||0)+r.amount;return m;},{});
+  const totals=filtered.reduce((m,r)=>{if(r.amount!=null)m[r.currency]=(m[r.currency]||0)+r.amount;return m;},{});
 
   const th=(label,col)=>{
     const active=sortCol===col;
@@ -3701,7 +3729,7 @@ function FinLedger(){
                     <td style={{padding:"6px 8px"}}><span style={{fontSize:8,padding:"2px 6px",borderRadius:4,fontWeight:700,background:cc.bg,color:cc.c}}>{r.cat}</span></td>
                     <td style={{padding:"6px 8px",fontSize:10,fontWeight:600,color:"#0f172a"}}>{r.payee}</td>
                     <td style={{padding:"6px 8px",fontSize:9,color:"#64748b",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.desc}</td>
-                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:11,fontWeight:700,color:"#0f172a",textAlign:"right"}}>{r.amount.toFixed(2)}</td>
+                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:11,fontWeight:700,color:r.amount!=null?"#0f172a":"#94a3b8",textAlign:"right"}}>{r.amount!=null?r.amount.toFixed(2):"—"}</td>
                     <td style={{padding:"6px 8px",fontSize:9,color:"#64748b"}}>{r.currency}</td>
                     <td style={{padding:"6px 8px"}}><span style={{fontSize:8,padding:"2px 5px",borderRadius:3,fontWeight:700,background:r.status==="confirmed"?"#D1FAE5":"#FEF3C7",color:r.status==="confirmed"?"#047857":"#92400E"}}>{r.status}</span></td>
                     <td style={{padding:"6px 8px",fontFamily:MN,fontSize:8,color:"#94a3b8"}}>{r.ref||"—"}</td>
