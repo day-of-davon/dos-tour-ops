@@ -1525,7 +1525,7 @@ function TopBar({ss}){
   const stepDate=dir=>{if(curIdx<0)return;const ni=curIdx+dir;if(ni<0||ni>=stepList.length)return;setSel(stepList[ni].date);};
   const canPrev=curIdx>0;const canNext=curIdx>=0&&curIdx<stepList.length-1;
   return(
-    <div style={{borderBottom:"1px solid #d6d3cd",background:"#fff",width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
+    <div style={{borderBottom:"1px solid #d6d3cd",background:"#fff",width:"100%",maxWidth:"100%",overflow:"visible"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px 5px",minWidth:0,gap:8,width:"100%"}}>
         <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flexShrink:1,overflow:"hidden"}}>
           <span style={{fontSize:16,fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em",flexShrink:0}}>DOS</span>
@@ -3324,17 +3324,34 @@ function SegmentDrawer({seg,crew,sorted,onChange,onClose}){
 }
 
 function TransTab(){
-  const{flights,sel,labelIntel}=useContext(Ctx);
+  const{flights,uFlight,sel,labelIntel}=useContext(Ctx);
   const[view,setView]=useState("travel");
+
+  const importBusLegs=()=>{
+    const base=new Date('2026-05-02T12:00:00');
+    BUS_DATA.forEach(d=>{
+      if(d.dep==="—"||!d.route.includes("→"))return;
+      const dt=new Date(base);dt.setDate(dt.getDate()+d.day-1);
+      const isoDate=dt.toISOString().slice(0,10);
+      const already=Object.values(flights).some(f=>f.type==="bus"&&f.depDate===isoDate&&f.status!=="dismissed");
+      if(already)return;
+      const parts=d.route.split("→").map(s=>s.trim());
+      const id=`bus_${isoDate}_${Math.random().toString(36).slice(2,6)}`;
+      uFlight(id,{id,type:"bus",status:"confirmed",depDate:isoDate,arrDate:isoDate,dep:d.dep,arr:d.arr,from:parts[0],to:parts[1]||"",fromCity:parts[0],toCity:parts[1]||"",carrier:"Pieter Smit",flightNo:`T26-021201 Day ${d.day}`,notes:d.note||"",pax:[]});
+    });
+  };
   const confirmedCount=Object.values(flights).filter(f=>f.status==="confirmed").length;
   const daySegCount=Object.values(flights).filter(s=>s.status!=="dismissed"&&(s.depDate===sel||s.arrDate===sel)).length;
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
-      <div style={{padding:"7px 20px",borderBottom:"1px solid #d6d3cd",background:"#fff",display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"wrap"}}>
+      <div style={{padding:"7px 20px",borderBottom:"1px solid #d6d3cd",background:"#fff",display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"nowrap",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
         {[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["calendar","Tour Calendar"],["bus","EU Bus Schedule"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`],["festival","Festival Dispatch"]].map(([v,l])=>(
           <button key={v} onClick={()=>setView(v)} style={{padding:"4px 12px",borderRadius:6,border:"1px solid #d6d3cd",background:view===v?"#5B21B6":"#f5f3ef",color:view===v?"#fff":"#64748b",fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
         ))}
-        {view==="bus"&&<div style={{marginLeft:"auto",fontFamily:MN,fontSize:8,color:"#94a3b8"}}>Pieter Smit T26-021201 · 8,970 km · 31 days</div>}
+        {view==="bus"&&<div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8}}>
+          <button onClick={importBusLegs} style={{fontSize:9,padding:"3px 10px",borderRadius:5,border:"1px solid #5B21B6",background:"#f5f3ff",color:"#5B21B6",cursor:"pointer",fontWeight:700,fontFamily:MN}}>→ Import to Travel Days</button>
+          <span style={{fontFamily:MN,fontSize:8,color:"#94a3b8"}}>Pieter Smit T26-021201 · 8,970 km · 31 days</span>
+        </div>}
         {view==="calendar"&&<div style={{marginLeft:"auto",fontFamily:MN,fontSize:8,color:"#94a3b8"}}>Apr 16 – May 31 · Internet Explorer EU 2026</div>}
       </div>
       <div style={{flex:1,overflow:"auto",padding:"12px 20px 30px"}}>
