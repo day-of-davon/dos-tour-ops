@@ -2451,9 +2451,117 @@ function TransTab(){
   );
 }
 
+function FinLedger(){
+  const{shows,finance,flights}=useContext(Ctx);
+  const[filterCat,setFilterCat]=useState("all");
+  const[filterCur,setFilterCur]=useState("all");
+  const[sortCol,setSortCol]=useState("date");
+  const[sortDir,setSortDir]=useState(1);
+
+  const rows=useMemo(()=>{
+    const out=[];
+    Object.entries(finance).forEach(([date,fin])=>{
+      if(!fin)return;
+      const show=shows[date];
+      const showLabel=show?`${show.city||""} — ${show.venue||""}`.replace(/^ — |—\s*$/,"").trim():fD(date);
+      // Flight expenses
+      (fin.flightExpenses||[]).forEach(fe=>{
+        if(!fe.amount&&fe.amount!==0)return;
+        out.push({id:fe.flightId||`fe_${date}_${Math.random()}`,date,show:showLabel,cat:"Flight",desc:fe.label||"",payee:(fe.pax||[]).join(", ")||"—",amount:parseFloat(fe.amount||0),currency:fe.currency||"USD",status:"confirmed",ref:fe.carrier||""});
+      });
+      // Payouts
+      (fin.payouts||[]).forEach(p=>{
+        out.push({id:p.id||`po_${date}_${Math.random()}`,date,show:showLabel,cat:"Payout",desc:`${p.dept||""}${p.role?` · ${p.role}`:""}`,payee:p.name||"—",amount:parseFloat(p.amount||0),currency:p.currency||"USD",status:p.status||"pending",ref:p.method||""});
+      });
+      // Settlement amount
+      if(fin.settlementAmount&&parseFloat(fin.settlementAmount)>0){
+        out.push({id:`sa_${date}`,date,show:showLabel,cat:"Settlement",desc:"Settlement payment",payee:"—",amount:parseFloat(fin.settlementAmount),currency:"USD",status:fin.stages?.payment_initiated?"confirmed":"pending",ref:fin.wireRef||""});
+      }
+    });
+    return out;
+  },[finance,shows]);
+
+  const cats=[...new Set(rows.map(r=>r.cat))].sort();
+  const curs=[...new Set(rows.map(r=>r.currency))].sort();
+
+  const filtered=rows.filter(r=>(filterCat==="all"||r.cat===filterCat)&&(filterCur==="all"||r.currency===filterCur));
+
+  const sorted=[...filtered].sort((a,b)=>{
+    let va=a[sortCol],vb=b[sortCol];
+    if(sortCol==="amount"){va=a.amount;vb=b.amount;}
+    if(typeof va==="string")va=va.toLowerCase();
+    if(typeof vb==="string")vb=vb.toLowerCase();
+    return va<vb?-sortDir:va>vb?sortDir:0;
+  });
+
+  const totals=filtered.reduce((m,r)=>{m[r.currency]=(m[r.currency]||0)+r.amount;return m;},{});
+
+  const th=(label,col)=>{
+    const active=sortCol===col;
+    return <th onClick={()=>{if(active)setSortDir(d=>-d);else{setSortCol(col);setSortDir(1);}}} style={{padding:"6px 8px",textAlign:"left",fontSize:8,fontWeight:700,color:active?"#5B21B6":"#64748b",letterSpacing:"0.05em",borderBottom:"1px solid #d6d3cd",cursor:"pointer",whiteSpace:"nowrap",userSelect:"none",background:"#f5f3ef"}}>
+      {label}{active?sortDir===1?" ↑":" ↓":""}
+    </th>;
+  };
+
+  const CAT_COLOR={Flight:{bg:"#DBEAFE",c:"#1E40AF"},Payout:{bg:"#EDE9FE",c:"#5B21B6"},Settlement:{bg:"#D1FAE5",c:"#047857"}};
+
+  return(
+    <div style={{flex:1,overflow:"auto",padding:"14px 20px 30px",display:"flex",flexDirection:"column",gap:12}}>
+      {/* Filters + totals bar */}
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        <span style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em"}}>CATEGORY</span>
+        {["all",...cats].map(c=><button key={c} onClick={()=>setFilterCat(c)} style={{fontSize:9,padding:"3px 9px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,background:filterCat===c?"#0f172a":"#f1f5f9",color:filterCat===c?"#fff":"#475569"}}>{c==="all"?"All":c}</button>)}
+        <span style={{fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.06em",marginLeft:8}}>CURRENCY</span>
+        {["all",...curs].map(c=><button key={c} onClick={()=>setFilterCur(c)} style={{fontSize:9,padding:"3px 9px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,background:filterCur===c?"#0f172a":"#f1f5f9",color:filterCur===c?"#fff":"#475569"}}>{c==="all"?"All":c}</button>)}
+        <div style={{marginLeft:"auto",display:"flex",gap:8,flexWrap:"wrap"}}>
+          {Object.entries(totals).map(([cur,amt])=><span key={cur} style={{fontSize:11,fontWeight:800,fontFamily:MN,color:"#0f172a"}}>{cur} {amt.toFixed(2)}</span>)}
+        </div>
+      </div>
+      {sorted.length===0?(
+        <div style={{textAlign:"center",padding:"40px 0",color:"#94a3b8",fontSize:11}}>No expenses logged.</div>
+      ):(
+        <div style={{background:"#fff",border:"1px solid #d6d3cd",borderRadius:10,overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr>{[["date","Date"],["show","Show"],["cat","Category"],["payee","Payee"],["desc","Description"],["amount","Amount"],["currency","Curr"],["status","Status"],["ref","Ref"]].map(([col,label])=>th(label,col))}</tr></thead>
+            <tbody>
+              {sorted.map((r,i)=>{
+                const cc=CAT_COLOR[r.cat]||{bg:"#f1f5f9",c:"#475569"};
+                return(
+                  <tr key={r.id} style={{borderBottom:"1px solid #f5f3ef",background:i%2===0?"#fff":"#fafaf9"}}>
+                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:9,color:"#64748b",whiteSpace:"nowrap"}}>{r.date}</td>
+                    <td style={{padding:"6px 8px",fontSize:10,color:"#0f172a",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.show}</td>
+                    <td style={{padding:"6px 8px"}}><span style={{fontSize:8,padding:"2px 6px",borderRadius:4,fontWeight:700,background:cc.bg,color:cc.c}}>{r.cat}</span></td>
+                    <td style={{padding:"6px 8px",fontSize:10,fontWeight:600,color:"#0f172a"}}>{r.payee}</td>
+                    <td style={{padding:"6px 8px",fontSize:9,color:"#64748b",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.desc}</td>
+                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:11,fontWeight:700,color:"#0f172a",textAlign:"right"}}>{r.amount.toFixed(2)}</td>
+                    <td style={{padding:"6px 8px",fontSize:9,color:"#64748b"}}>{r.currency}</td>
+                    <td style={{padding:"6px 8px"}}><span style={{fontSize:8,padding:"2px 5px",borderRadius:3,fontWeight:700,background:r.status==="confirmed"?"#D1FAE5":"#FEF3C7",color:r.status==="confirmed"?"#047857":"#92400E"}}>{r.status}</span></td>
+                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:8,color:"#94a3b8"}}>{r.ref||"—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          <div style={{padding:"8px 12px",background:"#f5f3ef",borderTop:"1px solid #d6d3cd",display:"flex",gap:16,flexWrap:"wrap"}}>
+            {Object.entries(totals).map(([cur,amt])=>(
+              <div key={cur} style={{fontSize:9}}>
+                <span style={{color:"#64748b",fontWeight:700}}>{cur} total: </span>
+                <span style={{fontFamily:MN,fontWeight:800,color:"#0f172a"}}>{amt.toFixed(2)}</span>
+                <span style={{color:"#94a3b8",marginLeft:5}}>({filtered.filter(r=>r.currency===cur).length} entries)</span>
+              </div>
+            ))}
+            <span style={{marginLeft:"auto",fontSize:9,color:"#94a3b8"}}>{sorted.length} rows</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FinTab(){
   const{shows,cShows,finance,uFin,pushUndo}=useContext(Ctx);
   const today=new Date().toISOString().slice(0,10);
+  const[finView,setFinView]=useState("settlement");
   const[selS,setSelS]=useState(null);
   const[addP,setAddP]=useState(false);
   const[pForm,setPForm]=useState({name:"",role:"",dept:"Drivers",amount:"",currency:"USD",method:"Wire",status:"pending"});
@@ -2470,7 +2578,15 @@ function FinTab(){
   const curStatus=!selS?"":done?"settled":stages["payment_initiated"]?"in_progress":"pending";
 
   return(
-    <div className="fi" style={{display:"flex",height:"calc(100vh - 115px)"}}>
+    <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
+      {/* Sub-tab bar */}
+      <div style={{display:"flex",gap:0,borderBottom:"1px solid #d6d3cd",background:"#fff",flexShrink:0,padding:"0 16px"}}>
+        {[["settlement","Settlement"],["ledger","Ledger"]].map(([v,l])=>(
+          <button key={v} onClick={()=>setFinView(v)} style={{padding:"8px 16px",fontSize:11,fontWeight:finView===v?700:500,color:finView===v?"#0f172a":"#64748b",border:"none",borderBottom:finView===v?"2px solid #0f172a":"2px solid transparent",background:"none",cursor:"pointer",letterSpacing:"0.01em"}}>{l}</button>
+        ))}
+      </div>
+      {finView==="ledger"&&<FinLedger/>}
+      {finView==="settlement"&&<div style={{display:"flex",flex:1,overflow:"hidden"}}>
       <div style={{width:195,borderRight:"1px solid #d6d3cd",background:"#fff",overflow:"auto",flexShrink:0}}>
         <div style={{padding:"7px 12px",fontSize:9,fontWeight:800,color:"#64748b",letterSpacing:"0.08em",borderBottom:"1px solid #ebe8e3"}}>SHOWS</div>
         {allS.map(s=>{const f=finance[s.date]||{};const st2=f.stages||{};const ok=["wire_ref_confirmed","signed_sheet","payment_initiated"].every(id=>st2[id]);const ip=st2["payment_initiated"];const past=s.date<today;const isSel=selS===s.date;
@@ -2583,6 +2699,7 @@ function FinTab(){
           </div>
         )}
       </div>
+      </div>}
     </div>
   );
 }
