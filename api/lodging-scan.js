@@ -147,30 +147,23 @@ module.exports = async function handler(req, res) {
   const allQueries = buildLodgingQueries(after, before);
 
   const seen = new Set();
-
-  async function runQueries(queries, cap = 25) {
-    for (const q of queries) {
-      try {
-        const ids = await gmailSearch(googleToken, q, cap);
-        ids.forEach(id => seen.add(id));
-      } catch (e) {
-        console.error("[lodging-scan] search error:", e.message);
-        if (e.message.includes("401")) throw Object.assign(new Error("gmail_401"), { status: 402 });
-      }
-    }
-  }
+  const CAP = 50;
 
   try {
-    await runQueries(allQueries, 25);
+    const results = await Promise.allSettled(allQueries.map(q => gmailSearch(googleToken, q, 25)));
+    for (const r of results) {
+      if (r.status === "fulfilled") r.value.forEach(id => seen.add(id));
+      else if (r.reason?.message?.includes("401")) throw Object.assign(new Error("gmail_401"), { status: 402 });
+    }
   } catch (e) {
     if (e.status === 402) return res.status(402).json({ error: "gmail_token_expired" });
     return res.status(500).json({ error: e.message });
   }
 
-  const ids = [...seen].slice(0, 100);
+  const ids = [...seen].slice(0, CAP);
   if (!ids.length) return res.json({ lodgings: [], threadsFound: 0 });
 
-  const threads = (await fetchBatched(googleToken, ids)).map(extractHeaders);
+  const threads = (await fetchBatched(googleToken, ids, 25)).map(extractHeaders);
 
   const sysPrompt = `You are a hotel/accommodation confirmation parser for concert touring operations. Extract structured lodging data from email bodies.
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.
