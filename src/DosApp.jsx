@@ -1044,7 +1044,7 @@ function matchPaxToCrew(paxNames,crewList){
 }
 
 function FlightsSection(){
-  const{flights,uFlight,setFlights,uRos,gRos,uFin,finance,crew,setShowCrew,shows}=useContext(Ctx);
+  const{flights,uFlight,setFlights,uRos,gRos,uFin,finance,crew,setShowCrew,shows,aC}=useContext(Ctx);
   const a=useAuth();
   const[scanning,setScanning]=useState(false);
   const[scanMsg,setScanMsg]=useState("");
