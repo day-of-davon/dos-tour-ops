@@ -1346,7 +1346,7 @@ function SignOut(){
 // ── NAV SIDEBAR ──────────────────────────────────────────────────────────────
 
 function NavSidebar(){
-  const{sidebarOpen,sel,setSel,sorted,tourDaysSorted,shows,uShow,advances,aC,setTab,next,tourDays,showOffDays,setShowOffDays}=useContext(Ctx);
+  const{sidebarOpen,tab,sel,setSel,sorted,tourDaysSorted,shows,uShow,advances,aC,setTab,next,tourDays,showOffDays,setShowOffDays}=useContext(Ctx);
   const[newDate,setNewDate]=useState("");
   const[newType,setNewType]=useState("off");
   const today=new Date().toISOString().slice(0,10);
@@ -1373,7 +1373,7 @@ function NavSidebar(){
   // Scroll selected date into view
   const listRef=useRef(null);
   const selRef=useRef(null);
-  useEffect(()=>{if(selRef.current&&listRef.current){selRef.current.scrollIntoView({block:"nearest",behavior:"smooth"});};},[sel,sidebarOpen]);
+  useEffect(()=>{if(selRef.current&&listRef.current){selRef.current.scrollIntoView({block:"start",behavior:"smooth"});};},[sel,sidebarOpen,tab]);
 
   const typeColor=t=>t==="travel"?{bg:"#DBEAFE",c:"#1E40AF"}:t==="off"?{bg:"#F1F5F9",c:"#94a3b8"}:t==="split"?{bg:"#FEF3C7",c:"#92400E"}:{bg:"#D1FAE5",c:"#047857"};
 
