@@ -1111,10 +1111,11 @@ function FlightsSection(){
 
   const allFlights=Object.values(flights).sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0);
   const fdk=f=>`${f.flightNo||f.carrier||""}__${f.from||""}__${f.to||""}__${f.depDate||""}`;
-  const pendingRaw=allFlights.filter(f=>f.status==="pending");
+  const confirmed=allFlights.filter(f=>f.status==="confirmed");
+  const confirmedKeys=new Set(confirmed.map(fdk));
+  const pendingRaw=allFlights.filter(f=>f.status==="pending"&&!confirmedKeys.has(fdk(f)));
   const pendingByKey=new Map();pendingRaw.forEach(f=>{if(!pendingByKey.has(fdk(f)))pendingByKey.set(fdk(f),f);});
   const pending=[...pendingByKey.values()];
-  const confirmed=allFlights.filter(f=>f.status==="confirmed");
   const unresolved=allFlights.filter(f=>f.status==="unresolved");
 
   const scanFlights=async(opts={})=>{
@@ -2427,7 +2428,7 @@ function DayScheduleView({show,bus,split,sel}){
                   <div style={{width:3,alignSelf:"stretch",background:isDep?"#1E40AF":"#047857",borderRadius:2,opacity:0.5,flexShrink:0}}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
-                      <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:isDep?"#1E40AF":"#047857",color:"#fff",letterSpacing:"0.04em"}}>{isDep?"✈ DEP":"✈ ARR"}</span>
+                      <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:f.type==="bus"?(isDep?"#5B21B6":"#065F46"):isDep?"#1E40AF":"#047857",color:"#fff",letterSpacing:"0.04em"}}>{f.type==="bus"?(isDep?"🚌 DEP":"🚌 ARR"):isDep?"✈ DEP":"✈ ARR"}</span>
                       <span style={{fontFamily:MN,fontSize:11,fontWeight:800,color:"#1E40AF"}}>{f.from}<span style={{fontWeight:400,color:"#93C5FD",padding:"0 3px"}}>→</span>{f.to}</span>
                       <span style={{fontSize:10,fontWeight:700,color:"#1D4ED8"}}>{f.flightNo||f.carrier}</span>
                       {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:"#64748b"}}>{f.carrier}</span>}
@@ -2787,7 +2788,7 @@ function TourCalendar(){
       if(Object.values(flights).some(f=>f.type==="bus"&&f.depDate===isoDate&&f.status!=="dismissed"))return;
       const parts=d.route.split("→").map(s=>s.trim());
       const id=`bus_${isoDate}_${Math.random().toString(36).slice(2,6)}`;
-      uFlight(id,{id,type:"bus",status:"confirmed",depDate:isoDate,arrDate:isoDate,dep:d.dep,arr:d.arr,from:parts[0],to:parts[1]||"",fromCity:parts[0],toCity:parts[1]||"",carrier:"Pieter Smit",flightNo:`T26-021201 Day ${d.day}`,notes:d.note||"",pax:[]});
+      uFlight(id,{id,type:"bus",status:"confirmed",depDate:isoDate,arrDate:isoDate,dep:d.dep,arr:d.arr,from:parts[0],to:parts[1]||"",fromCity:parts[0],toCity:parts[1]||"",carrier:"Pieter Smit",flightNo:"Tour Bus",notes:d.note||"",pax:[]});
     });
   };
   const[expRows,setExpRows]=useState({});
