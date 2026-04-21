@@ -61,6 +61,46 @@ function extractBody(payload) {
   return out.replace(/\s+/g, " ").trim();
 }
 
+// Returns raw HTML body parts concatenated (pre-strip). Used by JSON-LD scanners
+// that need to see <script type="application/ld+json"> blocks intact.
+function extractHtmlRaw(payload) {
+  if (!payload) return "";
+  const parts = [payload];
+  let html = "";
+  while (parts.length) {
+    const p = parts.shift();
+    if (p.parts) parts.push(...p.parts);
+    const data = p.body?.data;
+    if (!data) continue;
+    if (p.mimeType === "text/html") html += decodeB64(data) + "\n";
+  }
+  return html;
+}
+
+// Extract schema.org FlightReservation blocks from HTML. Returns array of
+// parsed reservation objects (may include @graph-wrapped or array payloads).
+function extractJsonLdReservations(html) {
+  if (!html) return [];
+  const out = [];
+  const re = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const raw = m[1].trim().replace(/^<!\[CDATA\[|\]\]>$/g, "");
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch { continue; }
+    const queue = Array.isArray(parsed) ? [...parsed] : [parsed];
+    while (queue.length) {
+      const node = queue.shift();
+      if (!node || typeof node !== "object") continue;
+      if (Array.isArray(node["@graph"])) queue.push(...node["@graph"]);
+      const t = node["@type"];
+      const isFlightRes = t === "FlightReservation" || (Array.isArray(t) && t.includes("FlightReservation"));
+      if (isFlightRes) out.push(node);
+    }
+  }
+  return out;
+}
+
 // Extracts the first valid JSON object from a Claude response that may contain
 // markdown fences or leading prose.
 function extractJson(text) {
@@ -84,4 +124,4 @@ function extractJson(text) {
   return null;
 }
 
-module.exports = { gmailSearch, gmailGetThread, fetchBatched, decodeB64, extractBody, extractJson };
+module.exports = { gmailSearch, gmailGetThread, fetchBatched, decodeB64, extractBody, extractHtmlRaw, extractJsonLdReservations, extractJson };

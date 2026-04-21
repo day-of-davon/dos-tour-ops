@@ -1,6 +1,6 @@
 // api/flights.js — Gmail flight confirmation scraper + Claude parser
 const { createClient } = require("@supabase/supabase-js");
-const { gmailSearch, fetchBatched, extractBody, extractJson } = require("./lib/gmail");
+const { gmailSearch, fetchBatched, extractBody, extractHtmlRaw, extractJsonLdReservations, extractJson } = require("./lib/gmail");
 const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
@@ -16,6 +16,18 @@ function addDays(dateStr, n) {
 }
 
 // ── Thread extraction ─────────────────────────────────────────────────────────
+// Detect forwarded-email wrappers and pull the inner sender. Crew often forward
+// personal bookings from Davon/Olivia; outer From is the forwarder, inner From
+// is the airline. Both matter.
+function detectForwardedSender(body) {
+  const m = body.match(/[-]{3,}\s*(?:Forwarded message|Begin forwarded message)\s*[-]{0,3}[\s\S]{0,400}?From:\s*([^\n<]*?)(?:\s*<([^>\n]+)>)?(?:[\s\n]|$)/i);
+  if (!m) return null;
+  const name = (m[1] || "").trim().replace(/["']/g, "");
+  const email = (m[2] || "").trim();
+  if (!name && !email) return null;
+  return { name, email };
+}
+
 function extractHeaders(thread) {
   // Use the first message for Subject/From/Date — it's the original booking email.
   // Replies and forwarding wrappers appear as later messages and have wrong metadata.
@@ -26,8 +38,75 @@ function extractHeaders(thread) {
     .map(m => extractBody(m.payload))
     .filter(Boolean)
     .join("\n---\n")
-    .slice(0, 2000);
-  return { id: thread.id, subject: get("Subject"), from: get("From"), date: get("Date"), body };
+    .slice(0, 8000);
+  const lastMsg = thread.messages?.[thread.messages.length - 1];
+  const lastMsgMs = lastMsg?.internalDate ? Number(lastMsg.internalDate) : null;
+  // Raw HTML (pre-strip) from all messages — needed for JSON-LD FlightReservation scanning.
+  const htmlRaw = (thread.messages || [])
+    .map(m => extractHtmlRaw(m.payload))
+    .filter(Boolean)
+    .join("\n");
+  const forwardedSender = detectForwardedSender(body);
+  return { id: thread.id, subject: get("Subject"), from: get("From"), date: get("Date"), lastMsgMs, body, htmlRaw, forwardedSender };
+}
+
+// Map a schema.org FlightReservation node to our flight shape. Returns null if
+// the node lacks the minimum viable fields (flight#, dep airport, arr airport).
+function jsonLdToFlight(node, tid) {
+  const res = node.reservationFor;
+  if (!res) return null;
+  // Multi-leg itineraries arrive as an array of Flight objects under reservationFor
+  const flights = Array.isArray(res) ? res : [res];
+  return flights.map(flight => {
+    if (!flight || typeof flight !== "object") return null;
+    const airline = flight.airline || {};
+    const dep = flight.departureAirport || {};
+    const arr = flight.arrivalAirport || {};
+    const iataCode = airline.iataCode || airline.iatacode || "";
+    const flightNum = flight.flightNumber || flight.flightnumber || "";
+    const depIata = dep.iataCode || dep.iatacode || "";
+    const arrIata = arr.iataCode || arr.iatacode || "";
+    const depTime = flight.departureTime || "";
+    const arrTime = flight.arrivalTime || "";
+    if (!flightNum || !depIata || !arrIata) return null;
+    // underName may be Person or Person[]; collect names
+    const under = node.underName;
+    const pax = under ? (Array.isArray(under) ? under : [under]).map(p => p?.name).filter(Boolean) : [];
+    const rawStatus = String(node.reservationStatus || "").toLowerCase();
+    let status = "confirmed";
+    if (rawStatus.includes("cancelled") || rawStatus.includes("canceled")) status = "cancelled";
+    else if (rawStatus.includes("pending")) status = "pending";
+    else if (rawStatus.includes("hold")) status = "hold";
+    return {
+      flightNo: iataCode ? `${iataCode}${flightNum}`.replace(/\s+/g, "") : String(flightNum),
+      carrier: airline.name || null,
+      from: String(depIata).toUpperCase(),
+      fromCity: dep.name || dep.address?.addressLocality || null,
+      to: String(arrIata).toUpperCase(),
+      toCity: arr.name || arr.address?.addressLocality || null,
+      depDate: depTime ? String(depTime).slice(0, 10) : null,
+      dep: depTime ? String(depTime).slice(11, 16) : null,
+      arrDate: arrTime ? String(arrTime).slice(0, 10) : null,
+      arr: arrTime ? String(arrTime).slice(11, 16) : null,
+      pax,
+      pnr: node.reservationNumber || null,
+      confirmNo: node.reservationId && node.reservationId !== node.reservationNumber ? node.reservationId : null,
+      cost: node.totalPrice?.price ? Number(node.totalPrice.price) : (typeof node.totalPrice === "number" ? node.totalPrice : null),
+      currency: node.totalPrice?.priceCurrency || null,
+      tid,
+      source: "jsonld",
+      bookingStatus: status,
+    };
+  }).filter(Boolean);
+}
+
+// Validation: a flight is keepable only if it has a PNR OR the (flightNo + depDate +
+// from + to) core quartet. Drops Claude hallucinations that return partial shells.
+function isValidFlight(f) {
+  if (!f) return false;
+  const hasPnr = f.pnr && String(f.pnr).trim().length >= 5;
+  const hasCore = f.flightNo && f.depDate && f.from && f.to;
+  return Boolean(hasPnr || hasCore);
 }
 
 // ── Query list ────────────────────────────────────────────────────────────────
@@ -37,6 +116,8 @@ function extractHeaders(thread) {
 function buildFlightQueryGroups(after) {
   const W = `after:${after}`;
   const high = [
+    // Gmail's ML-classified travel bucket — catches senders we've never received from
+    `category:travel ${W}`,
     // Subject sweeps — catch forwarded receipts regardless of sender
     `subject:("Your Flight Receipt") ${W}`,
     `subject:("flight receipt") ${W}`,
@@ -232,13 +313,18 @@ module.exports = async function handler(req, res) {
   const after = sweepFrom ? toGmailDate(sweepFrom) : nDaysAgo(90);
   const { high, low } = buildFlightQueryGroups(after);
   const seen = new Set();
-  const CAP = 30;
+  const CAP = 100;
+  const queryErrors = [];
 
   const runParallel = async (queries) => {
     const results = await Promise.allSettled(queries.map(q => gmailSearch(googleToken, q, 25)));
-    for (const r of results) {
-      if (r.status === "fulfilled") r.value.forEach(id => seen.add(id));
-      else if (r.reason?.message?.includes("401")) throw Object.assign(new Error("gmail_401"), { status: 402 });
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      if (r.status === "fulfilled") { r.value.forEach(id => seen.add(id)); continue; }
+      const msg = r.reason?.message || String(r.reason);
+      if (msg.includes("401")) throw Object.assign(new Error("gmail_401"), { status: 402 });
+      console.warn(`[flights] query failed: ${queries[i].slice(0, 80)} — ${msg}`);
+      queryErrors.push({ query: queries[i].slice(0, 120), error: msg.slice(0, 200) });
     }
   };
 
@@ -255,17 +341,39 @@ module.exports = async function handler(req, res) {
 
   let threads, freshIds;
   try {
-    threads = (await fetchBatched(googleToken, ids, 30)).map(extractHeaders);
+    threads = (await fetchBatched(googleToken, ids, 20)).map(extractHeaders);
     const cutoff48h = Date.now() - 48 * 3600 * 1000;
     freshIds = new Set(
       threads
-        .filter(t => { const ms = new Date(t.date).getTime(); return !isNaN(ms) && ms >= cutoff48h; })
+        .filter(t => {
+          const ms = t.lastMsgMs ?? new Date(t.date).getTime();
+          return !isNaN(ms) && ms >= cutoff48h;
+        })
         .map(t => t.id)
     );
   } catch (e) {
     console.error("[flights] thread fetch error:", e.message);
     return res.status(500).json({ error: `Thread fetch failed: ${e.message}` });
   }
+
+  // ── JSON-LD fast path ───────────────────────────────────────────────────────
+  // Major carriers (UA, AA, DL, LH, BA, AF, KLM, Iberia) emit schema.org
+  // FlightReservation JSON-LD in their HTML bodies. Parse these directly and
+  // skip Claude for matched threads — zero tokens spent, deterministic output.
+  const jsonLdFlights = [];
+  const jsonLdTids = new Set();
+  for (const t of threads) {
+    if (!t.htmlRaw) continue;
+    const reservations = extractJsonLdReservations(t.htmlRaw);
+    if (!reservations.length) continue;
+    const mapped = reservations.flatMap(r => jsonLdToFlight(r, t.id));
+    if (mapped.length) {
+      jsonLdFlights.push(...mapped);
+      jsonLdTids.add(t.id);
+    }
+  }
+  const claudeThreads = threads.filter(t => !jsonLdTids.has(t.id));
+  console.log(`[flights] jsonld-shortcircuit: ${jsonLdTids.size} threads / ${jsonLdFlights.length} flights | claude: ${claudeThreads.length} threads`);
 
   const sysPrompt = `You are a flight itinerary parser for concert touring operations. Extract structured flight segment data from email bodies.
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.
@@ -293,14 +401,14 @@ Skip hotel, train, rental car confirmations — flights and private charters onl
 
   const BATCH = 12;
   const threadBatches = [];
-  for (let i = 0; i < threads.length; i += BATCH) threadBatches.push(threads.slice(i, i + BATCH));
+  for (let i = 0; i < claudeThreads.length; i += BATCH) threadBatches.push(claudeThreads.slice(i, i + BATCH));
 
   const buildPrompt = (batch, offset) =>
     `Extract all flight segments from these email threads. Tour date range: ${tourStart} to ${tourEnd}.
 
 ${batch.map((t, i) => `[${i + offset}] tid:${t.id}
 Subject: ${t.subject}
-From: ${t.from}
+From: ${t.from}${t.forwardedSender ? `\nOriginal sender (from forwarded header): ${t.forwardedSender.name}${t.forwardedSender.email ? ` <${t.forwardedSender.email}>` : ""}` : ""}
 Date: ${t.date}
 Body: ${t.body}`).join("\n\n---\n\n")}
 
@@ -328,22 +436,29 @@ Return this exact JSON:
   ]
 }`;
 
+  const RETRYABLE = new Set([408, 409, 425, 429, 500, 502, 503, 504, 529]);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
   const callClaude = async (prompt, sys = sysPrompt, maxTokens = 4096, model = DEFAULT_MODEL) => {
-    const resp = await fetch(ANTHROPIC_URL, {
-      method: "POST",
-      headers: ANTHROPIC_HEADERS,
-      body: JSON.stringify({
-        model,
-        max_tokens: maxTokens,
-        system: sys,
-        messages: [{ role: "user", content: prompt }],
-      }),
-    });
-    if (!resp.ok) throw Object.assign(new Error(`Anthropic ${resp.status}`), { detail: await resp.text() });
-    const data = await resp.json();
-    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
-    console.log("[flights] stop_reason:", data.stop_reason, "| model:", data.model);
-    return extractJson(text);
+    let lastErr;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) await sleep(500 * 2 ** (attempt - 1));
+      const resp = await fetch(ANTHROPIC_URL, {
+        method: "POST",
+        headers: ANTHROPIC_HEADERS,
+        body: JSON.stringify({ model, max_tokens: maxTokens, system: sys, messages: [{ role: "user", content: prompt }] }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+        console.log("[flights] stop_reason:", data.stop_reason, "| model:", data.model, "| attempt:", attempt + 1);
+        return extractJson(text);
+      }
+      const detail = await resp.text();
+      lastErr = Object.assign(new Error(`Anthropic ${resp.status}`), { detail, status: resp.status });
+      if (!RETRYABLE.has(resp.status)) throw lastErr;
+      console.warn(`[flights] anthropic ${resp.status} attempt ${attempt + 1}, retrying`);
+    }
+    throw lastErr;
   };
 
   const verifySys = `You are a flight data verifier. You check extracted flight records against their source emails for accuracy.
@@ -353,7 +468,7 @@ IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no
     `Verify these extracted flight records against their source email threads (matched by tid).
 
 SOURCE THREADS:
-${batch.map(t => `tid:${t.id}\nSubject: ${t.subject}\nBody: ${t.body}`).join("\n\n---\n\n")}
+${batch.map(t => `tid:${t.id}\nSubject: ${t.subject}${t.forwardedSender ? `\nOriginal sender: ${t.forwardedSender.name}${t.forwardedSender.email ? ` <${t.forwardedSender.email}>` : ""}` : ""}\nBody: ${t.body}`).join("\n\n---\n\n")}
 
 EXTRACTED FLIGHTS:
 ${JSON.stringify(flights, null, 2)}
@@ -406,33 +521,49 @@ Return this exact JSON:
     });
   };
 
-  let rawFlights = [];
-  try {
-    const results = await Promise.all(
-      threadBatches.map((batch, i) => parseAndVerifyBatch(batch, i * BATCH))
-    );
-    rawFlights = results.flat();
-  } catch (e) {
-    console.error("[flights] anthropic error:", e.message);
-    return res.status(502).json({ error: `Anthropic request failed: ${e.message}`, detail: e.detail });
+  let claudeFlights = [];
+  if (threadBatches.length) {
+    try {
+      const results = await Promise.all(
+        threadBatches.map((batch, i) => parseAndVerifyBatch(batch, i * BATCH))
+      );
+      claudeFlights = results.flat().map(f => ({ ...f, source: f.source || "claude" }));
+    } catch (e) {
+      console.error("[flights] anthropic error:", e.message);
+      return res.status(502).json({ error: `Anthropic request failed: ${e.message}`, detail: e.detail });
+    }
   }
 
-  console.log("[flights] threads:", threads.length, "| batches:", threadBatches.length, "| raw:", rawFlights.length, "| after:", after);
+  const rawFlights = [...jsonLdFlights, ...claudeFlights];
 
-  const flights = rawFlights
-    .filter(f => f.flightNo || f.carrier)
-    .map(f => {
-      const showMatch = matchFlightToShow(f, shows);
-      return {
-        ...f,
-        id: `fl_${(f.tid || "").slice(-6)}_${(f.flightNo || "").replace(/\s/g, "") || Math.random().toString(36).slice(2, 6)}`,
-        status: "pending",
-        fresh48h: freshIds.has(f.tid) ? true : undefined,
-        suggestedShowDate: showMatch?.showDate || null,
-        suggestedRole: showMatch?.role || null,
-        suggestedVenue: showMatch?.venue || null,
-      };
-    });
+  // Validation: drop flights lacking both a usable PNR and the core identifier
+  // quartet (flightNo + depDate + from + to). Catches Claude hallucinations and
+  // partial JSON-LD nodes that reference a flight without actually describing one.
+  const validFlights = rawFlights.filter(isValidFlight);
+  const droppedCount = rawFlights.length - validFlights.length;
 
-  return res.json({ flights, threadsFound: threads.length, freshThreads: freshIds.size });
+  console.log("[flights] threads:", threads.length, "| jsonld:", jsonLdFlights.length, "| claude:", claudeFlights.length, "| dropped:", droppedCount, "| kept:", validFlights.length, "| after:", after);
+
+  const flights = validFlights.map(f => {
+    const showMatch = matchFlightToShow(f, shows);
+    return {
+      ...f,
+      id: `fl_${(f.tid || "").slice(-6)}_${(f.flightNo || "").replace(/\s/g, "") || Math.random().toString(36).slice(2, 6)}`,
+      status: "pending",
+      fresh48h: freshIds.has(f.tid) ? true : undefined,
+      suggestedShowDate: showMatch?.showDate || null,
+      suggestedRole: showMatch?.role || null,
+      suggestedVenue: showMatch?.venue || null,
+    };
+  });
+
+  return res.json({
+    flights,
+    threadsFound: threads.length,
+    freshThreads: freshIds.size,
+    jsonLdThreads: jsonLdTids.size,
+    claudeThreads: claudeThreads.length,
+    dropped: droppedCount,
+    queryErrors: queryErrors.length ? queryErrors : undefined,
+  });
 };
