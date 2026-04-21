@@ -1,8 +1,8 @@
 // api/flights.js — Gmail flight confirmation scraper + Claude parser
 const { createClient } = require("@supabase/supabase-js");
 
-// ── Gmail helpers ────────────────────────────────────────────────────────────
-async function gmailSearch(token, query, max = 20) {
+// ── Gmail helpers ─────────────────────────────────────────────────────────────
+async function gmailSearch(token, query, max = 25) {
   const url = new URL("https://gmail.googleapis.com/gmail/v1/users/me/threads");
   url.searchParams.set("q", query);
   url.searchParams.set("maxResults", max);
@@ -20,7 +20,6 @@ async function gmailGetThread(token, id) {
   return r.json();
 }
 
-// Batch thread fetches to avoid Gmail 429s (10 at a time, 150ms pause between batches)
 async function fetchBatched(token, ids, batchSize = 15) {
   const out = [];
   for (let i = 0; i < ids.length; i += batchSize) {
@@ -83,80 +82,77 @@ function extractJson(text) {
   return null;
 }
 
-// ── Query builders ───────────────────────────────────────────────────────────
-function w(after, before) {
-  return before ? `after:${after} before:${before}` : `after:${after}`;
-}
-
-// Convert YYYY-MM-DD to YYYY/MM/DD for Gmail
+// ── Date helpers ──────────────────────────────────────────────────────────────
 function gDate(d) { return d.replace(/-/g, "/"); }
-
 function nDaysAgo(n) {
   const d = new Date(); d.setDate(d.getDate() - n);
   return gDate(d.toISOString().slice(0, 10));
 }
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + "T12:00:00");
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
 
-function buildFlightQueries(after, before) {
-  const W = w(after, before);
+// ── Query list ────────────────────────────────────────────────────────────────
+// Subject-line queries lead — they catch forwarded receipts regardless of sender.
+// Carrier from: queries are additive depth for direct emails that miss subject matches.
+function buildFlightQueries(after) {
+  const W = `after:${after}`;
   return [
-    // ── Broad flight sweeps ────────────────────────────────────────────────
+    // Forwarded receipts + broad subject sweeps
+    `subject:("Your Flight Receipt") ${W}`,
+    `subject:("flight receipt") ${W}`,
     `subject:("flight confirmation") ${W}`,
-    `subject:("e-ticket") (flight OR airline OR airways) ${W}`,
-    `subject:("itinerary") (flight OR airline OR departure) ${W}`,
-    `subject:("boarding pass") ${W}`,
-    `subject:("booking confirmation") (flight OR airline OR airways) ${W}`,
     `subject:("your flight") ${W}`,
+    `subject:("e-ticket") (flight OR airline OR airways) ${W}`,
+    `subject:("boarding pass") ${W}`,
+    `subject:("itinerary") (flight OR airline OR departure) ${W}`,
+    `subject:("booking confirmation") (flight OR airline OR airways) ${W}`,
+    `subject:("trip confirmation") (flight OR airline) ${W}`,
     `"booking reference" (flight OR departure OR arrival) ${W}`,
     `"confirmation code" (flight OR airline OR departure) ${W}`,
 
-    // ── US Major carriers ──────────────────────────────────────────────────
+    // US carriers
     `from:(DeltaAirLines@t.delta.com) ${W}`,
     `from:(noreply@delta.com) ${W}`,
     `from:(noreply@aa.com) ${W}`,
     `from:(confirmations@aa.com) ${W}`,
     `from:(noreply@united.com) ${W}`,
     `from:(Southwest@luv.southwest.com) ${W}`,
-    `from:(SouthwestAirlines@luv.southwest.com) ${W}`,
     `from:(noreply@alaskaair.com) ${W}`,
-    `from:(reservations@alaskaair.com) ${W}`,
     `from:(noreply@jetblue.com) ${W}`,
     `from:(noreply@spirit.com) ${W}`,
     `from:(noreply@flyfrontier.com) ${W}`,
     `from:(noreply@allegiantair.com) ${W}`,
     `from:(noreply@hawaiianairlines.com) ${W}`,
-    `from:(SkyWest@luv.southwest.com) ${W}`,
 
-    // ── Canada ────────────────────────────────────────────────────────────
+    // Canada
     `from:(noreply@aircanada.com) ${W}`,
     `from:(noreply@westjet.com) ${W}`,
     `from:(noreply@flyporter.com) ${W}`,
 
-    // ── European full-service ──────────────────────────────────────────────
+    // European full-service
     `from:(noreply@ba.com) ${W}`,
-    `from:(customerrelations@ba.com) ${W}`,
     `from:(do_not_reply@ba.com) ${W}`,
     `from:(noreply@lufthansa.com) ${W}`,
-    `from:(noreply@miles-and-more.com) ${W}`,
     `from:(noreply@airfrance.fr) ${W}`,
     `from:(noreply@airfrance.com) ${W}`,
     `from:(donotreply@klm.com) ${W}`,
-    `from:(booking@klm.com) ${W}`,
     `from:(noreply@iberia.com) ${W}`,
     `from:(noreply@swiss.com) ${W}`,
     `from:(noreply@austrian.com) ${W}`,
     `from:(noreply@brusselsairlines.com) ${W}`,
     `from:(noreply@finnair.com) ${W}`,
     `from:(noreply@flysas.com) ${W}`,
-    `from:(noreply@sas.se) ${W}`,
     `from:(noreply@tap.pt) ${W}`,
     `from:(noreply@turkishairlines.com) ${W}`,
-    `from:(thy@thy.com) ${W}`,
     `from:(noreply@aerlingus.com) ${W}`,
     `from:(noreply@lot.com) ${W}`,
     `from:(noreply@croatiaairlines.hr) ${W}`,
     `from:(info@airserbia.com) ${W}`,
 
-    // ── European LCCs ─────────────────────────────────────────────────────
+    // European LCCs
     `from:(noreply@ryanair.com) ${W}`,
     `from:(no-reply@easyjet.com) ${W}`,
     `from:(noreply@wizzair.com) ${W}`,
@@ -165,19 +161,16 @@ function buildFlightQueries(after, before) {
     `from:(noreply@vueling.com) ${W}`,
     `from:(noreply@transavia.com) ${W}`,
     `from:(bookings@jet2.com) ${W}`,
-    `from:(noreply@flybe.com) ${W}`,
     `from:(noreply@volotea.com) ${W}`,
 
-    // ── Middle East / Gulf ─────────────────────────────────────────────────
+    // Middle East / Gulf
     `from:(emirates@emails.emirates.com) ${W}`,
     `from:(noreply@emirates.com) ${W}`,
-    `from:(etihad@etihad.com) ${W}`,
     `from:(noreply@etihad.com) ${W}`,
     `from:(noreply@qatarairways.com) ${W}`,
     `from:(noreply@flydubai.com) ${W}`,
-    `from:(noreply@airarabia.com) ${W}`,
 
-    // ── Asia Pacific ──────────────────────────────────────────────────────
+    // Asia Pacific
     `from:(noreply@singaporeair.com) ${W}`,
     `from:(noreply@cathaypacific.com) ${W}`,
     `from:(jmb@ml.jal.co.jp) ${W}`,
@@ -186,74 +179,39 @@ function buildFlightQueries(after, before) {
     `from:(noreply@qantas.com.au) ${W}`,
     `from:(noreply@airnewzealand.co.nz) ${W}`,
     `from:(noreply@airasia.com) ${W}`,
-    `from:(noreply@scoot.com) ${W}`,
 
-    // ── Latin America ─────────────────────────────────────────────────────
+    // Latin America
     `from:(noreply@latam.com) ${W}`,
     `from:(noreply@avianca.com) ${W}`,
     `from:(noreply@copaair.com) ${W}`,
 
-    // ── Private charters & fractional ─────────────────────────────────────
+    // Private charters
     `from:(netjets.com) ${W}`,
     `from:(vistajet.com) ${W}`,
     `from:(wheelsup.com) ${W}`,
     `from:(flyexclusive.com) ${W}`,
-    `from:(surfair.com) ${W}`,
     `from:(jsx.com) ${W}`,
-    `from:(privatefly.com) ${W}`,
-    `"netjets" (confirmation OR booking OR flight OR itinerary) ${W}`,
-    `"vistajet" (confirmation OR booking OR flight OR itinerary) ${W}`,
-    `"wheels up" (confirmation OR booking OR flight OR itinerary) ${W}`,
-    `("private jet" OR "charter flight" OR "private charter") (confirmation OR itinerary OR booking) ${W}`,
+    `("private jet" OR "charter flight") (confirmation OR itinerary OR booking) ${W}`,
 
-    // ── OTA flight bookings ───────────────────────────────────────────────
-    `from:(expedia.com) (flight OR airline OR itinerary) ${W}`,
-    `from:(kayak.com) (flight OR itinerary) ${W}`,
+    // OTA
+    `from:(expedia.com) (flight OR itinerary) ${W}`,
+    `from:(concur.com) (flight OR itinerary) ${W}`,
     `from:(google.com) subject:(trip) (flight OR itinerary) ${W}`,
     `from:(travelport.com) (flight OR itinerary) ${W}`,
-    `from:(concur.com) (flight OR airline OR itinerary) ${W}`,
     `from:(noreply@booking.com) (flight OR airline) ${W}`,
   ];
 }
 
-// ── Per-carrier focus queries (extra depth for priority carriers) ────────────
-const FOCUS_QUERIES = {
-  delta: [
-    `from:(DeltaAirLines@t.delta.com)`,
-    `from:(noreply@delta.com)`,
-    `"delta air lines" (confirmation OR itinerary OR "e-ticket" OR "boarding pass")`,
-    `subject:(delta) (flight OR confirmation OR itinerary)`,
-  ],
-  american: [
-    `from:(noreply@aa.com)`,
-    `from:(confirmations@aa.com)`,
-    `"american airlines" (confirmation OR itinerary OR "e-ticket" OR "boarding pass")`,
-    `subject:("american airlines") (flight OR confirmation OR itinerary)`,
-  ],
-  united: [
-    `from:(noreply@united.com)`,
-    `"united airlines" (confirmation OR itinerary OR "e-ticket" OR "boarding pass")`,
-    `subject:(united) (flight OR confirmation OR itinerary)`,
-  ],
-  "air canada": [
-    `from:(noreply@aircanada.com)`,
-    `"air canada" (confirmation OR itinerary OR "e-ticket" OR "boarding pass")`,
-    `subject:("air canada") (flight OR confirmation OR itinerary)`,
-  ],
-};
-
-// Day-offset show matching: outbound departs day after show, inbound arrives same day or day before
+// ── Show matching ─────────────────────────────────────────────────────────────
 function matchFlightToShow(flight, shows) {
   if (!Array.isArray(shows) || !shows.length) return null;
-  const depDate = flight.depDate; // YYYY-MM-DD
+  const depDate = flight.depDate;
   const arrDate = flight.arrDate || flight.depDate;
   let best = null;
   for (const s of shows) {
-    const sd = s.date; // YYYY-MM-DD
+    const sd = s.date;
     if (!sd) continue;
-    // Outbound: flight departs the day after show
     if (depDate === addDays(sd, 1)) return { showDate: sd, role: "outbound", showId: s.id || sd, venue: s.venue };
-    // Inbound: flight arrives same day or day before show
     if (arrDate === sd || arrDate === addDays(sd, -1)) {
       best = { showDate: sd, role: "inbound", showId: s.id || sd, venue: s.venue };
     }
@@ -261,12 +219,7 @@ function matchFlightToShow(flight, shows) {
   return best;
 }
 
-function addDays(dateStr, n) {
-  const d = new Date(dateStr + "T12:00:00");
-  d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
-}
-
+// ── Handler ───────────────────────────────────────────────────────────────────
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -285,32 +238,21 @@ module.exports = async function handler(req, res) {
     googleToken,
     tourStart = "2026-04-01",
     tourEnd = "2026-06-30",
-    focus = [],
-    sweepFrom = null,   // "2026-01-01" triggers historical mode
+    sweepFrom = null,
     shows = [],
   } = req.body || {};
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
 
   const after = sweepFrom ? gDate(sweepFrom) : nDaysAgo(90);
-  const before = null; // open-ended
-
-  // Focus carriers — high-cap queries run first
-  const focusQueries = focus.flatMap(k => {
-    const base = FOCUS_QUERIES[String(k).toLowerCase()] || [];
-    return base.map(q => `${q} after:${after}`);
-  });
-
-  // Broad + carrier queries anchored to after date
-  const allCarrierQueries = buildFlightQueries(after, before);
-
-  // Collect thread IDs — focus first, then broad carrier sweep
+  const queries = buildFlightQueries(after);
   const seen = new Set();
 
-  async function runQueries(queries, cap = 25, parallelism = 6) {
+  try {
+    const parallelism = 6;
     for (let i = 0; i < queries.length; i += parallelism) {
       await Promise.all(queries.slice(i, i + parallelism).map(async q => {
         try {
-          const ids = await gmailSearch(googleToken, q, cap);
+          const ids = await gmailSearch(googleToken, q, 25);
           ids.forEach(id => seen.add(id));
         } catch (e) {
           console.error("[flights] search error:", e.message);
@@ -318,11 +260,6 @@ module.exports = async function handler(req, res) {
         }
       }));
     }
-  }
-
-  try {
-    await runQueries(focusQueries, 30, 6);
-    await runQueries(allCarrierQueries, 20, 6);
   } catch (e) {
     if (e.status === 402) return res.status(402).json({ error: "gmail_token_expired" });
     return res.status(500).json({ error: e.message });
@@ -415,7 +352,7 @@ Return this exact JSON:
   }
 
   const textContent = (anthropicData.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
-  console.log("[flights] stop_reason:", anthropicData.stop_reason, "| threads:", threads.length, "| sweep:", sweepFrom || "14d");
+  console.log("[flights] stop_reason:", anthropicData.stop_reason, "| threads:", threads.length, "| after:", after);
 
   const parsed = extractJson(textContent);
   const rawFlights = Array.isArray(parsed?.flights) ? parsed.flights : [];
@@ -423,22 +360,17 @@ Return this exact JSON:
   const flights = rawFlights
     .filter(f => f.flightNo || f.carrier)
     .map(f => {
-      const fromFresh = freshIds.has(f.tid);
       const showMatch = matchFlightToShow(f, shows);
       return {
         ...f,
         id: `fl_${(f.tid || "").slice(-6)}_${(f.flightNo || "").replace(/\s/g, "") || Math.random().toString(36).slice(2, 6)}`,
         status: "pending",
-        fresh48h: fromFresh || undefined,
+        fresh48h: freshIds.has(f.tid) || undefined,
         suggestedShowDate: showMatch?.showDate || null,
         suggestedRole: showMatch?.role || null,
         suggestedVenue: showMatch?.venue || null,
       };
     });
 
-  return res.json({
-    flights,
-    threadsFound: threads.length,
-    freshThreads: freshIds.size,
-  });
+  return res.json({ flights, threadsFound: threads.length, freshThreads: freshIds.size });
 };
