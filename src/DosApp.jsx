@@ -2925,9 +2925,19 @@ function FlightsListView(){
   const[refreshingAll,setRefreshingAll]=useState(false);
   const[reassignMsg,setReassignMsg]=useState("");
 
+  const flightDedupKey=f=>`${f.flightNo||f.carrier||""}__${f.from||""}__${f.to||""}__${f.depDate||""}`;
   const allFlights=Object.values(flights);
   const pending=allFlights.filter(f=>f.status==="pending").sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0);
-  const confirmed=allFlights.filter(f=>f.status==="confirmed").sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||a.dep?.localeCompare(b.dep||"")||0);
+  const confirmedRaw=allFlights.filter(f=>f.status==="confirmed").sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||a.dep?.localeCompare(b.dep||"")||0);
+  // Deduplicate confirmed by strong key — keep most recently confirmed; purge extras from store
+  const confirmedByKey=new Map();
+  confirmedRaw.forEach(f=>{const k=flightDedupKey(f);const cur=confirmedByKey.get(k);if(!cur||(f.confirmedAt||"")>(cur.confirmedAt||""))confirmedByKey.set(k,f);});
+  const keepIds=new Set([...confirmedByKey.values()].map(f=>f.id));
+  useEffect(()=>{
+    const dupes=confirmedRaw.filter(f=>!keepIds.has(f.id));
+    if(dupes.length)dupes.forEach(f=>uFlight(f.id,null));
+  },[confirmedRaw.length]);// eslint-disable-line
+  const confirmed=[...confirmedByKey.values()].sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||a.dep?.localeCompare(b.dep||"")||0);
   const unresolved=allFlights.filter(f=>f.status==="unresolved").sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0);
   const byDate=confirmed.reduce((m,f)=>{(m[f.depDate]||(m[f.depDate]=[])).push(f);return m;},{});
   const dates=Object.keys(byDate).sort();
