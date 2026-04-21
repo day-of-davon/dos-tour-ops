@@ -1019,7 +1019,7 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
       {crew&&f.suggestedCrewIds?.length>0&&(
         <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
           <span style={{fontSize:8,fontWeight:700,color:"#94a3b8",letterSpacing:"0.06em"}}>CREW</span>
-          {f.suggestedCrewIds.map(id=>{const c=(crew||[]).find(x=>x.id===id);return c?(<span key={id} style={{fontSize:8,padding:"2px 7px",borderRadius:8,background:"#F0FDF4",color:"#065F46",fontWeight:700,border:"1px solid #BBF7D0"}} title={c.role}>{c.name.split(" ").slice(0,2).join(" ")}</span>):null;})}
+          {f.suggestedCrewIds.map(id=>{const c=(crew||[]).find(x=>x.id===id);return c?(<span key={id} style={{fontSize:8,padding:"2px 7px",borderRadius:8,background:"#F0FDF4",color:"#065F46",fontWeight:700,border:"1px solid #BBF7D0"}} title={c.role}>{c.name.split(" ")[0]}</span>):null;})}
         </div>
       )}
       {actions&&<div style={{display:"flex",gap:5,paddingTop:4,borderTop:"1px solid #f5f3ef"}}>{actions}</div>}
