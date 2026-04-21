@@ -2653,7 +2653,7 @@ function TransTab(){
             </div>
           </div>
         )}
-        {view==="flights"&&<FlightsListView/>}
+        {view==="flights"&&<FlightsSection/>}
         {view==="festival"&&(
           <div style={{padding:"40px 0",textAlign:"center",color:"#64748b"}}><div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Festival Dispatch</div><div style={{fontSize:11,color:"#94a3b8"}}>Olivia manages driver pool for Beyond Wonderland and Wakaan.<br/>Payout log is in Finance → Payment Batch.</div></div>
         )}
