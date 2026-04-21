@@ -86,8 +86,36 @@ module.exports = async function handler(req, res) {
   const { data: { user }, error: authError } = await supabase.auth.getUser(token);
   if (authError || !user) return res.status(401).json({ error: "Invalid token" });
 
-  const { googleToken, tourStart = "2026-04-01", tourEnd = "2026-06-30" } = req.body || {};
+  const { googleToken, tourStart = "2026-04-01", tourEnd = "2026-06-30", focus = [] } = req.body || {};
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
+
+  // Focus carriers — broadened per-carrier queries run first with high cap
+  const FOCUS_QUERIES = {
+    delta: [
+      `from:(delta.com) newer_than:365d`,
+      `from:(t.delta.com) newer_than:365d`,
+      `"delta air lines" (confirmation OR itinerary OR "e-ticket" OR "boarding pass") newer_than:365d`,
+      `subject:(delta) (flight OR confirmation OR itinerary) newer_than:365d`,
+    ],
+    american: [
+      `from:(aa.com) newer_than:365d`,
+      `from:(americanairlines.com) newer_than:365d`,
+      `"american airlines" (confirmation OR itinerary OR "e-ticket" OR "boarding pass") newer_than:365d`,
+      `subject:(american airlines) (flight OR confirmation OR itinerary) newer_than:365d`,
+    ],
+    united: [
+      `from:(united.com) newer_than:365d`,
+      `from:(unitedairlines.com) newer_than:365d`,
+      `"united airlines" (confirmation OR itinerary OR "e-ticket" OR "boarding pass") newer_than:365d`,
+      `subject:(united) (flight OR confirmation OR itinerary) newer_than:365d`,
+    ],
+    "air canada": [
+      `from:(aircanada.com) newer_than:365d`,
+      `"air canada" (confirmation OR itinerary OR "e-ticket" OR "boarding pass") newer_than:365d`,
+      `subject:(air canada) (flight OR confirmation OR itinerary) newer_than:365d`,
+    ],
+  };
+  const focusQueries = focus.flatMap(k => FOCUS_QUERIES[String(k).toLowerCase()] || []);
 
   // Priority queries: wide net over recent emails — run first, guaranteed slots
   const recentQueries = [
@@ -147,6 +175,17 @@ module.exports = async function handler(req, res) {
     `from:(noreply@qatarairways.com) newer_than:365d`,
   ];
 
+  const focusIds = new Set();
+  for (const q of focusQueries) {
+    try {
+      const ids = await gmailSearch(googleToken, q, 40);
+      ids.forEach(id => focusIds.add(id));
+    } catch (e) {
+      console.error("[flights] focus search error:", e.message);
+      if (e.message.includes("401")) return res.status(402).json({ error: "gmail_token_expired" });
+    }
+  }
+
   const recentIds = new Set();
   for (const q of recentQueries) {
     try {
@@ -169,10 +208,11 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // Recent results get priority slots; carrier results fill the rest
-  const combined = [...recentIds];
-  for (const id of carrierIds) { if (!recentIds.has(id)) combined.push(id); }
-  const ids = combined.slice(0, 80);
+  // Focus carriers first, then recent, then broader carrier sweep
+  const combined = [...focusIds];
+  for (const id of recentIds) { if (!focusIds.has(id)) combined.push(id); }
+  for (const id of carrierIds) { if (!focusIds.has(id) && !recentIds.has(id)) combined.push(id); }
+  const ids = combined.slice(0, 120);
   if (!ids.length) return res.json({ flights: [], threadsFound: 0 });
 
   const threads = (await Promise.all(ids.map(id => gmailGetThread(googleToken, id))))
