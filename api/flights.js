@@ -242,6 +242,31 @@ const FOCUS_QUERIES = {
   ],
 };
 
+// Day-offset show matching: outbound departs day after show, inbound arrives same day or day before
+function matchFlightToShow(flight, shows) {
+  if (!Array.isArray(shows) || !shows.length) return null;
+  const depDate = flight.depDate; // YYYY-MM-DD
+  const arrDate = flight.arrDate || flight.depDate;
+  let best = null;
+  for (const s of shows) {
+    const sd = s.date; // YYYY-MM-DD
+    if (!sd) continue;
+    // Outbound: flight departs the day after show
+    if (depDate === addDays(sd, 1)) return { showDate: sd, role: "outbound", showId: s.id || sd, venue: s.venue };
+    // Inbound: flight arrives same day or day before show
+    if (arrDate === sd || arrDate === addDays(sd, -1)) {
+      best = { showDate: sd, role: "inbound", showId: s.id || sd, venue: s.venue };
+    }
+  }
+  return best;
+}
+
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + "T12:00:00");
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -262,10 +287,11 @@ module.exports = async function handler(req, res) {
     tourEnd = "2026-06-30",
     focus = [],
     sweepFrom = null,   // "2026-01-01" triggers historical mode
+    shows = [],
   } = req.body || {};
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
 
-  const after = sweepFrom ? gDate(sweepFrom) : nDaysAgo(14);
+  const after = sweepFrom ? gDate(sweepFrom) : nDaysAgo(180);
   const before = null; // open-ended
 
   // Focus carriers — high-cap queries run first
@@ -303,12 +329,18 @@ module.exports = async function handler(req, res) {
   const ids = [...seen].slice(0, 120);
   if (!ids.length) return res.json({ flights: [], threadsFound: 0 });
 
-  const threads = (await fetchBatched(googleToken, ids)).map(extractHeaders);
-  const cutoff48h = Date.now() - 48 * 3600 * 1000;
-  const freshIds = new Set(threads.filter(t => {
-    const ms = t.date ? new Date(t.date).getTime() : NaN;
-    return !isNaN(ms) && ms >= cutoff48h;
-  }).map(t => t.id));
+  let threads, freshIds;
+  try {
+    threads = (await fetchBatched(googleToken, ids)).map(extractHeaders);
+    const cutoff48h = Date.now() - 48 * 3600 * 1000;
+    freshIds = new Set(threads.filter(t => {
+      const ms = t.date ? new Date(t.date).getTime() : NaN;
+      return !isNaN(ms) && ms >= cutoff48h;
+    }).map(t => t.id));
+  } catch (e) {
+    console.error("[flights] thread fetch error:", e.message);
+    return res.status(500).json({ error: `Thread fetch failed: ${e.message}` });
+  }
 
   const sysPrompt = `You are a flight itinerary parser for concert touring operations. Extract structured flight segment data from email bodies.
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.
@@ -354,7 +386,9 @@ Return this exact JSON:
   ]
 }`;
 
-  const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
+  let anthropicResp;
+  try {
+    anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
