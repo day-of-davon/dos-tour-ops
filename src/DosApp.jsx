@@ -3971,6 +3971,9 @@ function LodgingTab(){
   const{lodging,uLodging,crew,showCrew,finance,uFin,tourDaysSorted,mobile,sel,setSel}=useContext(Ctx);
   const[addOpen,setAddOpen]=useState(false);
   const[editId,setEditId]=useState(null);
+  const[scanning,setScanning]=useState(false);
+  const[scanMsg,setScanMsg]=useState("");
+  const[pendingImport,setPendingImport]=useState([]);
 
   // Hotels on a given date: those whose checkIn <= date <= checkOut
   const hotelsForDate=useCallback((date)=>{
@@ -3984,6 +3987,34 @@ function LodgingTab(){
 
   function newHotelId(){return`hotel_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;}
 
+  const scanLodging=async(opts={})=>{
+    try{
+      const{data:{session}}=await supabase.auth.getSession();
+      if(!session)return;
+      const googleToken=session.provider_token;
+      if(!googleToken){setScanMsg("Gmail access not available — re-login with Google.");return;}
+      if(opts.reset){setPendingImport([]);}
+      setScanning(true);setScanMsg(opts.sweepFrom?"Historical sweep in progress…":"Scanning Gmail for hotel confirmations…");
+      const resp=await fetch("/api/lodging-scan",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken,tourStart:"2026-04-01",tourEnd:"2026-06-30",sweepFrom:opts.sweepFrom||null})});
+      if(resp.status===402){setScanMsg("Gmail session expired — please re-login.");setScanning(false);return;}
+      const data=await resp.json();
+      if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
+      const newLodgings=data.lodgings||[];
+      const existingKeys=new Set(Object.values(lodging).map(h=>`${h.name}__${h.checkIn}`));
+      const novel=newLodgings.filter(h=>!lodging[h.id]&&!existingKeys.has(`${h.name}__${h.checkIn}`));
+      if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads — no new hotels found.`);setScanning(false);return;}
+      setPendingImport(novel);
+      setScanMsg(`Found ${novel.length} new hotel${novel.length>1?"s":""} in ${data.threadsFound} threads.`);
+    }catch(e){setScanMsg(`Scan failed: ${e.message}`);}
+    setScanning(false);
+  };
+
+  const importHotel=h=>{
+    uLodging(h.id,{...h,status:"pending",rooms:h.rooms||[],todos:HOTEL_TODOS_DEFAULT.map(t=>({text:t,done:false}))});
+    setPendingImport(p=>p.filter(x=>x.id!==h.id));
+  };
+  const importAll=()=>{pendingImport.forEach(h=>importHotel(h));};
+
   return(
     <div style={{display:"flex",flex:1,minHeight:0,height:"100%",background:"#F5F3EF"}}>
       {/* Main content */}
@@ -3996,10 +4027,52 @@ function LodgingTab(){
             </div>
             <div style={{fontSize:10,color:"#64748b",marginTop:1}}>{dayHotels.length} hotel{dayHotels.length!==1?"s":""} covering this date</div>
           </div>
-          <button onClick={()=>setAddOpen(true)} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>
-            + Add Hotel
-          </button>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+            {scanMsg&&<span style={{fontSize:9,color:scanning?"#5B21B6":"#64748b",fontFamily:MN,maxWidth:200}}>{scanMsg}</span>}
+            <button onClick={()=>scanLodging({sweepFrom:"2026-01-01"})} disabled={scanning} style={{background:scanning?"#ebe8e3":"#7C3AED",color:scanning?"#64748b":"#fff",border:"none",borderRadius:6,padding:"5px 10px",fontSize:10,fontWeight:700,cursor:scanning?"default":"pointer"}}>
+              {scanning?"Scanning…":"Historical Sweep"}
+            </button>
+            <button onClick={()=>scanLodging()} disabled={scanning} style={{background:scanning?"#ebe8e3":"#5B21B6",color:scanning?"#64748b":"#fff",border:"none",borderRadius:6,padding:"5px 10px",fontSize:10,fontWeight:700,cursor:scanning?"default":"pointer"}}>
+              {scanning?"Scanning…":"Scan Gmail"}
+            </button>
+            <button onClick={()=>setAddOpen(true)} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+              + Add Hotel
+            </button>
+          </div>
         </div>
+
+        {/* Pending import (just scanned, not yet in state) */}
+        {pendingImport.length>0&&(
+          <div style={{background:"#EDE9FE",border:"1px solid #C4B5FD",borderRadius:10,padding:"10px 12px"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+              <span style={{fontSize:9,fontWeight:800,color:"#5B21B6",letterSpacing:"0.06em"}}>NEW HOTELS — REVIEW BEFORE IMPORTING</span>
+              <button onClick={importAll} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Import All ({pendingImport.length})</button>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {pendingImport.map(h=>(
+                <div key={h.id} style={{background:"#fff",borderRadius:8,padding:"10px 12px",border:"1px solid #DDD6FE",display:"flex",flexDirection:"column",gap:4}}>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
+                    <div>
+                      <span style={{fontSize:12,fontWeight:700,color:"#0f172a"}}>{h.name}</span>
+                      {h.city&&<span style={{fontSize:10,color:"#64748b",marginLeft:6}}>{h.city}</span>}
+                    </div>
+                    <div style={{display:"flex",gap:5,alignItems:"center"}}>
+                      {h.tid&&<a href={`https://mail.google.com/mail/u/0/#inbox/${h.tid}`} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#5B21B6",textDecoration:"none"}}>open email ↗</a>}
+                      <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==h.id))} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"1px solid #d6d3cd",background:"transparent",color:"#64748b",cursor:"pointer"}}>Skip</button>
+                      <button onClick={()=>importHotel(h)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
+                    </div>
+                  </div>
+                  <div style={{fontSize:10,color:"#475569",fontFamily:MN}}>
+                    {h.checkIn} → {h.checkOut}
+                    {h.confirmNo&&<span style={{marginLeft:8,color:"#7C3AED"}}>#{h.confirmNo}</span>}
+                    {h.cost&&<span style={{marginLeft:8}}>{h.currency||"USD"} {h.cost.toLocaleString()}</span>}
+                    {h.pax?.length>0&&<span style={{marginLeft:8,color:"#64748b"}}>{h.pax.join(", ")}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {dayHotels.length===0&&(
           <div style={{background:"#fff",border:"1px solid #e2e0dc",borderRadius:10,padding:"28px 20px",textAlign:"center",color:"#94a3b8",fontSize:11}}>
