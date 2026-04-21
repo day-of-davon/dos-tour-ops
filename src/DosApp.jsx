@@ -171,6 +171,101 @@ const subtractMinutes=(hhmm,mins)=>{
   return`${String(Math.floor(diff/60)).padStart(2,"0")}:${String(diff%60).padStart(2,"0")}`;
 };
 
+// ── Lodging-mode inference ────────────────────────────────────────────────
+// Bus dates: crew sleep on the Pieter Smit nightliner; hotel rooms are not needed
+// (artist may take one off-day; tracked separately). Any date in BUS_DATA_MAP with
+// a show or travel entry is treated as "bus". Everything else (Red Rocks, NA summer,
+// post-EU one-offs) is "hotel" — requires room + airport/hotel/venue ground chain.
+const lodgingModeFor=(date,tourDaysObj)=>{
+  const td=tourDaysObj?.[date];
+  const bus=td?.bus||BUS_DATA_MAP[date];
+  if(!bus)return"hotel";
+  // Days marked explicitly "off" outside the bus window don't count.
+  if(td?.type==="off"&&!bus)return"hotel";
+  return"bus";
+};
+const daysBetween=(a,b)=>{
+  if(!a||!b)return 0;
+  return Math.round((new Date(b+"T12:00:00")-new Date(a+"T12:00:00"))/86400000);
+};
+// Classify a crew member's role on a given show date based on their attending
+// history: bus-mid (middle of the bus run — on bus, no segments expected),
+// bus-join (first bus day, needs inbound air + ground to bus),
+// bus-leave (last bus day, needs ground to airport + outbound air),
+// bus-solo (attending only one bus day — effectively treat like one-off bus),
+// fly-one-off (standalone fly-in/fly-out show with hotel).
+const crewLifecycleState=(crewId,date,attendingDates,tourDaysObj)=>{
+  const thisMode=lodgingModeFor(date,tourDaysObj);
+  if(thisMode!=="bus")return"fly-one-off";
+  const idx=(attendingDates||[]).indexOf(date);
+  const prev=idx>0?attendingDates[idx-1]:null;
+  const next=idx>=0&&idx<attendingDates.length-1?attendingDates[idx+1]:null;
+  const prevBus=prev?lodgingModeFor(prev,tourDaysObj)==="bus":false;
+  const nextBus=next?lodgingModeFor(next,tourDaysObj)==="bus":false;
+  const gapPrev=prev?daysBetween(prev,date):999;
+  const gapNext=next?daysBetween(date,next):999;
+  // Consider "consecutive on bus" = prev within 3 days and also bus mode.
+  const joinedFromBus=prevBus&&gapPrev<=3;
+  const stayingOnBus=nextBus&&gapNext<=3;
+  if(!joinedFromBus&&!stayingOnBus)return"bus-solo";
+  if(!joinedFromBus)return"bus-join";
+  if(!stayingOnBus)return"bus-leave";
+  return"bus-mid";
+};
+
+// Given a lifecycle state + the data, return an ordered list of lifecycle slots for
+// rendering. Each slot: {key, icon, label, state: "ok"|"missing"|"na"|"unknown"}.
+// "ok" = segment present; "missing" = expected but not found; "na" = not applicable
+// (e.g. hotel slot on a bus-mid day); "unknown" = segment is not tracked as a
+// distinct record (hotel stays without a check-in record).
+const crewLifecycleSlots=({state,crewId,crew,date,showCrew,flights})=>{
+  const cd=showCrew?.[date]?.[crewId]||{};
+  const cname=(crew||[]).find(c=>c.id===crewId)?.name||"";
+  const fname=cname.split(" ")[0].toLowerCase();
+  const paxIncludes=(pax)=>fname&&(pax||[]).some(n=>String(n||"").toLowerCase().startsWith(fname));
+  const allSegs=Object.values(flights||{}).filter(s=>s&&s.status!=="dismissed");
+  const hasInboundAir=(cd.inbound||[]).some(l=>l.flight||l.flightId)||allSegs.some(s=>segType(s)==="air"&&s.arrDate===date&&paxIncludes(s.pax));
+  const hasOutboundAir=(cd.outbound||[]).some(l=>l.flight||l.flightId)||allSegs.some(s=>segType(s)==="air"&&s.depDate===date&&paxIncludes(s.pax));
+  const groundsArriving=allSegs.filter(s=>segType(s)==="ground"&&s.arrDate===date&&paxIncludes(s.pax));
+  const groundsDeparting=allSegs.filter(s=>segType(s)==="ground"&&s.depDate===date&&paxIncludes(s.pax));
+  const hotelOnDate=allSegs.some(s=>segType(s)==="hotel"&&(s.depDate===date||s.arrDate===date)&&paxIncludes(s.pax));
+  if(state==="bus-mid"){
+    return[{key:"bus",icon:"🚌",label:"On bus",state:"ok"}];
+  }
+  if(state==="bus-join"){
+    return[
+      {key:"fly-in",icon:"✈",label:"Inbound flight",state:hasInboundAir?"ok":"missing"},
+      {key:"gnd-in",icon:"🚗",label:"Airport → Bus pickup",state:groundsArriving.length?"ok":"missing"},
+      {key:"bus",icon:"🚌",label:"On bus",state:"ok"},
+    ];
+  }
+  if(state==="bus-leave"){
+    return[
+      {key:"bus",icon:"🚌",label:"On bus",state:"ok"},
+      {key:"gnd-out",icon:"🚗",label:"Bus → Airport",state:groundsDeparting.length?"ok":"missing"},
+      {key:"fly-out",icon:"✈",label:"Outbound flight",state:hasOutboundAir?"ok":"missing"},
+    ];
+  }
+  if(state==="bus-solo"){
+    // Standalone bus day: needs full chain in and out but lodging is the bus.
+    return[
+      {key:"fly-in",icon:"✈",label:"Inbound flight",state:hasInboundAir?"ok":"missing"},
+      {key:"gnd-in",icon:"🚗",label:"Airport → Bus",state:groundsArriving.length?"ok":"missing"},
+      {key:"bus",icon:"🚌",label:"On bus",state:"ok"},
+      {key:"gnd-out",icon:"🚗",label:"Bus → Airport",state:groundsDeparting.length?"ok":"missing"},
+      {key:"fly-out",icon:"✈",label:"Outbound flight",state:hasOutboundAir?"ok":"missing"},
+    ];
+  }
+  // fly-one-off: full chain with hotel
+  return[
+    {key:"fly-in",icon:"✈",label:"Inbound flight",state:hasInboundAir?"ok":"missing"},
+    {key:"gnd-to-htl",icon:"🚗",label:"Airport → Hotel",state:groundsArriving.length?"ok":"missing"},
+    {key:"hotel",icon:"🏨",label:"Hotel",state:hotelOnDate?"ok":"unknown"},
+    {key:"gnd-to-ven",icon:"🚗",label:"Hotel → Venue",state:groundsDeparting.length?"ok":"missing"},
+    {key:"fly-out",icon:"✈",label:"Outbound flight",state:hasOutboundAir?"ok":"missing"},
+  ];
+};
+
 // Serialize a flight record into the compact leg shape used in showCrew.
 const flightToLeg=f=>({
   id:`leg_${f.id}`,
@@ -3277,8 +3372,35 @@ function CmdP(){
   );
 }
 
+// Compact lifecycle pill row for a single crew member on a specific date.
+// Adapts to bus dates (simpler chain, bus as lodging) vs fly dates/one-offs (full
+// airport ↔ hotel ↔ venue chain with hotel as lodging). Clicking any pill jumps to
+// the Transport → Travel Day view for that date; the user can then complete the
+// gap using the +Ground / +Flight / +Hotel creators.
+function LifecyclePills({crewId,date,state,slots,onJump,compact}){
+  const color=s=>({
+    ok:{bg:"#D1FAE5",c:"#047857",bd:"#6EE7B7"},
+    missing:{bg:"#FEF3C7",c:"#92400E",bd:"#FDE68A"},
+    na:{bg:"#f1f5f9",c:"#94a3b8",bd:"#e2e8f0"},
+    unknown:{bg:"#EDE9FE",c:"#5B21B6",bd:"#C4B5FD"},
+  }[s]||{bg:"#f1f5f9",c:"#94a3b8",bd:"#e2e8f0"});
+  const stateLabel={"bus-mid":"ON BUS","bus-join":"BUS JOIN","bus-leave":"BUS LEAVE","bus-solo":"BUS · SOLO","fly-one-off":"FLY · HOTEL"}[state]||"";
+  const missing=slots.filter(s=>s.state==="missing").length;
+  return(
+    <div style={{display:"inline-flex",alignItems:"center",gap:4,flexWrap:"wrap"}} title={`${stateLabel}${missing?` — ${missing} missing`:""}`}>
+      {!compact&&<span style={{fontSize:7,padding:"1px 5px",borderRadius:3,background:state==="fly-one-off"?"#EDE9FE":"#DBEAFE",color:state==="fly-one-off"?"#5B21B6":"#1E40AF",fontWeight:800,letterSpacing:"0.06em"}}>{stateLabel}</span>}
+      {slots.map(s=>{const col=color(s.state);return(
+        <button key={s.key} onClick={e=>{e.stopPropagation();onJump?.(s);}} title={`${s.label} — ${s.state==="ok"?"confirmed":s.state==="missing"?"missing":s.state==="unknown"?"not tracked":"not applicable"}`} style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:compact?9:10,padding:compact?"2px 5px":"2px 7px",borderRadius:10,border:`1px solid ${col.bd}`,background:col.bg,color:col.c,cursor:"pointer",fontWeight:700,lineHeight:1}}>
+          <span style={{fontSize:compact?9:10}}>{s.icon}</span>
+          {s.state==="ok"&&<span style={{fontSize:7}}>✓</span>}
+          {s.state==="missing"&&<span style={{fontSize:7}}>○</span>}
+        </button>);})}
+    </div>
+  );
+}
+
 function CrewTab(){
-  const{sel,setSel,shows,tourDaysSorted,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights,setTab}=useContext(Ctx);
+  const{sel,setSel,shows,tourDaysSorted,tourDays,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights,setTab}=useContext(Ctx);
   const[panel,setPanel]=useState(null);
   const[editMode,setEditMode]=useState(false);
   const[flightPicker,setFlightPicker]=useState(null); // {crewId, dir}
@@ -3344,6 +3466,19 @@ function CrewTab(){
   };
 
   const attending=crew.filter(c=>getCD(c.id).attending);
+  // Per-crew attending dates across the whole tour, sorted. Used to classify
+  // bus-mid vs bus-join vs bus-leave for the lifecycle pills.
+  const attendingDatesByCrew=useMemo(()=>{
+    const m={};
+    Object.entries(showCrew||{}).forEach(([d,perCrew])=>{
+      Object.entries(perCrew||{}).forEach(([cid,rec])=>{
+        if(rec?.attending){(m[cid]=m[cid]||[]).push(d);}
+      });
+    });
+    Object.keys(m).forEach(k=>m[k].sort());
+    return m;
+  },[showCrew]);
+  const jumpToTravelDay=(date)=>{setSel(date);setTab("transport");};
   const panelCrew=panel?crew.find(c=>c.id===panel.crewId):null;
   const panelCD=panel?getCD(panel.crewId):null;
 
@@ -3425,7 +3560,20 @@ function CrewTab(){
                     <button onClick={()=>removeMember(c.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:14,flexShrink:0}}>×</button>
                   </div>
                 ):(
-                  <div><div style={{fontWeight:600,fontSize:12,color:cd.attending?"#0f172a":"#94a3b8"}}>{c.name||<span style={{color:"#94a3b8"}}>New member</span>}</div><div style={{fontSize:10,color:"#64748b"}}>{c.role}</div></div>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontWeight:600,fontSize:12,color:cd.attending?"#0f172a":"#94a3b8"}}>{c.name||<span style={{color:"#94a3b8"}}>New member</span>}</div>
+                    <div style={{fontSize:10,color:"#64748b"}}>{c.role}</div>
+                    {cd.attending&&(()=>{
+                      const attDates=attendingDatesByCrew[c.id]||[sel];
+                      const state=crewLifecycleState(c.id,sel,attDates,tourDays);
+                      const slots=crewLifecycleSlots({state,crewId:c.id,crew,date:sel,showCrew,flights});
+                      return(
+                        <div style={{marginTop:5}}>
+                          <LifecyclePills crewId={c.id} date={sel} state={state} slots={slots} compact={mobile} onJump={()=>jumpToTravelDay(sel)}/>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 )}
                 {!mobile&&<div>{cd.attending
                   ?<div style={{display:"flex",flexDirection:"column",gap:4}}>
