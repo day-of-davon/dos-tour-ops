@@ -81,6 +81,28 @@ create policy "delete own or team"
     or team_id = 'dos-bbno-eu-2026'
   );
 
+-- ── Atomic upsert — avoids race conditions with partial-index ON CONFLICT ─────
+CREATE OR REPLACE FUNCTION upsert_app_storage(
+  p_user_id uuid,
+  p_team_id text,
+  p_key text,
+  p_value text
+) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  IF p_team_id IS NULL THEN
+    INSERT INTO app_storage (user_id, team_id, key, value)
+    VALUES (p_user_id, null, p_key, p_value)
+    ON CONFLICT (user_id, key) WHERE team_id IS NULL
+    DO UPDATE SET value = EXCLUDED.value, updated_at = now();
+  ELSE
+    INSERT INTO app_storage (user_id, team_id, key, value)
+    VALUES (p_user_id, p_team_id, p_key, p_value)
+    ON CONFLICT (team_id, key) WHERE team_id IS NOT NULL
+    DO UPDATE SET value = EXCLUDED.value, updated_at = now();
+  END IF;
+END;
+$$;
+
 -- ── Intel cache: user-scoped, optional team sharing ──────────────────────────
 -- Migration: drop old single-key table if user_id column is absent
 do $$

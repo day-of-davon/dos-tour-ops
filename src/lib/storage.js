@@ -28,19 +28,10 @@ export async function setShared(key, value) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated");
 
-  const { error } = await supabase
-    .from("app_storage")
-    .insert({ user_id: user.id, team_id: TEAM_ID, key, value });
-
-  if (!error) return { key, value };
-  if (error.code !== "23505") { console.error("setShared:", error); return null; }
-
-  const { error: upErr } = await supabase
-    .from("app_storage")
-    .update({ value })
-    .eq("team_id", TEAM_ID)
-    .eq("key", key);
-  if (upErr) { console.error("setShared update:", upErr); return null; }
+  const { error } = await supabase.rpc("upsert_app_storage", {
+    p_user_id: user.id, p_team_id: TEAM_ID, p_key: key, p_value: value,
+  });
+  if (error) { console.error("setShared:", error); return null; }
   return { key, value };
 }
 
@@ -64,20 +55,10 @@ export const storage = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
 
-    const { error } = await supabase
-      .from("app_storage")
-      .insert({ user_id: user.id, team_id: null, key, value });
-
-    if (!error) return { key, value };
-    if (error.code !== "23505") { console.error("storage.set:", error); return null; }
-
-    const { error: upErr } = await supabase
-      .from("app_storage")
-      .update({ value })
-      .eq("user_id", user.id)
-      .eq("key", key)
-      .is("team_id", null);
-    if (upErr) { console.error("storage.set update:", upErr); return null; }
+    const { error } = await supabase.rpc("upsert_app_storage", {
+      p_user_id: user.id, p_team_id: null, p_key: key, p_value: value,
+    });
+    if (error) { console.error("storage.set:", error); return null; }
     return { key, value };
   },
 
