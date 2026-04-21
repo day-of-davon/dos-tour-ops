@@ -1,28 +1,9 @@
 // api/intel.js — Vercel serverless function
 const { createClient } = require("@supabase/supabase-js");
-const { gmailSearch, gmailGetThread, decodeB64, extractBody: _extractBody, extractJson } = require("./lib/gmail");
+const { gmailSearch, gmailGetThread, decodeB64, extractBody, extractJson } = require("./lib/gmail");
+const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
 
 const CACHE_TTL_MINUTES = 60;
-
-function extractBody(payload) {
-  if (!payload) return "";
-  const parts = [payload];
-  let text = ""; let html = "";
-  while (parts.length) {
-    const p = parts.shift();
-    if (p.parts) parts.push(...p.parts);
-    const data = p.body?.data;
-    if (!data) continue;
-    if (p.mimeType === "text/plain") text += decodeB64(data) + "\n";
-    else if (p.mimeType === "text/html" && !text) html += decodeB64(data) + "\n";
-  }
-  const out = text || html
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
-  return out.replace(/\s+/g, " ").trim();
-}
 
 function extractHeaders(thread) {
   const lastMsg = thread.messages?.[thread.messages.length - 1];
@@ -318,15 +299,11 @@ Return this exact JSON:
   "lastRefreshed": "${new Date().toISOString()}"
 }`;
 
-  const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
+  const anthropicResp = await fetch(ANTHROPIC_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
+    headers: ANTHROPIC_HEADERS,
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
+      model: DEFAULT_MODEL,
       max_tokens: 8192,
       system: sysPrompt,
       messages: [{ role: "user", content: userPrompt }],

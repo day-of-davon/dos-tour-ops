@@ -1,6 +1,7 @@
 // api/lodging-scan.js — Gmail hotel confirmation scraper + Claude parser
 const { createClient } = require("@supabase/supabase-js");
 const { gmailSearch, gmailGetThread, fetchBatched, extractBody, extractJson } = require("./lib/gmail");
+const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
 
 function extractHeaders(thread) {
   const last = thread.messages?.[thread.messages.length - 1];
@@ -207,15 +208,11 @@ Return this exact JSON:
   ]
 }`;
 
-  const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
+  const anthropicResp = await fetch(ANTHROPIC_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
+    headers: ANTHROPIC_HEADERS,
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
+      model: DEFAULT_MODEL,
       max_tokens: 8192,
       system: sysPrompt,
       messages: [{ role: "user", content: userPrompt }],

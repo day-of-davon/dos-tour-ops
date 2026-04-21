@@ -78,6 +78,9 @@ function extractJson(text) {
       }
     }
   }
+  // Array fallback for responses that return [...] rather than {...}
+  const arrayMatch = fenced.match(/\[[\s\S]*\]/);
+  if (arrayMatch) { try { return JSON.parse(arrayMatch[0]); } catch {} }
   return null;
 }
 

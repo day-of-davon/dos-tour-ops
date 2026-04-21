@@ -3,6 +3,7 @@
 // Returns { docType, confidence, summary, receipt, flights, show, contacts, techPack, expenses }
 const { createClient } = require("@supabase/supabase-js");
 const { extractJson } = require("./lib/gmail");
+const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
 
 let mammoth, xlsxLib;
 try { mammoth = require("mammoth"); } catch {}
@@ -173,14 +174,10 @@ module.exports = async function handler(req, res) {
     : [{ role: "user", content: `${userPromptText}\n\nDOCUMENT CONTENT:\n${extractedText}` }];
 
   const callClaude = async (sys, msgs, maxTokens = 4096) => {
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    const resp = await fetch(ANTHROPIC_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: maxTokens, system: sys, messages: msgs }),
+      headers: ANTHROPIC_HEADERS,
+      body: JSON.stringify({ model: DEFAULT_MODEL, max_tokens: maxTokens, system: sys, messages: msgs }),
     });
     if (!resp.ok) throw Object.assign(new Error(`Anthropic ${resp.status}`), { detail: await resp.text() });
     const data = await resp.json();

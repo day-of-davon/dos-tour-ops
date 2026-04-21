@@ -1,6 +1,7 @@
 // api/flights.js — Gmail flight confirmation scraper + Claude parser
 const { createClient } = require("@supabase/supabase-js");
 const { gmailSearch, fetchBatched, extractBody, extractJson } = require("./lib/gmail");
+const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 function toGmailDate(d) { return d.replace(/-/g, "/"); }
@@ -327,14 +328,10 @@ Return this exact JSON:
   ]
 }`;
 
-  const callClaude = async (prompt, sys = sysPrompt, maxTokens = 4096, model = "claude-sonnet-4-6") => {
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+  const callClaude = async (prompt, sys = sysPrompt, maxTokens = 4096, model = DEFAULT_MODEL) => {
+    const resp = await fetch(ANTHROPIC_URL, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
+      headers: ANTHROPIC_HEADERS,
       body: JSON.stringify({
         model,
         max_tokens: maxTokens,

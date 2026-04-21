@@ -3,6 +3,8 @@
 // Returns enriched manifest items + discrepancy analysis
 
 const { createClient } = require("@supabase/supabase-js");
+const { extractJson } = require("./lib/gmail");
+const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
 
 const QUOTE_PROMPT = `Extract equipment line items from this vendor production quote PDF.
 Return ONLY a JSON array. No preamble, no markdown fences.
@@ -192,14 +194,6 @@ function calcWeightLedger(items) {
   };
 }
 
-function extractJson(text) {
-  const clean = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-  try { return JSON.parse(clean); } catch {}
-  const m = clean.match(/\[[\s\S]*\]/);
-  if (m) { try { return JSON.parse(m[0]); } catch {} }
-  return null;
-}
-
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -258,15 +252,11 @@ module.exports = async function handler(req, res) {
 
   const prompt = docType === "vendor_quote" ? QUOTE_PROMPT : DESIGN_PROMPT;
 
-  const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
+  const anthropicResp = await fetch(ANTHROPIC_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
+    headers: ANTHROPIC_HEADERS,
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
+      model: DEFAULT_MODEL,
       max_tokens: 8192,
       system: "You are a production document parser for concert touring. Return ONLY valid JSON arrays. No markdown, no backticks, no preamble.",
       messages: [{

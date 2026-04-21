@@ -1,5 +1,6 @@
 // api/parse-pdf.js — PDF import for show details, contacts, deal terms
 const { createClient } = require("@supabase/supabase-js");
+const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -62,15 +63,11 @@ Return this exact JSON structure (use null for missing fields, empty arrays if n
   "documentType": "<CONTRACT | OFFER | DEAL_MEMO | ADVANCE_SHEET | RIDER | OTHER>"
 }`;
 
-  const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
+  const anthropicResp = await fetch(ANTHROPIC_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
+    headers: ANTHROPIC_HEADERS,
     body: JSON.stringify({
-      model: "claude-sonnet-4-6",
+      model: DEFAULT_MODEL,
       max_tokens: 2000,
       system: sysPrompt,
       messages: [{
