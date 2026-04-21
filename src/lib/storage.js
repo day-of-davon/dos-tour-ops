@@ -29,8 +29,17 @@ export async function setShared(key, value) {
 
   const { error } = await supabase
     .from("app_storage")
-    .upsert({ user_id: user.id, team_id: TEAM_ID, key, value }, { onConflict: "team_id,key" });
-  if (error) { console.error("setShared:", error); return null; }
+    .insert({ user_id: user.id, team_id: TEAM_ID, key, value });
+
+  if (!error) return { key, value };
+  if (error.code !== "23505") { console.error("setShared:", error); return null; }
+
+  const { error: upErr } = await supabase
+    .from("app_storage")
+    .update({ value })
+    .eq("team_id", TEAM_ID)
+    .eq("key", key);
+  if (upErr) { console.error("setShared update:", upErr); return null; }
   return { key, value };
 }
 
@@ -56,8 +65,18 @@ export const storage = {
 
     const { error } = await supabase
       .from("app_storage")
-      .upsert({ user_id: user.id, team_id: null, key, value }, { onConflict: "user_id,key" });
-    if (error) { console.error("storage.set:", error); return null; }
+      .insert({ user_id: user.id, team_id: null, key, value });
+
+    if (!error) return { key, value };
+    if (error.code !== "23505") { console.error("storage.set:", error); return null; }
+
+    const { error: upErr } = await supabase
+      .from("app_storage")
+      .update({ value })
+      .eq("user_id", user.id)
+      .eq("key", key)
+      .is("team_id", null);
+    if (upErr) { console.error("storage.set update:", upErr); return null; }
     return { key, value };
   },
 
