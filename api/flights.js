@@ -306,27 +306,29 @@ module.exports = async function handler(req, res) {
   // Collect thread IDs — focus first, then broad carrier sweep
   const seen = new Set();
 
-  async function runQueries(queries, cap = 25) {
-    for (const q of queries) {
-      try {
-        const ids = await gmailSearch(googleToken, q, cap);
-        ids.forEach(id => seen.add(id));
-      } catch (e) {
-        console.error("[flights] search error:", e.message);
-        if (e.message.includes("401")) throw Object.assign(new Error("gmail_401"), { status: 402 });
-      }
+  async function runQueries(queries, cap = 25, parallelism = 6) {
+    for (let i = 0; i < queries.length; i += parallelism) {
+      await Promise.all(queries.slice(i, i + parallelism).map(async q => {
+        try {
+          const ids = await gmailSearch(googleToken, q, cap);
+          ids.forEach(id => seen.add(id));
+        } catch (e) {
+          console.error("[flights] search error:", e.message);
+          if (e.message.includes("401")) throw Object.assign(new Error("gmail_401"), { status: 402 });
+        }
+      }));
     }
   }
 
   try {
-    await runQueries(focusQueries, 40);
-    await runQueries(allCarrierQueries, 25);
+    await runQueries(focusQueries, 30, 6);
+    await runQueries(allCarrierQueries, 20, 6);
   } catch (e) {
     if (e.status === 402) return res.status(402).json({ error: "gmail_token_expired" });
     return res.status(500).json({ error: e.message });
   }
 
-  const ids = [...seen].slice(0, 120);
+  const ids = [...seen].slice(0, 80);
   if (!ids.length) return res.json({ flights: [], threadsFound: 0 });
 
   let threads, freshIds;
@@ -360,7 +362,7 @@ ${threads.map((t, i) => `[${i}] tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}
 Date: ${t.date}
-Body: ${t.body.slice(0, 1400)}`).join("\n\n---\n\n")}
+Body: ${t.body.slice(0, 1000)}`).join("\n\n---\n\n")}
 
 Return this exact JSON:
 {
