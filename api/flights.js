@@ -30,12 +30,13 @@ function extractHeaders(thread) {
 }
 
 // ── Query list ────────────────────────────────────────────────────────────────
-// Subject-line queries lead — they catch forwarded receipts regardless of sender.
-// Carrier from: queries are additive depth for direct emails that miss subject matches.
-function buildFlightQueries(after) {
+// Subject-line queries (high priority) — run first so their thread IDs fill the
+// cap before domain queries. Catches forwarded receipts regardless of sender.
+// Domain queries (low priority) — additive depth for direct emails that miss subject matches.
+function buildFlightQueryGroups(after) {
   const W = `after:${after}`;
-  return [
-    // Forwarded receipts + broad subject sweeps
+  const high = [
+    // Subject sweeps — catch forwarded receipts regardless of sender
     `subject:("Your Flight Receipt") ${W}`,
     `subject:("flight receipt") ${W}`,
     `subject:("flight confirmation") ${W}`,
@@ -47,7 +48,19 @@ function buildFlightQueries(after) {
     `subject:("trip confirmation") (flight OR airline) ${W}`,
     `"booking reference" (flight OR departure OR arrival) ${W}`,
     `"confirmation code" (flight OR airline OR departure) ${W}`,
-
+    // Destination-specific — tour show airports, high recall
+    `(BOS OR PVD OR MHT OR BDL OR ORH OR "Boston" OR "Nashville" OR "BNA") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(DEN OR "Denver" OR "Morrison") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(YYZ OR YTZ OR YHM OR "Toronto" OR "Mississauga") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(YOW OR "Ottawa") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(BDL OR PVD OR HPN OR "Uncasville" OR "Hartford" OR "Providence") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(LHR OR LGW OR LTN OR STN OR LCY OR Heathrow OR Gatwick OR Stansted OR Luton) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(DUB OR Dublin OR MAN OR Manchester OR GLA OR Glasgow) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(ZRH OR Zurich OR CGN OR Cologne OR AMS OR Amsterdam) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(CDG OR ORY OR Paris OR MXP OR LIN OR Milan) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+    `(PRG OR Prague OR BER OR Berlin OR BTS OR Bratislava OR WAW OR Warsaw) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
+  ];
+  const low = [
     // US carriers
     `from:(DeltaAirLines@t.delta.com) ${W}`,
     `from:(noreply@delta.com) ${W}`,
@@ -61,12 +74,10 @@ function buildFlightQueries(after) {
     `from:(noreply@flyfrontier.com) ${W}`,
     `from:(noreply@allegiantair.com) ${W}`,
     `from:(noreply@hawaiianairlines.com) ${W}`,
-
     // Canada
     `from:(noreply@aircanada.com) ${W}`,
     `from:(noreply@westjet.com) ${W}`,
     `from:(noreply@flyporter.com) ${W}`,
-
     // European full-service
     `from:(noreply@ba.com) ${W}`,
     `from:(do_not_reply@ba.com) ${W}`,
@@ -86,7 +97,6 @@ function buildFlightQueries(after) {
     `from:(noreply@lot.com) ${W}`,
     `from:(noreply@croatiaairlines.hr) ${W}`,
     `from:(info@airserbia.com) ${W}`,
-
     // European LCCs
     `from:(noreply@ryanair.com) ${W}`,
     `from:(no-reply@easyjet.com) ${W}`,
@@ -97,14 +107,12 @@ function buildFlightQueries(after) {
     `from:(noreply@transavia.com) ${W}`,
     `from:(bookings@jet2.com) ${W}`,
     `from:(noreply@volotea.com) ${W}`,
-
     // Middle East / Gulf
     `from:(emirates@emails.emirates.com) ${W}`,
     `from:(noreply@emirates.com) ${W}`,
     `from:(noreply@etihad.com) ${W}`,
     `from:(noreply@qatarairways.com) ${W}`,
     `from:(noreply@flydubai.com) ${W}`,
-
     // Asia Pacific
     `from:(noreply@singaporeair.com) ${W}`,
     `from:(noreply@cathaypacific.com) ${W}`,
@@ -114,12 +122,10 @@ function buildFlightQueries(after) {
     `from:(noreply@qantas.com.au) ${W}`,
     `from:(noreply@airnewzealand.co.nz) ${W}`,
     `from:(noreply@airasia.com) ${W}`,
-
     // Latin America
     `from:(noreply@latam.com) ${W}`,
     `from:(noreply@avianca.com) ${W}`,
     `from:(noreply@copaair.com) ${W}`,
-
     // Private charters
     `from:(netjets.com) ${W}`,
     `from:(vistajet.com) ${W}`,
@@ -127,19 +133,6 @@ function buildFlightQueries(after) {
     `from:(flyexclusive.com) ${W}`,
     `from:(jsx.com) ${W}`,
     `("private jet" OR "charter flight") (confirmation OR itinerary OR booking) ${W}`,
-
-    // Destination-specific catches — show city airports
-    `(BOS OR PVD OR MHT OR BDL OR ORH OR "Boston" OR "Worcester") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(DEN OR "Denver" OR "Morrison") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(YYZ OR YTZ OR YHM OR "Toronto" OR "Mississauga") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(YOW OR "Ottawa") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(BDL OR PVD OR HPN OR "Uncasville" OR "Hartford" OR "Providence") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(LHR OR LGW OR LTN OR STN OR LCY OR Heathrow OR Gatwick OR Stansted OR Luton) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(DUB OR Dublin OR MAN OR Manchester OR GLA OR Glasgow) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(ZRH OR Zurich OR CGN OR Cologne OR AMS OR Amsterdam) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(CDG OR ORY OR Paris OR MXP OR LIN OR Milan) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(PRG OR Prague OR BER OR Berlin OR BTS OR Bratislava OR WAW OR Warsaw) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-
     // OTA
     `from:(expedia.com) (flight OR itinerary) ${W}`,
     `from:(concur.com) (flight OR itinerary) ${W}`,
@@ -147,6 +140,7 @@ function buildFlightQueries(after) {
     `from:(travelport.com) (flight OR itinerary) ${W}`,
     `from:(noreply@booking.com) (flight OR airline) ${W}`,
   ];
+  return { high, low };
 }
 
 // ── Airport → show-city map ───────────────────────────────────────────────────
@@ -235,11 +229,11 @@ module.exports = async function handler(req, res) {
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
 
   const after = sweepFrom ? toGmailDate(sweepFrom) : nDaysAgo(90);
-  const queries = buildFlightQueries(after);
+  const { high, low } = buildFlightQueryGroups(after);
   const seen = new Set();
+  const CAP = 30;
 
-  try {
-    // Fire all queries concurrently — Gmail handles fan-out fine and this saves ~4-6s vs batching
+  const runQueries = async (queries) => {
     let threw402 = false;
     await Promise.all(queries.map(async q => {
       if (threw402) return;
@@ -251,13 +245,20 @@ module.exports = async function handler(req, res) {
         if (e.message.includes("401")) { threw402 = true; throw Object.assign(new Error("gmail_401"), { status: 402 }); }
       }
     }));
-    if (threw402) return res.status(402).json({ error: "gmail_token_expired" });
+    if (threw402) throw Object.assign(new Error("gmail_401"), { status: 402 });
+  };
+
+  try {
+    // High-priority queries first — subject + destination matches claim first slots in cap
+    await runQueries(high);
+    // Only run low-priority (domain) queries if cap not yet full
+    if (seen.size < CAP) await runQueries(low);
   } catch (e) {
     if (e.status === 402) return res.status(402).json({ error: "gmail_token_expired" });
     return res.status(500).json({ error: e.message });
   }
 
-  const ids = [...seen].slice(0, 30);
+  const ids = [...seen].slice(0, CAP);
   if (!ids.length) return res.json({ flights: [], threadsFound: 0 });
 
   let threads, freshIds;
