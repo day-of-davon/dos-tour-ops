@@ -765,12 +765,14 @@ function PaxEditor({pax,crew,onSave}){
 function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax,crew}){
   const st=liveStatus?statusStyle(liveStatus.status):null;
   const delayed=liveStatus?.delayMinutes>0;
+  const isFresh=!!f.fresh48h;
   return(
-    <div style={{background:"#fff",border:`1px solid ${st&&delayed?"#FCD34D":st?.c==="#B91C1C"?"#FCA5A5":"#d6d3cd"}`,borderRadius:9,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6}}>
+    <div style={{background:"#fff",border:`1px solid ${isFresh?"#5B21B6":st&&delayed?"#FCD34D":st?.c==="#B91C1C"?"#FCA5A5":"#d6d3cd"}`,borderRadius:9,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6,boxShadow:isFresh?"0 0 0 2px #EDE9FE":undefined}}>
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
         <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#1E40AF"}}>{f.from}<span style={{fontSize:10,color:"#94a3b8",fontWeight:400,padding:"0 5px"}}>→</span>{f.to}</div>
         <div style={{fontSize:10,fontWeight:700,color:"#0f172a"}}>{f.flightNo||f.carrier}</div>
         {f.carrier&&f.flightNo&&<div style={{fontSize:9,color:"#64748b"}}>{f.carrier}</div>}
+        {isFresh&&<span title="Booked within the last 48 hours" style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#EDE9FE",color:"#5B21B6",fontWeight:800,letterSpacing:"0.06em"}}>NEW · 48H</span>}
         {st&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:st.bg,color:st.c,fontWeight:700}}>{st.label}{delayed?` +${liveStatus.delayMinutes}m`:""}</span>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
           {onRefreshStatus&&<button onClick={onRefreshStatus} disabled={refreshing} title="Refresh live status" style={{background:"none",border:"none",cursor:refreshing?"default":"pointer",fontSize:10,color:refreshing?"#94a3b8":"#5B21B6",padding:0,lineHeight:1}}>{refreshing?"⟳":"⟳"}</button>}
@@ -828,9 +830,11 @@ function FlightsSection(){
       // Merge: skip flights already in state (by id), also skip if same flightNo+depDate exists
       const existingKeys=new Set(Object.values(flights).map(f=>`${f.flightNo}__${f.depDate}`));
       const novel=newFlights.filter(f=>!flights[f.id]&&!existingKeys.has(`${f.flightNo}__${f.depDate}`));
-      if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads — no new flights found.`);setScanning(false);return;}
+      const freshCount=novel.filter(f=>f.fresh48h).length;
+      const freshTag=freshCount?` (${freshCount} from last 48h)`:"";
+      if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads${data.freshThreads?` (${data.freshThreads} from last 48h)`:""} — no new flights found.`);setScanning(false);return;}
       setPendingImport(novel);
-      setScanMsg(`Found ${novel.length} new flight${novel.length>1?"s":""} in ${data.threadsFound} threads.`);
+      setScanMsg(`Found ${novel.length} new flight${novel.length>1?"s":""}${freshTag} in ${data.threadsFound} threads.`);
     }catch(e){setScanMsg(`Scan failed: ${e.message}`);}
     setScanning(false);
   };
@@ -2422,9 +2426,11 @@ function FlightsListView(){
       if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
       const existingKeys=new Set(allFlights.map(f=>`${f.flightNo}__${f.depDate}`));
       const novel=(data.flights||[]).filter(f=>!flights[f.id]&&!existingKeys.has(`${f.flightNo}__${f.depDate}`));
-      if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads — no new flights.`);setScanning(false);return;}
+      const freshCount=novel.filter(f=>f.fresh48h).length;
+      const freshTag=freshCount?` (${freshCount} from last 48h)`:"";
+      if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads${data.freshThreads?` (${data.freshThreads} from last 48h)`:""} — no new flights.`);setScanning(false);return;}
       setPendingImport(novel);
-      setScanMsg(`Found ${novel.length} new flight${novel.length>1?"s":""} in ${data.threadsFound} threads.`);
+      setScanMsg(`Found ${novel.length} new flight${novel.length>1?"s":""}${freshTag} in ${data.threadsFound} threads.`);
     }catch(e){setScanMsg(`Scan failed: ${e.message}`);}
     setScanning(false);
   };
