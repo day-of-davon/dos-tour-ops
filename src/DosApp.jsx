@@ -1465,6 +1465,15 @@ function TopBar({ss}){
   const activeClients=CLIENTS.filter(c=>c.status==="active"&&(c.type!=="festival"||canSeeFestivals));
   React.useEffect(()=>{if(!activeClients.find(c=>c.id===aC))setAC("bbn");},[canSeeFestivals]);
   const stepBtn={background:"#f5f3ef",border:"1px solid #d6d3cd",borderRadius:5,color:"#475569",fontSize:11,padding:mobile?"5px 8px":"3px 7px",cursor:"pointer",fontWeight:700,minHeight:mobile?30:undefined,lineHeight:1};
+  const stepList=useMemo(()=>{
+    const tourIds=new Set((tourDaysSorted||[]).map(d=>d.date));
+    const extras=(sorted||[]).filter(s=>!tourIds.has(s.date)).map(s=>({date:s.date,type:s.type||"show"}));
+    const all=[...(tourDaysSorted||[]).map(d=>({date:d.date,type:d.type})),...extras].sort((a,b)=>a.date.localeCompare(b.date));
+    return showOffDays?all:all.filter(d=>d.type!=="off"&&d.type!=="travel");
+  },[tourDaysSorted,sorted,showOffDays]);
+  const curIdx=stepList.findIndex(d=>d.date===sel);
+  const stepDate=dir=>{if(curIdx<0)return;const ni=curIdx+dir;if(ni<0||ni>=stepList.length)return;setSel(stepList[ni].date);};
+  const canPrev=curIdx>0;const canNext=curIdx>=0&&curIdx<stepList.length-1;
   return(
     <div style={{borderBottom:"1px solid #d6d3cd",background:"#fff",width:"100%",maxWidth:"100%",overflowX:"hidden"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px 5px",minWidth:0,gap:8,width:"100%",maxWidth:900}}>
