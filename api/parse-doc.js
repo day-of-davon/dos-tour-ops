@@ -2,28 +2,11 @@
 // Handles PDF (Claude native), DOCX (mammoth), XLSX (xlsx→CSV)
 // Returns { docType, confidence, summary, receipt, flights, show, contacts, techPack, expenses }
 const { createClient } = require("@supabase/supabase-js");
+const { extractJson } = require("./lib/gmail");
 
 let mammoth, xlsxLib;
 try { mammoth = require("mammoth"); } catch {}
 try { xlsxLib = require("xlsx"); } catch {}
-
-function extractJson(text) {
-  try { return JSON.parse(text.trim()); } catch {}
-  const fenced = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-  try { return JSON.parse(fenced); } catch {}
-  let depth = 0, start = -1;
-  for (let i = 0; i < text.length; i++) {
-    if (text[i] === "{") { if (start === -1) start = i; depth++; }
-    else if (text[i] === "}") {
-      depth--;
-      if (depth === 0 && start !== -1) {
-        try { return JSON.parse(text.slice(start, i + 1)); } catch {}
-        start = -1;
-      }
-    }
-  }
-  return null;
-}
 
 function buildVerifyPrompt(parsed) {
   return `Verify this extracted data against the source document. Check every field for accuracy.

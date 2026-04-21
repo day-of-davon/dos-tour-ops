@@ -10,7 +10,8 @@ const hhmmToMin=s=>{if(!s)return null;const[h,m]=s.split(":").map(Number);return
 // Group same-day flight legs by itinerary (confirmNo / bookingRef / pax signature) and tag
 // each with role: final leg of a multi-leg chain = "arr", all prior legs = "dep". Single-leg
 // groups stay "dep". Overnight arrivals (arrs) are always "arr".
-const flightItinKey=f=>f.confirmNo||f.bookingRef||((f.pax||[]).slice().sort().join("|")||f.id);
+const flightItinKey=f=>f.confirmNo||f.pnr||f.bookingRef||((f.pax||[]).slice().sort().join("|")||f.id);
+const flightDedupKey=f=>`${f.flightNo||f.carrier||""}__${f.from||""}__${f.to||""}__${f.depDate||""}`;
 const tagFlightRoles=(deps,arrs)=>{
   const groups={};
   deps.forEach(f=>{const k=flightItinKey(f);(groups[k]=groups[k]||[]).push(f);});
@@ -1109,12 +1110,11 @@ function FlightsSection(){
   const[pendingImport,setPendingImport]=useState([]); // scanned but not yet in state
   const[confirmingId,setConfirmingId]=useState(null);
 
-  const allFlights=Object.values(flights).sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0);
-  const fdk=f=>`${f.flightNo||f.carrier||""}__${f.from||""}__${f.to||""}__${f.depDate||""}`;
+  const allFlights=useMemo(()=>Object.values(flights).sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0),[flights]);
   const confirmed=allFlights.filter(f=>f.status==="confirmed");
-  const confirmedKeys=new Set(confirmed.map(fdk));
-  const pendingRaw=allFlights.filter(f=>f.status==="pending"&&!confirmedKeys.has(fdk(f)));
-  const pendingByKey=new Map();pendingRaw.forEach(f=>{if(!pendingByKey.has(fdk(f)))pendingByKey.set(fdk(f),f);});
+  const confirmedKeys=new Set(confirmed.map(flightDedupKey));
+  const pendingRaw=allFlights.filter(f=>f.status==="pending"&&!confirmedKeys.has(flightDedupKey(f)));
+  const pendingByKey=new Map();pendingRaw.forEach(f=>{if(!pendingByKey.has(flightDedupKey(f)))pendingByKey.set(flightDedupKey(f),f);});
   const pending=[...pendingByKey.values()];
   const unresolved=allFlights.filter(f=>f.status==="unresolved");
 
@@ -1137,9 +1137,8 @@ function FlightsSection(){
       if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
       const newFlights=data.flights||[];
       const cur=opts.reset?{}:flights;
-      const dedupKey=f=>`${f.flightNo||f.carrier||""}__${f.from||""}__${f.to||""}__${f.depDate||""}`;
-      const existingKeys=new Set(Object.values(cur).map(dedupKey));
-      const novel=newFlights.filter(f=>!cur[f.id]&&!existingKeys.has(dedupKey(f)));
+      const existingKeys=new Set(Object.values(cur).map(flightDedupKey));
+      const novel=newFlights.filter(f=>!cur[f.id]&&!existingKeys.has(flightDedupKey(f)));
       if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads — no new flights found.`);setScanning(false);return;}
       novel.forEach(f=>uFlight(f.id,{...f,status:"pending",suggestedCrewIds:matchPaxToCrew(f.pax,crew)}));
       const freshCount=novel.filter(f=>f.fresh48h).length;
@@ -2954,7 +2953,6 @@ function FlightsListView(){
   const[refreshingAll,setRefreshingAll]=useState(false);
   const[reassignMsg,setReassignMsg]=useState("");
 
-  const flightDedupKey=f=>`${f.flightNo||f.carrier||""}__${f.from||""}__${f.to||""}__${f.depDate||""}`;
   const allFlights=Object.values(flights);
   const pending=allFlights.filter(f=>f.status==="pending").sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0);
   const confirmedRaw=allFlights.filter(f=>f.status==="confirmed").sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||a.dep?.localeCompare(b.dep||"")||0);
@@ -2962,10 +2960,11 @@ function FlightsListView(){
   const confirmedByKey=new Map();
   confirmedRaw.forEach(f=>{const k=flightDedupKey(f);const cur=confirmedByKey.get(k);if(!cur||(f.confirmedAt||"")>(cur.confirmedAt||""))confirmedByKey.set(k,f);});
   const keepIds=new Set([...confirmedByKey.values()].map(f=>f.id));
+  const keepIdsKey=[...keepIds].sort().join(",");
   useEffect(()=>{
     const dupes=confirmedRaw.filter(f=>!keepIds.has(f.id));
     if(dupes.length)dupes.forEach(f=>uFlight(f.id,null));
-  },[confirmedRaw.length]);// eslint-disable-line
+  },[keepIdsKey]);// eslint-disable-line
   const confirmed=[...confirmedByKey.values()].sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||a.dep?.localeCompare(b.dep||"")||0);
   const unresolved=allFlights.filter(f=>f.status==="unresolved").sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0);
   const byDate=confirmed.reduce((m,f)=>{(m[f.depDate]||(m[f.depDate]=[])).push(f);return m;},{});
@@ -2983,9 +2982,8 @@ function FlightsListView(){
       if(resp.status===402){setScanMsg("Gmail session expired — re-login.");setScanning(false);return;}
       const data=await resp.json();
       if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
-      const dedupKey=f=>`${f.flightNo||f.carrier||""}__${f.from||""}__${f.to||""}__${f.depDate||""}`;
-      const existingKeys=new Set(allFlights.map(dedupKey));
-      const novel=(data.flights||[]).filter(f=>!flights[f.id]&&!existingKeys.has(dedupKey(f)));
+      const existingKeys=new Set(allFlights.map(flightDedupKey));
+      const novel=(data.flights||[]).filter(f=>!flights[f.id]&&!existingKeys.has(flightDedupKey(f)));
       const freshCount=novel.filter(f=>f.fresh48h).length;
       const freshTag=freshCount?` (${freshCount} from last 48h)`:"";
       if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads${data.freshThreads?` (${data.freshThreads} from last 48h)`:""} — no new flights.`);setScanning(false);return;}
@@ -3013,8 +3011,7 @@ function FlightsListView(){
     if(!f.pax?.length||!crew?.length)return{inShow,outShow,legs,allLegObjs};
     f.pax.forEach(name=>{
       if(!name)return;
-      const fname=name.split(" ")[0].toLowerCase();
-      const match=crew.find(c=>c.name&&c.name.toLowerCase().includes(fname));
+      const match=matchPaxToCrew([name],crew).map(id=>crew.find(c=>c.id===id)).find(Boolean);
       if(!match)return;
       if(inShow){
         setShowCrew(p=>{
@@ -3089,8 +3086,7 @@ function FlightsListView(){
     // Remove this itinerary's legs from removed-pax crew records on both matched shows.
     if(removed.length&&(inShow||outShow)){
       removed.forEach(name=>{
-        const fname=name.split(" ")[0].toLowerCase();
-        const match=(crew||[]).find(c=>c.name&&c.name.toLowerCase().includes(fname));
+        const match=matchPaxToCrew([name],crew||[]).map(id=>(crew||[]).find(c=>c.id===id)).find(Boolean);
         if(!match)return;
         [inShow,outShow].filter(Boolean).forEach(show=>{
           setShowCrew(p=>{
