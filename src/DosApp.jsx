@@ -1191,12 +1191,32 @@ function ReservationHeader({g}){
   );
 }
 
-function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax,crew}){
+function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax,onUpdate,crew}){
   const st=liveStatus?statusStyle(liveStatus.status):null;
   const delayed=liveStatus?.delayMinutes>0;
   const isFresh=!!f.fresh48h;
+  const[editing,setEditing]=useState(false);
+  const[draft,setDraft]=useState({});
+  const startEdit=()=>{
+    setDraft({flightNo:f.flightNo||"",carrier:f.carrier||"",from:f.from||"",to:f.to||"",fromCity:f.fromCity||"",toCity:f.toCity||"",depDate:f.depDate||"",dep:f.dep||"",arrDate:f.arrDate||"",arr:f.arr||"",pnr:f.pnr||"",confirmNo:f.confirmNo||"",ticketNo:f.ticketNo||"",cost:f.cost!=null?String(f.cost):"",currency:f.currency||""});
+    setEditing(true);
+  };
+  const saveEdit=()=>{
+    const patch={};
+    ["flightNo","carrier","from","to","fromCity","toCity","depDate","dep","arrDate","arr","pnr","confirmNo","ticketNo","currency"].forEach(k=>{
+      const v=(draft[k]||"").trim();const orig=(f[k]||"").trim();
+      if(v!==orig)patch[k]=v||null;
+      if(k==="from"||k==="to")patch[k]=(patch[k]||f[k]||"").toUpperCase()||null;
+    });
+    const n=parseFloat(draft.cost);if(!isNaN(n)&&n!==f.cost)patch.cost=n;else if(draft.cost===""&&f.cost!=null)patch.cost=null;
+    if(Object.keys(patch).length)onUpdate(patch);
+    setEditing(false);
+  };
+  const inp={background:"var(--card-2)",border:"1px solid var(--border)",borderRadius:4,fontSize:9,padding:"2px 6px",outline:"none",fontFamily:MN,color:"var(--text)",width:"100%",boxSizing:"border-box"};
+  const lbl={fontSize:7,fontWeight:800,color:"var(--text-mute)",letterSpacing:"0.08em",marginBottom:1};
+  const fld=(key,label,extra={})=><div style={{minWidth:0,...extra.w?{width:extra.w}:{}}}><div style={lbl}>{label}</div><input style={{...inp,...extra.style}} value={draft[key]??""} onChange={e=>setDraft(p=>({...p,[key]:extra.upper?e.target.value.toUpperCase():e.target.value}))} maxLength={extra.max}/></div>;
   return(
-    <div style={{background:"var(--card)",border:`1px solid ${isFresh?"var(--accent)":st&&delayed?"var(--warn-fg)":st?.c==="var(--danger-fg)"?"var(--danger-fg)":"var(--border)"}`,borderRadius:10,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6,boxShadow:isFresh?"0 0 0 2px var(--accent-pill-bg)":undefined}}>
+    <div style={{background:"var(--card)",border:`1px solid ${editing?"var(--accent)":isFresh?"var(--accent)":st&&delayed?"var(--warn-fg)":st?.c==="var(--danger-fg)"?"var(--danger-fg)":"var(--border)"}`,borderRadius:10,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6,boxShadow:isFresh&&!editing?"0 0 0 2px var(--accent-pill-bg)":undefined}}>
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
         <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"var(--link)"}}>{f.from}<span style={{fontSize:10,color:"var(--text-mute)",fontWeight:400,padding:"0 5px"}}>→</span>{f.to}</div>
         <div style={{fontSize:10,fontWeight:700,color:"var(--text)"}}>{f.flightNo||f.carrier}</div>
@@ -1208,6 +1228,7 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
         {f.suggestedShowDate&&<span title={`${f.suggestedRole==="outbound"?"Departs day after":"Arrives for"} ${f.suggestedVenue||f.suggestedShowDate}`} style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:f.suggestedRole==="outbound"?"var(--warn-bg)":"var(--success-bg)",color:f.suggestedRole==="outbound"?"var(--warn-fg)":"var(--success-fg)",fontWeight:700}}>{f.suggestedRole==="outbound"?"OUT":"IN"} · {f.suggestedShowDate}</span>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
           {onRefreshStatus&&<button onClick={onRefreshStatus} disabled={refreshing} title="Refresh live status" style={{background:"none",border:"none",cursor:refreshing?"default":"pointer",fontSize:10,color:refreshing?"var(--text-mute)":"var(--accent)",padding:0,lineHeight:1}}>{refreshing?"⟳":"⟳"}</button>}
+          {onUpdate&&!editing&&<button onClick={startEdit} title="Edit flight data" style={{fontSize:9,padding:"1px 7px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:"var(--text-dim)",cursor:"pointer",fontWeight:600}}>Edit</button>}
           <div style={{fontSize:9,fontFamily:MN,color:"var(--text-2)",fontWeight:600}}>{f.depDate}{f.dep?` · ${f.dep}`:""}{f.arr?`–${f.arr}`:""}</div>
         </div>
       </div>
@@ -1221,16 +1242,47 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
           {liveStatus.fetchedAt&&<div style={{marginLeft:"auto"}}><div style={{fontSize:8,color:"var(--text-mute)"}}>updated {new Date(liveStatus.fetchedAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div></div>}
         </div>
       )}
-      <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"flex-start"}}>
+      {!editing&&<div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"flex-start"}}>
         {f.fromCity&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>FROM</div><div style={{fontSize:10,color:"var(--text)"}}>{f.fromCity}</div></div>}
         {f.toCity&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>TO</div><div style={{fontSize:10,color:"var(--text)"}}>{f.toCity}</div></div>}
         {onUpdatePax
           ?<PaxEditor pax={f.pax||[]} crew={crew} onSave={onUpdatePax}/>
           :(f.pax?.length>0&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>PAX</div><div style={{fontSize:10,color:"var(--text)"}}>{f.pax.join(", ")}</div></div>)}
         {f.pnr&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>PNR</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.pnr}</div></div>}
+        {f.confirmNo&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>CONF #</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.confirmNo}</div></div>}
         {f.ticketNo&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>TICKET #</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.ticketNo}</div></div>}
         {f.cost&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>COST</div><div style={{fontFamily:MN,fontSize:10,color:"var(--success-fg)",fontWeight:700}}>{f.currency||"$"}{f.cost}</div></div>}
-      </div>
+      </div>}
+      {editing&&<div style={{display:"flex",flexDirection:"column",gap:6,padding:"8px 10px",background:"var(--card-2)",borderRadius:6,border:"1px solid var(--border)"}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6}}>
+          {fld("flightNo","FLIGHT NO")}
+          {fld("carrier","CARRIER")}
+          {fld("from","FROM (IATA)",{upper:true,max:3})}
+          {fld("to","TO (IATA)",{upper:true,max:3})}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6}}>
+          {fld("fromCity","FROM CITY")}
+          {fld("toCity","TO CITY")}
+          {fld("depDate","DEP DATE")}
+          {fld("dep","DEP TIME")}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6}}>
+          {fld("arrDate","ARR DATE")}
+          {fld("arr","ARR TIME")}
+          {fld("pnr","PNR",{max:6})}
+          {fld("confirmNo","CONF #")}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6}}>
+          {fld("ticketNo","TICKET #")}
+          {fld("cost","COST")}
+          {fld("currency","CURRENCY",{upper:true,max:3})}
+          <div/>
+        </div>
+        <div style={{display:"flex",gap:6,paddingTop:2}}>
+          <button onClick={saveEdit} style={{fontSize:9,padding:"3px 10px",borderRadius:4,border:"none",background:"var(--link)",color:"#fff",cursor:"pointer",fontWeight:700}}>Save Changes</button>
+          <button onClick={()=>setEditing(false)} style={{fontSize:9,padding:"3px 10px",borderRadius:4,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Cancel</button>
+        </div>
+      </div>}
       {crew&&f.suggestedCrewIds?.length>0&&(
         <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
           <span style={{fontSize:8,fontWeight:700,color:"var(--text-mute)",letterSpacing:"0.06em"}}>CREW</span>
@@ -1492,11 +1544,14 @@ function FlightsSection(){
                 {g.segs.map(f=>{
                   const isConf=confirmingId===f.id;
                   return(
-                    <FlightCard key={f.id} f={f} actions={<>
-                      <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"none",background:isConf?"var(--success-fg)":"var(--link)",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
-                      <button onClick={()=>dismissFlight(f.id)} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Dismiss</button>
-                      {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
-                    </>}/>
+                    <FlightCard key={f.id} f={f} crew={crew}
+                      onUpdatePax={newPax=>uFlight(f.id,{...f,pax:newPax,suggestedCrewIds:matchPaxToCrew(newPax,crew)})}
+                      onUpdate={patch=>uFlight(f.id,{...flights[f.id],...patch})}
+                      actions={<>
+                        <button onClick={()=>confirmFlight(flights[f.id]||f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"none",background:isConf?"var(--success-fg)":"var(--link)",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
+                        <button onClick={()=>dismissFlight(f.id)} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Dismiss</button>
+                        {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
+                      </>}/>
                   );
                 })}
                 {!g.isSolo&&g.segs.length>1&&<button onClick={()=>g.segs.forEach(f=>confirmFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px dashed var(--accent-pill-border)",background:"var(--accent-pill-bg)",color:"var(--accent)",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Confirm All {g.segs.length} Segments</button>}
