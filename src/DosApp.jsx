@@ -1140,8 +1140,13 @@ export default function App(){
     setTabOrder(next);
   },[orderedTabs]);
 
-  // eventKey: sub-events keyed by their own ID (spans dates/festivals); main event keyed by date.
-  const eventKey=useMemo(()=>selEventId||sel,[selEventId,sel]);
+  // eventKey: sub-events keyed by their own ID (spans dates/festivals);
+  // split-day parties keyed by `${date}#${partyId}`; otherwise by date.
+  const eventKey=useMemo(()=>{
+    if(selEventId)return selEventId;
+    if(currentSplit&&activeSplitPartyId)return `${sel}#${activeSplitPartyId}`;
+    return sel;
+  },[selEventId,sel,currentSplit,activeSplitPartyId]);
   const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration,me}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration,me]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"var(--text-dim)",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
@@ -5026,8 +5031,8 @@ function CrewTab(){
   const[flightPicker,setFlightPicker]=useState(null); // {crewId, dir}
   const show=shows[sel];
   const today=new Date().toISOString().slice(0,10);
-  // On split days, crew selection is independent per event — key showCrew by `${date}#${partyId}`.
-  const scKey=currentSplit&&activeSplitPartyId?`${eventKey}#${activeSplitPartyId}`:eventKey;
+  // eventKey already includes split-party scope on split days.
+  const scKey=eventKey;
   const realDate=k=>String(k).split("#")[0];
   const sc=showCrew[scKey]||{};
   const uid=()=>Math.random().toString(36).slice(2,9);
