@@ -382,6 +382,11 @@ const GL_BUILTIN_TEMPLATE_ID="__tour_default";
 const glBuiltinTemplate=()=>({id:GL_BUILTIN_TEMPLATE_ID,name:"Tour Default",builtin:true,categories:GL_DEFAULT_CATEGORIES.map(c=>({...c})),walkOnCap:10,notes:""});
 const glInitFromTemplate=tpl=>({categories:(tpl?.categories||GL_DEFAULT_CATEGORIES).map(c=>({...c})),parties:{},cutoffAt:"",status:"draft",walkOnCap:tpl?.walkOnCap??10,notes:tpl?.notes||"",templateId:tpl?.id||null});
 const glBuildTemplate=(name,show)=>({id:glNewId("tpl"),name:name.trim(),builtin:false,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),categories:(show.categories||[]).map(c=>({...c})),walkOnCap:show.walkOnCap??10,notes:show.notes||""});
+const GL_ACTIVITY_CAP=200;
+const glAppendActivity=(arr,entry)=>{
+  const next=[...(arr||[]),entry];
+  return next.length>GL_ACTIVITY_CAP?next.slice(-GL_ACTIVITY_CAP):next;
+};
 const glApplyTemplate=(show,tpl)=>{
   // Remap parties' categoryIds: prefer same id, else first category of matching side, else first category.
   const next={...show,categories:(tpl.categories||[]).map(c=>({...c})),walkOnCap:tpl.walkOnCap??show.walkOnCap,notes:tpl.notes||show.notes,templateId:tpl.id};
@@ -5948,11 +5953,14 @@ function ProdTab(){
 }
 
 function GuestListTab(){
-  const{guestlists,uGuestlist,glTemplates,setGlTemplates,sel,setSel,sorted,shows,mobile,crew}=useContext(Ctx);
+  const{guestlists,uGuestlist,glTemplates,setGlTemplates,sel,setSel,sorted,shows,mobile,crew,role}=useContext(Ctx);
+  const a=useAuth();
+  const by=(a?.user?.email||"unknown").toLowerCase();
   const allTemplates=useMemo(()=>[glBuiltinTemplate(),...Object.values(glTemplates||{}).sort((a,b)=>(a.name||"").localeCompare(b.name||""))],[glTemplates]);
   const[configTplId,setConfigTplId]=useState(GL_BUILTIN_TEMPLATE_ID);
   const[tplMenu,setTplMenu]=useState(false);
   const[tplSaveName,setTplSaveName]=useState("");
+  const[activityOpen,setActivityOpen]=useState(false);
   const showDates=useMemo(()=>(sorted||[]).filter(s=>s.type!=="off"&&s.type!=="travel"&&s.type!=="split").map(s=>s.date),[sorted]);
   const date=sel&&shows?.[sel]?sel:(showDates[0]||sel);
   const show=shows?.[date];
@@ -5987,50 +5995,93 @@ function GuestListTab(){
     return{allot,used,checkedIn};
   },[gl.categories,categoryUsage]);
 
+  const logEntry=(kind,label,meta)=>({id:glNewId("act"),at:new Date().toISOString(),by,role,kind,label,meta:meta||null});
+  const mutate=(kind,label,mut,meta)=>uGuestlist(date,cur=>{
+    const base=typeof mut==="function"?mut(cur||GL_DEFAULT_SHOW()):{...(cur||GL_DEFAULT_SHOW()),...mut};
+    return{...base,activity:glAppendActivity(base.activity,logEntry(kind,label,meta))};
+  });
+  const logOnly=(kind,label,meta)=>uGuestlist(date,cur=>({...cur,activity:glAppendActivity(cur?.activity,logEntry(kind,label,meta))}));
+
   function initShow(){
     const tpl=allTemplates.find(t=>t.id===configTplId)||glBuiltinTemplate();
-    uGuestlist(date,glInitFromTemplate(tpl));
+    mutate("show.init",`Initialized from template "${tpl.name}"`,()=>glInitFromTemplate(tpl),{templateId:tpl.id,templateName:tpl.name});
   }
   function saveAsTemplate(){
     const name=(tplSaveName||`${show?.venue||"Show"} ${date}`).trim();
     if(!name)return;
     const tpl=glBuildTemplate(name,gl);
     setGlTemplates(p=>({...p,[tpl.id]:tpl}));
-    uGuestlist(date,{templateId:tpl.id});
+    mutate("template.save",`Saved template "${tpl.name}"`,{templateId:tpl.id},{templateId:tpl.id,templateName:tpl.name,categories:tpl.categories.length});
     setTplSaveName("");setTplMenu(false);
   }
   function applyTemplate(tplId){
     const tpl=allTemplates.find(t=>t.id===tplId);
     if(!tpl)return;
     if(partyList.length&&!confirm(`Apply template "${tpl.name}"? Existing categories will be replaced. Parties will be re-mapped.`))return;
-    uGuestlist(date,cur=>glApplyTemplate(cur||glInitFromTemplate(tpl),tpl));
+    mutate("template.apply",`Applied template "${tpl.name}"`,cur=>glApplyTemplate(cur||glInitFromTemplate(tpl),tpl),{templateId:tpl.id,templateName:tpl.name});
     setTplMenu(false);
   }
   function deleteTemplate(tplId){
     const tpl=glTemplates[tplId];
     if(!tpl||!confirm(`Delete template "${tpl.name}"?`))return;
     setGlTemplates(p=>{const n={...p};delete n[tplId];return n;});
+    logOnly("template.delete",`Deleted template "${tpl.name}"`,{templateId:tplId,templateName:tpl.name});
   }
-  function updateCat(cid,patch){uGuestlist(date,cur=>({...cur,categories:cur.categories.map(c=>c.id===cid?{...c,...patch}:c)}));}
-  function addCategory(){const nc={id:glNewId("cat"),name:"New Category",side:"artist",zones:["FOH"],qty:2,walkOnQty:0};uGuestlist(date,cur=>({...cur,categories:[...cur.categories,nc]}));}
-  function removeCategory(cid){uGuestlist(date,cur=>({...cur,categories:cur.categories.filter(c=>c.id!==cid)}));}
-  function setStatus(s){uGuestlist(date,{status:s});}
-  function setCutoff(v){uGuestlist(date,{cutoffAt:v});}
-  function setWalkOnCap(v){uGuestlist(date,{walkOnCap:parseInt(v)||0});}
-  function setNotes(v){uGuestlist(date,{notes:v});}
+  function updateCat(cid,patch){
+    const prev=gl.categories.find(c=>c.id===cid);
+    mutate("category.update",`Edited category ${prev?.name||cid}`,cur=>({...cur,categories:cur.categories.map(c=>c.id===cid?{...c,...patch}:c)}),{categoryId:cid,patch});
+  }
+  function addCategory(){
+    const nc={id:glNewId("cat"),name:"New Category",side:"artist",zones:["FOH"],qty:2,walkOnQty:0};
+    mutate("category.add",`Added category "${nc.name}"`,cur=>({...cur,categories:[...cur.categories,nc]}),{categoryId:nc.id});
+  }
+  function removeCategory(cid){
+    const prev=gl.categories.find(c=>c.id===cid);
+    mutate("category.remove",`Removed category "${prev?.name||cid}"`,cur=>({...cur,categories:cur.categories.filter(c=>c.id!==cid)}),{categoryId:cid});
+  }
+  function setStatus(s){
+    const prev=gl.status;
+    mutate("show.status",`Status: ${prev} → ${s}`,{status:s},{from:prev,to:s});
+  }
+  function setCutoff(v){mutate("show.cutoff",v?`Cutoff set ${v}`:"Cutoff cleared",{cutoffAt:v},{cutoffAt:v});}
+  function setWalkOnCap(v){const n=parseInt(v)||0;mutate("show.walkOnCap",`Walk-on cap: ${n}`,{walkOnCap:n},{walkOnCap:n});}
+  function setNotes(v){mutate("show.notes",`Notes updated`,{notes:v});}
 
   function createParty(){
     if(!partyForm.name.trim())return;
-    const role=GL_PARTY_ROLES.find(r=>r.id===partyForm.role)||GL_PARTY_ROLES[0];
+    const partyRole=GL_PARTY_ROLES.find(r=>r.id===partyForm.role)||GL_PARTY_ROLES[0];
     const pid=glNewId("party");
-    uGuestlist(date,cur=>({...cur,parties:{...cur.parties,[pid]:{name:partyForm.name.trim(),role:role.id,side:role.side,contact:partyForm.contact.trim(),categoryId:role.defaultCategory,entries:[]}}}));
+    const name=partyForm.name.trim();
+    mutate("party.create",`Added party "${name}" (${partyRole.label})`,cur=>({...cur,parties:{...cur.parties,[pid]:{name,role:partyRole.id,side:partyRole.side,contact:partyForm.contact.trim(),categoryId:partyRole.defaultCategory,entries:[]}}}),{partyId:pid,partyName:name,role:partyRole.id});
     setPartyForm({name:"",role:"manager",contact:""});setAddParty(false);setExpandedParty(pid);
   }
-  function updateParty(pid,patch){uGuestlist(date,cur=>({...cur,parties:{...cur.parties,[pid]:{...cur.parties[pid],...patch}}}));}
-  function removeParty(pid){uGuestlist(date,cur=>{const n={...cur.parties};delete n[pid];return{...cur,parties:n};});}
-  function addEntry(pid){const e={id:glNewId("e"),name:"",plusOne:false,note:"",status:"pending",isWalkOn:false};uGuestlist(date,cur=>({...cur,parties:{...cur.parties,[pid]:{...cur.parties[pid],entries:[...(cur.parties[pid].entries||[]),e]}}}));}
-  function updateEntry(pid,eid,patch){uGuestlist(date,cur=>({...cur,parties:{...cur.parties,[pid]:{...cur.parties[pid],entries:cur.parties[pid].entries.map(e=>e.id===eid?{...e,...patch}:e)}}}));}
-  function removeEntry(pid,eid){uGuestlist(date,cur=>({...cur,parties:{...cur.parties,[pid]:{...cur.parties[pid],entries:cur.parties[pid].entries.filter(e=>e.id!==eid)}}}));}
+  function updateParty(pid,patch){
+    const prev=gl.parties[pid];
+    mutate("party.update",`Edited party "${prev?.name||pid}"`,cur=>({...cur,parties:{...cur.parties,[pid]:{...cur.parties[pid],...patch}}}),{partyId:pid,patch});
+  }
+  function removeParty(pid){
+    const prev=gl.parties[pid];
+    mutate("party.remove",`Removed party "${prev?.name||pid}"`,cur=>{const n={...cur.parties};delete n[pid];return{...cur,parties:n};},{partyId:pid,partyName:prev?.name});
+  }
+  function addEntry(pid){
+    const e={id:glNewId("e"),name:"",plusOne:false,note:"",status:"pending",isWalkOn:false};
+    const party=gl.parties[pid];
+    mutate("entry.add",`Added entry to "${party?.name||pid}"`,cur=>({...cur,parties:{...cur.parties,[pid]:{...cur.parties[pid],entries:[...(cur.parties[pid].entries||[]),e]}}}),{partyId:pid,entryId:e.id});
+  }
+  function updateEntry(pid,eid,patch){
+    const party=gl.parties[pid];
+    const prev=party?.entries?.find(e=>e.id===eid);
+    const statusChanged=patch.status&&prev?.status!==patch.status;
+    const nameChanged="name" in patch&&prev?.name!==patch.name;
+    const kind=statusChanged?(patch.status==="checked_in"?"entry.checkin":"entry.status"):(nameChanged?"entry.rename":"entry.update");
+    const label=statusChanged?`${prev?.name||"Guest"}: ${prev?.status||"pending"} → ${patch.status}`:(nameChanged?`Renamed entry "${prev?.name||""}" → "${patch.name}"`:`Edited entry "${prev?.name||eid}"`);
+    mutate(kind,label,cur=>({...cur,parties:{...cur.parties,[pid]:{...cur.parties[pid],entries:cur.parties[pid].entries.map(e=>e.id===eid?{...e,...patch}:e)}}}),{partyId:pid,entryId:eid,patch});
+  }
+  function removeEntry(pid,eid){
+    const party=gl.parties[pid];
+    const prev=party?.entries?.find(e=>e.id===eid);
+    mutate("entry.remove",`Removed entry "${prev?.name||eid}" from "${party?.name||pid}"`,cur=>({...cur,parties:{...cur.parties,[pid]:{...cur.parties[pid],entries:cur.parties[pid].entries.filter(e=>e.id!==eid)}}}),{partyId:pid,entryId:eid});
+  }
 
   function exportDoorList(){
     const rows=[];
@@ -6046,6 +6097,7 @@ function GuestListTab(){
     const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
     const url=URL.createObjectURL(blob);
     const a=document.createElement("a");a.href=url;a.download=`guestlist_${date}_${(show?.venue||"").replace(/\s+/g,"_")}.json`;a.click();URL.revokeObjectURL(url);
+    logOnly("door.export",`Exported door list (${rows.length} rows)`,{rows:rows.length});
   }
 
   if(!show){
@@ -6228,6 +6280,27 @@ function GuestListTab(){
               </div>;
             })}
           </div>
+        </div>
+
+        <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"12px 14px"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,cursor:"pointer"}} onClick={()=>setActivityOpen(v=>!v)}>
+            <span style={{fontSize:10,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em"}}>ACTIVITY · {(gl.activity||[]).length}</span>
+            <span style={{fontSize:10,color:"#707088"}}>{activityOpen?"▾":"▸"}</span>
+          </div>
+          {activityOpen&&<div style={{marginTop:10,display:"flex",flexDirection:"column",gap:4,maxHeight:320,overflowY:"auto"}}>
+            {(gl.activity||[]).length===0&&<div style={{fontSize:10,color:"#707088",padding:"6px 2px"}}>No activity yet.</div>}
+            {[...(gl.activity||[])].reverse().map(ev=>{
+              const when=new Date(ev.at);
+              const whenLabel=`${when.toLocaleDateString(undefined,{month:"short",day:"numeric"})} ${when.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})}`;
+              const kindColor=ev.kind?.startsWith("entry.checkin")?"#34d399":ev.kind?.startsWith("entry.remove")||ev.kind?.startsWith("party.remove")||ev.kind?.startsWith("category.remove")?"#F87171":ev.kind?.startsWith("template")?"#a78bfa":ev.kind?.startsWith("show.status")?"#D97706":"#a0a0b8";
+              return<div key={ev.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr":"90px 110px 1fr 110px",gap:8,alignItems:"center",background:"#0a0a0f",border:"1px solid #1f1f2e",borderRadius:5,padding:"5px 8px",fontSize:10,fontFamily:MN}}>
+                <span style={{color:"#707088"}}>{whenLabel}</span>
+                <span style={{color:kindColor,fontWeight:700,fontSize:9,letterSpacing:"0.04em"}}>{ev.kind}</span>
+                <span style={{color:"#c0c0d0",fontFamily:"'Outfit',system-ui",fontSize:10}}>{ev.label}</span>
+                <span style={{color:"#707088",textAlign:"right",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.by}{ev.role?` · ${ev.role}`:""}</span>
+              </div>;
+            })}
+          </div>}
         </div>
       </>}
     </div>
