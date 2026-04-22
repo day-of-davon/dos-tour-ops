@@ -61,9 +61,13 @@ function nDaysAgo(n) {
   return gDate(d.toISOString().slice(0, 10));
 }
 
-function buildLodgingQueries(after, before) {
+// High priority: subject/keyword sweeps + touring-specific terms. Run first.
+// Low priority: single brand-name sweep (maxResults=500) replacing 55+ from:
+// domain queries. Same effective recall, one Gmail API call instead of 55.
+function buildLodgingQueryGroups(after, before) {
   const W = w(after, before);
-  return [
+  const high = [
+    // Subject sweeps
     `subject:("hotel confirmation") ${W}`,
     `subject:("reservation confirmation") (hotel OR inn OR suite OR resort OR lodge) ${W}`,
     `subject:("booking confirmation") (hotel OR inn OR suite OR resort OR lodge OR airbnb OR vrbo) ${W}`,
@@ -73,74 +77,23 @@ function buildLodgingQueries(after, before) {
     `"confirmation number" (hotel OR inn OR suite OR resort OR lodge OR check-in OR check-out) ${W}`,
     `"reservation number" (hotel OR inn OR suite OR resort OR check-in) ${W}`,
     `(check-in OR "check in") (check-out OR "check out") (hotel OR inn OR suite OR resort OR lodge) (confirmation OR booking OR reservation) ${W}`,
-    `from:(marriott.com) ${W}`,
-    `from:(starwoodhotels.com) ${W}`,
-    `from:(spg.com) ${W}`,
-    `from:(hilton.com) ${W}`,
-    `from:(conradhotels.com) ${W}`,
-    `from:(waldorfastoria.com) ${W}`,
-    `from:(doubletree.com) ${W}`,
-    `from:(hamptoninn.com) ${W}`,
-    `from:(curio.hilton.com) ${W}`,
-    `from:(hyatt.com) ${W}`,
-    `from:(andaz.com) ${W}`,
-    `from:(parkhotelgroup.com) ${W}`,
-    `from:(ihg.com) ${W}`,
-    `from:(intercontinental.com) ${W}`,
-    `from:(holidayinn.com) ${W}`,
-    `from:(crowneplaza.com) ${W}`,
-    `from:(kimptonhotels.com) ${W}`,
-    `from:(bestwestern.com) ${W}`,
-    `from:(wyndhamhotels.com) ${W}`,
-    `from:(radissonhotels.com) ${W}`,
-    `from:(choicehotels.com) ${W}`,
-    `from:(accor.com) ${W}`,
-    `from:(novotel.com) ${W}`,
-    `from:(sofitel.com) ${W}`,
-    `from:(ibis.com) ${W}`,
-    `from:(mgmresorts.com) ${W}`,
-    `from:(caesars.com) ${W}`,
-    `from:(fourseasons.com) ${W}`,
-    `from:(ritzcarton.com) ${W}`,
-    `from:(sbe.com) ${W}`,
-    `from:(nhhotel.com) ${W}`,
-    `from:(nh-hotels.com) ${W}`,
-    `from:(melia.com) ${W}`,
-    `from:(meliá.com) ${W}`,
-    `from:(barcelo.com) ${W}`,
-    `from:(room-mate.com) ${W}`,
-    `from:(citizenm.com) ${W}`,
-    `from:(designhotels.com) ${W}`,
-    `from:(suitepads.com) ${W}`,
-    `from:(valkhotels.com) ${W}`,
-    `from:(motelone.com) ${W}`,
-    `from:(ahotels.com) ${W}`,
-    `from:(vicohotels.com) ${W}`,
-    `from:(campanile.com) ${W}`,
-    `from:(premierinn.com) ${W}`,
-    `from:(travelodge.co.uk) ${W}`,
-    `from:(booking.com) (reservation OR confirmation OR check-in) ${W}`,
-    `from:(expedia.com) (hotel OR inn OR suite OR resort OR lodge OR reservation) ${W}`,
-    `from:(hotels.com) ${W}`,
-    `from:(priceline.com) (hotel OR reservation OR confirmation) ${W}`,
-    `from:(hotwire.com) (hotel OR reservation) ${W}`,
-    `from:(tripadvisor.com) (hotel OR reservation OR confirmation) ${W}`,
-    `from:(agoda.com) (hotel OR reservation OR confirmation) ${W}`,
-    `from:(hostelworld.com) ${W}`,
-    `from:(kayak.com) (hotel OR reservation) ${W}`,
-    `from:(google.com) subject:(trip) (hotel OR lodging OR accommodation) ${W}`,
-    `from:(concur.com) (hotel OR lodging OR accommodation) ${W}`,
-    `from:(netsuite.com) (hotel OR lodging OR accommodation) ${W}`,
-    `from:(airbnb.com) ${W}`,
-    `from:(vrbo.com) ${W}`,
-    `from:(homeaway.com) ${W}`,
-    `from:(vacasa.com) ${W}`,
+    // Touring-specific
     `"room block" (confirmation OR booking OR reservation) ${W}`,
     `"room list" (hotel OR confirmation OR reservation) ${W}`,
     `"group reservation" (hotel OR inn OR resort OR lodge) ${W}`,
     `"tour accommodation" OR "band hotel" OR "crew hotel" (confirmation OR booking) ${W}`,
     `"promoter accommodation" OR "artist accommodation" (hotel OR inn OR confirmation) ${W}`,
   ];
+  const low = [
+    // Hotel brand name sweep — includes loyalty program names (Bonvoy) and
+    // sub-brands (Sheraton, Westin, W Hotels, Hampton Inn, DoubleTree, Aloft,
+    // Andaz, Pullman) that parent-brand queries miss. maxResults=500 replaces
+    // 55+ from: domain queries with one Gmail API call.
+    `(Marriott OR Bonvoy OR Sheraton OR Westin OR "W Hotels" OR "Ritz-Carlton" OR "Four Seasons" OR Hilton OR "Hampton Inn" OR DoubleTree OR Aloft OR Hyatt OR Andaz OR IHG OR InterContinental OR "Holiday Inn" OR "Crowne Plaza" OR Kimpton OR Accor OR Novotel OR Sofitel OR Ibis OR Pullman OR "Best Western" OR Wyndham OR Radisson OR citizenM OR "Premier Inn" OR Travelodge OR "NH Hotels" OR Melia OR Barcelo OR MGM OR Caesars OR "Design Hotels" OR "Motel One") (confirmation OR reservation OR "your stay" OR "check-in" OR booking) ${W}`,
+    // OTA lodging bookings
+    `("Booking.com" OR Expedia OR "Hotels.com" OR Priceline OR Hotwire OR Agoda OR Airbnb OR VRBO OR HomeAway OR Vacasa OR Kayak OR Hopper OR "Trip.com" OR Hostelworld OR Concur) (hotel OR reservation OR confirmation OR "your stay" OR "check-in") ${W}`,
+  ];
+  return { high, low };
 }
 
 module.exports = async function handler(req, res) {
@@ -175,17 +128,24 @@ module.exports = async function handler(req, res) {
   const stopReasons = {};
   const errors = [];
 
-  const allQueries = buildLodgingQueries(after, before);
+  const { high, low } = buildLodgingQueryGroups(after, before);
   const seen = new Set();
   const CAP = 50;
 
-  try {
-    const results = await Promise.allSettled(allQueries.map(q => gmailSearch(googleToken, q, 25)));
-    for (const r of results) {
-      if (r.status === "fulfilled") r.value.forEach(id => seen.add(id));
-      else if (r.reason?.message?.includes("401")) throw Object.assign(new Error("gmail_401"), { status: 402 });
-      else if (r.status === "rejected") errors.push({ kind: "gmail_query_failed", message: String(r.reason?.message || r.reason) });
+  const runParallel = async (queries, maxResults) => {
+    const results = await Promise.allSettled(queries.map(q => gmailSearch(googleToken, q, maxResults)));
+    for (let i = 0; i < results.length; i++) {
+      const r = results[i];
+      if (r.status === "fulfilled") { r.value.forEach(id => seen.add(id)); continue; }
+      const msg = r.reason?.message || String(r.reason);
+      if (msg.includes("401")) throw Object.assign(new Error("gmail_401"), { status: 402 });
+      errors.push({ kind: "gmail_query_failed", message: msg });
     }
+  };
+
+  try {
+    await runParallel(high, 25);
+    if (seen.size < CAP * 0.8) await runParallel(low, 500);
   } catch (e) {
     if (e.status === 402) {
       await finishScanRun(runId, { threadsFound: 0, errors: [...errors, { kind: "gmail_token_expired" }], startedAt });
