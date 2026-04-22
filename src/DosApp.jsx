@@ -18,6 +18,46 @@ const flightDedupKey=f=>{
   if(fn&&fr&&to&&dd)return`${fn}__${fr}__${to}__${dd}`;
   return f.pnr||f.confirmNo||f.bookingRef||f.tid||f.id;
 };
+// Normalize + deduplicate flights object in-place (same logic as dos-mt-sync/clean-flights.js).
+// Returns a new object; does not mutate input.
+const normFlightNo=s=>String(s||'').trim().toUpperCase().replace(/\s+/g,'');
+const isJunkFlightNo=fn=>!fn||/^(UNKNOWN|AC)$/.test(normFlightNo(fn));
+const flightRichness=f=>{
+  const n=Object.values(f).filter(v=>v!=null&&v!==''&&!(Array.isArray(v)&&!v.length)).length;
+  return n+(f.pnr?5:0)+((f.pax||[]).length?3:0)+(isJunkFlightNo(f.flightNo)?-50:0);
+};
+function cleanFlightsObj(raw){
+  const arr=Object.values(raw||{});
+  // Drop truly empty shells
+  const survivors=arr.filter(f=>{
+    if(!f.from&&!f.to&&!(f.pax||[]).length)return false;
+    return true;
+  });
+  // Group by normalized dedup key; keep richest per group
+  const groups=new Map();
+  for(const f of survivors){
+    const fn=normFlightNo(f.flightNo);
+    const key=isJunkFlightNo(f.flightNo)||!f.from||!f.to||!f.depDate
+      ?f.pnr||f.confirmNo||f.bookingRef||f.id
+      :`${fn}__${f.from}__${f.to}__${f.depDate}`;
+    const cur=groups.get(key);
+    if(!cur||flightRichness(f)>flightRichness(cur)){
+      groups.set(key,{
+        ...f,
+        flightNo:f.flightNo&&!isJunkFlightNo(f.flightNo)?normFlightNo(f.flightNo):f.flightNo,
+        pax:(f.pax||[]).map(p=>String(p).replace(/\s+/g,' ').trim()).filter(Boolean),
+      });
+    }
+  }
+  // Known manual patches
+  const cttcoz=groups.get('CTTCOZ');
+  if(cttcoz)Object.assign(cttcoz,{flightNo:'AC598',carrier:'Air Canada',from:'YVR',fromCity:'Vancouver',to:'SNA',toCity:'Orange County',depDate:'2026-04-06',arrDate:'2026-04-06',dep:'08:10',arr:'11:15',cost:488.78,currency:'CAD',pax:['Nicholas Foerster']});
+  const ac748=groups.get('AC748__YUL__BOS__2026-05-01');
+  if(ac748)ac748.pax=['Mathieu Senechal'];
+  const out={};
+  for(const f of groups.values())out[f.id]=f;
+  return out;
+}
 // Extract a human-readable message from a scan-api error body.
 // Server returns {error, anthropic:{type,message}, detail} JSON on 502; fall back to raw text.
 const describeScanError=body=>{
@@ -1552,6 +1592,7 @@ function FlightsSection(){
         <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"var(--info-bg)",color:"var(--link)",fontWeight:700}}>{confirmed.length} confirmed · {pending.length} pending</span>
         {scanMsg&&<span style={{fontSize:9,color:scanning?"var(--accent)":"var(--text-dim)",fontFamily:MN}}>{scanMsg}</span>}
         <div style={{marginLeft:"auto",display:"flex",gap:6}}>
+          <button onClick={()=>{const before=Object.keys(flights).length;const cleaned=cleanFlightsObj(flights);const after=Object.keys(cleaned).length;if(confirm(`Clean & deduplicate flights? ${before}→${after} (−${before-after})`)){setFlights(cleaned);setScanMsg(`Cleaned: ${before}→${after} flights.`);}}} disabled={scanning} style={{background:"var(--border)",color:"var(--text-dim)",border:"1px solid var(--border)",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700}}>Clean & Dedup</button>
           <button onClick={()=>{if(confirm(`Clear all ${allFlights.length} flights and rescan Gmail?`))scanFlights({reset:true});}} disabled={scanning} style={{background:scanning?"var(--border)":"var(--danger-fg)",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>Reset & Rescan</button>
           <button onClick={()=>scanFlights({force:true})} disabled={scanning} title="Force re-parse all emails — extracts payment method from existing confirmations" style={{background:scanning?"var(--border)":"var(--warn-bg)",color:scanning?"var(--text-dim)":"var(--warn-fg)",border:`1px solid ${scanning?"var(--border)":"var(--warn-fg)"}`,borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>Force Rescan</button>
           <button onClick={()=>scanFlights()} disabled={scanning} style={{background:scanning?"var(--border)":"var(--link)",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail"}</button>
