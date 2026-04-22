@@ -257,7 +257,7 @@ function dedupFlights(flights) {
     // Prefer JSON-LD as source of truth; merge pax union
     const winner = prev.source === "jsonld" ? prev : f;
     const loser  = prev.source === "jsonld" ? f : prev;
-    winner.pax = [...new Set([...(winner.pax || []), ...(loser.pax || [])])];
+    const paxMap=new Map();[...(winner.pax||[]),...(loser.pax||[])].forEach(p=>{const k=String(p).toLowerCase();if(!paxMap.has(k))paxMap.set(k,p);});winner.pax=[...paxMap.values()];
     if (!winner.pnr && loser.pnr) winner.pnr = loser.pnr;
     if (!winner.confirmNo && loser.confirmNo) winner.confirmNo = loser.confirmNo;
     if (!winner.ticketNo && loser.ticketNo) winner.ticketNo = loser.ticketNo;
@@ -277,9 +277,11 @@ function isValidFlight(f) {
 }
 
 // ── Query list ────────────────────────────────────────────────────────────────
-// Subject-line queries (high priority) — run first so their thread IDs fill the
-// cap before domain queries. Catches forwarded receipts regardless of sender.
-// Domain queries (low priority) — additive depth for direct emails that miss subject matches.
+// High priority: subject sweeps + destination queries. Run first; fill the cap
+// before the low sweep. Catches forwarded receipts regardless of sender domain.
+// Low priority: single broad carrier/OTA sweep (maxResults=500) replacing the
+// previous 65+ from: domain queries. Fewer Gmail API calls, same effective recall
+// since category:travel and subject sweeps already cover major carriers directly.
 function buildFlightQueryGroups(after) {
   const W = `after:${after}`;
   const high = [
@@ -310,86 +312,18 @@ function buildFlightQueryGroups(after) {
     `(PRG OR Prague OR BER OR Berlin OR BTS OR Bratislava OR WAW OR Warsaw) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
   ];
   const low = [
-    // US carriers
-    `from:(DeltaAirLines@t.delta.com) ${W}`,
-    `from:(noreply@delta.com) ${W}`,
-    `from:(noreply@aa.com) ${W}`,
-    `from:(confirmations@aa.com) ${W}`,
-    `from:(noreply@united.com) ${W}`,
-    `from:(Southwest@luv.southwest.com) ${W}`,
-    `from:(noreply@alaskaair.com) ${W}`,
-    `from:(noreply@jetblue.com) ${W}`,
-    `from:(noreply@spirit.com) ${W}`,
-    `from:(noreply@flyfrontier.com) ${W}`,
-    `from:(noreply@allegiantair.com) ${W}`,
-    `from:(noreply@hawaiianairlines.com) ${W}`,
-    // Canada
-    `from:(noreply@aircanada.com) ${W}`,
-    `from:(noreply@aircanada.ca) ${W}`,
-    `from:(aircanada.ca) ${W}`,
-    `from:(noreply@westjet.com) ${W}`,
-    `from:(noreply@flyporter.com) ${W}`,
-    // European full-service
-    `from:(noreply@ba.com) ${W}`,
-    `from:(do_not_reply@ba.com) ${W}`,
-    `from:(noreply@lufthansa.com) ${W}`,
-    `from:(noreply@airfrance.fr) ${W}`,
-    `from:(noreply@airfrance.com) ${W}`,
-    `from:(donotreply@klm.com) ${W}`,
-    `from:(noreply@iberia.com) ${W}`,
-    `from:(noreply@swiss.com) ${W}`,
-    `from:(noreply@austrian.com) ${W}`,
-    `from:(noreply@brusselsairlines.com) ${W}`,
-    `from:(noreply@finnair.com) ${W}`,
-    `from:(noreply@flysas.com) ${W}`,
-    `from:(noreply@tap.pt) ${W}`,
-    `from:(noreply@turkishairlines.com) ${W}`,
-    `from:(noreply@aerlingus.com) ${W}`,
-    `from:(noreply@lot.com) ${W}`,
-    `from:(noreply@croatiaairlines.hr) ${W}`,
-    `from:(info@airserbia.com) ${W}`,
-    // European LCCs
-    `from:(noreply@ryanair.com) ${W}`,
-    `from:(no-reply@easyjet.com) ${W}`,
-    `from:(noreply@wizzair.com) ${W}`,
-    `from:(booking@norwegian.com) ${W}`,
-    `from:(no-reply@norwegian.com) ${W}`,
-    `from:(noreply@vueling.com) ${W}`,
-    `from:(noreply@transavia.com) ${W}`,
-    `from:(bookings@jet2.com) ${W}`,
-    `from:(noreply@volotea.com) ${W}`,
-    // Middle East / Gulf
-    `from:(emirates@emails.emirates.com) ${W}`,
-    `from:(noreply@emirates.com) ${W}`,
-    `from:(noreply@etihad.com) ${W}`,
-    `from:(noreply@qatarairways.com) ${W}`,
-    `from:(noreply@flydubai.com) ${W}`,
-    // Asia Pacific
-    `from:(noreply@singaporeair.com) ${W}`,
-    `from:(noreply@cathaypacific.com) ${W}`,
-    `from:(jmb@ml.jal.co.jp) ${W}`,
-    `from:(info@ana.co.jp) ${W}`,
-    `from:(noreply@koreanair.com) ${W}`,
-    `from:(noreply@qantas.com.au) ${W}`,
-    `from:(noreply@airnewzealand.co.nz) ${W}`,
-    `from:(noreply@airasia.com) ${W}`,
-    // Latin America
-    `from:(noreply@latam.com) ${W}`,
-    `from:(noreply@avianca.com) ${W}`,
-    `from:(noreply@copaair.com) ${W}`,
+    // Carrier name sweep — full airline brand names. Body-text match catches
+    // OTA and forwarded confirmations regardless of sender domain.
+    `(Delta OR United OR "American Airlines" OR Southwest OR JetBlue OR "Alaska Airlines" OR "Air Canada" OR "British Airways" OR Lufthansa OR "Air France" OR "Aer Lingus" OR Ryanair OR easyJet OR KLM OR "Turkish Airlines" OR Emirates OR Etihad OR "Qatar Airways" OR "Singapore Airlines" OR "Cathay Pacific" OR Iberia OR Qantas OR LATAM OR ANA OR "Korean Air" OR "Japan Airlines") (confirmation OR receipt OR itinerary OR "e-ticket" OR "booking reference" OR confirmed OR booked) ${W}`,
+    // IATA code patterns — catches confirmation emails by flight code regardless
+    // of carrier branding. Common in GDS/OTA/forwarded itinerary emails.
+    `("Flight DL" OR "Flight UA" OR "Flight AA" OR "Flight WN" OR "Flight B6" OR "Flight AS" OR "Flight AC" OR "Flight BA" OR "Flight LH" OR "Flight AF" OR "Flight KL" OR "Flight FR" OR "Flight U2" OR "Flight EK" OR "Flight EY" OR "Flight QR" OR "Flight TK" OR "Flight SQ" OR "Flight CX" OR "Flight IB" OR "Flight QF" OR "Flight LA" OR "Flight NH" OR "Flight KE" OR "Flight JL") ${W}`,
+    // OTA flight bookings
+    `(Expedia OR "Booking.com" OR Concur OR Travelport OR Hopper OR "Trip.com") (flight OR itinerary OR airline) ${W}`,
+    // Ground/rail — aligned with "other travel" clause in comprehensive search string
+    `(Uber OR Lyft OR Hertz OR Enterprise OR Avis OR Eurostar OR Trainline OR FlixBus OR Omio) (confirmation OR receipt OR booking OR reservation OR itinerary) ${W}`,
     // Private charters
-    `from:(netjets.com) ${W}`,
-    `from:(vistajet.com) ${W}`,
-    `from:(wheelsup.com) ${W}`,
-    `from:(flyexclusive.com) ${W}`,
-    `from:(jsx.com) ${W}`,
     `("private jet" OR "charter flight") (confirmation OR itinerary OR booking) ${W}`,
-    // OTA
-    `from:(expedia.com) (flight OR itinerary) ${W}`,
-    `from:(concur.com) (flight OR itinerary) ${W}`,
-    `from:(google.com) subject:(trip) (flight OR itinerary) ${W}`,
-    `from:(travelport.com) (flight OR itinerary) ${W}`,
-    `from:(noreply@booking.com) (flight OR airline) ${W}`,
   ];
   return { high, low };
 }
@@ -493,8 +427,8 @@ module.exports = async function handler(req, res) {
   const CAP = 100;
   const queryErrors = [];
 
-  const runParallel = async (queries) => {
-    const results = await Promise.allSettled(queries.map(q => gmailSearch(googleToken, q, 25)));
+  const runParallel = async (queries, maxResults = 25) => {
+    const results = await Promise.allSettled(queries.map(q => gmailSearch(googleToken, q, maxResults)));
     for (let i = 0; i < results.length; i++) {
       const r = results[i];
       if (r.status === "fulfilled") { r.value.forEach(id => seen.add(id)); continue; }
@@ -507,8 +441,9 @@ module.exports = async function handler(req, res) {
 
   try {
     await runParallel(high);
-    // Skip low-priority sweep if high already saturated the cap — low adds 60+ queries of noise.
-    if (seen.size < CAP * 0.8) await runParallel(low);
+    // Low sweep: 3 broad queries at maxResults=500, replacing the previous 65+
+    // from: domain queries. Skip entirely if high already saturated the cap.
+    if (seen.size < CAP * 0.8) await runParallel(low, 500);
   } catch (e) {
     if (e.status === 402) return res.status(402).json({ error: "gmail_token_expired" });
     return res.status(500).json({ error: e.message });
@@ -660,17 +595,51 @@ confirmation-code fields above. E-ticket numbers almost always come from the PDF
 Skip hotel, train, rental car confirmations — flights and private charters only.`;
 
   // Partition fresh Claude-bound threads: withPdf go one-at-a-time with
-  // document blocks; textOnly go through the batched pipeline as before.
+  // document blocks; textOnly splits further into simple vs. multi-leg.
   const withPdfThreads = SCAN_PDFS ? claudeThreads.filter(t => t.attachments?.length) : [];
   const textOnlyThreads = claudeThreads.filter(t => !withPdfThreads.includes(t));
 
-  // BATCH was 8. Dropped to 6 so multi-leg round-trip confirmations (JetBlue
-  // "CODGXZ"-type) have less thread pressure per prompt, while keeping the
-  // parallel Claude fan-out bounded enough to stay under the 60s Vercel
-  // function budget (at CAP=100 this yields ~17 batches × parse+verify).
+  // Pre-screen by expectedLegCount. Threads where >= 2 legs are detected upfront
+  // skip the batch and go straight to isolated single-thread parsing with an
+  // explicit leg-count hint — eliminating the extra Claude call the retry would
+  // have cost. Retry stays as a safety net for cases this heuristic misses.
+  const multiLegTextThreads = textOnlyThreads.filter(t => expectedLegCount(t.body) >= 2);
+  const simpleTextThreads   = textOnlyThreads.filter(t => expectedLegCount(t.body) < 2);
+
   const BATCH = 6;
   const threadBatches = [];
-  for (let i = 0; i < textOnlyThreads.length; i += BATCH) threadBatches.push(textOnlyThreads.slice(i, i + BATCH));
+  for (let i = 0; i < simpleTextThreads.length; i += BATCH) threadBatches.push(simpleTextThreads.slice(i, i + BATCH));
+
+  const buildMultiLegPrompt = (t) => {
+    const expected = expectedLegCount(t.body);
+    return `Extract all flight segments from this single email thread. Tour date range: ${tourStart} to ${tourEnd}.
+
+IMPORTANT: This email likely describes ${expected}+ flight legs (round-trip, connection, or multi-city). Enumerate EVERY leg without exception. Look for BOTH "Outbound/Departing" AND "Return/Returning/Inbound" sections, multiple date blocks, and multiple flight-number rows. Each leg = one object in flights[].
+
+[0] tid:${t.id}
+Subject: ${t.subject}
+From: ${t.from}${t.forwardedSender ? `\nOriginal sender (from forwarded header): ${t.forwardedSender.name}${t.forwardedSender.email ? ` <${t.forwardedSender.email}>` : ""}` : ""}
+Date: ${t.date}
+Body: ${t.body}
+
+Return this exact JSON:
+{
+  "flights": [
+    {
+      "flightNo": "B6123",
+      "carrier": "JetBlue",
+      "from": "BOS", "fromCity": "Boston",
+      "to": "DUB", "toCity": "Dublin",
+      "depDate": "2026-05-02", "dep": "21:55",
+      "arrDate": "2026-05-03", "arr": "09:30",
+      "pax": ["Grace Offerdahl"],
+      "pnr": "CODGXZ", "confirmNo": null, "ticketNo": null,
+      "cost": null, "currency": "USD",
+      "tid": "${t.id}"
+    }
+  ]
+}`;
+  };
 
   const buildPrompt = (batch, offset) =>
     `Extract all flight segments from these email threads. Tour date range: ${tourStart} to ${tourEnd}.
@@ -809,6 +778,28 @@ Return this exact JSON:
     });
   };
 
+  // Single-thread parse+verify for pre-screened multi-leg confirmations.
+  // Reuses verifySys and buildVerifyPrompt; source tagged "claude_multileg".
+  const parseAndVerifyMultiLeg = async (t) => {
+    const parsed = await callClaude(buildMultiLegPrompt(t));
+    const flights = Array.isArray(parsed?.flights) ? parsed.flights : [];
+    if (!flights.length) return [];
+    let verifyResult;
+    try {
+      verifyResult = await callClaude(buildVerifyPrompt([t], flights), verifySys, 2048, "claude-haiku-4-5-20251001");
+    } catch (e) {
+      console.warn("[flights] multi-leg verify error:", e.message);
+      return flights.map(f => ({ ...f, parseVerified: null }));
+    }
+    const byTid = {};
+    (verifyResult?.results || []).forEach(r => { byTid[r.tid] = r; });
+    return flights.map(f => {
+      const v = byTid[f.tid];
+      if (!v) return { ...f, parseVerified: null };
+      return { ...f, ...v.corrections, parseVerified: v.ok, parseNote: v.note || null };
+    });
+  };
+
   let claudeFlights = [];
   if (threadBatches.length) {
     try {
@@ -825,18 +816,25 @@ Return this exact JSON:
     }
   }
 
-  // ── Missed-leg retry ──────────────────────────────────────────────────────
-  // Claude batches sometimes drop legs on multi-leg confirmations (JetBlue
-  // "CODGXZ"-type round-trips, connections packed into one email). For each
-  // text-only Claude thread, compare expectedLegCount(body) against how many
-  // flights came back tagged with that tid. If short, re-parse that thread
-  // ALONE with an explicit leg-count hint. Single-thread isolation removes
-  // attention pressure from sibling threads; explicit hint makes the gap
-  // unambiguous. Adds at most N extra calls where N = threads Claude
-  // under-counted — typically 0-2 per scan.
+  if (multiLegTextThreads.length) {
+    console.log(`[flights] multi-leg isolated parse: ${multiLegTextThreads.length} threads`);
+    const results = await Promise.allSettled(multiLegTextThreads.map(parseAndVerifyMultiLeg));
+    for (let i = 0; i < results.length; i++) {
+      if (results[i].status === "fulfilled") {
+        claudeFlights.push(...results[i].value.map(f => ({ ...f, source: "claude_multileg" })));
+      } else {
+        runErrors.push({ kind: "anthropic_error", phase: "multi_leg_parse", tid: multiLegTextThreads[i].id, detail: String(results[i].reason?.message || "").slice(0, 300) });
+      }
+    }
+  }
+
+  // ── Missed-leg retry ─────────────────────────────────────────────────────
+  // Safety net for simpleTextThreads where expectedLegCount returned < 2 but
+  // Claude actually found a multi-leg email. multiLegTextThreads already got
+  // isolated parsing above and should not need this.
   const byTidCount = {};
   for (const f of claudeFlights) byTidCount[f.tid] = (byTidCount[f.tid] || 0) + 1;
-  const missedThreads = textOnlyThreads.filter(t => {
+  const missedThreads = simpleTextThreads.filter(t => {
     const got = byTidCount[t.id] || 0;
     const expected = expectedLegCount(t.body);
     return expected >= 2 && got < expected;

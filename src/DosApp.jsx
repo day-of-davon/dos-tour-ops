@@ -1320,7 +1320,12 @@ function FlightsSection(){
   const[confirmingId,setConfirmingId]=useState(null);
 
   const allFlights=useMemo(()=>Object.values(flights).sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0),[flights]);
-  const confirmed=allFlights.filter(f=>f.status==="confirmed");
+  const confirmedRaw=allFlights.filter(f=>f.status==="confirmed");
+  const confirmedByKey=new Map();confirmedRaw.forEach(f=>{const k=flightDedupKey(f);const cur=confirmedByKey.get(k);if(!cur||(f.confirmedAt||"")>(cur.confirmedAt||""))confirmedByKey.set(k,f);});
+  const confirmed=[...confirmedByKey.values()].sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0);
+  const keepConfirmedIds=new Set(confirmed.map(f=>f.id));
+  const keepConfirmedKey=[...keepConfirmedIds].sort().join(",");
+  useEffect(()=>{const dupes=confirmedRaw.filter(f=>!keepConfirmedIds.has(f.id));if(dupes.length)dupes.forEach(f=>uFlight(f.id,null));},[keepConfirmedKey]);// eslint-disable-line
   const confirmedKeys=new Set(confirmed.map(flightDedupKey));
   const pendingRaw=allFlights.filter(f=>f.status==="pending"&&!confirmedKeys.has(flightDedupKey(f)));
   const pendingByKey=new Map();pendingRaw.forEach(f=>{if(!pendingByKey.has(flightDedupKey(f)))pendingByKey.set(flightDedupKey(f),f);});
@@ -1358,7 +1363,8 @@ function FlightsSection(){
           const merged=enrichFlight(match,f);
           if(JSON.stringify(merged)!==JSON.stringify(match)){working[match.id]=merged;enriched.push(merged);}
         }else{
-          const rec={...f,status:"pending",suggestedCrewIds:matchPaxToCrew(f.pax,crew)};
+          const paxMap=new Map();(f.pax||[]).forEach(p=>{const k=String(p).toLowerCase();if(!paxMap.has(k))paxMap.set(k,p);});
+          const rec={...f,pax:[...paxMap.values()],status:"pending",suggestedCrewIds:matchPaxToCrew(f.pax,crew)};
           working[f.id]=rec;novel.push(rec);
         }
       });
@@ -3797,7 +3803,7 @@ function TravelDayView(){
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
                   {s._role==="arr"&&<span style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--success-bg)",color:"var(--success-fg)",fontWeight:800,letterSpacing:"0.06em"}}>ARR</span>}
-                  {s.fresh48h&&<span style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:800,letterSpacing:"0.06em"}}>NEW</span>}
+                  {s.fresh48h&&s.status!=="confirmed"&&<span style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:800,letterSpacing:"0.06em"}}>NEW</span>}
                   <button onClick={e=>{e.stopPropagation();if(confirm(`Delete this ${m.label.toLowerCase()}?`)){const prev={...s};uFlight(s.id,{...s,status:"dismissed"});pushUndo(`${m.label} deleted.`,()=>uFlight(s.id,prev));if(activeId===s.id)setActiveId(null);}}} title="Delete segment" style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:13,lineHeight:1,padding:"0 4px"}}>×</button>
                 </div>
               </div>
@@ -4253,25 +4259,23 @@ function FinTab(){
   const{shows,cShows,finance,uFin,pushUndo,labelIntel,sel}=useContext(Ctx);
   const today=new Date().toISOString().slice(0,10);
   const[finView,setFinView]=useState("settlement");
-  const[selS,setSelS]=useState(null);
   const[addP,setAddP]=useState(false);
   const[pForm,setPForm]=useState({name:"",role:"",dept:"Drivers",amount:"",currency:"USD",method:"Wire",status:"pending"});
-  const allS=[...cShows.filter(s=>s.date<today).slice(-3).reverse(),...cShows.filter(s=>s.date>=today)].slice(0,22);
-  const show=selS?shows[selS]:null;
-  const fin=selS?finance[selS]||{}:{};
+  const show=sel?shows[sel]:null;
+  const fin=sel?finance[sel]||{}:{};
   const stages=fin.stages||{};
   const payouts=fin.payouts||[];
   const toggleStage=id=>{
     const prev=!!stages[id];const next=!prev;
-    uFin(selS,{stages:{...stages,[id]:next}});
-    logAudit({entityType:"finance",entityId:`${selS}:${id}`,action:"stage_toggle",
+    uFin(sel,{stages:{...stages,[id]:next}});
+    logAudit({entityType:"finance",entityId:`${sel}:${id}`,action:"stage_toggle",
       before:{done:prev},after:{done:next},meta:{stage:id}});
   };
   const done=["wire_ref_confirmed","signed_sheet","payment_initiated"].every(id=>stages[id]);
-  const addPayout=()=>{if(!selS||!pForm.name||!pForm.amount)return;uFin(selS,{payouts:[...payouts,{...pForm,id:`p${Date.now()}`,date:today}]});setPForm({name:"",role:"",dept:"Drivers",amount:"",currency:"USD",method:"Wire",status:"pending"});setAddP(false);};
+  const addPayout=()=>{if(!sel||!pForm.name||!pForm.amount)return;uFin(sel,{payouts:[...payouts,{...pForm,id:`p${Date.now()}`,date:today}]});setPForm({name:"",role:"",dept:"Drivers",amount:"",currency:"USD",method:"Wire",status:"pending"});setAddP(false);};
   const currencies=[...new Set(payouts.map(p=>p.currency))];
   const batchTotal=cur=>payouts.filter(p=>p.currency===cur).reduce((s,p)=>s+parseFloat(p.amount||0),0).toFixed(2);
-  const curStatus=!selS?"":done?"settled":stages["payment_initiated"]?"in_progress":"pending";
+  const curStatus=!sel?"":done?"settled":stages["payment_initiated"]?"in_progress":"pending";
 
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
