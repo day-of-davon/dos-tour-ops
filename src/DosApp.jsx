@@ -5,7 +5,7 @@ import { supabase } from "./lib/supabase";
 // DOS TOUR OPS v7.0 — Day of Show, LLC
 // Client-first · All dept advance lanes · Custom + editable items · Full settlement
 
-const SK={SHOWS:"dos-v7-shows",ROS:"dos-v7-ros",ADVANCES:"dos-v7-advances",FINANCE:"dos-v7-finance",SETTINGS:"dos-v7-settings",CREW:"dos-v7-crew",PRODUCTION:"dos-v7-production",FLIGHTS:"dos-v7-flights",LODGING:"dos-v7-lodging",GUESTLISTS:"dos-v7-guestlists"};
+const SK={SHOWS:"dos-v7-shows",ROS:"dos-v7-ros",ADVANCES:"dos-v7-advances",FINANCE:"dos-v7-finance",SETTINGS:"dos-v7-settings",CREW:"dos-v7-crew",PRODUCTION:"dos-v7-production",FLIGHTS:"dos-v7-flights",LODGING:"dos-v7-lodging",GUESTLISTS:"dos-v7-guestlists",GL_TEMPLATES:"dos-v7-guestlist-templates"};
 const hhmmToMin=s=>{if(!s)return null;const[h,m]=s.split(":").map(Number);return isNaN(h)||isNaN(m)?null:h*60+m;};
 // Group same-day flight legs by itinerary (confirmNo / bookingRef / pax signature) and tag
 // each with role: final leg of a multi-leg chain = "arr", all prior legs = "dep". Single-leg
@@ -378,6 +378,28 @@ const GL_DEFAULT_SHOW=()=>({
   notes:"",
 });
 const glNewId=p=>`${p}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
+const GL_BUILTIN_TEMPLATE_ID="__tour_default";
+const glBuiltinTemplate=()=>({id:GL_BUILTIN_TEMPLATE_ID,name:"Tour Default",builtin:true,categories:GL_DEFAULT_CATEGORIES.map(c=>({...c})),walkOnCap:10,notes:""});
+const glInitFromTemplate=tpl=>({categories:(tpl?.categories||GL_DEFAULT_CATEGORIES).map(c=>({...c})),parties:{},cutoffAt:"",status:"draft",walkOnCap:tpl?.walkOnCap??10,notes:tpl?.notes||"",templateId:tpl?.id||null});
+const glBuildTemplate=(name,show)=>({id:glNewId("tpl"),name:name.trim(),builtin:false,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),categories:(show.categories||[]).map(c=>({...c})),walkOnCap:show.walkOnCap??10,notes:show.notes||""});
+const glApplyTemplate=(show,tpl)=>{
+  // Remap parties' categoryIds: prefer same id, else first category of matching side, else first category.
+  const next={...show,categories:(tpl.categories||[]).map(c=>({...c})),walkOnCap:tpl.walkOnCap??show.walkOnCap,notes:tpl.notes||show.notes,templateId:tpl.id};
+  const nextIds=new Set(next.categories.map(c=>c.id));
+  if(show.parties&&Object.keys(show.parties).length){
+    const mapped={};
+    Object.entries(show.parties).forEach(([pid,p])=>{
+      let cid=p.categoryId;
+      if(!nextIds.has(cid)){
+        const sideMatch=next.categories.find(c=>c.side===p.side);
+        cid=sideMatch?.id||next.categories[0]?.id||cid;
+      }
+      mapped[pid]={...p,categoryId:cid};
+    });
+    next.parties=mapped;
+  }
+  return next;
+};
 const DEFAULT_CREW=[
   {id:"ag", name:"Alex Gumuchian",        role:"Headliner (bbno$)",          email:"alexgumuchian@gmail.com"},
   {id:"jb", name:"Julien Bruce",           role:"Support (Jungle Bobby)",     email:""},
@@ -729,6 +751,7 @@ export default function App(){
   const[flights,setFlights]=useState({});
   const[lodging,setLodging]=useState({});
   const[guestlists,setGuestlists]=useState({});
+  const[glTemplates,setGlTemplates]=useState({});
   const[refreshMsg,setRefreshMsg]=useState("");
   const[selEventId,setSelEventId]=useState(null);
   // Reset sub-event selection whenever the selected day changes
@@ -746,7 +769,7 @@ export default function App(){
   const st=useRef(null);const stp=useRef(null);
 
   useEffect(()=>{(async()=>{
-    const[s,r,a,f,se,cr,pr,fl,lo,gl]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW),sG(SK.PRODUCTION),sG(SK.FLIGHTS),sG(SK.LODGING),sG(SK.GUESTLISTS)]);
+    const[s,r,a,f,se,cr,pr,fl,lo,gl,glt]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW),sG(SK.PRODUCTION),sG(SK.FLIGHTS),sG(SK.LODGING),sG(SK.GUESTLISTS),sG(SK.GL_TEMPLATES)]);
     const init=ALL_SHOWS.reduce((acc,sh)=>{acc[sh.date]={...sh,doorsConfirmed:false,curfewConfirmed:false,busArriveConfirmed:false,crewCallConfirmed:false,venueAccessConfirmed:false,mgTimeConfirmed:false,etaSource:"schedule",lastModified:Date.now()};return acc;},{});
     const merged={...init};if(s)Object.keys(s).forEach(k=>{if(merged[k])merged[k]={...merged[k],...s[k]};});
     setShows(merged);setRos(r||{});setAdvances(a||{});setFinance(f||{});
@@ -756,7 +779,7 @@ export default function App(){
     if(se?.sidebarOpen!==undefined)setSidebarOpen(se.sidebarOpen);
     if(se?.tourStart)setTourStart(se.tourStart);if(se?.tourEnd)setTourEnd(se.tourEnd);
     if(cr?.crew)setCrew(cr.crew);if(cr?.showCrew)setShowCrew(cr.showCrew);
-    setProduction(pr||{});setFlights(fl||{});setLodging(lo||{});setGuestlists(gl||{});
+    setProduction(pr||{});setFlights(fl||{});setLodging(lo||{});setGuestlists(gl||{});setGlTemplates(glt||{});
     const[np,cp,it]=await Promise.all([sGP(PK.NOTES_PRIV),sGP(PK.CHECKLIST_PRIV),sGP(PK.INTEL)]);
     setNotesPriv(np||{});setCheckPriv(cp||{});setIntel(it||{});
     setLoaded(true);
@@ -842,9 +865,9 @@ export default function App(){
 
   const save=useCallback(()=>{
     if(!loaded)return;if(st.current)clearTimeout(st.current);
-    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging),sS(SK.GUESTLISTS,guestlists)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
-  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,flights,lodging,guestlists,showOffDays,sidebarOpen,tourStart,tourEnd]);
-  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,guestlists,showOffDays,sidebarOpen,tourStart,tourEnd]);
+    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging),sS(SK.GUESTLISTS,guestlists),sS(SK.GL_TEMPLATES,glTemplates)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
+  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,flights,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,tourStart,tourEnd]);
+  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,tourStart,tourEnd]);
   useEffect(()=>{const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(v=>!v);}if(e.key==="Escape")setCmd(false);};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
   const labelScanFired=useRef(false);
   useEffect(()=>{if(loaded&&!labelScanFired.current){labelScanFired.current=true;refreshLabelIntel();}},[loaded]);// eslint-disable-line
@@ -944,7 +967,7 @@ export default function App(){
     setTabOrder(next);
   },[orderedTabs]);
 
-  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd}),[shows,ros,advances,finance,sel,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel]);// eslint-disable-line
+  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd}),[shows,ros,advances,finance,sel,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"#0a0a0f",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#e4e4ef",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"#a0a0b8",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
@@ -5925,7 +5948,11 @@ function ProdTab(){
 }
 
 function GuestListTab(){
-  const{guestlists,uGuestlist,sel,setSel,sorted,shows,mobile,crew}=useContext(Ctx);
+  const{guestlists,uGuestlist,glTemplates,setGlTemplates,sel,setSel,sorted,shows,mobile,crew}=useContext(Ctx);
+  const allTemplates=useMemo(()=>[glBuiltinTemplate(),...Object.values(glTemplates||{}).sort((a,b)=>(a.name||"").localeCompare(b.name||""))],[glTemplates]);
+  const[configTplId,setConfigTplId]=useState(GL_BUILTIN_TEMPLATE_ID);
+  const[tplMenu,setTplMenu]=useState(false);
+  const[tplSaveName,setTplSaveName]=useState("");
   const showDates=useMemo(()=>(sorted||[]).filter(s=>s.type!=="off"&&s.type!=="travel"&&s.type!=="split").map(s=>s.date),[sorted]);
   const date=sel&&shows?.[sel]?sel:(showDates[0]||sel);
   const show=shows?.[date];
@@ -5960,7 +5987,30 @@ function GuestListTab(){
     return{allot,used,checkedIn};
   },[gl.categories,categoryUsage]);
 
-  function initShow(){uGuestlist(date,GL_DEFAULT_SHOW());}
+  function initShow(){
+    const tpl=allTemplates.find(t=>t.id===configTplId)||glBuiltinTemplate();
+    uGuestlist(date,glInitFromTemplate(tpl));
+  }
+  function saveAsTemplate(){
+    const name=(tplSaveName||`${show?.venue||"Show"} ${date}`).trim();
+    if(!name)return;
+    const tpl=glBuildTemplate(name,gl);
+    setGlTemplates(p=>({...p,[tpl.id]:tpl}));
+    uGuestlist(date,{templateId:tpl.id});
+    setTplSaveName("");setTplMenu(false);
+  }
+  function applyTemplate(tplId){
+    const tpl=allTemplates.find(t=>t.id===tplId);
+    if(!tpl)return;
+    if(partyList.length&&!confirm(`Apply template "${tpl.name}"? Existing categories will be replaced. Parties will be re-mapped.`))return;
+    uGuestlist(date,cur=>glApplyTemplate(cur||glInitFromTemplate(tpl),tpl));
+    setTplMenu(false);
+  }
+  function deleteTemplate(tplId){
+    const tpl=glTemplates[tplId];
+    if(!tpl||!confirm(`Delete template "${tpl.name}"?`))return;
+    setGlTemplates(p=>{const n={...p};delete n[tplId];return n;});
+  }
   function updateCat(cid,patch){uGuestlist(date,cur=>({...cur,categories:cur.categories.map(c=>c.id===cid?{...c,...patch}:c)}));}
   function addCategory(){const nc={id:glNewId("cat"),name:"New Category",side:"artist",zones:["FOH"],qty:2,walkOnQty:0};uGuestlist(date,cur=>({...cur,categories:[...cur.categories,nc]}));}
   function removeCategory(cid){uGuestlist(date,cur=>({...cur,categories:cur.categories.filter(c=>c.id!==cid)}));}
@@ -6018,14 +6068,53 @@ function GuestListTab(){
             <select value={gl.status} onChange={e=>setStatus(e.target.value)} style={{background:"#12121a",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"4px 6px",fontSize:10}}>
               {GL_STATUS.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
+            <button onClick={()=>setTplMenu(v=>!v)} style={{background:"transparent",color:"#b0b0c8",border:"1px solid #2a2a3a",borderRadius:6,padding:"6px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>Templates</button>
             <button onClick={exportDoorList} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Export Door List</button>
           </>}
-          {!glExists&&<button onClick={initShow} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Initialize Guest List</button>}
         </div>
       </div>
 
-      {!glExists&&<div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"20px 16px",color:"#b0b0c8",fontSize:11}}>
-        No guest list configured for this show. Initialize to load the tour template ({GL_DEFAULT_CATEGORIES.length} default categories).
+      {!glExists&&<div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"16px 16px",display:"flex",flexDirection:"column",gap:12}}>
+        <div>
+          <div style={{fontSize:12,fontWeight:800,color:"#e4e4ef",letterSpacing:"-0.01em"}}>Configure Guest List</div>
+          <div style={{fontSize:10,color:"#a0a0b8",marginTop:3}}>Pick a starting template. Categories and caps can be edited after init.</div>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"1fr auto",gap:8,alignItems:"end"}}>
+          <label style={{display:"flex",flexDirection:"column",gap:4}}>
+            <span style={{fontSize:9,color:"#a0a0b8",letterSpacing:"0.05em"}}>TEMPLATE</span>
+            <select value={configTplId} onChange={e=>setConfigTplId(e.target.value)} style={{background:"#0a0a0f",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:6,padding:"7px 9px",fontSize:11}}>
+              {allTemplates.map(t=><option key={t.id} value={t.id}>{t.name}{t.builtin?" · built-in":""} · {(t.categories||[]).length} cats</option>)}
+            </select>
+          </label>
+          <button onClick={initShow} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"8px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Initialize Show</button>
+        </div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:4,fontSize:9,color:"#707088",fontFamily:MN}}>
+          {(allTemplates.find(t=>t.id===configTplId)?.categories||[]).map(c=><span key={c.id} style={{background:"#0a0a0f",border:"1px solid #2a2a3a",borderRadius:4,padding:"2px 6px"}}>{c.name} · {c.qty}</span>)}
+        </div>
+      </div>}
+
+      {glExists&&tplMenu&&<div style={{background:"#12121a",border:"1px solid #5B21B6",borderRadius:10,padding:"12px 14px",display:"flex",flexDirection:"column",gap:10}}>
+        <div style={{fontSize:10,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em"}}>TEMPLATES</div>
+        <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"2fr 1fr",gap:8,alignItems:"end"}}>
+          <label style={{display:"flex",flexDirection:"column",gap:4}}>
+            <span style={{fontSize:9,color:"#a0a0b8",letterSpacing:"0.05em"}}>SAVE CURRENT CONFIG AS TEMPLATE</span>
+            <input value={tplSaveName} onChange={e=>setTplSaveName(e.target.value)} placeholder={`${show?.venue||"Show"} ${date}`} style={{background:"#0a0a0f",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"6px 8px",fontSize:11}}/>
+          </label>
+          <button onClick={saveAsTemplate} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:5,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Save as Template</button>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:4,maxHeight:200,overflowY:"auto"}}>
+          {allTemplates.map(t=>{
+            const active=gl.templateId===t.id;
+            return<div key={t.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:8,alignItems:"center",background:active?"#1f0f2a":"#0a0a0f",border:`1px solid ${active?"#5B21B6":"#2a2a3a"}`,borderRadius:5,padding:"6px 8px"}}>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:"#e4e4ef"}}>{t.name}{t.builtin&&<span style={{marginLeft:6,fontSize:8,color:"#a78bfa",fontFamily:MN}}>BUILT-IN</span>}{active&&<span style={{marginLeft:6,fontSize:8,color:"#34d399",fontFamily:MN}}>ACTIVE</span>}</div>
+                <div style={{fontSize:9,color:"#707088",fontFamily:MN,marginTop:1}}>{(t.categories||[]).length} categories · walk-on cap {t.walkOnCap??10}</div>
+              </div>
+              <button onClick={()=>applyTemplate(t.id)} style={{background:"transparent",color:"#a78bfa",border:"1px solid #5B21B6",borderRadius:4,padding:"4px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>Apply</button>
+              {!t.builtin?<button onClick={()=>deleteTemplate(t.id)} style={{background:"transparent",color:"#707088",border:"1px solid #2a2a3a",borderRadius:4,padding:"4px 8px",fontSize:10,cursor:"pointer"}}>Delete</button>:<span style={{width:38}}/>}
+            </div>;
+          })}
+        </div>
       </div>}
 
       {glExists&&<>
