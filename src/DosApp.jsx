@@ -3906,7 +3906,7 @@ function FlightsListView(){
 // Master Tour-style: chronological list on the left, editor drawer on the right. The currently-selected show
 // date (sel) drives what's displayed; header shows a prev/next stepper and jumps to the Travel Dates menu.
 function TravelDayView(){
-  const{flights,uFlight,sel,setSel,setDateMenu,shows,sorted,tourDaysSorted,crew,setShowCrew,showCrew,mobile,pushUndo}=useContext(Ctx);
+  const{flights,uFlight,sel,setSel,setDateMenu,shows,sorted,tourDaysSorted,crew,setShowCrew,showCrew,mobile,pushUndo,currentSplit,activeSplitParty,activeSplitPartyId}=useContext(Ctx);
   const[activeId,setActiveId]=useState(null);
   const[addType,setAddType]=useState(null);
   const[travelNotes,setTravelNotes]=useState("");
@@ -3915,11 +3915,33 @@ function TravelDayView(){
   const title=curShow?.venue||curShow?.city||(curDay?.type==="travel"?"Travel Day":curDay?.type==="split"?"Split Day":curDay?.type==="off"?"Off Day":"—");
   const subTitle=curShow?curShow.city:(curDay?.city||"");
 
+  // Build a pax-name matcher for the active split party (if any). Segments are
+  // filtered to ones whose pax overlaps the active party's crew. Segments tagged
+  // with partyId override the pax check. Untagged, no-pax segments show on all
+  // parties (shared ground transport, etc.).
+  const partyMatch=useMemo(()=>{
+    if(!currentSplit||!activeSplitParty)return null;
+    const names=(activeSplitParty.crew||[]).map(id=>{
+      const c=(crew||[]).find(x=>x.id===id);
+      return (c?.name||id).toLowerCase();
+    });
+    return {names,partyId:activeSplitPartyId};
+  },[currentSplit,activeSplitParty,activeSplitPartyId,crew]);
+
   // All non-dismissed segments touching sel (depDate === sel OR arrDate === sel).
   const daySegs=useMemo(()=>{
+    const segMatches=s=>{
+      if(!partyMatch)return true;
+      if(s.partyId)return s.partyId===partyMatch.partyId;
+      const pax=(s.pax||[]).filter(Boolean);
+      if(!pax.length)return true;
+      const lo=pax.map(n=>String(n).toLowerCase());
+      return partyMatch.names.some(n=>lo.some(p=>p.includes(n)||n.includes(p.split(" ")[0])));
+    };
     return Object.values(flights||{})
       .filter(s=>s&&s.status!=="dismissed")
       .filter(s=>s.depDate===sel||s.arrDate===sel)
+      .filter(segMatches)
       .map(s=>{
         const isDep=s.depDate===sel;
         const isArrOnly=s.arrDate===sel&&s.arrDate!==s.depDate;
@@ -3927,7 +3949,7 @@ function TravelDayView(){
         return{...s,_role:isArrOnly?"arr":"dep",_sort:sortMin};
       })
       .sort((a,b)=>a._sort-b._sort);
-  },[flights,sel]);
+  },[flights,sel,partyMatch]);
 
   const active=daySegs.find(s=>s.id===activeId)||null;
 
@@ -3935,7 +3957,8 @@ function TravelDayView(){
   const handleAdd=(type)=>{
     const id=`${type==="air"?"fl":"seg"}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
     const base={id,type,status:"confirmed",depDate:sel,arrDate:sel,dep:"",arr:"",from:"",to:"",fromCity:"",toCity:"",pax:[]};
-    const seed=type==="ground"?{...base,mode:"uber"}:type==="hotel"?{...base,hotelName:"",arr:"15:00",dep:"11:00"}:base;
+    const withParty=currentSplit&&activeSplitPartyId?{...base,partyId:activeSplitPartyId}:base;
+    const seed=type==="ground"?{...withParty,mode:"uber"}:type==="hotel"?{...withParty,hotelName:"",arr:"15:00",dep:"11:00"}:withParty;
     uFlight(id,seed);
     setActiveId(id);setAddType(null);
   };
