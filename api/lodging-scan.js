@@ -1,6 +1,6 @@
 // api/lodging-scan.js — Gmail hotel confirmation scraper + Claude parser
 const { createClient } = require("@supabase/supabase-js");
-const { gmailSearch, gmailGetThread, fetchBatched, extractBody, extractJson } = require("./lib/gmail");
+const { gmailSearch, fetchBatched, extractBody, extractJson } = require("./lib/gmail");
 const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
 
 function extractHeaders(thread) {
@@ -11,7 +11,7 @@ function extractHeaders(thread) {
     .map(m => extractBody(m.payload))
     .filter(Boolean)
     .join("\n---\n")
-    .slice(0, 2000);
+    .slice(0, 1400);
   return { id: thread.id, subject: get("Subject"), from: get("From"), date: get("Date"), body };
 }
 
@@ -182,7 +182,7 @@ ${threads.map((t, i) => `[${i}] tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}
 Date: ${t.date}
-Body: ${t.body.slice(0, 1400)}`).join("\n\n---\n\n")}
+Body: ${t.body}`).join("\n\n---\n\n")}
 
 Return this exact JSON:
 {

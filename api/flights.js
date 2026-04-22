@@ -325,7 +325,8 @@ module.exports = async function handler(req, res) {
 
   try {
     await runParallel(high);
-    if (seen.size < CAP) await runParallel(low);
+    // Skip low-priority sweep if high already saturated the cap — low adds 60+ queries of noise.
+    if (seen.size < CAP * 0.8) await runParallel(low);
   } catch (e) {
     if (e.status === 402) return res.status(402).json({ error: "gmail_token_expired" });
     return res.status(500).json({ error: e.message });
