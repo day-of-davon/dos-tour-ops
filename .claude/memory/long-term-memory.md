@@ -44,6 +44,18 @@
 
 - [2026-04-21 05:30 UTC] https://techcrunch.com/2025/10/03/supabase-nabs-5b-valuation-four-months-after-hitting-2b/ — Supabase reached $5B valuation Oct 2025 (up from $2B in Jun 2025); infrastructure dependency risk low; Supabase is well-capitalized and scaling; confirms safe bet for both v7 and dos-platform long-term.
 
+- [2026-04-21 06:00 UTC] https://nextjs.org/docs/app/guides/upgrading/version-16 — Next.js 16 upgrade guide is live; current stable is 15.2.4 (March 2026); v16 appears in RC — platform spec targets Next.js 15, but Dane's Jun/Jul build window may coincide with a major version decision; monitor before scaffolding dos-platform.
+
+- [2026-04-21 06:00 UTC] https://github.com/supabase/supabase/releases/tag/v1.26.04 — Supabase Studio April 2026: "Fix with Assistant" buttons live throughout dashboard with Claude/ChatGPT dropdown for SQL error resolution — directly speeds up Phase 0 schema work with Josh; no tooling change needed.
+
+- [2026-04-21 06:00 UTC] https://github.com/supabase/supabase/releases/tag/v1.26.04 — Supabase is co-design partner in Stripe Projects CLI (provisions and connects Supabase + Vercel + Clerk, auto-syncs credentials to .env from terminal) — distinct from the Stripe Sync Engine already logged; reduces Phase 8 Stripe Connect setup friction.
+
+- [2026-04-21 06:00 UTC] https://github.com/supabase/supabase/releases/tag/v1.26.04 — Supabase secret keys now have GitHub Push Protection blocking accidental commits before they land — ops security improvement; relevant for both day-of-davon/dos-tour-ops and future dos-platform repo.
+
+- [2026-04-21 06:00 UTC] https://support.eventric.com/hc/en-us/articles/46286508608532-Master-Tour-Mobile-7-1-10-Beta-2026-02-20 — Master Tour Ticketing allocates comps, sends guest emails, exports guest lists, and feeds data back into nightly settlements; CLAUDE.md competitive entry understates this — Master Tour now has settlement integration via ticketing, partially closing the competitive gap with DOS's Finance tab.
+
+- [2026-04-21 06:00 UTC] https://www.eventric.com/ — Master Tour now supports offline tour editing with automatic sync on reconnect — DOS v7 (Supabase-backed, always-online) has no offline mode; EU tour reliability risk if connectivity drops on show day.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
