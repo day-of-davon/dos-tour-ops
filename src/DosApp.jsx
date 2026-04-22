@@ -2195,22 +2195,40 @@ function DateDrawer({onClose}){
 }
 
 function Dash(){
-  const{sorted,cShows,next,setTab,setSel,advances,aC,mobile}=useContext(Ctx);
+  const{sorted,cShows,next,setTab,setSel,advances,aC,mobile,intel,labelIntel}=useContext(Ctx);
   const client=CM[aC];const today=new Date().toISOString().slice(0,10);
   const upcoming=cShows.filter(s=>s.date>=today).slice(0,10);
-
+  const PORD={CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3};
+  const BORD={urgent:0,input:1,standing_by:2,fresh:3,active:4};
+  const priC=p=>p==="CRITICAL"?"var(--danger-fg)":p==="HIGH"?"var(--warn-fg)":p==="MEDIUM"?"var(--link)":"var(--text-mute)";
+  const priB=p=>p==="CRITICAL"?"var(--danger-bg)":p==="HIGH"?"var(--warn-bg)":p==="MEDIUM"?"var(--info-bg)":"var(--card-2)";
+  const bucketC=b=>b==="urgent"?"var(--danger-fg)":b==="input"?"var(--warn-fg)":b==="standing_by"?"var(--link)":b==="fresh"?"var(--success-fg)":"var(--text-mute)";
+  const bucketB=b=>b==="urgent"?"var(--danger-bg)":b==="input"?"var(--warn-bg)":b==="standing_by"?"var(--info-bg)":b==="fresh"?"var(--success-bg)":"var(--card-2)";
   const flags=useMemo(()=>{const f=[];sorted.forEach(s=>{if(s.notes?.includes("⚠ Immigration")&&dU(s.date)<45)f.push({type:"CRITICAL",msg:`Immigration outstanding — ${s.city} ${fD(s.date)}`,cId:s.clientId});if(s.notes?.includes("settlement slow")&&dU(s.date)<90)f.push({type:"HIGH",msg:`Settlement risk — ${s.venue}`,cId:s.clientId});});return f;},[sorted]);
-
   const pendingCount=d=>{const adv=advances[d]||{};const items=adv.items||{};const custom=adv.customItems||[];return [...AT,...custom].filter(t=>(items[t.id]?.status||"pending")==="pending").length;};
+  const showMap=useMemo(()=>{const m={};cShows.forEach(s=>m[showIdFor(s)]=s);return m;},[cShows]);
+  const arShowLabel=item=>{const s=showMap[item.showId];return s?`${s.city} ${fD(s.date)}`:"";}
+  const allTodos=useMemo(()=>cShows.flatMap(s=>{const sid=showIdFor(s);return(intel[sid]?.todos||[]).filter(t=>!t.done).map(t=>({...t,show:s}));}).sort((a,b)=>{const d=(PORD[a.priority]??4)-(PORD[b.priority]??4);return d!==0?d:a.show.date.localeCompare(b.show.date);}),[cShows,intel]);
+  const allFollowUps=useMemo(()=>cShows.flatMap(s=>{const sid=showIdFor(s);return(intel[sid]?.followUps||[]).map(f=>({...f,show:s}));}).sort((a,b)=>(PORD[a.priority]??4)-(PORD[b.priority]??4)),[cShows,intel]);
+  const arItems=useMemo(()=>(labelIntel?.actionRequired||[]).sort((a,b)=>{const d=(BORD[a.bucket]??5)-(BORD[b.bucket]??5);return d!==0?d:new Date(b.date)-new Date(a.date);}),[labelIntel]);
+  const urgentItems=useMemo(()=>arItems.filter(i=>i.bucket==="urgent"||i.category==="LEGAL"),[arItems]);
+  const logisticsItems=useMemo(()=>(labelIntel?.advanceItems||[]).filter(i=>i.category==="LOGISTICS"||i.category==="ADVANCE").slice(0,20),[labelIntel]);
 
   return(
-    <div className="fi" style={{padding:mobile?"10px 10px 24px":"14px 20px 30px",maxWidth:900}}>
+    <div className="fi" style={{padding:mobile?"10px 10px 24px":"14px 20px 30px",maxWidth:960}}>
       {flags.slice(0,3).map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",background:f.type==="CRITICAL"?"var(--danger-bg)":"var(--warn-bg)",borderRadius:10,marginBottom:4,borderLeft:`3px solid ${f.type==="CRITICAL"?"var(--danger-fg)":"var(--warn-fg)"}`}}><span style={{fontSize:9,fontWeight:800,color:f.type==="CRITICAL"?"var(--danger-fg)":"var(--warn-fg)",fontFamily:MN}}>{f.type}</span><span style={{fontSize:11,color:"var(--text)",fontWeight:600}}>{f.msg}</span><span style={{fontSize:8,color:"var(--text-dim)",fontFamily:MN,marginLeft:"auto"}}>{CM[f.cId]?.short}</span></div>)}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:10,margin:"10px 0 14px"}}>
-        {[{l:"Next Show",v:next?.city||"--",s:next?`${dU(next.date)}d`:"",c:client.color},{l:`${client.name} Shows`,v:cShows.length,s:"total",c:"var(--text)"},{l:"Open Advances",v:upcoming.filter(s=>pendingCount(s.date)>0).length,s:"pending",c:"var(--warn-fg)"}].map((s,i)=><div key={i} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2,fontWeight:600}}>{s.l}</div><div style={{fontSize:20,fontWeight:800,color:s.c,fontFamily:MN}}>{s.v}</div><div style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN,marginTop:1}}>{s.s}</div></div>)}
+        {[{l:"Next Show",v:next?.city||"--",s:next?`${dU(next.date)}d`:"",c:client.color},{l:`${client.name} Shows`,v:cShows.length,s:"total",c:"var(--text)"},{l:"Open Advances",v:upcoming.filter(s=>pendingCount(s.date)>0).length,s:"pending",c:"var(--warn-fg)"},{l:"Open To-Dos",v:allTodos.length,s:"private",c:allTodos.length>0?"var(--warn-fg)":"var(--text-mute)"},{l:"Follow-Ups",v:allFollowUps.length,s:"across shows",c:allFollowUps.length>0?"var(--link)":"var(--text-mute)"}].map((s,i)=><div key={i} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2,fontWeight:600}}>{s.l}</div><div style={{fontSize:20,fontWeight:800,color:s.c,fontFamily:MN}}>{s.v}</div><div style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN,marginTop:1}}>{s.s}</div></div>)}
       </div>
+      {urgentItems.length>0&&<div style={{marginBottom:10,display:"flex",flexDirection:"column",gap:3}}>
+        {urgentItems.slice(0,4).map(i=><div key={i.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"7px 12px",background:"var(--danger-bg)",borderRadius:10,borderLeft:"3px solid var(--danger-fg)"}}>
+          <span style={{fontSize:9,fontWeight:800,color:"var(--danger-fg)",fontFamily:MN,flexShrink:0,marginTop:1}}>{i.category}</span>
+          <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,fontWeight:600,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{i.from}{arShowLabel(i)?` · ${arShowLabel(i)}`:""}</div></div>
+          <span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:bucketB(i.bucket),color:bucketC(i.bucket),fontWeight:700,flexShrink:0}}>{i.bucket}</span>
+        </div>)}
+      </div>}
       <div style={{fontSize:9,fontWeight:800,color:client.color,letterSpacing:"0.1em",marginBottom:5}}>{client.name.toUpperCase()} — UPCOMING</div>
-      <div style={{display:"flex",flexDirection:"column",gap:3}}>
+      <div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:12}}>
         {upcoming.map(show=>{const days=dU(show.date),uc=days<=7?"var(--danger-fg)":days<=14?"var(--warn-fg)":days<=21?"var(--link)":"var(--text-mute)";const pc=pendingCount(show.date);
           return(<div key={show.date} onClick={()=>{setSel(show.date);setTab("ros");}} className="br rh" style={{display:"grid",gridTemplateColumns:"34px 58px 1fr auto 54px 30px",alignItems:"center",gap:6,padding:"9px 12px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,cursor:"pointer",borderLeft:`3px solid ${uc}`}}>
             <div style={{fontFamily:MN,fontSize:9,color:"var(--text-dim)"}}>{fW(show.date)}</div>
@@ -2222,7 +2240,45 @@ function Dash(){
           </div>);
         })}
       </div>
-      <button onClick={()=>setTab("advance")} style={{marginTop:10,background:client.color,border:"none",borderRadius:6,color:"#fff",fontSize:11,padding:"8px 16px",cursor:"pointer",fontWeight:700}}>Open Advance Tracker →</button>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {allTodos.length>0&&<IntelSection title="TO-DOs (PRIVATE)" count={allTodos.length} defaultOpen={true}>
+          <div style={{display:"flex",flexDirection:"column",gap:2}}>
+            {allTodos.map(t=><div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
+              <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:priB(t.priority),color:priC(t.priority),fontWeight:700,flexShrink:0,marginTop:1}}>{t.priority||"LOW"}</span>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",lineHeight:1.4}}>{t.text}</div>{(t.owner||t.deadline)&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{t.owner}{t.deadline?` · due ${t.deadline}`:""}</div>}</div>
+              <div style={{fontSize:9,color:"var(--link)",fontFamily:MN,flexShrink:0,cursor:"pointer",textDecoration:"underline"}} onClick={()=>{setSel(t.show.date);setTab("advance");}}>{t.show.city} {fD(t.show.date)}</div>
+            </div>)}
+          </div>
+        </IntelSection>}
+        {allFollowUps.length>0&&<IntelSection title="FOLLOW-UPS" count={allFollowUps.length} defaultOpen={allTodos.length===0}>
+          <div style={{display:"flex",flexDirection:"column",gap:2}}>
+            {allFollowUps.map((f,i)=><div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
+              <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:priB(f.priority),color:priC(f.priority),fontWeight:700,flexShrink:0,marginTop:1}}>{f.priority||"LOW"}</span>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",lineHeight:1.4}}>{f.action}</div>{(f.owner||f.deadline)&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{f.owner}{f.deadline?` · due ${f.deadline}`:""}</div>}</div>
+              <div style={{fontSize:9,color:"var(--link)",fontFamily:MN,flexShrink:0,cursor:"pointer",textDecoration:"underline"}} onClick={()=>{setSel(f.show.date);setTab("advance");}}>{f.show.city} {fD(f.show.date)}</div>
+            </div>)}
+          </div>
+        </IntelSection>}
+        {arItems.length>0&&<IntelSection title="ACTION REQUIRED" count={arItems.length} defaultOpen={false}>
+          <div style={{display:"flex",flexDirection:"column",gap:2}}>
+            {arItems.slice(0,25).map(i=><div key={i.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
+              <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:bucketB(i.bucket),color:bucketC(i.bucket),fontWeight:700,flexShrink:0,marginTop:1}}>{i.bucket}</span>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{i.from}{arShowLabel(i)?` · ${arShowLabel(i)}`:""}</div></div>
+              <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN,flexShrink:0,paddingTop:2}}>{i.category}</span>
+            </div>)}
+          </div>
+        </IntelSection>}
+        {logisticsItems.length>0&&<IntelSection title="UPCOMING LOGISTICS" count={logisticsItems.length} defaultOpen={false}>
+          <div style={{display:"flex",flexDirection:"column",gap:2}}>
+            {logisticsItems.map((i,idx)=><div key={idx} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
+              <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,flexShrink:0,marginTop:1}}>{i.category}</span>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{i.from}</div></div>
+              {arShowLabel(i)&&<div style={{fontSize:9,color:"var(--link)",fontFamily:MN,flexShrink:0,cursor:"pointer",textDecoration:"underline"}} onClick={()=>{const s=showMap[i.showId];if(s){setSel(s.date);setTab("intel");}}}>{arShowLabel(i)}</div>}
+            </div>)}
+          </div>
+        </IntelSection>}
+      </div>
+      <button onClick={()=>setTab("advance")} style={{marginTop:12,background:client.color,border:"none",borderRadius:6,color:"#fff",fontSize:11,padding:"8px 16px",cursor:"pointer",fontWeight:700}}>Open Advance Tracker →</button>
     </div>
   );
 }
