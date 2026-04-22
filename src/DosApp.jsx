@@ -159,12 +159,12 @@ const findItineraryLegs=(f,allFlightsObj)=>{
 //   rail:   carrier, trainNo, from/to, dep/arr, pax
 //   hotel:  hotelName, from (address), checkIn/checkOut dates, pax
 const SEG_META={
-  air:   {label:"Flight",  icon:"✈", color:"#a78bfa", bg:"#DBEAFE", border:"#BFDBFE"},
+  air:   {label:"Flight",  icon:"✈", color:"var(--link)", bg:"#DBEAFE", border:"#BFDBFE"},
   ground:{label:"Ground",  icon:"🚗", color:"#B45309", bg:"#FEF3C7", border:"#FDE68A"},
   bus:   {label:"Bus",     icon:"🚌", color:"#1D4ED8", bg:"#DBEAFE", border:"#BFDBFE"},
   rail:  {label:"Rail",    icon:"🚆", color:"#065F46", bg:"#D1FAE5", border:"#6EE7B7"},
   sea:   {label:"Sea",     icon:"⛴", color:"#0E7490", bg:"#CFFAFE", border:"#67E8F9"},
-  hotel: {label:"Hotel",   icon:"🏨", color:"#5B21B6", bg:"#EDE9FE", border:"#C4B5FD"},
+  hotel: {label:"Hotel",   icon:"🏨", color:"var(--accent)", bg:"var(--accent-pill-bg)", border:"var(--accent-pill-border)"},
 };
 const segType=s=>s?.type||(s?.flightNo||s?.carrier?"air":"ground");
 const segMeta=s=>SEG_META[segType(s)]||SEG_META.air;
@@ -331,15 +331,15 @@ const flightToLeg=f=>({
 const MN="'JetBrains Mono',monospace";
 
 const CLIENTS=[
-  {id:"bbn",name:"bbno$",type:"artist",status:"active",color:"#5B21B6",short:"BBN"},
+  {id:"bbn",name:"bbno$",type:"artist",status:"active",color:"var(--accent)",short:"BBN"},
   {id:"wkn",name:"Wakaan",type:"festival",status:"active",color:"#065F46",short:"WKN"},
-  {id:"bwc",name:"Beyond Wonderland",type:"festival",status:"active",color:"#a78bfa",short:"BWC"},
+  {id:"bwc",name:"Beyond Wonderland",type:"festival",status:"active",color:"var(--link)",short:"BWC"},
   {id:"elm",name:"Elements",type:"festival",status:"active",color:"#92400E",short:"ELM"},
 ];
 const CM=CLIENTS.reduce((a,c)=>{a[c.id]=c;return a},{});
 // Only these users can see festival clients in the selector
 const FESTIVAL_ACCESS_EMAILS=["d.johnson@dayofshow.net","olivia@dayofshow.net"];
-const ROLES=[{id:"tm",label:"TM",c:"#5B21B6"},{id:"production",label:"PROD",c:"#92400E"},{id:"hospitality",label:"HOSPO",c:"#065F46"},{id:"transport",label:"TRANSPORT",c:"#a78bfa"}];
+const ROLES=[{id:"tm",label:"TM",c:"var(--accent)"},{id:"production",label:"PROD",c:"#92400E"},{id:"hospitality",label:"HOSPO",c:"#065F46"},{id:"transport",label:"TRANSPORT",c:"var(--link)"}];
 const TABS=[{id:"advance",label:"Advance",icon:"◎"},{id:"guestlist",label:"Guest List",icon:"◉"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"}];
 const GL_DEFAULT_CATEGORIES=[
   {id:"artist_guest",name:"Artist Guest",side:"artist",zones:["FOH"],qty:6,walkOnQty:2},
@@ -357,7 +357,7 @@ const GL_STATUS=[
   {id:"draft",label:"Draft",color:"#6B7280",bg:"var(--card-2)"},
   {id:"pending_approval",label:"Pending Approval",color:"#D97706",bg:"#2a1f0f"},
   {id:"open",label:"Open",color:"#059669",bg:"#0f2a1f"},
-  {id:"locked",label:"Locked",color:"#5B21B6",bg:"#1f0f2a"},
+  {id:"locked",label:"Locked",color:"var(--accent)",bg:"#1f0f2a"},
   {id:"closed",label:"Closed",color:"#4B5563",bg:"#0f0f14"},
 ];
 const GL_PARTY_ROLES=[
@@ -437,20 +437,20 @@ const DEFAULT_CREW=[
 const AB=new Set(["bus_arrive","doors_early","doors_ga","clear","bus_depart"]);
 
 const UI={
-  expandPanel:{background:"var(--card-4)",borderLeft:"3px solid #5B21B6",padding:"10px 14px 12px"},
-  expandBtn:(open,accent="#5B21B6")=>({background:open?"#5B21B6":accent,border:"none",borderRadius:6,color:"#fff",fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700}),
+  expandPanel:{background:"var(--card-4)",borderLeft:"3px solid var(--accent)",padding:"10px 14px 12px"},
+  expandBtn:(open,accent="var(--accent)")=>({background:open?"var(--accent)":accent,border:"none",borderRadius:6,color:"#fff",fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700}),
   sectionLabel:{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:6},
   input:{background:"var(--card)",border:"1px solid var(--border)",borderRadius:5,fontSize:10,padding:"4px 6px",outline:"none",fontFamily:"'Outfit',system-ui"},
 };
 
 const DEPTS=[
   {id:"all",label:"All",color:"var(--text-2)",bg:"var(--card-2)"},
-  {id:"artist_team",label:"Artist Team",color:"#5B21B6",bg:"#EDE9FE"},
+  {id:"artist_team",label:"Artist Team",color:"var(--accent)",bg:"var(--accent-pill-bg)"},
   {id:"venue",label:"Venue / Promoter",color:"#065F46",bg:"#D1FAE5"},
   {id:"ar_hospo",label:"AR / Hospo",color:"#047857",bg:"#ECFDF5"},
-  {id:"transport",label:"Transport",color:"#a78bfa",bg:"#DBEAFE"},
+  {id:"transport",label:"Transport",color:"var(--link)",bg:"#DBEAFE"},
   {id:"production",label:"Production",color:"#B45309",bg:"#FEF3C7"},
-  {id:"vendors",label:"Vendors",color:"#7C3AED",bg:"#F5F3FF"},
+  {id:"vendors",label:"Vendors",color:"var(--accent-soft)",bg:"#F5F3FF"},
   {id:"site_ops",label:"Site Ops",color:"#0E7490",bg:"#ECFEFF"},
   {id:"quartermaster",label:"Quartermaster",color:"var(--text-dim)",bg:"var(--card-3)"},
 ];
@@ -513,14 +513,14 @@ const SC={
   pending:{l:"Pending",c:"var(--text-dim)",b:"var(--card-2)"},
   sent:{l:"Sent",c:"var(--text-3)",b:"var(--border)"},
   received:{l:"Received",c:"var(--text-3)",b:"var(--border)"},
-  in_progress:{l:"In Progress",c:"#a78bfa",b:"#DBEAFE"},
+  in_progress:{l:"In Progress",c:"var(--link)",b:"#DBEAFE"},
   respond:{l:"Respond",c:"#92400E",b:"#FEF3C7"},
   follow_up:{l:"Follow Up",c:"#92400E",b:"#FEF3C7"},
   escalate:{l:"Escalate",c:"#B91C1C",b:"#FEE2E2"},
   confirmed:{l:"Confirmed",c:"#047857",b:"#D1FAE5"},
   na:{l:"N/A",c:"var(--text-mute)",b:"var(--card-2)"},
   // Back-compat
-  responded:{l:"In Progress",c:"#a78bfa",b:"#DBEAFE"},
+  responded:{l:"In Progress",c:"var(--link)",b:"#DBEAFE"},
 };
 const TEAM_MEMBERS=[
   {id:"davon",label:"Davon",initials:"DJ"},
@@ -576,15 +576,15 @@ const DEFAULT_ROS=()=>[
   {id:"venue_access",label:"Venue Access",duration:0,phase:"pre",type:"access",color:"var(--text-2)",roles:["tm","production"],note:"Per advance",isAnchor:true,anchorKey:"venueAccess"},
   {id:"crew_call",label:"CREW CALL",duration:0,phase:"pre",type:"crew",color:"#92400E",roles:["tm","production"],note:"Local + tour crew",isAnchor:true,anchorKey:"crewCall"},
   {id:"loadin",label:"Load In",duration:240,phase:"pre",type:"setup",color:"#B45309",roles:["tm","production"],note:"FOH, mons, LD, LED, lasers, merch"},
-  {id:"sc_bbno",label:"SC: bbno$",duration:60,phase:"pre",type:"soundcheck",color:"#6D28D9",roles:["tm","production"],note:"Full band check"},
-  {id:"sc_jb",label:"SC: Jungle Bobby",duration:30,phase:"pre",type:"soundcheck",color:"#7C3AED",roles:["tm","production"],note:"Support act"},
+  {id:"sc_bbno",label:"SC: bbno$",duration:60,phase:"pre",type:"soundcheck",color:"var(--accent)",roles:["tm","production"],note:"Full band check"},
+  {id:"sc_jb",label:"SC: Jungle Bobby",duration:30,phase:"pre",type:"soundcheck",color:"var(--accent-soft)",roles:["tm","production"],note:"Support act"},
   {id:"security",label:"Security Meeting",duration:30,phase:"pre",type:"meeting",color:"#B91C1C",roles:["tm"],note:"Barricade, pit, artist security"},
   {id:"mg_checkin",label:"M&G Check In",duration:30,phase:"mg",type:"mg",color:"#047857",roles:["tm","hospitality"],note:"Always before M&G."},
   {id:"mg",label:"Meet & Greet",duration:120,phase:"mg",type:"mg",color:"#065F46",roles:["tm","hospitality"],note:"Fan experience",isAnchor:true,anchorKey:"mgTime"},
   {id:"doors_early",label:"Doors: Early Entry",duration:30,phase:"doors",type:"doors",color:"#15803D",roles:["tm","hospitality"],note:"VIP / early entry"},
   {id:"doors_ga",label:"Doors: GA",duration:0,phase:"doors",type:"doors",color:"#166534",roles:["tm","hospitality"],note:"General admission",isAnchor:true,anchorKey:"doors"},
-  {id:"bishu",label:"Bishu DJ Set",duration:15,phase:"show",type:"performance",color:"#6D28D9",roles:["tm","production"],note:"Opening DJ"},
-  {id:"jungle_bobby",label:"Jungle Bobby",duration:30,phase:"show",type:"performance",color:"#5B21B6",roles:["tm","production"],note:"Support set"},
+  {id:"bishu",label:"Bishu DJ Set",duration:15,phase:"show",type:"performance",color:"var(--accent)",roles:["tm","production"],note:"Opening DJ"},
+  {id:"jungle_bobby",label:"Jungle Bobby",duration:30,phase:"show",type:"performance",color:"var(--accent)",roles:["tm","production"],note:"Support set"},
   {id:"changeover",label:"Changeover",duration:15,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm","production"],note:"Stage flip"},
   {id:"bbno_set",label:"bbno$ HEADLINE SET",duration:105,phase:"show",type:"headline",color:"#B91C1C",roles:["tm","production"],note:"Internet Explorer Tour"},
   {id:"curfew",label:"CURFEW",duration:0,phase:"curfew",type:"curfew",color:"#7F1D1D",roles:["tm"],note:"House lights",isAnchor:true,anchorKey:"curfew"},
@@ -602,8 +602,8 @@ const RRX_ROS=()=>[
   {id:"crew_call",label:"CREW CALL",duration:0,phase:"pre",type:"crew",color:"#92400E",roles:["tm","production"],note:"BNP + tour crew",isAnchor:true,anchorKey:"crewCall"},
   {id:"loadin",label:"Load In",duration:240,phase:"pre",type:"setup",color:"#B45309",roles:["tm","production"],note:"BNP: audio, video, lighting"},
   {id:"programming",label:"Programming",duration:90,phase:"pre",type:"setup",color:"#0E7490",roles:["tm","production"],note:"LX, VX, Laser. MA3, Depense R4."},
-  {id:"sc_bbno",label:"SC: bbno$",duration:60,phase:"pre",type:"soundcheck",color:"#6D28D9",roles:["tm","production"]},
-  {id:"sc_ot",label:"SC: Oliver Tree",duration:45,phase:"pre",type:"soundcheck",color:"#7C3AED",roles:["tm","production"]},
+  {id:"sc_bbno",label:"SC: bbno$",duration:60,phase:"pre",type:"soundcheck",color:"var(--accent)",roles:["tm","production"]},
+  {id:"sc_ot",label:"SC: Oliver Tree",duration:45,phase:"pre",type:"soundcheck",color:"var(--accent-soft)",roles:["tm","production"]},
   {id:"sc_kaarijaa",label:"SC: Käärijä",duration:30,phase:"pre",type:"soundcheck",color:"#8B5CF6",roles:["tm","production"]},
   {id:"sc_yngmartyr",label:"SC: YNG Martyr",duration:25,phase:"pre",type:"soundcheck",color:"#9333EA",roles:["tm","production"]},
   {id:"sc_jb",label:"SC: Jungle Bobby",duration:20,phase:"pre",type:"soundcheck",color:"#A855F7",roles:["tm","production"]},
@@ -612,11 +612,11 @@ const RRX_ROS=()=>[
   {id:"mg",label:"Meet & Greet",duration:120,phase:"mg",type:"mg",color:"#065F46",roles:["tm","hospitality"],isAnchor:true,anchorKey:"mgTime"},
   {id:"doors_early",label:"Doors: Early Entry",duration:30,phase:"doors",type:"doors",color:"#15803D",roles:["tm","hospitality"]},
   {id:"doors_ga",label:"Doors",duration:0,phase:"doors",type:"doors",color:"#166534",roles:["tm","hospitality"],isAnchor:true,anchorKey:"doors"},
-  {id:"jungle_bobby_s",label:"Jungle Bobby",duration:30,phase:"show",type:"performance",color:"#5B21B6",roles:["tm","production"]},
+  {id:"jungle_bobby_s",label:"Jungle Bobby",duration:30,phase:"show",type:"performance",color:"var(--accent)",roles:["tm","production"]},
   {id:"co1",label:"Changeover 1",duration:5,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm","production"]},
-  {id:"yng_martyr",label:"YNG Martyr",duration:40,phase:"show",type:"performance",color:"#6D28D9",roles:["tm","production"]},
+  {id:"yng_martyr",label:"YNG Martyr",duration:40,phase:"show",type:"performance",color:"var(--accent)",roles:["tm","production"]},
   {id:"co2",label:"Changeover 2",duration:5,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm","production"]},
-  {id:"kaarijaa_set",label:"Käärijä",duration:50,phase:"show",type:"performance",color:"#7C3AED",roles:["tm","production"]},
+  {id:"kaarijaa_set",label:"Käärijä",duration:50,phase:"show",type:"performance",color:"var(--accent-soft)",roles:["tm","production"]},
   {id:"co3",label:"Changeover 3",duration:5,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm","production"]},
   {id:"oliver_tree",label:"Oliver Tree",duration:50,phase:"show",type:"performance",color:"#8B5CF6",roles:["tm","production"]},
   {id:"co4",label:"Changeover 4",duration:10,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm","production"]},
@@ -677,7 +677,7 @@ const SPLIT_DAYS={
   "2026-05-01":{
     parties:[
       {id:"worcester",label:"Worcester Show",location:"Worcester, MA",event:"WPI — Pretty Polly",type:"show",color:"#047857",bg:"#D1FAE5",crew:["ag","jb","mse","tip","ac","rm"],note:"Performing crew. Advance past due."},
-      {id:"eu_prog",label:"EU Programming",location:"En Route / Europe",event:"Pre-tour advance + logistics",type:"travel",color:"#a78bfa",bg:"#DBEAFE",crew:["dj","ms","dn"],note:"TM + PM advance work ahead of Dublin Day 1."}
+      {id:"eu_prog",label:"EU Programming",location:"En Route / Europe",event:"Pre-tour advance + logistics",type:"travel",color:"var(--link)",bg:"#DBEAFE",crew:["dj","ms","dn"],note:"TM + PM advance work ahead of Dublin Day 1."}
     ]
   }
 };
@@ -983,7 +983,7 @@ export default function App(){
   return(
     <Ctx.Provider value={ctxValue}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-      <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0;transition:background 0.13s ease}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:var(--bg)}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#3b1868;border-radius:4px}::-webkit-scrollbar-thumb:hover{background:#6D28D9}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#15152a!important}.rh:hover{background:#15152a!important}button{transition:opacity 0.12s ease,background 0.12s ease,box-shadow 0.12s ease}input:focus,select:focus,textarea:focus{outline:none!important;box-shadow:0 0 0 2px rgba(109,40,217,0.45)!important;border-color:#6D28D9!important}details summary::-webkit-details-marker{display:none}::selection{background:rgba(91,33,182,0.35);color:var(--text)}`}</style>
+      <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0;transition:background 0.13s ease}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:var(--bg)}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#3b1868;border-radius:4px}::-webkit-scrollbar-thumb:hover{background:var(--accent)}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#15152a!important}.rh:hover{background:#15152a!important}button{transition:opacity 0.12s ease,background 0.12s ease,box-shadow 0.12s ease}input:focus,select:focus,textarea:focus{outline:none!important;box-shadow:0 0 0 2px rgba(109,40,217,0.45)!important;border-color:var(--accent)!important}details summary::-webkit-details-marker{display:none}::selection{background:rgba(91,33,182,0.35);color:var(--text)}`}</style>
       <div style={{fontFamily:"'Outfit',system-ui",background:"var(--bg)",color:"var(--text)",height:"100vh",width:"100%",maxWidth:"100vw",overflow:"hidden",display:"flex",flexDirection:"column"}}>
         <TopBar ss={ss}/>
         <div style={{flex:1,display:"flex",flexDirection:"row",minWidth:0,minHeight:0,width:"100%",overflow:"hidden"}}>
@@ -998,7 +998,7 @@ export default function App(){
         {uploadOpen&&<FileUploadModal onClose={()=>setUploadOpen(false)}/>}
         {undoToast&&<div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",background:"var(--border)",color:"#fff",borderRadius:8,padding:"8px 14px",display:"flex",alignItems:"center",gap:10,fontSize:11,boxShadow:"0 8px 24px rgba(0,0,0,.2)",zIndex:90}}>
           <span>{undoToast.label}</span>
-          <button onClick={()=>{undoToast.undo();setUndoToast(null);}} style={{background:"#5B21B6",border:"none",borderRadius:5,color:"#fff",fontSize:10,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>Undo</button>
+          <button onClick={()=>{undoToast.undo();setUndoToast(null);}} style={{background:"var(--accent)",border:"none",borderRadius:5,color:"#fff",fontSize:10,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>Undo</button>
           <button onClick={()=>setUndoToast(null)} style={{background:"none",border:"none",color:"var(--text-mute)",fontSize:14,cursor:"pointer"}}>×</button>
         </div>}
       </div>
@@ -1018,16 +1018,16 @@ function ExportModal({onClose}){
   return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.3)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:20}}>
     <div onClick={e=>e.stopPropagation()} style={{width:520,maxWidth:"100%",background:"var(--card)",borderRadius:12,border:"1px solid var(--border)",padding:18,fontFamily:"'Outfit',system-ui"}}>
       <div style={{display:"flex",gap:4,marginBottom:10}}>
-        {["export","import"].map(m=><button key={m} onClick={()=>setMode(m)} style={{fontSize:10,fontWeight:700,padding:"4px 10px",borderRadius:6,border:"none",background:mode===m?"#5B21B6":"var(--card-3)",color:mode===m?"var(--card)":"var(--text-dim)",cursor:"pointer"}}>{m.toUpperCase()}</button>)}
+        {["export","import"].map(m=><button key={m} onClick={()=>setMode(m)} style={{fontSize:10,fontWeight:700,padding:"4px 10px",borderRadius:6,border:"none",background:mode===m?"var(--accent)":"var(--card-3)",color:mode===m?"var(--card)":"var(--text-dim)",cursor:"pointer"}}>{m.toUpperCase()}</button>)}
         <button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",color:"var(--text-dim)",fontSize:16}}>×</button>
       </div>
       {mode==="export"?(<><div style={{fontSize:11,color:"var(--text-dim)",marginBottom:6}}>Shared snapshot (shows, ROS, advances, finance, settings).</div>
         <pre style={{background:"var(--card-3)",padding:10,borderRadius:6,fontSize:9,fontFamily:MN,maxHeight:300,overflow:"auto"}}>{JSON.stringify(snapshot,null,2).slice(0,4000)}{JSON.stringify(snapshot).length>4000&&"\n…"}</pre>
-        <button onClick={dl} style={{marginTop:8,background:"#5B21B6",border:"none",borderRadius:6,color:"#fff",fontSize:11,padding:"6px 14px",cursor:"pointer",fontWeight:700}}>Download JSON</button></>):(
+        <button onClick={dl} style={{marginTop:8,background:"var(--accent)",border:"none",borderRadius:6,color:"#fff",fontSize:11,padding:"6px 14px",cursor:"pointer",fontWeight:700}}>Download JSON</button></>):(
         <><div style={{fontSize:11,color:"var(--text-dim)",marginBottom:6}}>Paste JSON to restore shared state.</div>
           <textarea value={txt} onChange={e=>setTxt(e.target.value)} placeholder="{...}" rows={10} style={{width:"100%",fontFamily:MN,fontSize:9,padding:8,border:"1px solid var(--border)",borderRadius:6,resize:"vertical"}}/>
           <div style={{display:"flex",gap:8,alignItems:"center",marginTop:8}}>
-            <button onClick={imp} disabled={!txt.trim()} style={{background:"#5B21B6",border:"none",borderRadius:6,color:"#fff",fontSize:11,padding:"6px 14px",cursor:txt.trim()?"pointer":"default",fontWeight:700,opacity:txt.trim()?1:.5}}>Restore</button>
+            <button onClick={imp} disabled={!txt.trim()} style={{background:"var(--accent)",border:"none",borderRadius:6,color:"#fff",fontSize:11,padding:"6px 14px",cursor:txt.trim()?"pointer":"default",fontWeight:700,opacity:txt.trim()?1:.5}}>Restore</button>
             {msg&&<span style={{fontSize:10,color:msg.startsWith("Error")?"#B91C1C":"#047857"}}>{msg}</span>}
           </div></>)}
     </div></div>;
@@ -1101,12 +1101,12 @@ function ReservationHeader({g}){
   if(g.isSolo)return null;
   return(
     <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 2px",flexWrap:"wrap"}}>
-      <span style={{fontSize:8,fontWeight:800,color:"#5B21B6",letterSpacing:"0.06em",background:"#EDE9FE",padding:"2px 7px",borderRadius:10}}>RES · {g.segs.length} SEG</span>
+      <span style={{fontSize:8,fontWeight:800,color:"var(--accent)",letterSpacing:"0.06em",background:"var(--accent-pill-bg)",padding:"2px 7px",borderRadius:10}}>RES · {g.segs.length} SEG</span>
       {g.pnr&&<span style={{fontSize:10,fontFamily:MN,fontWeight:700,color:"var(--text)"}}>{g.pnr}</span>}
       {g.carriers.length>0&&<span style={{fontSize:9,color:"var(--text-2)"}}>{g.carriers.join(", ")}</span>}
       {g.paxUnion.length>0&&<span style={{fontSize:9,color:"var(--text-dim)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.paxUnion.join(", ")}</span>}
       {g.totalCost!=null&&<span style={{fontSize:9,fontFamily:MN,fontWeight:700,color:"#047857"}}>{g.currency||"$"}{g.totalCost.toFixed(2)}</span>}
-      {g.tid&&<a href={gmailUrl(g.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none"}}>email ↗</a>}
+      {g.tid&&<a href={gmailUrl(g.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none"}}>email ↗</a>}
     </div>
   );
 }
@@ -1116,18 +1116,18 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
   const delayed=liveStatus?.delayMinutes>0;
   const isFresh=!!f.fresh48h;
   return(
-    <div style={{background:"var(--card)",border:`1px solid ${isFresh?"#5B21B6":st&&delayed?"#FCD34D":st?.c==="#B91C1C"?"#FCA5A5":"var(--border)"}`,borderRadius:9,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6,boxShadow:isFresh?"0 0 0 2px #EDE9FE":undefined}}>
+    <div style={{background:"var(--card)",border:`1px solid ${isFresh?"var(--accent)":st&&delayed?"#FCD34D":st?.c==="#B91C1C"?"#FCA5A5":"var(--border)"}`,borderRadius:9,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6,boxShadow:isFresh?"0 0 0 2px var(--accent-pill-bg)":undefined}}>
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-        <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#a78bfa"}}>{f.from}<span style={{fontSize:10,color:"var(--text-mute)",fontWeight:400,padding:"0 5px"}}>→</span>{f.to}</div>
+        <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"var(--link)"}}>{f.from}<span style={{fontSize:10,color:"var(--text-mute)",fontWeight:400,padding:"0 5px"}}>→</span>{f.to}</div>
         <div style={{fontSize:10,fontWeight:700,color:"var(--text)"}}>{f.flightNo||f.carrier}</div>
         {f.carrier&&f.flightNo&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{f.carrier}</div>}
-        {isFresh&&<span title="Booked within the last 48 hours" style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#EDE9FE",color:"#5B21B6",fontWeight:800,letterSpacing:"0.06em"}}>NEW · 48H</span>}
+        {isFresh&&<span title="Booked within the last 48 hours" style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:800,letterSpacing:"0.06em"}}>NEW · 48H</span>}
         {f.parseVerified===true&&<span title="Data verified against source email" style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#D1FAE5",color:"#065F46",fontWeight:700}}>✓ verified</span>}
         {f.parseVerified===false&&<span title={f.parseNote||"Verification flagged a discrepancy — review before confirming"} style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#FEF3C7",color:"#92400E",fontWeight:700,cursor:"help"}}>⚠ check data</span>}
         {st&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:st.bg,color:st.c,fontWeight:700}}>{st.label}{delayed?` +${liveStatus.delayMinutes}m`:""}</span>}
         {f.suggestedShowDate&&<span title={`${f.suggestedRole==="outbound"?"Departs day after":"Arrives for"} ${f.suggestedVenue||f.suggestedShowDate}`} style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:f.suggestedRole==="outbound"?"#FEF3C7":"#D1FAE5",color:f.suggestedRole==="outbound"?"#92400E":"#065F46",fontWeight:700}}>{f.suggestedRole==="outbound"?"OUT":"IN"} · {f.suggestedShowDate}</span>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
-          {onRefreshStatus&&<button onClick={onRefreshStatus} disabled={refreshing} title="Refresh live status" style={{background:"none",border:"none",cursor:refreshing?"default":"pointer",fontSize:10,color:refreshing?"var(--text-mute)":"#5B21B6",padding:0,lineHeight:1}}>{refreshing?"⟳":"⟳"}</button>}
+          {onRefreshStatus&&<button onClick={onRefreshStatus} disabled={refreshing} title="Refresh live status" style={{background:"none",border:"none",cursor:refreshing?"default":"pointer",fontSize:10,color:refreshing?"var(--text-mute)":"var(--accent)",padding:0,lineHeight:1}}>{refreshing?"⟳":"⟳"}</button>}
           <div style={{fontSize:9,fontFamily:MN,color:"var(--text-2)",fontWeight:600}}>{f.depDate}{f.dep?` · ${f.dep}`:""}{f.arr?`–${f.arr}`:""}</div>
         </div>
       </div>
@@ -1361,12 +1361,12 @@ function FlightsSection(){
   return(
     <div style={{display:"flex",flexDirection:"column",gap:8}}>
       <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-        <span style={{fontSize:10,fontWeight:800,color:"#a78bfa",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
-        <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"#DBEAFE",color:"#a78bfa",fontWeight:700}}>{confirmed.length} confirmed · {pending.length} pending</span>
-        {scanMsg&&<span style={{fontSize:9,color:scanning?"#5B21B6":"var(--text-dim)",fontFamily:MN}}>{scanMsg}</span>}
+        <span style={{fontSize:10,fontWeight:800,color:"var(--link)",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
+        <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"#DBEAFE",color:"var(--link)",fontWeight:700}}>{confirmed.length} confirmed · {pending.length} pending</span>
+        {scanMsg&&<span style={{fontSize:9,color:scanning?"var(--accent)":"var(--text-dim)",fontFamily:MN}}>{scanMsg}</span>}
         <div style={{marginLeft:"auto",display:"flex",gap:6}}>
           <button onClick={()=>{if(confirm(`Clear all ${allFlights.length} flights and rescan Gmail?`))scanFlights({reset:true});}} disabled={scanning} style={{background:scanning?"var(--border)":"#B91C1C",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>Reset & Rescan</button>
-          <button onClick={()=>scanFlights()} disabled={scanning} style={{background:scanning?"var(--border)":"#a78bfa",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail"}</button>
+          <button onClick={()=>scanFlights()} disabled={scanning} style={{background:scanning?"var(--border)":"var(--link)",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail"}</button>
         </div>
       </div>
 
@@ -1374,21 +1374,21 @@ function FlightsSection(){
       {pendingImport.length>0&&(
         <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:10,padding:"10px 12px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-            <span style={{fontSize:9,fontWeight:800,color:"#a78bfa",letterSpacing:"0.06em"}}>NEW — REVIEW BEFORE IMPORTING</span>
-            <button onClick={importAll} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#a78bfa",color:"#fff",cursor:"pointer",fontWeight:700}}>Import All ({pendingImport.length})</button>
+            <span style={{fontSize:9,fontWeight:800,color:"var(--link)",letterSpacing:"0.06em"}}>NEW — REVIEW BEFORE IMPORTING</span>
+            <button onClick={importAll} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"var(--link)",color:"#fff",cursor:"pointer",fontWeight:700}}>Import All ({pendingImport.length})</button>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {groupByReservation(pendingImport).map(g=>(
-              <div key={g.key} style={{display:"flex",flexDirection:"column",gap:4,...(g.isSolo?{}:{borderLeft:"2px solid #C4B5FD",paddingLeft:8})}}>
+              <div key={g.key} style={{display:"flex",flexDirection:"column",gap:4,...(g.isSolo?{}:{borderLeft:"2px solid var(--accent-pill-border)",paddingLeft:8})}}>
                 <ReservationHeader g={g}/>
                 {g.segs.map(f=>(
                   <FlightCard key={f.id} f={f} crew={crew} actions={<>
-                    <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#a78bfa",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
+                    <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"var(--link)",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
                     <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Skip</button>
-                    {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
+                    {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
                   </>}/>
                 ))}
-                {!g.isSolo&&g.segs.length>1&&<button onClick={()=>g.segs.forEach(f=>importFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px dashed #C4B5FD",background:"#EDE9FE",color:"#5B21B6",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Import All {g.segs.length} Segments</button>}
+                {!g.isSolo&&g.segs.length>1&&<button onClick={()=>g.segs.forEach(f=>importFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px dashed var(--accent-pill-border)",background:"var(--accent-pill-bg)",color:"var(--accent)",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Import All {g.segs.length} Segments</button>}
               </div>
             ))}
           </div>
@@ -1400,19 +1400,19 @@ function FlightsSection(){
         <IntelSection title="PENDING CONFIRMATION" count={pending.length}>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {groupByReservation(pending).map(g=>(
-              <div key={g.key} style={{display:"flex",flexDirection:"column",gap:4,...(g.isSolo?{}:{borderLeft:"2px solid #C4B5FD",paddingLeft:8})}}>
+              <div key={g.key} style={{display:"flex",flexDirection:"column",gap:4,...(g.isSolo?{}:{borderLeft:"2px solid var(--accent-pill-border)",paddingLeft:8})}}>
                 <ReservationHeader g={g}/>
                 {g.segs.map(f=>{
                   const isConf=confirmingId===f.id;
                   return(
                     <FlightCard key={f.id} f={f} actions={<>
-                      <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"#a78bfa",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
+                      <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"var(--link)",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
                       <button onClick={()=>dismissFlight(f.id)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Dismiss</button>
-                      {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
+                      {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
                     </>}/>
                   );
                 })}
-                {!g.isSolo&&g.segs.length>1&&<button onClick={()=>g.segs.forEach(f=>confirmFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px dashed #C4B5FD",background:"#EDE9FE",color:"#5B21B6",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Confirm All {g.segs.length} Segments</button>}
+                {!g.isSolo&&g.segs.length>1&&<button onClick={()=>g.segs.forEach(f=>confirmFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px dashed var(--accent-pill-border)",background:"var(--accent-pill-bg)",color:"var(--accent)",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Confirm All {g.segs.length} Segments</button>}
               </div>
             ))}
           </div>
@@ -1459,7 +1459,7 @@ function FlightsSection(){
                 <span style={{fontSize:11,fontWeight:700,color:"var(--text)",fontFamily:MN,flexShrink:0}}>{f.from}→{f.to}</span>
                 <span style={{fontSize:10,color:"var(--text-2)",flexShrink:0}}>{f.flightNo||f.carrier}</span>
                 <span style={{fontSize:9,color:"var(--text-dim)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(f.pax||[]).join(", ")}</span>
-                <button onClick={()=>uFlight(f.id,{...f,status:"pending"})} style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#a78bfa",cursor:"pointer",fontWeight:700,flexShrink:0}}>↩ Restore</button>
+                <button onClick={()=>uFlight(f.id,{...f,status:"pending"})} style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"var(--link)",cursor:"pointer",fontWeight:700,flexShrink:0}}>↩ Restore</button>
                 <button onClick={()=>deleteFlight(f.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12,flexShrink:0}}>×</button>
               </div>
             ))}
@@ -1540,14 +1540,14 @@ function IntelPanel(){
   if(!show)return null;const busy=refreshing===sid;const shared=data.isShared||false;
   return <div style={{display:"flex",flexDirection:"column",gap:8}}>
     <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-      <span style={{fontSize:10,fontWeight:800,color:"#5B21B6",letterSpacing:"0.06em"}}>GMAIL INTEL</span>
+      <span style={{fontSize:10,fontWeight:800,color:"var(--accent)",letterSpacing:"0.06em"}}>GMAIL INTEL</span>
       <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"var(--card-2)",color:"var(--text-dim)",fontWeight:600,letterSpacing:"0.04em"}}>PRIVATE</span>
       {data.lastRefreshed&&<span style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN}}>last: {new Date(data.lastRefreshed).toLocaleString()}</span>}
       <span style={{marginLeft:"auto",fontSize:9,color:"var(--text-dim)"}}>{(data.threads||[]).length} threads · {(data.todos||[]).length} to-dos</span>
       <button onClick={()=>toggleIntelShare(show,!shared)} style={{background:shared?"#D1FAE5":"var(--card-2)",color:shared?"#065F46":"var(--text-2)",border:`1px solid ${shared?"#6EE7B7":"var(--border)"}`,borderRadius:6,fontSize:9,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>{shared?"Shared with team":"Share with team"}</button>
-      <button onClick={()=>refreshIntel(show,true)} disabled={!!refreshing} style={{background:refreshing?"var(--border)":"#5B21B6",color:refreshing?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:refreshing?"default":"pointer",fontWeight:700}}>{busy?"Scanning…":"Refresh Intel"}</button>
+      <button onClick={()=>refreshIntel(show,true)} disabled={!!refreshing} style={{background:refreshing?"var(--border)":"var(--accent)",color:refreshing?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:refreshing?"default":"pointer",fontWeight:700}}>{busy?"Scanning…":"Refresh Intel"}</button>
     </div>
-    {refreshMsg&&<div style={{fontSize:10,color:"#5B21B6",fontFamily:MN}}>{refreshMsg}</div>}
+    {refreshMsg&&<div style={{fontSize:10,color:"var(--accent)",fontFamily:MN}}>{refreshMsg}</div>}
     {labelIntel?.actionRequired?.length>0&&(
       <div style={{background:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:10,padding:"10px 12px"}}>
         <div style={{fontSize:9,fontWeight:800,color:"#92400E",letterSpacing:"0.08em",marginBottom:8}}>ACTION REQUIRED · LABEL SCAN ({labelIntel.actionRequired.length})</div>
@@ -1557,7 +1557,7 @@ function IntelPanel(){
               <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.subject}</div>
               <div style={{fontSize:9,color:"#92400E"}}>{item.signal} · {item.from}</div>
             </div>
-            <a href={gmailUrl(item.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",flexShrink:0}}>open ↗</a>
+            <a href={gmailUrl(item.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",flexShrink:0}}>open ↗</a>
           </div>
         ))}
       </div>
@@ -1594,27 +1594,27 @@ function IntelPanel(){
         </div>)}
       </div>}
     </IntelSection>
-    <IntelSection title="TO-DOS (PRIVATE)" count={(data.todos||[]).length} defaultOpen={true} actions={<button onClick={addTodo} style={{...UI.expandBtn(false,"#5B21B6"),fontSize:9}}>+ Add</button>}>
+    <IntelSection title="TO-DOS (PRIVATE)" count={(data.todos||[]).length} defaultOpen={true} actions={<button onClick={addTodo} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Add</button>}>
       {(data.todos||[]).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No action items yet.</div>:
         (data.todos||[]).map(t=><div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-3)"}}>
           <input type="checkbox" checked={!!t.done} onChange={()=>toggleTodo(t.id)}/>
           <span style={{fontSize:10,flex:1,color:t.done?"var(--text-mute)":"var(--text)",textDecoration:t.done?"line-through":"none"}}>{t.text}</span>
           {t.priority&&<span style={{fontSize:7,padding:"1px 5px",borderRadius:3,background:t.priority==="CRITICAL"?"#FEE2E2":t.priority==="HIGH"?"#FEF3C7":"var(--card-2)",color:t.priority==="CRITICAL"?"#B91C1C":t.priority==="HIGH"?"#92400E":"var(--text-dim)",fontWeight:700}}>{t.priority}</span>}
-          {t.threadTid&&<a href={gmailUrl(t.threadTid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#5B21B6",textDecoration:"none"}}>↗</a>}
+          {t.threadTid&&<a href={gmailUrl(t.threadTid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--accent)",textDecoration:"none"}}>↗</a>}
           <button onClick={()=>delTodo(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12}}>×</button>
         </div>)}
     </IntelSection>
-    <IntelSection title="THREADS (PRIVATE)" count={(data.threads||[]).length} defaultOpen={true} actions={<button onClick={addThread} style={{...UI.expandBtn(false,"#5B21B6"),fontSize:9}}>+ Add</button>}>
+    <IntelSection title="THREADS (PRIVATE)" count={(data.threads||[]).length} defaultOpen={true} actions={<button onClick={addThread} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Add</button>}>
       {(data.threads||[]).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No threads.</div>:
         data.threads.map(t=><div key={t.tid} style={{display:"grid",gridTemplateColumns:"1fr auto auto 28px",gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-3)",fontSize:10,alignItems:"center"}}>
           {t.manual?<input value={t.subject||""} onChange={e=>upd({threads:data.threads.map(x=>x.tid===t.tid?{...x,subject:e.target.value}:x)})} placeholder="Subject" style={UI.input}/>:
             <a href={gmailUrl(t.tid)} target="_blank" rel="noopener noreferrer" style={{color:"var(--text)",textDecoration:"none",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{fontWeight:600}}>{t.subject||"(no subject)"}</span> <span style={{color:"var(--text-dim)",fontSize:9}}>· {t.from}</span></a>}
-          <span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>{t.intent||"?"}</span>
+          <span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:700}}>{t.intent||"?"}</span>
           <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN}}>{t.date}</span>
           <button onClick={()=>delThread(t.tid)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12}}>×</button>
         </div>)}
     </IntelSection>
-    <IntelSection title="FOLLOW-UPS" count={(data.followUps||[]).length} defaultOpen={true} actions={<button onClick={addFollowUp} style={{...UI.expandBtn(false,"#5B21B6"),fontSize:9}}>+ Add</button>}>
+    <IntelSection title="FOLLOW-UPS" count={(data.followUps||[]).length} defaultOpen={true} actions={<button onClick={addFollowUp} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Add</button>}>
       {(data.followUps||[]).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No follow-ups.</div>:
         data.followUps.map((f,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 100px 80px 100px 28px",gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-3)",fontSize:10,alignItems:"center"}}>
           {f.manual?<input value={f.action||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,action:e.target.value}:x)})} placeholder="Action" style={UI.input}/>:<span>{f.action}</span>}
@@ -1628,7 +1628,7 @@ function IntelPanel(){
       <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em",marginBottom:6}}>CONTACTS</div>
       {data.showContacts.map((c,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 1fr auto",gap:8,padding:"4px 0",borderBottom:"1px solid var(--card-3)",fontSize:10}}>
         <span style={{fontWeight:600}}>{c.name}</span><span style={{color:"var(--text-dim)"}}>{c.role}</span>
-        {c.email&&<a href={`mailto:${c.email}`} style={{color:"#5B21B6",fontSize:9,textDecoration:"none"}}>{c.email}</a>}
+        {c.email&&<a href={`mailto:${c.email}`} style={{color:"var(--accent)",fontSize:9,textDecoration:"none"}}>{c.email}</a>}
       </div>)}
     </div>}
     {(data.sharedByOthers||[]).map((s,i)=>{
@@ -1677,7 +1677,7 @@ function NotesPanel(){
     <div style={{display:"flex",gap:5}}>
       <input value={txt} onChange={e=>setTxt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&add()} placeholder={`Add ${tabN} note…`}
         style={{flex:1,background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:5,fontSize:10,padding:"4px 7px",outline:"none"}}/>
-      <button onClick={add} style={{background:tabN==="public"?"#5B21B6":"var(--text-3)",border:"none",borderRadius:5,color:"#fff",fontSize:10,padding:"4px 12px",cursor:"pointer",fontWeight:700}}>Add</button>
+      <button onClick={add} style={{background:tabN==="public"?"var(--accent)":"var(--text-3)",border:"none",borderRadius:5,color:"#fff",fontSize:10,padding:"4px 12px",cursor:"pointer",fontWeight:700}}>Add</button>
     </div>
   </div>;
 }
@@ -1691,7 +1691,7 @@ function ThemeToggle(){
 function SignOut(){
   const a=useAuth();const user=a?.user;if(!user)return null;
   const initial=(user.email||"?").trim()[0].toUpperCase();
-  return <button title={user.email} onClick={()=>supabase.auth.signOut()} style={{width:22,height:22,borderRadius:"50%",background:"#5B21B6",color:"#fff",fontSize:10,fontWeight:700,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{initial}</button>;
+  return <button title={user.email} onClick={()=>supabase.auth.signOut()} style={{width:22,height:22,borderRadius:"50%",background:"var(--accent)",color:"#fff",fontSize:10,fontWeight:700,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{initial}</button>;
 }
 
 // ── NAV SIDEBAR ──────────────────────────────────────────────────────────────
@@ -1726,7 +1726,7 @@ function NavSidebar(){
   const selRef=useRef(null);
   useEffect(()=>{if(selRef.current&&listRef.current){selRef.current.scrollIntoView({block:"start",behavior:"smooth"});};},[sel,sidebarOpen,tab]);
 
-  const typeColor=t=>t==="travel"?{bg:"#DBEAFE",c:"#a78bfa"}:t==="off"?{bg:"var(--card-2)",c:"var(--text-mute)"}:t==="split"?{bg:"#FEF3C7",c:"#92400E"}:{bg:"#D1FAE5",c:"#047857"};
+  const typeColor=t=>t==="travel"?{bg:"#DBEAFE",c:"var(--link)"}:t==="off"?{bg:"var(--card-2)",c:"var(--text-mute)"}:t==="split"?{bg:"#FEF3C7",c:"#92400E"}:{bg:"#D1FAE5",c:"#047857"};
 
   if(!sidebarOpen)return null;
 
@@ -1737,7 +1737,7 @@ function NavSidebar(){
         <div style={{padding:"10px 12px 8px",borderBottom:"1px solid var(--border)"}}>
           <div style={{fontSize:9,fontWeight:700,color:"var(--text-mute)",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4}}>Next Show</div>
           <div style={{fontSize:12,fontWeight:800,color:"var(--text)",lineHeight:1.2}}>{next.city}</div>
-          <div style={{fontSize:9,color:"var(--text-dim)",marginTop:1}}>{fD(next.date)} · <span style={{color:"#5B21B6",fontWeight:700,fontFamily:MN}}>{dU(next.date)}d</span></div>
+          <div style={{fontSize:9,color:"var(--text-dim)",marginTop:1}}>{fD(next.date)} · <span style={{color:"var(--accent)",fontWeight:700,fontFamily:MN}}>{dU(next.date)}d</span></div>
         </div>
       )}
       {/* Flags */}
@@ -1754,7 +1754,7 @@ function NavSidebar(){
       {/* Off/travel toggle */}
       <div style={{padding:"7px 12px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <span style={{fontSize:9,fontWeight:600,color:"var(--text-dim)"}}>Off / travel days</span>
-        <button onClick={()=>setShowOffDays(v=>!v)} style={{position:"relative",width:28,height:16,borderRadius:99,border:"none",cursor:"pointer",background:showOffDays?"#6D28D9":"#1e1e32",padding:0,transition:"background 0.2s ease",flexShrink:0,boxShadow:"inset 0 1px 3px rgba(0,0,0,0.4)"}}>
+        <button onClick={()=>setShowOffDays(v=>!v)} style={{position:"relative",width:28,height:16,borderRadius:99,border:"none",cursor:"pointer",background:showOffDays?"var(--accent)":"#1e1e32",padding:0,transition:"background 0.2s ease",flexShrink:0,boxShadow:"inset 0 1px 3px rgba(0,0,0,0.4)"}}>
           <span style={{position:"absolute",top:2,left:showOffDays?14:2,width:12,height:12,borderRadius:99,background:showOffDays?"#fff":"#9090b8",transition:"left 0.2s ease,background 0.2s ease",boxShadow:"0 1px 4px rgba(0,0,0,.4)"}}/>
         </button>
       </div>
@@ -1766,21 +1766,21 @@ function NavSidebar(){
           const isOff=d.type==="off"||d.type==="travel";
           const pc=d.type==="show"?pendingCount(d.date):0;
           const days=dU(d.date);
-          const urgColor=days<=7?"#B91C1C":days<=14?"#92400E":days<=21?"#a78bfa":"var(--text-mute)";
+          const urgColor=days<=7?"#B91C1C":days<=14?"#92400E":days<=21?"var(--link)":"var(--text-mute)";
           const dateStr=new Date(d.date+"T12:00:00");
           const mo=dateStr.toLocaleString("en-US",{month:"short"});
           const dt=dateStr.getDate();
           const wd=dateStr.toLocaleString("en-US",{weekday:"short"});
           return(
-            <div key={d.date} ref={isSel?selRef:null} onClick={()=>setSel(d.date)} className="rh" style={{display:"flex",alignItems:"center",gap:0,padding:"6px 10px 6px 0",cursor:"pointer",background:isSel?"rgba(91,33,182,0.16)":"transparent",borderLeft:isSel?"3px solid #7C3AED":"3px solid transparent",opacity:isOff?0.65:1,boxShadow:isSel?"inset 0 0 0 1px rgba(124,58,237,0.18)":undefined}}>
+            <div key={d.date} ref={isSel?selRef:null} onClick={()=>setSel(d.date)} className="rh" style={{display:"flex",alignItems:"center",gap:0,padding:"6px 10px 6px 0",cursor:"pointer",background:isSel?"rgba(91,33,182,0.16)":"transparent",borderLeft:isSel?"3px solid var(--accent-soft)":"3px solid transparent",opacity:isOff?0.65:1,boxShadow:isSel?"inset 0 0 0 1px rgba(124,58,237,0.18)":undefined}}>
               <div style={{width:46,flexShrink:0,textAlign:"center"}}>
-                <div style={{fontSize:8,fontWeight:700,color:isSel?"#a78bfa":"var(--text-mute)",fontFamily:MN,letterSpacing:"0.04em"}}>{wd.toUpperCase()}</div>
-                <div style={{fontSize:14,fontWeight:800,color:isSel?"#c4b5fd":"var(--text)",lineHeight:1}}>{dt}</div>
+                <div style={{fontSize:8,fontWeight:700,color:isSel?"var(--link)":"var(--text-mute)",fontFamily:MN,letterSpacing:"0.04em"}}>{wd.toUpperCase()}</div>
+                <div style={{fontSize:14,fontWeight:800,color:isSel?"var(--accent-pill-border)":"var(--text)",lineHeight:1}}>{dt}</div>
                 <div style={{fontSize:8,color:isSel?"#9333ea":"var(--text-mute)"}}>{mo}</div>
               </div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:1}}>
-                  <span style={{fontSize:10,fontWeight:600,color:isSel?"#c4b5fd":"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.city||d.venue||"—"}</span>
+                  <span style={{fontSize:10,fontWeight:600,color:isSel?"var(--accent-pill-border)":"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.city||d.venue||"—"}</span>
                   {!isOff&&<span style={{fontSize:7,padding:"1px 4px",borderRadius:99,fontWeight:700,...tc,flexShrink:0}}>{d.type==="show"?"▶":"⇢"}</span>}
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:4}}>
@@ -1841,12 +1841,12 @@ function TopBar({ss}){
               if(target)setSel(target);
             }
             setSidebarOpen(v=>!v);
-          }} title="Jump to today" style={{fontSize:12,padding:"3px 7px",borderRadius:5,border:"1px solid var(--border)",background:sidebarOpen?"#5B21B6":"var(--card-3)",color:sidebarOpen?"var(--card)":"var(--text-2)",cursor:"pointer",flexShrink:0}}>☰</button>
+          }} title="Jump to today" style={{fontSize:12,padding:"3px 7px",borderRadius:5,border:"1px solid var(--border)",background:sidebarOpen?"var(--accent)":"var(--card-3)",color:sidebarOpen?"var(--card)":"var(--text-2)",cursor:"pointer",flexShrink:0}}>☰</button>
           <div style={{display:"flex",alignItems:"center",gap:0,flexShrink:0}}>
             <button onClick={()=>stepDate(-1)} disabled={!canPrev} title="Previous date" style={{fontSize:11,padding:"2px 7px",borderRadius:"5px 0 0 5px",border:"1px solid var(--border)",borderRight:"none",background:canPrev?"var(--card-3)":"var(--card-4)",color:canPrev?"var(--text)":"var(--text-mute)",cursor:canPrev?"pointer":"default"}}>‹</button>
             <button onClick={()=>stepDate(1)} disabled={!canNext} title="Next date" style={{fontSize:11,padding:"2px 7px",borderRadius:"0 5px 5px 0",border:"1px solid var(--border)",background:canNext?"var(--card-3)":"var(--card-4)",color:canNext?"var(--text)":"var(--text-mute)",cursor:canNext?"pointer":"default"}}>›</button>
           </div>
-          {next&&<span style={{fontSize:10,fontFamily:MN,color:"#5B21B6",fontWeight:600}}>{next.city} {fD(next.date)} · {dU(next.date)}d</span>}
+          {next&&<span style={{fontSize:10,fontFamily:MN,color:"var(--accent)",fontWeight:600}}>{next.city} {fD(next.date)} · {dU(next.date)}d</span>}
         </div>
         {!mobile&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1,flexShrink:0}}>
           <span style={{fontSize:7,color:"var(--text-mute)",fontFamily:MN,fontWeight:700,letterSpacing:"0.08em"}}>DJ</span>
@@ -1892,7 +1892,7 @@ function TopBar({ss}){
               onDrop={e=>{e.preventDefault();if(dragId&&dragId!==t.id&&reorderTabs)reorderTabs(dragId,t.id);setDragId(null);setOverId(null);}}
               onDragEnd={()=>{setDragId(null);setOverId(null);}}
               onClick={()=>!t.disabled&&setTab(t.id)}
-              style={{padding:mobile?"9px 13px":"6px 12px",fontSize:mobile?12:11,fontWeight:tab===t.id?700:500,color:t.disabled?"var(--text-mute)":tab===t.id?"var(--text)":"var(--text-dim)",background:isOver?"#EDE9FE":"none",border:"none",cursor:t.disabled?"default":mobile?"pointer":isDrag?"grabbing":"grab",borderBottom:tab===t.id?"2px solid #5B21B6":isOver?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:5,flexShrink:0,whiteSpace:"nowrap",opacity:isDrag?0.4:1,transition:"opacity .1s,background .1s",userSelect:"none",minHeight:mobile?40:undefined}}
+              style={{padding:mobile?"9px 13px":"6px 12px",fontSize:mobile?12:11,fontWeight:tab===t.id?700:500,color:t.disabled?"var(--text-mute)":tab===t.id?"var(--text)":"var(--text-dim)",background:isOver?"var(--accent-pill-bg)":"none",border:"none",cursor:t.disabled?"default":mobile?"pointer":isDrag?"grabbing":"grab",borderBottom:tab===t.id?"2px solid var(--accent)":isOver?"2px solid var(--accent)":"2px solid transparent",display:"flex",alignItems:"center",gap:5,flexShrink:0,whiteSpace:"nowrap",opacity:isDrag?0.4:1,transition:"opacity .1s,background .1s",userSelect:"none",minHeight:mobile?40:undefined}}
             >
               <span style={{fontSize:mobile?12:10}}>{t.icon}</span>{t.label}{t.soon&&<span style={{fontSize:7,color:"var(--text-mute)"}}>soon</span>}
             </button>
@@ -1921,7 +1921,7 @@ function DateDrawer({onClose}){
     if(td){if(td.type==="travel"&&td.bus?.route)return td.bus.route;if(td.type==="split")return"Split Day";if(td.type==="off")return"Off";}
     return fD(sel);
   },[sel,tourDays,shows]);
-  const typeStyle=t=>t==="travel"?{bg:"#DBEAFE",c:"#a78bfa",l:"Travel"}:t==="off"?{bg:"var(--bg)",c:"var(--text-mute)",l:"Off"}:t==="split"?{bg:"#FEF3C7",c:"#92400E",l:"Split"}:t==="show"?{bg:"#D1FAE5",c:"#047857",l:"Show"}:null;
+  const typeStyle=t=>t==="travel"?{bg:"#DBEAFE",c:"var(--link)",l:"Travel"}:t==="off"?{bg:"var(--bg)",c:"var(--text-mute)",l:"Off"}:t==="split"?{bg:"#FEF3C7",c:"#92400E",l:"Split"}:t==="show"?{bg:"#D1FAE5",c:"#047857",l:"Show"}:null;
   // Merge tour days with non-tour shows (post-EU shows, festivals). Use tourDays for Apr16-May31, fall back to sorted for everything else.
   const rows=useMemo(()=>{
     const tourIds=new Set((tourDaysSorted||[]).map(d=>d.date));
@@ -1947,13 +1947,13 @@ function DateDrawer({onClose}){
         </div>
         <div style={{padding:"6px 12px",borderBottom:"1px solid var(--border)",display:"flex",gap:4,flexWrap:"wrap"}}>
           {[["all","All"],["show","Show"],["travel","Travel"],["off","Off"],["split","Split"]].map(([v,l])=>(
-            <button key={v} onClick={()=>setFilter(v)} style={{padding:"2px 8px",fontSize:9,fontWeight:700,borderRadius:10,border:`1px solid ${filter===v?"#5B21B6":"var(--border)"}`,background:filter===v?"#EDE9FE":"var(--card)",color:filter===v?"#5B21B6":"var(--text-dim)",cursor:"pointer"}}>{l}</button>
+            <button key={v} onClick={()=>setFilter(v)} style={{padding:"2px 8px",fontSize:9,fontWeight:700,borderRadius:10,border:`1px solid ${filter===v?"var(--accent)":"var(--border)"}`,background:filter===v?"var(--accent-pill-bg)":"var(--card)",color:filter===v?"var(--accent)":"var(--text-dim)",cursor:"pointer"}}>{l}</button>
           ))}
         </div>
         <div style={{flex:1,overflow:"auto",padding:"6px 8px"}}>
           {rows.map(d=>{const isSel=d.date===sel;const ts=typeStyle(d.type);const isDim=d.type==="off";return(
-            <div key={d.date} onClick={()=>{setSel(d.date);onClose();}} className="rh" style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:7,cursor:"pointer",background:isSel?"#EDE9FE":"transparent",borderLeft:isSel?"3px solid #5B21B6":"3px solid transparent",opacity:isDim?0.65:1}}>
-              <div style={{fontFamily:MN,fontSize:10,fontWeight:700,color:isSel?"#5B21B6":"var(--text-2)",width:48,flexShrink:0}}>{fD(d.date)}</div>
+            <div key={d.date} onClick={()=>{setSel(d.date);onClose();}} className="rh" style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:7,cursor:"pointer",background:isSel?"var(--accent-pill-bg)":"transparent",borderLeft:isSel?"3px solid var(--accent)":"3px solid transparent",opacity:isDim?0.65:1}}>
+              <div style={{fontFamily:MN,fontSize:10,fontWeight:700,color:isSel?"var(--accent)":"var(--text-2)",width:48,flexShrink:0}}>{fD(d.date)}</div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontSize:11,fontWeight:600,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.city||"—"}</div>
                 <div style={{fontSize:9,color:"var(--text-dim)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.venue}{d.bus?.note?` · ${d.bus.note}`:""}</div>
@@ -1983,10 +1983,10 @@ function Dash(){
       </div>
       <div style={{fontSize:9,fontWeight:800,color:client.color,letterSpacing:"0.1em",marginBottom:5}}>{client.name.toUpperCase()} — UPCOMING</div>
       <div style={{display:"flex",flexDirection:"column",gap:3}}>
-        {upcoming.map(show=>{const days=dU(show.date),uc=days<=7?"#B91C1C":days<=14?"#92400E":days<=21?"#a78bfa":"var(--text-mute)";const pc=pendingCount(show.date);
+        {upcoming.map(show=>{const days=dU(show.date),uc=days<=7?"#B91C1C":days<=14?"#92400E":days<=21?"var(--link)":"var(--text-mute)";const pc=pendingCount(show.date);
           return(<div key={show.date} onClick={()=>{setSel(show.date);setTab("ros");}} className="br rh" style={{display:"grid",gridTemplateColumns:"34px 58px 1fr auto 54px 30px",alignItems:"center",gap:6,padding:"9px 12px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:9,cursor:"pointer",borderLeft:`3px solid ${uc}`}}>
             <div style={{fontFamily:MN,fontSize:9,color:"var(--text-dim)"}}>{fW(show.date)}</div>
-            <div style={{fontFamily:MN,fontSize:10,color:"#5B21B6",fontWeight:700}}>{fD(show.date)}</div>
+            <div style={{fontFamily:MN,fontSize:10,color:"var(--accent)",fontWeight:700}}>{fD(show.date)}</div>
             <div><div style={{fontSize:11,fontWeight:700}}>{show.city}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{show.venue}</div></div>
             <div style={{display:"flex",gap:3}}>{pc>0&&<span style={{fontSize:8,padding:"2px 5px",borderRadius:3,background:"#FEF3C7",color:"#92400E",fontWeight:700,fontFamily:MN}}>{pc} open</span>}{show.notes?.includes("⚠")&&<span>⚠</span>}</div>
             <div style={{fontFamily:MN,fontSize:9,fontWeight:600,color:show.doorsConfirmed?"#047857":"#92400E",textAlign:"right"}}>{fmt(show.doors)}{show.doorsConfirmed?" ✓":" ?"}</div>
@@ -2098,7 +2098,7 @@ function AdvTab(){
             <select value={emailDept} onChange={e=>setEmailDept(e.target.value)} style={{fontSize:9,padding:"3px 6px",borderRadius:5,border:"1px solid var(--border)",background:"var(--card-3)",color:"var(--text)",cursor:"pointer"}}>
               {DEPTS.map(d=><option key={d.id} value={d.id}>{d.label}</option>)}
             </select>
-            <button onClick={()=>setShowEmail(true)} style={{background:"#5B21B6",border:"none",borderRadius:6,color:"#fff",fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700}}>Generate Email</button>
+            <button onClick={()=>setShowEmail(true)} style={{background:"var(--accent)",border:"none",borderRadius:6,color:"#fff",fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700}}>Generate Email</button>
           </>:<button onClick={()=>setShowEmail(false)} style={{background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-2)",fontSize:10,padding:"4px 10px",cursor:"pointer",fontWeight:600}}>← Checklist</button>}
         </div>
       </div>
@@ -2156,7 +2156,7 @@ function AdvTab(){
                       )}
                       {status==="confirmed"&&meta.confirmedBy&&<div style={{fontSize:8,color:"var(--text-mute)",marginTop:1,fontFamily:MN}}>✓ {meta.confirmedBy} · {fmtAudit(meta.confirmedAt)}</div>}
                       <div style={{display:"flex",alignItems:"center",gap:3,marginTop:4,flexWrap:"wrap"}}>
-                        <span style={{fontSize:7,padding:"1px 5px",borderRadius:3,background:item.dir==="we_provide"?"#EDE9FE":item.dir==="they_provide"?"#D1FAE5":"var(--card-2)",color:item.dir==="we_provide"?"#5B21B6":item.dir==="they_provide"?"#065F46":"var(--text-2)",fontWeight:600}}>{item.dir==="we_provide"?"We":"They"}</span>
+                        <span style={{fontSize:7,padding:"1px 5px",borderRadius:3,background:item.dir==="we_provide"?"var(--accent-pill-bg)":item.dir==="they_provide"?"#D1FAE5":"var(--card-2)",color:item.dir==="we_provide"?"var(--accent)":item.dir==="they_provide"?"#065F46":"var(--text-2)",fontWeight:600}}>{item.dir==="we_provide"?"We":"They"}</span>
                         {item.locked&&<span style={{fontSize:7,color:"var(--text-mute)",fontFamily:MN}}>🔒</span>}
                         {isCustom&&<span style={{fontSize:7,color:dept.color,fontWeight:700}}>custom</span>}
                         {item.private&&<span style={{fontSize:7,color:"var(--text-3)",fontWeight:700,background:"var(--border)",padding:"1px 4px",borderRadius:3}}>private</span>}
@@ -2303,13 +2303,13 @@ function FlightDayStrip({sel}){
   return(
     <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:10,marginBottom:10,overflow:"hidden"}}>
       <div onClick={()=>setOpen(v=>!v)} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",cursor:"pointer",userSelect:"none"}}>
-        <span style={{fontSize:10,fontWeight:800,color:"#a78bfa",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
-        {deps.length>0&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#DBEAFE",color:"#a78bfa",fontWeight:700}}>{deps.length} DEP</span>}
+        <span style={{fontSize:10,fontWeight:800,color:"var(--link)",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
+        {deps.length>0&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#DBEAFE",color:"var(--link)",fontWeight:700}}>{deps.length} DEP</span>}
         {arrs.length>0&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#D1FAE5",color:"#047857",fontWeight:700}}>{arrs.length} ARR</span>}
         {stripMsg&&<span style={{fontSize:9,color:"var(--text-dim)",fontFamily:MN,marginLeft:4}}>{stripMsg}</span>}
         <div style={{marginLeft:"auto",display:"flex",gap:5,alignItems:"center"}} onClick={e=>e.stopPropagation()}>
-          {hasAny>0&&<button onClick={refreshTimes} disabled={refreshing} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"1px solid #93C5FD",background:refreshing?"#DBEAFE":"var(--card)",color:"#a78bfa",cursor:refreshing?"default":"pointer",fontWeight:700,flexShrink:0}}>{refreshing?"…":"↻ Times"}</button>}
-          <button onClick={scanFlights} disabled={scanning} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"none",background:scanning?"#DBEAFE":"#a78bfa",color:scanning?"#a78bfa":"var(--card)",cursor:scanning?"default":"pointer",fontWeight:700,flexShrink:0}}>{scanning?"Scanning…":"Scan Gmail"}</button>
+          {hasAny>0&&<button onClick={refreshTimes} disabled={refreshing} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"1px solid #93C5FD",background:refreshing?"#DBEAFE":"var(--card)",color:"var(--link)",cursor:refreshing?"default":"pointer",fontWeight:700,flexShrink:0}}>{refreshing?"…":"↻ Times"}</button>}
+          <button onClick={scanFlights} disabled={scanning} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"none",background:scanning?"#DBEAFE":"var(--link)",color:scanning?"var(--link)":"var(--card)",cursor:scanning?"default":"pointer",fontWeight:700,flexShrink:0}}>{scanning?"Scanning…":"Scan Gmail"}</button>
         </div>
         <span style={{fontSize:10,color:"#93C5FD",flexShrink:0}}>{open?"▾":"▸"}</span>
       </div>
@@ -2333,13 +2333,13 @@ function FlightDayStrip({sel}){
               <div key={f.id} style={{padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid #DBEAFE":"none",display:"grid",gridTemplateColumns:"auto 1fr auto",gap:"6px 12px",alignItems:"start",...liveStyle}}>
                 {/* Left: type badge */}
                 <div style={{display:"flex",flexDirection:"column",gap:3,alignItems:"center",paddingTop:1}}>
-                  <span style={{fontSize:7,fontWeight:800,padding:"2px 5px",borderRadius:4,background:isDep?"#a78bfa":"#047857",color:"#fff",letterSpacing:"0.06em"}}>{isDep?"DEP":"ARR"}</span>
+                  <span style={{fontSize:7,fontWeight:800,padding:"2px 5px",borderRadius:4,background:isDep?"var(--link)":"#047857",color:"#fff",letterSpacing:"0.06em"}}>{isDep?"DEP":"ARR"}</span>
                   {live?.status&&<span style={{fontSize:7,fontWeight:700,padding:"1px 4px",borderRadius:3,...(STATUS_STYLE[live.status]||STATUS_STYLE.Unknown),background:(STATUS_STYLE[live.status]||STATUS_STYLE.Unknown).bg,color:(STATUS_STYLE[live.status]||STATUS_STYLE.Unknown).c}}>{(STATUS_STYLE[live.status]||STATUS_STYLE.Unknown).label}</span>}
                 </div>
                 {/* Center: flight info */}
                 <div>
                   <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:3}}>
-                    <span style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#a78bfa"}}>{f.from}<span style={{fontSize:10,color:"#93C5FD",fontWeight:400,padding:"0 4px"}}>→</span>{f.to}</span>
+                    <span style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"var(--link)"}}>{f.from}<span style={{fontSize:10,color:"#93C5FD",fontWeight:400,padding:"0 4px"}}>→</span>{f.to}</span>
                     <span style={{fontSize:10,fontWeight:700,color:"#1D4ED8"}}>{f.flightNo||f.carrier}</span>
                     {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{f.carrier}</span>}
                     {f.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>#{f.confirmNo}</span>}
@@ -2358,8 +2358,8 @@ function FlightDayStrip({sel}){
                 <div style={{textAlign:"right"}}>
                   <div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"flex-end"}}>
                     {f.dep&&<div style={{display:"flex",alignItems:"center",gap:5}}>
-                      <span style={{fontSize:8,color:"#a78bfa",fontWeight:700}}>DEP</span>
-                      <span style={{fontFamily:MN,fontSize:12,fontWeight:800,color:live?.depActual&&live.depActual!==f.dep?"#B45309":"#a78bfa"}}>{live?.depActual||f.dep}</span>
+                      <span style={{fontSize:8,color:"var(--link)",fontWeight:700}}>DEP</span>
+                      <span style={{fontFamily:MN,fontSize:12,fontWeight:800,color:live?.depActual&&live.depActual!==f.dep?"#B45309":"var(--link)"}}>{live?.depActual||f.dep}</span>
                       {live?.depActual&&live.depActual!==f.dep&&<span style={{fontFamily:MN,fontSize:9,color:"var(--text-mute)",textDecoration:"line-through"}}>{f.dep}</span>}
                     </div>}
                     {f.arr&&<div style={{display:"flex",alignItems:"center",gap:5}}>
@@ -2446,7 +2446,7 @@ function DayScheduleView({show,bus,split,sel}){
   const addItem=()=>{
     if(!newItem.label.trim())return;
     const tMin=newItem.time?pM(newItem.time):null;
-    const nb={id:`item_${Date.now()}`,label:newItem.label.trim(),time:newItem.time,startMin:tMin,notes:newItem.notes,type:"custom",isDayItem:true,color:"#5B21B6",phase:"pre",duration:60,roles:["tm","pm","ld","driver"]};
+    const nb={id:`item_${Date.now()}`,label:newItem.label.trim(),time:newItem.time,startMin:tMin,notes:newItem.notes,type:"custom",isDayItem:true,color:"var(--accent)",phase:"pre",duration:60,roles:["tm","pm","ld","driver"]};
     uRos(sel,[...allItems,nb]);
     setNewItem({time:"",label:"",notes:""});setAddingItem(false);
   };
@@ -2464,8 +2464,8 @@ function DayScheduleView({show,bus,split,sel}){
           </div>
           <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:MN}}>{fFull(sel)}</div>
         </div>
-        <button onClick={()=>setEditDay(v=>!v)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:`1px solid ${editDay?"#5B21B6":"var(--border)"}`,background:editDay?"#EDE9FE":"var(--card-3)",color:editDay?"#5B21B6":"var(--text-2)",cursor:"pointer",fontWeight:600,flexShrink:0}}>✏ Edit</button>
-        <div style={{fontSize:8,fontWeight:800,padding:"3px 9px",borderRadius:6,background:isTravel?"#DBEAFE":isSplit?"#FEF3C7":"var(--card-2)",color:isTravel?"#a78bfa":isSplit?"#92400E":"var(--text-dim)",letterSpacing:"0.06em",flexShrink:0}}>
+        <button onClick={()=>setEditDay(v=>!v)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:`1px solid ${editDay?"var(--accent)":"var(--border)"}`,background:editDay?"var(--accent-pill-bg)":"var(--card-3)",color:editDay?"var(--accent)":"var(--text-2)",cursor:"pointer",fontWeight:600,flexShrink:0}}>✏ Edit</button>
+        <div style={{fontSize:8,fontWeight:800,padding:"3px 9px",borderRadius:6,background:isTravel?"#DBEAFE":isSplit?"#FEF3C7":"var(--card-2)",color:isTravel?"var(--link)":isSplit?"#92400E":"var(--text-dim)",letterSpacing:"0.06em",flexShrink:0}}>
           {isTravel?"TRAVEL":isSplit?"SPLIT":"OFF"}
         </div>
       </div>
@@ -2520,7 +2520,7 @@ function DayScheduleView({show,bus,split,sel}){
       <div style={{marginBottom:14}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
           <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>TIMELINE{timeline.length>0?` · ${timeline.length}`:""}</div>
-          <button onClick={()=>setAddingItem(true)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid #5B21B6",background:"#EDE9FE",color:"#5B21B6",cursor:"pointer",fontWeight:700}}>+ Add Item</button>
+          <button onClick={()=>setAddingItem(true)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid var(--accent)",background:"var(--accent-pill-bg)",color:"var(--accent)",cursor:"pointer",fontWeight:700}}>+ Add Item</button>
         </div>
         {addingItem&&(
           <div style={{background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:8,padding:"10px 12px",marginBottom:8}}>
@@ -2530,7 +2530,7 @@ function DayScheduleView({show,bus,split,sel}){
             </div>
             <input placeholder="Notes (optional)" value={newItem.notes} onChange={e=>setNewItem(p=>({...p,notes:e.target.value}))} style={{...UI.input,width:"100%",marginBottom:6,boxSizing:"border-box"}}/>
             <div style={{display:"flex",gap:6}}>
-              <button onClick={addItem} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Add</button>
+              <button onClick={addItem} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>Add</button>
               <button onClick={()=>{setAddingItem(false);setNewItem({time:"",label:"",notes:""});}} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Cancel</button>
             </div>
           </div>
@@ -2542,13 +2542,13 @@ function DayScheduleView({show,bus,split,sel}){
               return(
                 <div key="bus" style={{display:"flex",alignItems:"flex-start",gap:8,padding:"10px 12px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:8}}>
                   <div style={{width:44,flexShrink:0,textAlign:"right"}}>
-                    {depMin!=null&&<div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#a78bfa"}}>{fmt(depMin)}</div>}
+                    {depMin!=null&&<div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"var(--link)"}}>{fmt(depMin)}</div>}
                     {arrMin!=null&&<div style={{fontFamily:MN,fontSize:9,color:"var(--text-dim)"}}>{fmt(arrMin)}</div>}
                   </div>
-                  <div style={{width:3,alignSelf:"stretch",background:"#a78bfa",borderRadius:2,opacity:0.4,flexShrink:0}}/>
+                  <div style={{width:3,alignSelf:"stretch",background:"var(--link)",borderRadius:2,opacity:0.4,flexShrink:0}}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-                      <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:"#DBEAFE",color:"#a78bfa",letterSpacing:"0.04em"}}>BUS</span>
+                      <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:"#DBEAFE",color:"var(--link)",letterSpacing:"0.04em"}}>BUS</span>
                       <span style={{fontSize:11,fontWeight:700,color:"var(--text)"}}>{b.route}</span>
                       {b.flag==="⚠"&&<span style={{fontSize:9,color:"#DC2626"}}>⚠</span>}
                     </div>
@@ -2570,15 +2570,15 @@ function DayScheduleView({show,bus,split,sel}){
               return(
                 <div key={entry.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"10px 12px",background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8}}>
                   <div style={{width:44,flexShrink:0,textAlign:"right"}}>
-                    {isDep&&f.dep&&<div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#a78bfa"}}>{f.dep}</div>}
+                    {isDep&&f.dep&&<div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"var(--link)"}}>{f.dep}</div>}
                     {isDep&&f.arr&&<div style={{fontFamily:MN,fontSize:9,color:"#047857"}}>{f.arr}{!sameDay?` (${f.arrDate?.slice(5)})`:""}</div>}
                     {!isDep&&f.arr&&<div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#047857"}}>{f.arr}</div>}
                   </div>
-                  <div style={{width:3,alignSelf:"stretch",background:isDep?"#a78bfa":"#047857",borderRadius:2,opacity:0.5,flexShrink:0}}/>
+                  <div style={{width:3,alignSelf:"stretch",background:isDep?"var(--link)":"#047857",borderRadius:2,opacity:0.5,flexShrink:0}}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
-                      <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:f.type==="bus"?(isDep?"#5B21B6":"#065F46"):isDep?"#a78bfa":"#047857",color:"#fff",letterSpacing:"0.04em"}}>{f.type==="bus"?(isDep?"🚌 DEP":"🚌 ARR"):isDep?"✈ DEP":"✈ ARR"}</span>
-                      <span style={{fontFamily:MN,fontSize:11,fontWeight:800,color:"#a78bfa"}}>{f.from}<span style={{fontWeight:400,color:"#93C5FD",padding:"0 3px"}}>→</span>{f.to}</span>
+                      <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:f.type==="bus"?(isDep?"var(--accent)":"#065F46"):isDep?"var(--link)":"#047857",color:"#fff",letterSpacing:"0.04em"}}>{f.type==="bus"?(isDep?"🚌 DEP":"🚌 ARR"):isDep?"✈ DEP":"✈ ARR"}</span>
+                      <span style={{fontFamily:MN,fontSize:11,fontWeight:800,color:"var(--link)"}}>{f.from}<span style={{fontWeight:400,color:"#93C5FD",padding:"0 3px"}}>→</span>{f.to}</span>
                       <span style={{fontSize:10,fontWeight:700,color:"#1D4ED8"}}>{f.flightNo||f.carrier}</span>
                       {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{f.carrier}</span>}
                     </div>
@@ -2618,7 +2618,7 @@ function DayScheduleView({show,bus,split,sel}){
             // type === "item"
             const item=entry.b;const isEditing=editItemId===item.id;
             return(
-              <div key={item.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"8px 10px",background:"var(--card)",border:`1px solid ${isEditing?"#5B21B6":"var(--border)"}`,borderRadius:8}}>
+              <div key={item.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"8px 10px",background:"var(--card)",border:`1px solid ${isEditing?"var(--accent)":"var(--border)"}`,borderRadius:8}}>
                 {isEditing?(
                   <div style={{flex:1,display:"flex",flexDirection:"column",gap:5}}>
                     <div style={{display:"flex",gap:5}}>
@@ -2627,14 +2627,14 @@ function DayScheduleView({show,bus,split,sel}){
                     </div>
                     <input defaultValue={item.notes||""} onChange={e=>updateItem(item.id,{notes:e.target.value})} placeholder="Notes" style={{...UI.input,width:"100%",boxSizing:"border-box"}}/>
                     <div style={{display:"flex",gap:5}}>
-                      <button onClick={()=>setEditItemId(null)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Done</button>
+                      <button onClick={()=>setEditItemId(null)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>Done</button>
                       <button onClick={()=>{removeItem(item.id);setEditItemId(null);}} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid #FECACA",background:"#FEF2F2",color:"#DC2626",cursor:"pointer"}}>Delete</button>
                     </div>
                   </div>
                 ):(
                   <>
-                    <div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#5B21B6",width:44,flexShrink:0,paddingTop:1,textAlign:"right"}}>{item.startMin!=null?fmt(item.startMin):item.time||"—"}</div>
-                    <div style={{width:3,height:32,background:"#5B21B6",borderRadius:2,flexShrink:0,opacity:0.5,alignSelf:"center"}}/>
+                    <div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"var(--accent)",width:44,flexShrink:0,paddingTop:1,textAlign:"right"}}>{item.startMin!=null?fmt(item.startMin):item.time||"—"}</div>
+                    <div style={{width:3,height:32,background:"var(--accent)",borderRadius:2,flexShrink:0,opacity:0.5,alignSelf:"center"}}/>
                     <div style={{flex:1,minWidth:0,cursor:"pointer"}} onClick={()=>setEditItemId(item.id)}>
                       <div style={{fontSize:11,fontWeight:600,color:"var(--text)"}}>{item.label}</div>
                       {item.notes&&<div style={{fontSize:9,color:"var(--text-dim)",marginTop:2}}>{item.notes}</div>}
@@ -2666,7 +2666,7 @@ function DayScheduleView({show,bus,split,sel}){
       <div>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
           <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>NOTES</div>
-          <button onClick={()=>{if(editNotes)saveNotes();else{setNotesVal(show.notes||"");setEditNotes(true);}}} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:`1px solid ${editNotes?"#5B21B6":"var(--border)"}`,background:editNotes?"#EDE9FE":"var(--card-3)",color:editNotes?"#5B21B6":"var(--text-2)",cursor:"pointer",fontWeight:600}}>
+          <button onClick={()=>{if(editNotes)saveNotes();else{setNotesVal(show.notes||"");setEditNotes(true);}}} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:`1px solid ${editNotes?"var(--accent)":"var(--border)"}`,background:editNotes?"var(--accent-pill-bg)":"var(--card-3)",color:editNotes?"var(--accent)":"var(--text-2)",cursor:"pointer",fontWeight:600}}>
             {editNotes?"Save":"Edit"}
           </button>
         </div>
@@ -2732,7 +2732,7 @@ function EventSwitcher({show,sel}){
         const isA=selEventId===ev.id;
         return(
           <div key={ev.id} style={{display:"flex",alignItems:"center",flexShrink:0}}>
-            <button onClick={()=>setSelEventId(ev.id)} style={{padding:"6px 10px",fontSize:11,fontWeight:isA?700:500,color:isA?"#5B21B6":"var(--text-dim)",border:"none",borderBottom:isA?"2px solid #5B21B6":"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap"}}>
+            <button onClick={()=>setSelEventId(ev.id)} style={{padding:"6px 10px",fontSize:11,fontWeight:isA?700:500,color:isA?"var(--accent)":"var(--text-dim)",border:"none",borderBottom:isA?"2px solid var(--accent)":"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap"}}>
               {ev.name}
             </button>
             <button onClick={()=>setDelId(delId===ev.id?null:ev.id)} style={{background:"none",border:"none",color:"var(--text-faint)",fontSize:12,cursor:"pointer",padding:"0 2px",lineHeight:1}}>×</button>
@@ -2747,7 +2747,7 @@ function EventSwitcher({show,sel}){
       {adding?(
         <div style={{display:"flex",alignItems:"center",gap:5,marginLeft:4,flexShrink:0}}>
           <input autoFocus value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addEvent();if(e.key==="Escape"){setAdding(false);setNewName("");}}} placeholder="Event name" style={{...UI.input,width:130,fontSize:10}}/>
-          <button onClick={addEvent} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Add</button>
+          <button onClick={addEvent} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>Add</button>
           <button onClick={()=>{setAdding(false);setNewName("");}} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>✕</button>
         </div>
       ):(
@@ -2788,7 +2788,7 @@ function ROSTab(){
 
   const setDur=(id,dur)=>uRos(rosKey,blocks.map(b=>b.id===id?{...b,duration:Math.max(0,dur)}:b));
   const setBF=(id,field,val)=>uRos(rosKey,blocks.map(b=>b.id===id?{...b,[field]:val}:b));
-  const addBlock=phase=>{const nb={id:`custom_${Date.now()}`,label:"New Block",duration:30,phase,type:"custom",color:"#5B21B6",roles:["tm"]};const idx=blocks.map((b,i)=>b.phase===phase?i:-1).filter(i=>i>=0).pop();const next=[...blocks];if(idx==null)next.push(nb);else next.splice(idx+1,0,nb);uRos(rosKey,next);setEditB(nb.id);};
+  const addBlock=phase=>{const nb={id:`custom_${Date.now()}`,label:"New Block",duration:30,phase,type:"custom",color:"var(--accent)",roles:["tm"]};const idx=blocks.map((b,i)=>b.phase===phase?i:-1).filter(i=>i>=0).pop();const next=[...blocks];if(idx==null)next.push(nb);else next.splice(idx+1,0,nb);uRos(rosKey,next);setEditB(nb.id);};
   const removeBlock=id=>{uRos(rosKey,blocks.filter(b=>b.id!==id));setEditB(null);};
   const startResize=(b,edge,e)=>{
     e.stopPropagation();e.preventDefault();
@@ -2904,11 +2904,11 @@ function ROSTab(){
       <EventSwitcher show={show} sel={sel}/>
       <div style={{padding:"6px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:10,flexWrap:"wrap",fontSize:11,flexShrink:0,alignItems:"center"}}>
         <span style={{fontWeight:700}}>{effShow.venue}</span><span style={{color:"var(--text-2)",fontSize:10}}>{effShow.promoter}</span>
-        {isCustom&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"#ede9fe",color:"#5B21B6",fontWeight:700}}>Custom ROS</span>}
-        {subEvent&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>{subEvent.name}</span>}
+        {isCustom&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"#ede9fe",color:"var(--accent)",fontWeight:700}}>Custom ROS</span>}
+        {subEvent&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:700}}>{subEvent.name}</span>}
         {effShow.notes&&<span style={{color:"#92400E",fontWeight:600,fontSize:9}}>{effShow.notes}</span>}
         <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-          <button onClick={()=>uEffShow({busSkip:!effShow.busSkip})} title="Toggle Bus Arrival" style={{background:effShow.busSkip?"var(--card-3)":"#DBEAFE",border:`1px solid ${effShow.busSkip?"var(--border)":"#a78bfa"}`,borderRadius:5,color:effShow.busSkip?"var(--text-mute)":"#a78bfa",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{effShow.busSkip?"+ Bus":"✓ Bus"}</button>
+          <button onClick={()=>uEffShow({busSkip:!effShow.busSkip})} title="Toggle Bus Arrival" style={{background:effShow.busSkip?"var(--card-3)":"#DBEAFE",border:`1px solid ${effShow.busSkip?"var(--border)":"var(--link)"}`,borderRadius:5,color:effShow.busSkip?"var(--text-mute)":"var(--link)",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{effShow.busSkip?"+ Bus":"✓ Bus"}</button>
           <button onClick={()=>uEffShow({mgSkip:!effShow.mgSkip})} title="Toggle Meet & Greet" style={{background:effShow.mgSkip?"var(--card-3)":"#D1FAE5",border:`1px solid ${effShow.mgSkip?"var(--border)":"#065F46"}`,borderRadius:5,color:effShow.mgSkip?"var(--text-mute)":"#065F46",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{effShow.mgSkip?"+ M&G":"✓ M&G"}</button>
           <button onClick={()=>{uRos(rosKey,null);setEditB(null);}} style={{background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:5,color:"var(--text-dim)",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:600}}>Reset</button>
         </div>
@@ -2919,7 +2919,7 @@ function ROSTab(){
           return(<div key={ph.k} style={{marginBottom:6}}><div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0 3px"}}><div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",color:"var(--text-dim)"}}>{ph.l}</div><div style={{flex:1,height:1,background:"var(--border)"}}/><div style={{fontSize:8,color:"var(--text-mute)",fontStyle:"italic"}}>{ph.s}</div>{canAdd&&<button onClick={()=>addBlock(ph.k)} title="Add block" style={{background:"none",border:"1px dashed var(--text-faint)",borderRadius:5,color:"var(--text-dim)",fontSize:9,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>+ Block</button>}</div><div style={{display:"flex",flexDirection:"column",gap:3}}>{pb.map(b=>renderB(b))}</div>{!pb.length&&canAdd&&<div style={{fontSize:9,color:"var(--text-mute)",fontStyle:"italic",padding:"4px 0"}}>No blocks — click + Block to add.</div>}</div>);
         })}
         <div style={{marginTop:12,padding:"12px 14px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:12,display:"flex",gap:12,flexWrap:"wrap"}}>
-          {[{l:"Bus ETA",v:fmt(effShow.busArrive),c:"#a78bfa",hide:effShow.busSkip},{l:"Crew Call",v:fmt(effShow.crewCall),c:"#92400E"},{l:"M&G",v:fmt(effShow.mgTime),c:"#065F46",hide:effShow.mgSkip},{l:"Doors",v:fmt(effShow.doors),c:"#166534"},{l:"Headline",v:times.bbno_set?`${fmt(times.bbno_set.s)}–${fmt(times.bbno_set.e)}`:"--",c:"#B91C1C"},{l:"Settlement",v:times.settlement?fmt(times.settlement.s):"--",c:"#854D0E"},{l:"Curfew",v:fmt(effShow.curfew),c:"#7F1D1D"},{l:"Bus Out",v:times.bus_depart?fmt(times.bus_depart.s):"--",c:"#a78bfa",hide:effShow.busSkip}].filter(s=>!s.hide).map((s,i)=><div key={i}><div style={{fontSize:8,color:"var(--text-dim)",marginBottom:1,fontWeight:600}}>{s.l}</div><div style={{fontFamily:MN,fontSize:12,color:s.c,fontWeight:800}}>{s.v}</div></div>)}
+          {[{l:"Bus ETA",v:fmt(effShow.busArrive),c:"var(--link)",hide:effShow.busSkip},{l:"Crew Call",v:fmt(effShow.crewCall),c:"#92400E"},{l:"M&G",v:fmt(effShow.mgTime),c:"#065F46",hide:effShow.mgSkip},{l:"Doors",v:fmt(effShow.doors),c:"#166534"},{l:"Headline",v:times.bbno_set?`${fmt(times.bbno_set.s)}–${fmt(times.bbno_set.e)}`:"--",c:"#B91C1C"},{l:"Settlement",v:times.settlement?fmt(times.settlement.s):"--",c:"#854D0E"},{l:"Curfew",v:fmt(effShow.curfew),c:"#7F1D1D"},{l:"Bus Out",v:times.bus_depart?fmt(times.bus_depart.s):"--",c:"var(--link)",hide:effShow.busSkip}].filter(s=>!s.hide).map((s,i)=><div key={i}><div style={{fontSize:8,color:"var(--text-dim)",marginBottom:1,fontWeight:600}}>{s.l}</div><div style={{fontFamily:MN,fontSize:12,color:s.c,fontWeight:800}}>{s.v}</div></div>)}
         </div>
       </div>
     </div>
@@ -2975,7 +2975,7 @@ function TourCalendar(){
   },[busMap,showMap]);
   const TS={
     show:{l:"SHOW",c:"#047857",b:"#D1FAE5"},
-    travel:{l:"TRAVEL",c:"#a78bfa",b:"#DBEAFE"},
+    travel:{l:"TRAVEL",c:"var(--link)",b:"#DBEAFE"},
     off:{l:"OFF",c:"var(--text-dim)",b:"var(--card-2)"},
     split:{l:"SPLIT",c:"#92400E",b:"#FEF3C7"},
   };
@@ -2984,7 +2984,7 @@ function TourCalendar(){
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:8}}>
         {[
           {l:"Shows",v:days.filter(d=>d.type==="show").length,c:"#047857",b:"#D1FAE5"},
-          {l:"Travel Days",v:days.filter(d=>d.type==="travel").length,c:"#a78bfa",b:"#DBEAFE"},
+          {l:"Travel Days",v:days.filter(d=>d.type==="travel").length,c:"var(--link)",b:"#DBEAFE"},
           {l:"Off Days",v:days.filter(d=>d.type==="off").length,c:"var(--text-dim)",b:"var(--card-2)"},
           {l:"Split Days",v:days.filter(d=>d.type==="split").length,c:"#92400E",b:"#FEF3C7"},
         ].map((s,i)=>(
@@ -3002,7 +3002,7 @@ function TourCalendar(){
           </div>
         ))}
         <span style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN}}>Pieter Smit T26-021201</span>
-        <button onClick={importBusLegs} style={{marginLeft:"auto",fontSize:9,padding:"3px 10px",borderRadius:5,border:"1px solid #5B21B6",background:"#f5f3ff",color:"#5B21B6",cursor:"pointer",fontWeight:700,fontFamily:MN}}>→ Import Legs to Travel Days</button>
+        <button onClick={importBusLegs} style={{marginLeft:"auto",fontSize:9,padding:"3px 10px",borderRadius:5,border:"1px solid var(--accent)",background:"#f5f3ff",color:"var(--accent)",cursor:"pointer",fontWeight:700,fontFamily:MN}}>→ Import Legs to Travel Days</button>
       </div>
       <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
         {days.map((d,i)=>{
@@ -3327,14 +3327,14 @@ function FlightsListView(){
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
       {/* Scan bar */}
       <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-        <span style={{fontSize:10,fontWeight:800,color:"#a78bfa",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
-        <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"#DBEAFE",color:"#a78bfa",fontWeight:700}}>{confirmed.length} confirmed · {pending.length} pending</span>
-        {scanMsg&&<span style={{fontSize:9,color:scanning?"#5B21B6":"var(--text-dim)",fontFamily:MN}}>{scanMsg}</span>}
+        <span style={{fontSize:10,fontWeight:800,color:"var(--link)",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
+        <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"#DBEAFE",color:"var(--link)",fontWeight:700}}>{confirmed.length} confirmed · {pending.length} pending</span>
+        {scanMsg&&<span style={{fontSize:9,color:scanning?"var(--accent)":"var(--text-dim)",fontFamily:MN}}>{scanMsg}</span>}
         {reassignMsg&&<span style={{fontSize:9,color:"#065F46",fontFamily:MN,fontWeight:600}}>{reassignMsg}</span>}
         <div style={{marginLeft:"auto",display:"flex",gap:6,flexWrap:"wrap"}}>
           {confirmed.length>0&&<button onClick={reassignAllFlights} title="Re-match all confirmed flights to tour shows by airport proximity + date window" style={{background:"var(--card-3)",color:"#065F46",border:"1px solid #6EE7B7",borderRadius:6,fontSize:10,padding:"5px 12px",cursor:"pointer",fontWeight:700}}>⟲ Re-match to Shows</button>}
-          {confirmed.length>0&&<button onClick={refreshAllStatus} disabled={refreshingAll} style={{background:refreshingAll?"var(--border)":"var(--card-3)",color:refreshingAll?"var(--text-mute)":"#5B21B6",border:"1px solid var(--border)",borderRadius:6,fontSize:10,padding:"5px 12px",cursor:refreshingAll?"default":"pointer",fontWeight:700}}>{refreshingAll?"Refreshing…":"⟳ Refresh Status"}</button>}
-          <button onClick={scanFlights} disabled={scanning} style={{background:scanning?"var(--border)":"#a78bfa",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"5px 14px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail for Flights"}</button>
+          {confirmed.length>0&&<button onClick={refreshAllStatus} disabled={refreshingAll} style={{background:refreshingAll?"var(--border)":"var(--card-3)",color:refreshingAll?"var(--text-mute)":"var(--accent)",border:"1px solid var(--border)",borderRadius:6,fontSize:10,padding:"5px 12px",cursor:refreshingAll?"default":"pointer",fontWeight:700}}>{refreshingAll?"Refreshing…":"⟳ Refresh Status"}</button>}
+          <button onClick={scanFlights} disabled={scanning} style={{background:scanning?"var(--border)":"var(--link)",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"5px 14px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail for Flights"}</button>
         </div>
       </div>
 
@@ -3342,21 +3342,21 @@ function FlightsListView(){
       {pendingImport.length>0&&(
         <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:10,padding:"10px 12px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-            <span style={{fontSize:9,fontWeight:800,color:"#a78bfa",letterSpacing:"0.06em"}}>NEW — REVIEW BEFORE IMPORTING</span>
-            <button onClick={importAll} style={{fontSize:9,padding:"3px 10px",borderRadius:5,border:"none",background:"#a78bfa",color:"#fff",cursor:"pointer",fontWeight:700}}>Import All ({pendingImport.length})</button>
+            <span style={{fontSize:9,fontWeight:800,color:"var(--link)",letterSpacing:"0.06em"}}>NEW — REVIEW BEFORE IMPORTING</span>
+            <button onClick={importAll} style={{fontSize:9,padding:"3px 10px",borderRadius:5,border:"none",background:"var(--link)",color:"#fff",cursor:"pointer",fontWeight:700}}>Import All ({pendingImport.length})</button>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {groupByReservation(pendingImport).map(g=>(
-              <div key={g.key} style={{display:"flex",flexDirection:"column",gap:4,...(g.isSolo?{}:{borderLeft:"2px solid #C4B5FD",paddingLeft:8})}}>
+              <div key={g.key} style={{display:"flex",flexDirection:"column",gap:4,...(g.isSolo?{}:{borderLeft:"2px solid var(--accent-pill-border)",paddingLeft:8})}}>
                 <ReservationHeader g={g}/>
                 {g.segs.map(f=>(
                   <FlightCard key={f.id} f={f} crew={crew} actions={<>
-                    <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#a78bfa",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
+                    <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"var(--link)",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
                     <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Skip</button>
-                    {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
+                    {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
                   </>}/>
                 ))}
-                {!g.isSolo&&g.segs.length>1&&<button onClick={()=>g.segs.forEach(f=>importFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px dashed #C4B5FD",background:"#EDE9FE",color:"#5B21B6",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Import All {g.segs.length} Segments</button>}
+                {!g.isSolo&&g.segs.length>1&&<button onClick={()=>g.segs.forEach(f=>importFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px dashed var(--accent-pill-border)",background:"var(--accent-pill-bg)",color:"var(--accent)",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Import All {g.segs.length} Segments</button>}
               </div>
             ))}
           </div>
@@ -3370,9 +3370,9 @@ function FlightsListView(){
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {pending.map(f=>{const isConf=confirmingId===f.id;return(
               <FlightCard key={f.id} f={f} crew={crew} onUpdatePax={newPax=>updatePax(f,newPax)} actions={<>
-                <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"#a78bfa",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
+                <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"var(--link)",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
                 <button onClick={()=>uFlight(f.id,{...f,status:"unresolved"})} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Dismiss</button>
-                {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
+                {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
               </>}/>
             );})}
           </div>
@@ -3385,7 +3385,7 @@ function FlightsListView(){
           {dates.map(date=>(
             <div key={date}>
               <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em",marginBottom:6,display:"flex",alignItems:"center",gap:8}}>
-                <button onClick={()=>goToSchedule(date)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:9,fontWeight:800,color:"#5B21B6",letterSpacing:"0.08em",textDecoration:"underline",textDecorationStyle:"dotted",textUnderlineOffset:2}}>{fFull(date)}</button>
+                <button onClick={()=>goToSchedule(date)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:9,fontWeight:800,color:"var(--accent)",letterSpacing:"0.08em",textDecoration:"underline",textDecorationStyle:"dotted",textUnderlineOffset:2}}>{fFull(date)}</button>
                 <div style={{flex:1,height:1,background:"var(--border)"}}/>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:6}}>
@@ -3406,8 +3406,8 @@ function FlightsListView(){
                         {matchBadge(outShow,"← OUT","#FEF3C7","#92400E")}
                         {matchBadge(inShow,"IN →","#D1FAE5","#047857")}
                         {!inShow&&!outShow&&<span style={{fontSize:9,color:"var(--text-mute)",fontStyle:"italic"}}>No show match — add city to airport table to match.</span>}
-                        <button onClick={()=>goToSchedule(f.depDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#a78bfa",cursor:"pointer",fontWeight:700}}>→ Schedule {f.depDate?.slice(5)}</button>
-                        {f.arrDate&&f.arrDate!==f.depDate&&<button onClick={()=>goToSchedule(f.arrDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#a78bfa",cursor:"pointer",fontWeight:700}}>→ Arr {f.arrDate?.slice(5)}</button>}
+                        <button onClick={()=>goToSchedule(f.depDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"var(--link)",cursor:"pointer",fontWeight:700}}>→ Schedule {f.depDate?.slice(5)}</button>
+                        {f.arrDate&&f.arrDate!==f.depDate&&<button onClick={()=>goToSchedule(f.arrDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"var(--link)",cursor:"pointer",fontWeight:700}}>→ Arr {f.arrDate?.slice(5)}</button>}
                         <button onClick={()=>uFlight(f.id,{...f,status:"unresolved"})} style={{marginLeft:"auto",fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-mute)",cursor:"pointer"}}>Remove</button>
                       </>}
                     />
@@ -3427,7 +3427,7 @@ function FlightsListView(){
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {unresolved.map(f=>(
               <FlightCard key={f.id} f={f} crew={crew} actions={<>
-                <button onClick={()=>uFlight(f.id,{...f,status:"pending"})} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#a78bfa",cursor:"pointer",fontWeight:700}}>↩ Restore</button>
+                <button onClick={()=>uFlight(f.id,{...f,status:"pending"})} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"var(--link)",cursor:"pointer",fontWeight:700}}>↩ Restore</button>
                 <button onClick={()=>uFlight(f.id,null)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #FECACA",background:"transparent",color:"#B91C1C",cursor:"pointer"}}>Delete</button>
               </>}/>
             ))}
@@ -3559,7 +3559,7 @@ function TravelDayView(){
             const detail=segType(s)==="air"?`${s.flightNo||""} ${s.carrier||""}`.trim():segType(s)==="ground"?`${s.mode||"drive"}${s.provider?` · ${s.provider}`:""}`:segType(s)==="hotel"?(s.hotelName||""):(s.carrier||s.mode||"");
             const paxList=pax(s);
             return(
-              <div key={s.id} onClick={()=>setActiveId(s.id)} className="rh" style={{display:"grid",gridTemplateColumns:"20px auto 1fr auto",gap:10,padding:"9px 12px",background:"var(--card)",border:`1px solid ${isActive?m.border:"var(--border)"}`,borderLeft:`3px solid ${m.color}`,borderRadius:9,cursor:"pointer",boxShadow:isActive?"0 0 0 2px #EDE9FE":undefined}}>
+              <div key={s.id} onClick={()=>setActiveId(s.id)} className="rh" style={{display:"grid",gridTemplateColumns:"20px auto 1fr auto",gap:10,padding:"9px 12px",background:"var(--card)",border:`1px solid ${isActive?m.border:"var(--border)"}`,borderLeft:`3px solid ${m.color}`,borderRadius:9,cursor:"pointer",boxShadow:isActive?"0 0 0 2px var(--accent-pill-bg)":undefined}}>
                 <div style={{fontSize:14,lineHeight:1,paddingTop:2}}>{m.icon}</div>
                 <div style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:2,flexShrink:0,minWidth:90}}>
                   {paxList.length>0&&<div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
@@ -3576,7 +3576,7 @@ function TravelDayView(){
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
                   {s._role==="arr"&&<span style={{fontSize:7,padding:"2px 5px",borderRadius:3,background:"#D1FAE5",color:"#047857",fontWeight:800,letterSpacing:"0.06em"}}>ARR</span>}
-                  {s.fresh48h&&<span style={{fontSize:7,padding:"2px 5px",borderRadius:3,background:"#EDE9FE",color:"#5B21B6",fontWeight:800,letterSpacing:"0.06em"}}>NEW</span>}
+                  {s.fresh48h&&<span style={{fontSize:7,padding:"2px 5px",borderRadius:3,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:800,letterSpacing:"0.06em"}}>NEW</span>}
                   <button onClick={e=>{e.stopPropagation();if(confirm(`Delete this ${m.label.toLowerCase()}?`)){const prev={...s};uFlight(s.id,{...s,status:"dismissed"});pushUndo(`${m.label} deleted.`,()=>uFlight(s.id,prev));if(activeId===s.id)setActiveId(null);}}} title="Delete segment" style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:13,lineHeight:1,padding:"0 4px"}}>×</button>
                 </div>
               </div>
@@ -3736,7 +3736,7 @@ function TransTab(){
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
       <div style={{padding:"7px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"nowrap",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
         {[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["calendar","Tour Calendar"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`],...(canSeeFestivalDispatch?[["festival","Festival Dispatch"]]:[])].map(([v,l])=>(
-          <button key={v} onClick={()=>setView(v)} style={{padding:"4px 12px",borderRadius:6,border:"1px solid var(--border)",background:view===v?"#5B21B6":"var(--card-3)",color:view===v?"var(--card)":"var(--text-dim)",fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
+          <button key={v} onClick={()=>setView(v)} style={{padding:"4px 12px",borderRadius:6,border:"1px solid var(--border)",background:view===v?"var(--accent)":"var(--card-3)",color:view===v?"var(--card)":"var(--text-dim)",fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
         ))}
         {view==="calendar"&&<div style={{marginLeft:"auto",fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>Apr 16 – May 31 · Internet Explorer EU 2026</div>}
       </div>
@@ -3757,7 +3757,7 @@ function TransTab(){
                     <div style={{fontSize:9,color:"#0369A1"}}>{f.from} · {f.date}</div>
                     {f.showId&&<div style={{fontSize:8,color:"var(--text-dim)",fontFamily:MN}}>{f.showId}</div>}
                   </div>
-                  <a href={gmailUrl(f.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",flexShrink:0}}>email ↗</a>
+                  <a href={gmailUrl(f.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",flexShrink:0}}>email ↗</a>
                 </div>
               ))}
             </div>}
@@ -3848,24 +3848,24 @@ function FinLedger(){
 
   const th=(label,col)=>{
     const active=sortCol===col;
-    return <th onClick={()=>{if(active)setSortDir(d=>-d);else{setSortCol(col);setSortDir(1);}}} style={{padding:"6px 8px",textAlign:"left",fontSize:8,fontWeight:700,color:active?"#5B21B6":"var(--text-dim)",letterSpacing:"0.05em",borderBottom:"1px solid var(--border)",cursor:"pointer",whiteSpace:"nowrap",userSelect:"none",background:"var(--card-3)"}}>
+    return <th onClick={()=>{if(active)setSortDir(d=>-d);else{setSortCol(col);setSortDir(1);}}} style={{padding:"6px 8px",textAlign:"left",fontSize:8,fontWeight:700,color:active?"var(--accent)":"var(--text-dim)",letterSpacing:"0.05em",borderBottom:"1px solid var(--border)",cursor:"pointer",whiteSpace:"nowrap",userSelect:"none",background:"var(--card-3)"}}>
       {label}{active?sortDir===1?" ↑":" ↓":""}
     </th>;
   };
 
-  const CAT_COLOR={Flight:{bg:"#DBEAFE",c:"#a78bfa"},Hotel:{bg:"#FEF9C3",c:"#854D0E"},Payout:{bg:"#EDE9FE",c:"#5B21B6"},Settlement:{bg:"#D1FAE5",c:"#047857"}};
+  const CAT_COLOR={Flight:{bg:"#DBEAFE",c:"var(--link)"},Hotel:{bg:"#FEF9C3",c:"#854D0E"},Payout:{bg:"var(--accent-pill-bg)",c:"var(--accent)"},Settlement:{bg:"#D1FAE5",c:"#047857"}};
 
   return(
     <div style={{flex:1,overflow:"auto",padding:"14px 20px 30px",display:"flex",flexDirection:"column",gap:12}}>
       {/* Filters + totals bar */}
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
         <span style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em"}}>CATEGORY</span>
-        {["all",...cats].map(c=><button key={c} onClick={()=>setFilterCat(c)} style={{fontSize:9,padding:"3px 9px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,background:filterCat===c?"#5B21B6":"var(--card-2)",color:filterCat===c?"var(--card)":"var(--text-2)"}}>{c==="all"?"All":c}</button>)}
+        {["all",...cats].map(c=><button key={c} onClick={()=>setFilterCat(c)} style={{fontSize:9,padding:"3px 9px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,background:filterCat===c?"var(--accent)":"var(--card-2)",color:filterCat===c?"var(--card)":"var(--text-2)"}}>{c==="all"?"All":c}</button>)}
         <span style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em",marginLeft:8}}>CURRENCY</span>
-        {["all",...curs].map(c=><button key={c} onClick={()=>setFilterCur(c)} style={{fontSize:9,padding:"3px 9px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,background:filterCur===c?"#5B21B6":"var(--card-2)",color:filterCur===c?"var(--card)":"var(--text-2)"}}>{c==="all"?"All":c}</button>)}
+        {["all",...curs].map(c=><button key={c} onClick={()=>setFilterCur(c)} style={{fontSize:9,padding:"3px 9px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,background:filterCur===c?"var(--accent)":"var(--card-2)",color:filterCur===c?"var(--card)":"var(--text-2)"}}>{c==="all"?"All":c}</button>)}
         <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
           {Object.entries(totals).map(([cur,amt])=><span key={cur} style={{fontSize:11,fontWeight:800,fontFamily:MN,color:"var(--text)"}}>{cur} {amt.toFixed(2)}</span>)}
-          <button onClick={()=>setUploadOpen(true)} style={{fontSize:9,padding:"3px 10px",borderRadius:6,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>↑ Upload</button>
+          <button onClick={()=>setUploadOpen(true)} style={{fontSize:9,padding:"3px 10px",borderRadius:6,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>↑ Upload</button>
         </div>
       </div>
       {sorted.length===0?(
@@ -3944,7 +3944,7 @@ function FinTab(){
           return(<div key={s.date} onClick={()=>setSelS(s.date)} className="br rh" style={{padding:"7px 12px",cursor:"pointer",borderBottom:"1px solid var(--card-3)",background:isSel?"var(--card-3)":"transparent"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:1}}>
               <span style={{fontFamily:MN,fontSize:9,color:"var(--text-dim)"}}>{fD(s.date)}</span>
-              <span style={{fontSize:7,padding:"1px 4px",borderRadius:3,background:ok?"#D1FAE5":ip?"#DBEAFE":"#FEF3C7",color:ok?"#047857":ip?"#a78bfa":"#92400E",fontWeight:700}}>{ok?"Done":ip?"Active":"Pending"}</span>
+              <span style={{fontSize:7,padding:"1px 4px",borderRadius:3,background:ok?"#D1FAE5":ip?"#DBEAFE":"#FEF3C7",color:ok?"#047857":ip?"var(--link)":"#92400E",fontWeight:700}}>{ok?"Done":ip?"Active":"Pending"}</span>
             </div>
             <div style={{fontSize:10,fontWeight:600,color:past?"var(--text-mute)":"var(--text)"}}>{s.city}</div>
             <div style={{fontSize:9,color:"var(--text-mute)"}}>{s.venue}</div>
@@ -3961,14 +3961,14 @@ function FinTab(){
             </div>
             {(()=>{const ps=(labelIntel?.settlements||[]).filter(s=>s.showId===showIdFor(shows?.[selS]||{}));return ps.length>0?(
               <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:8,padding:"10px 12px",marginBottom:10}}>
-                <div style={{fontSize:9,fontWeight:800,color:"#a78bfa",letterSpacing:"0.08em",marginBottom:6}}>INBOX SETTLEMENTS ({ps.length})</div>
+                <div style={{fontSize:9,fontWeight:800,color:"var(--link)",letterSpacing:"0.08em",marginBottom:6}}>INBOX SETTLEMENTS ({ps.length})</div>
                 {ps.map(s=>(
                   <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0",borderBottom:"1px solid #BFDBFE"}}>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.subject}</div>
                       <div style={{fontSize:9,color:"var(--text-dim)"}}>{s.from} · {s.date}</div>
                     </div>
-                    <a href={gmailUrl(s.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",flexShrink:0}}>open ↗</a>
+                    <a href={gmailUrl(s.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",flexShrink:0}}>open ↗</a>
                   </div>
                 ))}
               </div>
@@ -4016,7 +4016,7 @@ function FinTab(){
                 </tr>)}
                 </tbody>
               </table>
-              {[...new Set((fin.flightExpenses||[]).map(fe=>fe.currency).filter(Boolean))].map(cur=>{const t=(fin.flightExpenses||[]).filter(fe=>fe.currency===cur&&fe.amount!=null).reduce((s,fe)=>s+parseFloat(fe.amount||0),0);return t>0?<div key={cur} style={{marginTop:6,padding:"5px 8px",background:"#EFF6FF",borderRadius:5,fontSize:9,color:"#a78bfa"}}><span style={{fontWeight:700}}>Flight total {cur}: </span><span style={{fontFamily:MN,fontWeight:700}}>{t.toFixed(2)}</span></div>:null;})}
+              {[...new Set((fin.flightExpenses||[]).map(fe=>fe.currency).filter(Boolean))].map(cur=>{const t=(fin.flightExpenses||[]).filter(fe=>fe.currency===cur&&fe.amount!=null).reduce((s,fe)=>s+parseFloat(fe.amount||0),0);return t>0?<div key={cur} style={{marginTop:6,padding:"5px 8px",background:"#EFF6FF",borderRadius:5,fontSize:9,color:"var(--link)"}}><span style={{fontWeight:700}}>Flight total {cur}: </span><span style={{fontFamily:MN,fontWeight:700}}>{t.toFixed(2)}</span></div>:null;})}
             </div>}
             <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"14px"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
@@ -4024,7 +4024,7 @@ function FinTab(){
                   <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>PAYMENT BATCH</div>
                   <div style={{marginTop:2}}>{currencies.map(cur=><span key={cur} style={{fontSize:9,fontFamily:MN,fontWeight:700,color:"var(--text)",marginRight:10}}>{cur} {batchTotal(cur)}</span>)}</div>
                 </div>
-                <button onClick={()=>setAddP(v=>!v)} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"none",cursor:"pointer",fontWeight:700,background:"#5B21B6",color:"#fff"}}>+ Add Payout</button>
+                <button onClick={()=>setAddP(v=>!v)} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"none",cursor:"pointer",fontWeight:700,background:"var(--accent)",color:"#fff"}}>+ Add Payout</button>
               </div>
               {addP&&<div style={{background:"var(--card-3)",borderRadius:8,padding:"10px",marginBottom:10}}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 70px 65px 70px 80px",gap:5,marginBottom:5}}>
@@ -4072,10 +4072,10 @@ function FinTab(){
 const DOC_TYPE_META={
   RECEIPT:{label:"Receipt",bg:"#FEF3C7",c:"#92400E",icon:"🧾"},
   INVOICE:{label:"Invoice",bg:"#FEF3C7",c:"#92400E",icon:"📋"},
-  FLIGHT_CONFIRMATION:{label:"Flight Confirmation",bg:"#DBEAFE",c:"#a78bfa",icon:"✈"},
-  TRAVEL_ITINERARY:{label:"Travel Itinerary",bg:"#DBEAFE",c:"#a78bfa",icon:"🗺"},
+  FLIGHT_CONFIRMATION:{label:"Flight Confirmation",bg:"#DBEAFE",c:"var(--link)",icon:"✈"},
+  TRAVEL_ITINERARY:{label:"Travel Itinerary",bg:"#DBEAFE",c:"var(--link)",icon:"🗺"},
   SHOW_CONTRACT:{label:"Show Contract",bg:"#D1FAE5",c:"#047857",icon:"📄"},
-  VENUE_TECH_PACK:{label:"Venue Tech Pack",bg:"#EDE9FE",c:"#5B21B6",icon:"🔧"},
+  VENUE_TECH_PACK:{label:"Venue Tech Pack",bg:"var(--accent-pill-bg)",c:"var(--accent)",icon:"🔧"},
   EXPENSE_REPORT:{label:"Expense Report",bg:"#FEF3C7",c:"#92400E",icon:"📊"},
   UNKNOWN:{label:"Unknown",bg:"var(--card-2)",c:"var(--text-dim)",icon:"?"},
 };
@@ -4211,7 +4211,7 @@ function FileUploadModal({onClose}){
             onDragLeave={()=>setDragging(false)}
             onDrop={onDrop}
             onClick={()=>fileRef.current?.click()}
-            style={{margin:"16px 18px",border:`2px dashed ${dragging?"#5B21B6":"var(--border)"}`,borderRadius:12,padding:"32px 20px",textAlign:"center",cursor:"pointer",background:dragging?"#F5F3FF":"var(--card-3)",transition:"all .15s"}}
+            style={{margin:"16px 18px",border:`2px dashed ${dragging?"var(--accent)":"var(--border)"}`,borderRadius:12,padding:"32px 20px",textAlign:"center",cursor:"pointer",background:dragging?"#F5F3FF":"var(--card-3)",transition:"all .15s"}}
           >
             <div style={{fontSize:28,marginBottom:8}}>📄</div>
             <div style={{fontSize:12,fontWeight:700,color:"var(--text)",marginBottom:4}}>Drop a file or click to browse</div>
@@ -4244,7 +4244,7 @@ function FileUploadModal({onClose}){
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
                   <span style={{fontSize:10,fontWeight:800,padding:"2px 9px",borderRadius:10,background:meta.bg,color:meta.c}}>{meta.label}</span>
                   <span style={{fontSize:9,color:"var(--text-mute)"}}>{Math.round((result.confidence||0)*100)}% confidence</span>
-                  <button onClick={()=>{setResult(null);setFile(null);setError("");setApplied("");}} style={{marginLeft:"auto",fontSize:9,color:"#5B21B6",background:"none",border:"none",cursor:"pointer",fontWeight:700}}>↩ Re-upload</button>
+                  <button onClick={()=>{setResult(null);setFile(null);setError("");setApplied("");}} style={{marginLeft:"auto",fontSize:9,color:"var(--accent)",background:"none",border:"none",cursor:"pointer",fontWeight:700}}>↩ Re-upload</button>
                 </div>
                 <div style={{fontSize:11,color:"var(--text)",fontWeight:500}}>{result.summary}</div>
                 {file&&<div style={{fontSize:9,color:"var(--text-mute)",marginTop:2}}>{file.name}</div>}
@@ -4269,7 +4269,7 @@ function FileUploadModal({onClose}){
               <div style={{display:"flex",flexDirection:"column",gap:5}}>
                 {result.flights.map((f,i)=>(
                   <div key={i} style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:7,padding:"8px 10px",display:"flex",alignItems:"center",gap:10}}>
-                    <span style={{fontSize:9,fontWeight:800,padding:"2px 5px",borderRadius:3,background:"#a78bfa",color:"#fff",flexShrink:0}}>{f.flightNo||f.carrier}</span>
+                    <span style={{fontSize:9,fontWeight:800,padding:"2px 5px",borderRadius:3,background:"var(--link)",color:"#fff",flexShrink:0}}>{f.flightNo||f.carrier}</span>
                     <span style={{fontSize:10,color:"var(--text)",flex:1}}>{f.fromCity||f.from} → {f.toCity||f.to}</span>
                     <span style={{fontFamily:MN,fontSize:9,color:"var(--text-dim)",whiteSpace:"nowrap"}}>{f.depDate} {f.dep}</span>
                     {f.pax?.length>0&&<span style={{fontSize:9,color:"var(--text-mute)"}}>{f.pax.join(", ")}</span>}
@@ -4292,7 +4292,7 @@ function FileUploadModal({onClose}){
             {isTechPack&&result.techPack&&(
               <div style={{background:"#F5F3FF",border:"1px solid #DDD6FE",borderRadius:8,padding:"10px 12px",display:"flex",flexDirection:"column",gap:5}}>
                 {[["Venue",result.techPack.venueName],["City",result.techPack.city],["Stage",result.techPack.stageDimensions],["Rigging",result.techPack.riggingPoints],["Power",result.techPack.powerSpec],["Load-in",result.techPack.loadIn],["Curfew",result.techPack.curfew]].filter(([,v])=>v).map(([k,v])=>(
-                  <div key={k} style={{display:"flex",gap:10,fontSize:10}}><span style={{color:"#5B21B6",minWidth:80,fontWeight:600}}>{k}</span><span style={{color:"var(--text)"}}>{v}</span></div>
+                  <div key={k} style={{display:"flex",gap:10,fontSize:10}}><span style={{color:"var(--accent)",minWidth:80,fontWeight:600}}>{k}</span><span style={{color:"var(--text)"}}>{v}</span></div>
                 ))}
                 {result.techPack.notes&&<div style={{fontSize:9,color:"var(--text-dim)",marginTop:2}}>{result.techPack.notes}</div>}
               </div>
@@ -4322,13 +4322,13 @@ function FileUploadModal({onClose}){
                   <button onClick={applyReceipt} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"#92400E",color:"#fff",cursor:"pointer",fontWeight:700}}>Add to Ledger</button>
                 )}
                 {isFlight&&result.flights?.length>0&&(
-                  <button onClick={applyFlights} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"#a78bfa",color:"#fff",cursor:"pointer",fontWeight:700}}>Import {result.flights.length} Flight{result.flights.length>1?"s":""}</button>
+                  <button onClick={applyFlights} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"var(--link)",color:"#fff",cursor:"pointer",fontWeight:700}}>Import {result.flights.length} Flight{result.flights.length>1?"s":""}</button>
                 )}
                 {isContract&&result.show?.date&&(
                   <button onClick={applyContract} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"#047857",color:"#fff",cursor:"pointer",fontWeight:700}}>Create Show</button>
                 )}
                 {isTechPack&&result.techPack&&(
-                  <button onClick={applyTechPack} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Apply to Production</button>
+                  <button onClick={applyTechPack} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>Apply to Production</button>
                 )}
                 {isExpense&&result.expenses?.length>0&&(
                   <button onClick={applyExpenseReport} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"#92400E",color:"#fff",cursor:"pointer",fontWeight:700}}>Import {result.expenses.length} Expenses</button>
@@ -4392,11 +4392,11 @@ function CmdP(){
         <input ref={ref} value={q} onChange={e=>setQ(e.target.value)} placeholder="Search shows, views, actions..." onKeyDown={onKey} style={{width:"100%",padding:mobile?"16px 18px":"14px 18px",background:"transparent",border:"none",borderBottom:"1px solid var(--border)",color:"var(--text)",fontSize:mobile?16:14,outline:"none",fontWeight:500}}/>
         <div ref={listRef} style={{maxHeight:360,overflow:"auto"}}>
           {res.length===0&&<div style={{padding:"22px 18px",textAlign:"center",fontSize:11,color:"var(--text-mute)"}}>No matches. Press <kbd style={{fontFamily:MN,fontSize:10,padding:"1px 5px",background:"var(--card-2)",borderRadius:3}}>Esc</kbd> to close.</div>}
-          {res.map((r,i)=>{const active=i===sel1;return <div key={`${r.type}-${r.id}-${i}`} data-idx={i} onClick={()=>go(r)} onMouseEnter={()=>setSel1(i)} style={{padding:mobile?"12px 18px":"10px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,background:active?"#EDE9FE":"transparent",borderBottom:"1px solid var(--card-3)",borderLeft:active?"3px solid #5B21B6":"3px solid transparent"}}>
-            <span style={{fontSize:11,color:active?"#5B21B6":"var(--text-dim)",width:16,fontFamily:MN,fontWeight:700}}>{r.type==="tab"||r.type==="action"?r.icon:r.type==="client"?CM[r.id]?.short||"●":fW(r.id)}</span>
+          {res.map((r,i)=>{const active=i===sel1;return <div key={`${r.type}-${r.id}-${i}`} data-idx={i} onClick={()=>go(r)} onMouseEnter={()=>setSel1(i)} style={{padding:mobile?"12px 18px":"10px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,background:active?"var(--accent-pill-bg)":"transparent",borderBottom:"1px solid var(--card-3)",borderLeft:active?"3px solid var(--accent)":"3px solid transparent"}}>
+            <span style={{fontSize:11,color:active?"var(--accent)":"var(--text-dim)",width:16,fontFamily:MN,fontWeight:700}}>{r.type==="tab"||r.type==="action"?r.icon:r.type==="client"?CM[r.id]?.short||"●":fW(r.id)}</span>
             <div style={{flex:1,minWidth:0}}><div style={{fontSize:mobile?13:12,color:"var(--text)",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.label}</div>{r.sub&&<div style={{fontSize:10,color:"var(--text-dim)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.sub}</div>}</div>
             {r.cId&&<div style={{width:7,height:7,borderRadius:"50%",background:CM[r.cId]?.color||"var(--text-mute)"}}/>}
-            <span style={{fontSize:8,color:active?"#5B21B6":"var(--text-mute)",fontFamily:MN,letterSpacing:"0.04em",textTransform:"uppercase"}}>{r.type}</span>
+            <span style={{fontSize:8,color:active?"var(--accent)":"var(--text-mute)",fontFamily:MN,letterSpacing:"0.04em",textTransform:"uppercase"}}>{r.type}</span>
           </div>;})}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:12,padding:"7px 14px",borderTop:"1px solid var(--border)",background:"var(--card-4)",fontSize:9,color:"var(--text-dim)",fontFamily:MN}}>
@@ -4420,13 +4420,13 @@ function LifecyclePills({crewId,date,state,slots,onJump,compact}){
     ok:{bg:"#D1FAE5",c:"#047857",bd:"#6EE7B7"},
     missing:{bg:"#FEF3C7",c:"#92400E",bd:"#FDE68A"},
     na:{bg:"var(--card-2)",c:"var(--text-mute)",bd:"var(--border)"},
-    unknown:{bg:"#EDE9FE",c:"#5B21B6",bd:"#C4B5FD"},
+    unknown:{bg:"var(--accent-pill-bg)",c:"var(--accent)",bd:"var(--accent-pill-border)"},
   }[s]||{bg:"var(--card-2)",c:"var(--text-mute)",bd:"var(--border)"});
   const stateLabel={"bus-mid":"ON BUS","bus-join":"BUS JOIN","bus-leave":"BUS LEAVE","bus-solo":"BUS · SOLO","fly-one-off":"FLY · HOTEL"}[state]||"";
   const missing=slots.filter(s=>s.state==="missing").length;
   return(
     <div style={{display:"inline-flex",alignItems:"center",gap:4,flexWrap:"wrap"}} title={`${stateLabel}${missing?` — ${missing} missing`:""}`}>
-      {!compact&&<span style={{fontSize:7,padding:"1px 5px",borderRadius:3,background:state==="fly-one-off"?"#EDE9FE":"#DBEAFE",color:state==="fly-one-off"?"#5B21B6":"#a78bfa",fontWeight:800,letterSpacing:"0.06em"}}>{stateLabel}</span>}
+      {!compact&&<span style={{fontSize:7,padding:"1px 5px",borderRadius:3,background:state==="fly-one-off"?"var(--accent-pill-bg)":"#DBEAFE",color:state==="fly-one-off"?"var(--accent)":"var(--link)",fontWeight:800,letterSpacing:"0.06em"}}>{stateLabel}</span>}
       {slots.map(s=>{const col=color(s.state);return(
         <button key={s.key} onClick={e=>{e.stopPropagation();onJump?.(s);}} title={`${s.label} — ${s.state==="ok"?"confirmed":s.state==="missing"?"missing":s.state==="unknown"?"not tracked":"not applicable"}`} style={{display:"inline-flex",alignItems:"center",gap:3,fontSize:compact?9:10,padding:compact?"2px 5px":"2px 7px",borderRadius:10,border:`1px solid ${col.bd}`,background:col.bg,color:col.c,cursor:"pointer",fontWeight:700,lineHeight:1}}>
           <span style={{fontSize:compact?9:10}}>{s.icon}</span>
@@ -4523,7 +4523,7 @@ function CrewTab(){
   const TRAVEL_MODES=["bus","fly","local","vendor","drive"];
   const LEG_STATUS=["pending","confirmed","cancelled"];
   const inp={background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:5,fontSize:10,padding:"4px 6px",outline:"none",width:"100%",fontFamily:"'Outfit',system-ui"};
-  const btn=(bg="#5B21B6",col="var(--card)")=>({background:bg,border:"none",borderRadius:6,color:col,fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700});
+  const btn=(bg="var(--accent)",col="var(--card)")=>({background:bg,border:"none",borderRadius:6,color:col,fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700});
 
   const dateLabel=(d)=>{const s=shows[d];const td=tourDaysSorted.find(x=>x.date===d);if(s)return s.city||s.venue||fD(d);if(td?.type==="travel"&&td?.bus?.route)return td.bus.route;return fD(d);};
   const dayType=(d)=>{const s=shows[d];if(s)return s.type||"show";const td=tourDaysSorted.find(x=>x.date===d);return td?.type||"off";};
@@ -4536,10 +4536,10 @@ function CrewTab(){
       <div style={{padding:"6px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:8,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
         <span style={{fontWeight:700,fontSize:12}}>{show?.venue||dateLabel(sel)}</span>
         <span style={{fontSize:11,color:"var(--text-dim)"}}>{show?.city||""}{show?.city?" · ":""}{fFull(sel)}</span>
-        <span style={{fontSize:9,padding:"2px 7px",borderRadius:12,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>{attending.length} attending</span>
+        <span style={{fontSize:9,padding:"2px 7px",borderRadius:12,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:700}}>{attending.length} attending</span>
         <div style={{marginLeft:"auto",display:"flex",gap:5}}>
-          <button onClick={()=>setTab("transport")} title="Open per-date travel view for all crew" style={{...btn("var(--card-3)","#5B21B6"),border:"1px solid #c4b5fd"}}>🧭 Travel Day →</button>
-          <button onClick={()=>setEditMode(v=>!v)} style={btn(editMode?"#5B21B6":"var(--card-3)",editMode?"var(--card)":"var(--text-2)")}>{editMode?"Done Editing":"Edit Roster"}</button>
+          <button onClick={()=>setTab("transport")} title="Open per-date travel view for all crew" style={{...btn("var(--card-3)","var(--accent)"),border:"1px solid var(--accent-pill-border)"}}>🧭 Travel Day →</button>
+          <button onClick={()=>setEditMode(v=>!v)} style={btn(editMode?"var(--accent)":"var(--card-3)",editMode?"var(--card)":"var(--text-2)")}>{editMode?"Done Editing":"Edit Roster"}</button>
           <button onClick={addMember} style={btn()}>+ Add</button>
         </div>
       </div>
@@ -4561,7 +4561,7 @@ function CrewTab(){
             const MB=(mode,conf)=>{
               const isFly=mode==="fly";
               return <span style={{display:"inline-flex",alignItems:"center",gap:4}}>
-                <span style={{fontSize:7,padding:"1px 5px",borderRadius:3,fontWeight:700,background:isFly?"#EDE9FE":"var(--card-2)",color:isFly?"#5B21B6":"var(--text-2)",textTransform:"uppercase"}}>{mode.slice(0,3)}</span>
+                <span style={{fontSize:7,padding:"1px 5px",borderRadius:3,fontWeight:700,background:isFly?"var(--accent-pill-bg)":"var(--card-2)",color:isFly?"var(--accent)":"var(--text-2)",textTransform:"uppercase"}}>{mode.slice(0,3)}</span>
                 <span style={{fontSize:7,padding:"1px 6px",borderRadius:3,fontWeight:700,background:conf?"#D1FAE5":"#FEE2E2",color:conf?"#047857":"#B91C1C"}}>{conf?"Confirmed":"Unconfirmed"}</span>
               </span>;
             };
@@ -4618,7 +4618,7 @@ function CrewTab(){
                 <div style={{background:"var(--card-3)",borderTop:"1px solid var(--card-3)",borderBottom:"1px solid var(--card-3)",padding:"12px 14px",display:"flex",flexDirection:"column",gap:12}}>
                   {/* Lodging badge */}
                   {(()=>{const crewHotels=Object.values(lodging).filter(h=>h.checkIn<=sel&&h.checkOut>=sel&&(h.rooms||[]).some(r=>r.crewId===c.id));return crewHotels.length>0&&(<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",padding:"5px 8px",background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:7}}>
-                    <span style={{fontSize:9,fontWeight:700,color:"#a78bfa",letterSpacing:"0.04em"}}>LODGING</span>
+                    <span style={{fontSize:9,fontWeight:700,color:"var(--link)",letterSpacing:"0.04em"}}>LODGING</span>
                     {crewHotels.map(h=>{const room=(h.rooms||[]).find(r=>r.crewId===c.id);return(<span key={h.id} style={{fontSize:11,color:"var(--text)",fontWeight:600}}>{h.name}{room?.roomNo&&<span style={{fontFamily:MN,color:"var(--text-dim)",marginLeft:4}}>#{room.roomNo}</span>}{room?.type&&<span style={{color:"var(--text-mute)",fontSize:9,marginLeft:4}}>{room.type}</span>}</span>);})}
                     <button onClick={()=>setTab("lodging")} style={{marginLeft:"auto",fontSize:9,padding:"2px 7px",borderRadius:5,border:"none",background:"#3B82F6",color:"#fff",cursor:"pointer",fontWeight:700}}>→ Lodging</button>
                   </div>);})()}
@@ -4645,8 +4645,8 @@ function CrewTab(){
                             {(cd[dir]||[]).map(leg=>{
                               const isAssigned=!!leg.flightId;
                               return isAssigned?(
-                                <div key={leg.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"#EDE9FE",borderRadius:6,border:"1px solid #c4b5fd"}}>
-                                  <span style={{fontSize:9,fontWeight:700,color:"#5B21B6",whiteSpace:"nowrap"}}>✈ {leg.flight||"—"}</span>
+                                <div key={leg.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"var(--accent-pill-bg)",borderRadius:6,border:"1px solid var(--accent-pill-border)"}}>
+                                  <span style={{fontSize:9,fontWeight:700,color:"var(--accent)",whiteSpace:"nowrap"}}>✈ {leg.flight||"—"}</span>
                                   <span style={{fontSize:9,color:"var(--text-2)",flex:1}}>{leg.fromCity||leg.from} → {leg.toCity||leg.to}</span>
                                   {leg.depart&&<span style={{fontSize:9,fontFamily:MN,color:"var(--text-dim)",whiteSpace:"nowrap"}}>{leg.depart}{leg.arrive?` → ${leg.arrive}`:""}</span>}
                                   {leg.conf&&<span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN,whiteSpace:"nowrap"}}>#{leg.conf}</span>}
@@ -4666,9 +4666,9 @@ function CrewTab(){
                             })}
                             {/* Flight picker dropdown */}
                             {flightPicker?.crewId===c.id&&flightPicker?.dir===dir?(
-                              <div style={{background:"var(--card)",border:"1px solid #c4b5fd",borderRadius:8,overflow:"hidden",boxShadow:"0 4px 16px rgba(0,0,0,0.10)"}}>
+                              <div style={{background:"var(--card)",border:"1px solid var(--accent-pill-border)",borderRadius:8,overflow:"hidden",boxShadow:"0 4px 16px rgba(0,0,0,0.10)"}}>
                                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 10px",borderBottom:"1px solid var(--border)",background:"var(--card-3)"}}>
-                                  <span style={{fontSize:9,fontWeight:800,color:"#5B21B6",letterSpacing:"0.06em"}}>ASSIGN FLIGHT — {dir==="inbound"?"ARRIVALS":"DEPARTURES"} {fD(sel)}</span>
+                                  <span style={{fontSize:9,fontWeight:800,color:"var(--accent)",letterSpacing:"0.06em"}}>ASSIGN FLIGHT — {dir==="inbound"?"ARRIVALS":"DEPARTURES"} {fD(sel)}</span>
                                   <button onClick={()=>setFlightPicker(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-mute)",fontSize:14,padding:0,lineHeight:1}}>×</button>
                                 </div>
                                 {flightsForDir(dir).length===0?(
@@ -4677,11 +4677,11 @@ function CrewTab(){
                                   const alreadyAssigned=(cd[dir]||[]).some(l=>l.flightId===f.id);
                                   return(
                                     <div key={f.id} onClick={()=>!alreadyAssigned&&assignFlight(c.id,dir,f)} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",borderBottom:"1px solid var(--card-3)",cursor:alreadyAssigned?"default":"pointer",background:alreadyAssigned?"var(--card-3)":"var(--card)",opacity:alreadyAssigned?0.6:1}} className="rh">
-                                      <span style={{fontSize:10,fontWeight:700,color:"#5B21B6",minWidth:60}}>{f.flightNo||f.carrier}</span>
+                                      <span style={{fontSize:10,fontWeight:700,color:"var(--accent)",minWidth:60}}>{f.flightNo||f.carrier}</span>
                                       <span style={{fontSize:10,flex:1,color:"var(--text)"}}>{f.fromCity||f.from} → {f.toCity||f.to}</span>
                                       <span style={{fontSize:9,fontFamily:MN,color:"var(--text-dim)"}}>{f.dep} → {f.arr}</span>
                                       {f.pax?.length>0&&<span style={{fontSize:8,color:"var(--text-mute)"}}>{f.pax.join(", ")}</span>}
-                                      {alreadyAssigned?<span style={{fontSize:8,color:"#047857",fontWeight:700}}>✓ Assigned</span>:<span style={{fontSize:9,color:"#5B21B6",fontWeight:700}}>Assign →</span>}
+                                      {alreadyAssigned?<span style={{fontSize:8,color:"#047857",fontWeight:700}}>✓ Assigned</span>:<span style={{fontSize:9,color:"var(--accent)",fontWeight:700}}>Assign →</span>}
                                     </div>
                                   );
                                 })}
@@ -4691,7 +4691,7 @@ function CrewTab(){
                               </div>
                             ):(
                               <div style={{display:"flex",gap:6}}>
-                                <button onClick={()=>setFlightPicker({crewId:c.id,dir})} style={{...btn("#5B21B6"),fontSize:9,padding:"3px 10px"}}>✈ Assign Flight</button>
+                                <button onClick={()=>setFlightPicker({crewId:c.id,dir})} style={{...btn("var(--accent)"),fontSize:9,padding:"3px 10px"}}>✈ Assign Flight</button>
                                 <button onClick={()=>addLeg(c.id,dir)} style={{...btn("var(--text-dim)"),fontSize:9,padding:"3px 9px"}}>+ Manual</button>
                               </div>
                             )}
@@ -4719,7 +4719,7 @@ function CrewTab(){
             <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em",marginBottom:8}}>ATTENDING ({attending.length})</div>
             <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
               {attending.map(c=>{const cd=getCD(c.id);const hasFly=cd.inboundMode==="fly"||cd.outboundMode==="fly";const sameMode=cd.inboundMode===cd.outboundMode;const bothConfirmed=cd.inboundConfirmed&&cd.outboundConfirmed;const noneConfirmed=!cd.inboundConfirmed&&!cd.outboundConfirmed;return(
-                <span key={c.id} style={{fontSize:10,padding:"3px 9px",borderRadius:20,background:hasFly?"#EDE9FE":"var(--card-2)",color:hasFly?"#5B21B6":"var(--text-2)",fontWeight:600,border:`1px solid ${bothConfirmed?"#6EE7B7":noneConfirmed?"#FDE68A":"var(--border)"}`}}>
+                <span key={c.id} style={{fontSize:10,padding:"3px 9px",borderRadius:20,background:hasFly?"var(--accent-pill-bg)":"var(--card-2)",color:hasFly?"var(--accent)":"var(--text-2)",fontWeight:600,border:`1px solid ${bothConfirmed?"#6EE7B7":noneConfirmed?"#FDE68A":"var(--border)"}`}}>
                   {c.name} <span style={{opacity:0.6,fontSize:8,textTransform:"uppercase"}}>{sameMode?cd.inboundMode:`${cd.inboundMode}→${cd.outboundMode}`}</span>{bothConfirmed&&<span style={{fontSize:8,color:"#047857",marginLeft:3}}>✓</span>}
                 </span>);
               })}
@@ -4771,7 +4771,7 @@ const MANIFEST_SEED=[
 
 const PROD_DEPTS=["ALL","LIGHTING","VIDEO","AUDIO","LASERS","POWER_DISTRO","STAGING","SFX","TRANSPORT","OTHER"];
 const SEV_STYLES={CRITICAL:{bg:"#FEF2F2",c:"#DC2626",b:"#FECACA"},HIGH:{bg:"#FFF7ED",c:"#C2410C",b:"#FED7AA"},MEDIUM:{bg:"#FEFCE8",c:"#A16207",b:"#FEF08A"},LOW:{bg:"#F0FDF4",c:"#166534",b:"#BBF7D0"}};
-const POS_STYLES={fly:{bg:"#EDE9FE",c:"#5B21B6"},ground:{bg:"#DCFCE7",c:"#166534"},tower:{bg:"#FEF3C7",c:"#92400E"},touring_carry:{bg:"#DBEAFE",c:"#a78bfa"},TBD:{bg:"var(--card-2)",c:"var(--text-dim)"}};
+const POS_STYLES={fly:{bg:"var(--accent-pill-bg)",c:"var(--accent)"},ground:{bg:"#DCFCE7",c:"#166534"},tower:{bg:"#FEF3C7",c:"#92400E"},touring_carry:{bg:"#DBEAFE",c:"var(--link)"},TBD:{bg:"var(--card-2)",c:"var(--text-dim)"}};
 
 // Venue Grid 4.21 — seeded from bbno$ EU Production Binder
 const VENUE_GRID={
@@ -5072,7 +5072,7 @@ function VenueBrief({vg,sel,data,upd}){
         <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
           <input value={newLinkLabel} onChange={e=>setNewLinkLabel(e.target.value)} placeholder="Label (e.g. Venue Tech Pack)" style={{...UI.input,flex:1,minWidth:120}}/>
           <input value={newLinkUrl} onChange={e=>setNewLinkUrl(e.target.value)} placeholder="URL" style={{...UI.input,flex:2,minWidth:160}}/>
-          <button onClick={addLink} disabled={!newLinkLabel.trim()||!newLinkUrl.trim()} style={{fontSize:10,fontWeight:700,padding:"4px 10px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",opacity:(!newLinkLabel.trim()||!newLinkUrl.trim())?0.4:1}}>Add</button>
+          <button onClick={addLink} disabled={!newLinkLabel.trim()||!newLinkUrl.trim()} style={{fontSize:10,fontWeight:700,padding:"4px 10px",borderRadius:5,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",opacity:(!newLinkLabel.trim()||!newLinkUrl.trim())?0.4:1}}>Add</button>
         </div>
       </div>
     </div>
@@ -5088,7 +5088,7 @@ function VenueBrief({vg,sel,data,upd}){
       <div style={{display:"grid",gridTemplateColumns:window.innerWidth>600?"1fr 1fr":"1fr",gap:0}}>
         <div style={{paddingRight:6}}>
           {/* Venue info */}
-          <VBSection title="Venue" accent="#a78bfa">
+          <VBSection title="Venue" accent="var(--link)">
             <VBRow label="Capacity" value={vg.capacity?.toLocaleString()}/>
             <VBRow label="Address" value={vg.address}/>
             <VBRow label="Design Ver" value={vg.designVer}/>
@@ -5103,7 +5103,7 @@ function VenueBrief({vg,sel,data,upd}){
           </VBSection>
 
           {/* Stage */}
-          <VBSection title="Stage & Rigging" accent="#5B21B6">
+          <VBSection title="Stage & Rigging" accent="var(--accent)">
             <VBRow label="Stage Dims" value={vg.stageDims}/>
             <VBRow label="Rigging" value={vg.rigging}/>
             <VBRow label="Rigging Notes" value={vg.riggingNotes}/>
@@ -5124,7 +5124,7 @@ function VenueBrief({vg,sel,data,upd}){
           </VBSection>
 
           {/* LX */}
-          <VBSection title="Lighting" accent="#7C3AED">
+          <VBSection title="Lighting" accent="var(--accent-soft)">
             <VBRow label="LX Notes" value={vg.lxNotes}/>
           </VBSection>
 
@@ -5185,18 +5185,18 @@ function VenueBrief({vg,sel,data,upd}){
       <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:12,marginTop:4}}>
         <div style={{...UI.sectionLabel,marginBottom:8}}>Document Links</div>
         {links.length>0&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
-          {links.map(lnk=><div key={lnk.id} style={{display:"flex",alignItems:"center",gap:4,background:"#EDE9FE",borderRadius:5,padding:"3px 8px"}}>
-            <a href={lnk.url} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#5B21B6",textDecoration:"none",fontWeight:600}}>{lnk.label} ↗</a>
+          {links.map(lnk=><div key={lnk.id} style={{display:"flex",alignItems:"center",gap:4,background:"var(--accent-pill-bg)",borderRadius:5,padding:"3px 8px"}}>
+            <a href={lnk.url} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"var(--accent)",textDecoration:"none",fontWeight:600}}>{lnk.label} ↗</a>
             <button onClick={()=>removeLink(lnk.id)} style={{fontSize:11,color:"var(--text-mute)",background:"none",border:"none",cursor:"pointer",padding:"0 2px",lineHeight:1}}>×</button>
           </div>)}
         </div>}
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
           <input value={newLinkLabel} onChange={e=>setNewLinkLabel(e.target.value)} placeholder="Label (e.g. Venue Tech Pack)" style={{...UI.input,flex:1,minWidth:120}} onKeyDown={e=>e.key==="Enter"&&addLink()}/>
           <input value={newLinkUrl} onChange={e=>setNewLinkUrl(e.target.value)} placeholder="Paste URL" style={{...UI.input,flex:2,minWidth:160}} onKeyDown={e=>e.key==="Enter"&&addLink()}/>
-          <button onClick={addLink} disabled={!newLinkLabel.trim()||!newLinkUrl.trim()} style={{fontSize:10,fontWeight:700,padding:"4px 10px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",opacity:(!newLinkLabel.trim()||!newLinkUrl.trim())?0.4:1}}>Add</button>
+          <button onClick={addLink} disabled={!newLinkLabel.trim()||!newLinkUrl.trim()} style={{fontSize:10,fontWeight:700,padding:"4px 10px",borderRadius:5,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",opacity:(!newLinkLabel.trim()||!newLinkUrl.trim())?0.4:1}}>Add</button>
         </div>
         {vg.advanceEmail&&<div style={{marginTop:8,display:"flex",gap:6,flexWrap:"wrap"}}>
-          <a href={`mailto:${vg.advanceEmail}`} style={{fontSize:9,color:"#5B21B6",background:"#EDE9FE",padding:"2px 8px",borderRadius:5,textDecoration:"none",fontWeight:600}}>{vg.advanceContact||"Advance"} ✉</a>
+          <a href={`mailto:${vg.advanceEmail}`} style={{fontSize:9,color:"var(--accent)",background:"var(--accent-pill-bg)",padding:"2px 8px",borderRadius:5,textDecoration:"none",fontWeight:600}}>{vg.advanceContact||"Advance"} ✉</a>
           {vg.techContact&&vg.techContact.includes("@")&&<a href={`mailto:${vg.techContact.match(/[\w.+-]+@[\w-]+\.[\w.]+/)?.[0]}`} style={{fontSize:9,color:"#065F46",background:"#D1FAE5",padding:"2px 8px",borderRadius:5,textDecoration:"none",fontWeight:600}}>Tech Contact ✉</a>}
         </div>}
       </div>
@@ -5209,14 +5209,14 @@ function VenueBrief({vg,sel,data,upd}){
 const HOTEL_STATUS_META={
   pending:{label:"Pending",bg:"#FEF3C7",c:"#92400E"},
   confirmed:{label:"Confirmed",bg:"#D1FAE5",c:"#047857"},
-  checked_in:{label:"Checked In",bg:"#DBEAFE",c:"#a78bfa"},
+  checked_in:{label:"Checked In",bg:"#DBEAFE",c:"var(--link)"},
   checked_out:{label:"Checked Out",bg:"var(--card-2)",c:"var(--text-2)"},
   cancelled:{label:"Cancelled",bg:"#FEE2E2",c:"#991B1B"},
 };
 const ROOM_STATUS_META={
   pending:{label:"Pending",bg:"#FEF3C7",c:"#92400E"},
   confirmed:{label:"Confirmed",bg:"#D1FAE5",c:"#047857"},
-  occupied:{label:"Occupied",bg:"#DBEAFE",c:"#a78bfa"},
+  occupied:{label:"Occupied",bg:"#DBEAFE",c:"var(--link)"},
   released:{label:"Released",bg:"var(--card-2)",c:"var(--text-2)"},
 };
 const HOTEL_TODOS_DEFAULT=["Confirm room block","Collect confirmation #","Share room list with crew","Arrange early check-in (if needed)","Confirm late check-out","Collect receipt","Verify billing address"];
@@ -5288,14 +5288,14 @@ function LodgingTab(){
             <div style={{fontSize:10,color:"var(--text-dim)",marginTop:1}}>{dayHotels.length} hotel{dayHotels.length!==1?"s":""} covering this date</div>
           </div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-            {scanMsg&&<span style={{fontSize:9,color:scanning?"#5B21B6":"var(--text-dim)",fontFamily:MN,maxWidth:200}}>{scanMsg}</span>}
-            <button onClick={()=>scanLodging({sweepFrom:"2026-01-01"})} disabled={scanning} style={{background:scanning?"var(--border)":"#7C3AED",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,padding:"5px 10px",fontSize:10,fontWeight:700,cursor:scanning?"default":"pointer"}}>
+            {scanMsg&&<span style={{fontSize:9,color:scanning?"var(--accent)":"var(--text-dim)",fontFamily:MN,maxWidth:200}}>{scanMsg}</span>}
+            <button onClick={()=>scanLodging({sweepFrom:"2026-01-01"})} disabled={scanning} style={{background:scanning?"var(--border)":"var(--accent-soft)",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,padding:"5px 10px",fontSize:10,fontWeight:700,cursor:scanning?"default":"pointer"}}>
               {scanning?"Scanning…":"Historical Sweep"}
             </button>
-            <button onClick={()=>scanLodging()} disabled={scanning} style={{background:scanning?"var(--border)":"#5B21B6",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,padding:"5px 10px",fontSize:10,fontWeight:700,cursor:scanning?"default":"pointer"}}>
+            <button onClick={()=>scanLodging()} disabled={scanning} style={{background:scanning?"var(--border)":"var(--accent)",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,padding:"5px 10px",fontSize:10,fontWeight:700,cursor:scanning?"default":"pointer"}}>
               {scanning?"Scanning…":"Scan Gmail"}
             </button>
-            <button onClick={()=>setAddOpen(true)} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
+            <button onClick={()=>setAddOpen(true)} style={{background:"var(--accent)",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
               + Add Hotel
             </button>
           </div>
@@ -5303,10 +5303,10 @@ function LodgingTab(){
 
         {/* Pending import (just scanned, not yet in state) */}
         {pendingImport.length>0&&(
-          <div style={{background:"#EDE9FE",border:"1px solid #C4B5FD",borderRadius:10,padding:"10px 12px"}}>
+          <div style={{background:"var(--accent-pill-bg)",border:"1px solid var(--accent-pill-border)",borderRadius:10,padding:"10px 12px"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-              <span style={{fontSize:9,fontWeight:800,color:"#5B21B6",letterSpacing:"0.06em"}}>NEW HOTELS — REVIEW BEFORE IMPORTING</span>
-              <button onClick={importAll} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Import All ({pendingImport.length})</button>
+              <span style={{fontSize:9,fontWeight:800,color:"var(--accent)",letterSpacing:"0.06em"}}>NEW HOTELS — REVIEW BEFORE IMPORTING</span>
+              <button onClick={importAll} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>Import All ({pendingImport.length})</button>
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {pendingImport.map(h=>(
@@ -5317,14 +5317,14 @@ function LodgingTab(){
                       {h.city&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>{h.city}</span>}
                     </div>
                     <div style={{display:"flex",gap:5,alignItems:"center"}}>
-                      {h.tid&&<a href={`https://mail.google.com/mail/u/0/#inbox/${h.tid}`} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#5B21B6",textDecoration:"none"}}>open email ↗</a>}
+                      {h.tid&&<a href={`https://mail.google.com/mail/u/0/#inbox/${h.tid}`} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--accent)",textDecoration:"none"}}>open email ↗</a>}
                       <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==h.id))} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Skip</button>
-                      <button onClick={()=>importHotel(h)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
+                      <button onClick={()=>importHotel(h)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
                     </div>
                   </div>
                   <div style={{fontSize:10,color:"var(--text-2)",fontFamily:MN}}>
                     {h.checkIn} → {h.checkOut}
-                    {h.confirmNo&&<span style={{marginLeft:8,color:"#7C3AED"}}>#{h.confirmNo}</span>}
+                    {h.confirmNo&&<span style={{marginLeft:8,color:"var(--accent-soft)"}}>#{h.confirmNo}</span>}
                     {h.cost&&<span style={{marginLeft:8}}>{h.currency||"USD"} {h.cost.toLocaleString()}</span>}
                     {h.pax?.length>0&&<span style={{marginLeft:8,color:"var(--text-dim)"}}>{h.pax.join(", ")}</span>}
                   </div>
@@ -5337,7 +5337,7 @@ function LodgingTab(){
         {dayHotels.length===0&&(
           <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"28px 20px",textAlign:"center",color:"var(--text-mute)",fontSize:11}}>
             No hotels assigned to this date.<br/>
-            <span style={{color:"#5B21B6",cursor:"pointer",fontWeight:600}} onClick={()=>setAddOpen(true)}>+ Add a hotel</span>
+            <span style={{color:"var(--accent)",cursor:"pointer",fontWeight:600}} onClick={()=>setAddOpen(true)}>+ Add a hotel</span>
           </div>
         )}
 
@@ -5422,7 +5422,7 @@ function HotelCard({hotel,date,onEdit,crew,uLodging,uFin,finance}){
           {/* Details row */}
           <div style={{display:"flex",gap:16,flexWrap:"wrap",fontSize:11,color:"var(--text-2)"}}>
             {hotel.address&&<span>📍 {hotel.address}</span>}
-            {hotel.phone&&<span>📞 <a href={`tel:${hotel.phone}`} style={{color:"#5B21B6",textDecoration:"none"}}>{hotel.phone}</a></span>}
+            {hotel.phone&&<span>📞 <a href={`tel:${hotel.phone}`} style={{color:"var(--accent)",textDecoration:"none"}}>{hotel.phone}</a></span>}
             {hotel.confirmNo&&<span style={{fontFamily:MN}}>Conf# <strong>{hotel.confirmNo}</strong></span>}
             {hotel.bookingRef&&<span style={{fontFamily:MN}}>Ref# <strong>{hotel.bookingRef}</strong></span>}
             {hotel.checkInTime&&<span>Check-in {hotel.checkInTime}</span>}
@@ -5433,7 +5433,7 @@ function HotelCard({hotel,date,onEdit,crew,uLodging,uFin,finance}){
           <div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
               <div style={{fontSize:10,fontWeight:700,color:"var(--text)",letterSpacing:"0.04em",textTransform:"uppercase"}}>Rooms ({rooms.length})</div>
-              <button onClick={()=>setAddRoomOpen(v=>!v)} style={{background:"#EDE9FE",color:"#5B21B6",border:"none",borderRadius:5,padding:"3px 8px",fontSize:10,fontWeight:700,cursor:"pointer"}}>+ Assign Room</button>
+              <button onClick={()=>setAddRoomOpen(v=>!v)} style={{background:"var(--accent-pill-bg)",color:"var(--accent)",border:"none",borderRadius:5,padding:"3px 8px",fontSize:10,fontWeight:700,cursor:"pointer"}}>+ Assign Room</button>
             </div>
             {rooms.length===0&&<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No rooms assigned.</div>}
             {rooms.map(r=>{
@@ -5466,7 +5466,7 @@ function HotelCard({hotel,date,onEdit,crew,uLodging,uFin,finance}){
                 </div>
                 <input placeholder="Notes (optional)" value={newRoom.notes} onChange={e=>setNewRoom(p=>({...p,notes:e.target.value}))} style={{padding:"4px 6px",borderRadius:5,border:"1px solid var(--border)",fontSize:11}}/>
                 <div style={{display:"flex",gap:6}}>
-                  <button onClick={addRoom} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:5,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Add Room</button>
+                  <button onClick={addRoom} style={{background:"var(--accent)",color:"#fff",border:"none",borderRadius:5,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Add Room</button>
                   <button onClick={()=>setAddRoomOpen(false)} style={{background:"var(--card-2)",color:"var(--text-2)",border:"none",borderRadius:5,padding:"5px 10px",fontSize:11,cursor:"pointer"}}>Cancel</button>
                 </div>
               </div>
@@ -5479,7 +5479,7 @@ function HotelCard({hotel,date,onEdit,crew,uLodging,uFin,finance}){
             <div style={{display:"flex",flexDirection:"column",gap:3}}>
               {todos.map((t,i)=>(
                 <label key={i} style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",fontSize:11,color:t.done?"var(--text-mute)":"var(--text)",textDecoration:t.done?"line-through":"none"}}>
-                  <input type="checkbox" checked={!!t.done} onChange={()=>toggleTodo(i)} style={{accentColor:"#5B21B6",width:13,height:13,flexShrink:0}}/>
+                  <input type="checkbox" checked={!!t.done} onChange={()=>toggleTodo(i)} style={{accentColor:"var(--accent)",width:13,height:13,flexShrink:0}}/>
                   {t.text}
                 </label>
               ))}
@@ -5551,7 +5551,7 @@ function HotelFormModal({date,hotel,onClose,onSave,existingHotels}){
         </div>
         <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
           <button onClick={onClose} style={{background:"var(--card-2)",border:"none",borderRadius:6,padding:"7px 14px",fontSize:11,cursor:"pointer",color:"var(--text-2)"}}>Cancel</button>
-          <button onClick={()=>onSave(form)} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"7px 16px",fontSize:11,fontWeight:700,cursor:"pointer"}}>{isEdit?"Save Changes":"Add Hotel"}</button>
+          <button onClick={()=>onSave(form)} style={{background:"var(--accent)",color:"#fff",border:"none",borderRadius:6,padding:"7px 16px",fontSize:11,fontWeight:700,cursor:"pointer"}}>{isEdit?"Save Changes":"Add Hotel"}</button>
         </div>
       </div>
     </div>
@@ -5708,7 +5708,7 @@ function ProdTab(){
           <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:MN}}>{show.date} · {show.city}</div>
         </div>
         <div style={{display:"flex",gap:6}}>
-          {data.items?.length>0&&<button onClick={runAnalysis} disabled={analyzing} style={{fontSize:10,fontWeight:700,padding:"5px 12px",borderRadius:6,border:"none",background:analyzing?"var(--border)":"#5B21B6",color:analyzing?"var(--text-mute)":"var(--card)",cursor:analyzing?"default":"pointer"}}>{analyzing?"Analyzing…":"Run Analysis"}</button>}
+          {data.items?.length>0&&<button onClick={runAnalysis} disabled={analyzing} style={{fontSize:10,fontWeight:700,padding:"5px 12px",borderRadius:6,border:"none",background:analyzing?"var(--border)":"var(--accent)",color:analyzing?"var(--text-mute)":"var(--card)",cursor:analyzing?"default":"pointer"}}>{analyzing?"Analyzing…":"Run Analysis"}</button>}
           {data.items?.length>0&&<button onClick={exportJson} style={{fontSize:10,fontWeight:600,padding:"5px 10px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-3)",color:"var(--text-2)",cursor:"pointer"}}>Export JSON</button>}
         </div>
       </div>
@@ -5717,8 +5717,8 @@ function ProdTab(){
 
       {/* Sub-tabs */}
       <div style={{display:"flex",gap:1,borderBottom:"1px solid var(--border)",marginBottom:12,overflowX:"auto",overflowY:"hidden",scrollbarWidth:"thin",WebkitOverflowScrolling:"touch"}}>
-        {SUB_TABS.map(t=><button key={t.id} onClick={()=>setSubTab(t.id)} style={{padding:"5px 12px",fontSize:10,fontWeight:subTab===t.id?700:500,color:subTab===t.id?"var(--text)":"var(--text-dim)",background:"none",border:"none",cursor:"pointer",borderBottom:subTab===t.id?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:4,flexShrink:0,whiteSpace:"nowrap"}}>
-          {t.label}{t.badge!=null&&<span style={{fontSize:8,fontWeight:800,background:t.badgeColor||"#5B21B6",color:"#fff",borderRadius:10,padding:"1px 5px"}}>{t.badge}</span>}
+        {SUB_TABS.map(t=><button key={t.id} onClick={()=>setSubTab(t.id)} style={{padding:"5px 12px",fontSize:10,fontWeight:subTab===t.id?700:500,color:subTab===t.id?"var(--text)":"var(--text-dim)",background:"none",border:"none",cursor:"pointer",borderBottom:subTab===t.id?"2px solid var(--accent)":"2px solid transparent",display:"flex",alignItems:"center",gap:4,flexShrink:0,whiteSpace:"nowrap"}}>
+          {t.label}{t.badge!=null&&<span style={{fontSize:8,fontWeight:800,background:t.badgeColor||"var(--accent)",color:"#fff",borderRadius:10,padding:"1px 5px"}}>{t.badge}</span>}
         </button>)}
       </div>
 
@@ -5795,7 +5795,7 @@ function ProdTab(){
         <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:16}}>
           <div style={{...UI.sectionLabel,marginBottom:10}}>Add Document</div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
-            {["vendor_quote","design_drawing"].map(dt=><button key={dt} onClick={()=>setDocType(dt)} style={{fontSize:10,fontWeight:700,padding:"4px 12px",borderRadius:6,border:`1.5px solid ${docType===dt?"#5B21B6":"var(--border)"}`,background:docType===dt?"#EDE9FE":"var(--card)",color:docType===dt?"#5B21B6":"var(--text-2)",cursor:"pointer"}}>{dt==="vendor_quote"?"Vendor Quote":"Design Drawing"}</button>)}
+            {["vendor_quote","design_drawing"].map(dt=><button key={dt} onClick={()=>setDocType(dt)} style={{fontSize:10,fontWeight:700,padding:"4px 12px",borderRadius:6,border:`1.5px solid ${docType===dt?"var(--accent)":"var(--border)"}`,background:docType===dt?"var(--accent-pill-bg)":"var(--card)",color:docType===dt?"var(--accent)":"var(--text-2)",cursor:"pointer"}}>{dt==="vendor_quote"?"Vendor Quote":"Design Drawing"}</button>)}
           </div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
             <input value={vendorName} onChange={e=>setVendorName(e.target.value)} placeholder="Vendor name (e.g. Neg Earth)" style={{...UI.input,flex:1,minWidth:140}} disabled={docType==="design_drawing"}/>
@@ -5811,7 +5811,7 @@ function ProdTab(){
         {(data.docs||[]).length>0&&<div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:16}}>
           <div style={{...UI.sectionLabel,marginBottom:8}}>Uploaded Documents</div>
           {(data.docs||[]).map(doc=><div key={doc.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid var(--card-2)"}}>
-            <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:10,background:doc.docType==="vendor_quote"?"#EDE9FE":"#DCFCE7",color:doc.docType==="vendor_quote"?"#5B21B6":"#166534"}}>{doc.docType==="vendor_quote"?"QUOTE":"DESIGN"}</span>
+            <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:10,background:doc.docType==="vendor_quote"?"var(--accent-pill-bg)":"#DCFCE7",color:doc.docType==="vendor_quote"?"var(--accent)":"#166534"}}>{doc.docType==="vendor_quote"?"QUOTE":"DESIGN"}</span>
             <span style={{fontSize:10,flex:1,color:"var(--text)"}}>{doc.fileName}</span>
             {doc.vendorName&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{doc.vendorName}</span>}
             {doc.quoteRef&&<span style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN}}>{doc.quoteRef}</span>}
@@ -5843,7 +5843,7 @@ function ProdTab(){
             {["ALL","fly","ground","tower","touring_carry","TBD"].map(p=><option key={p} value={p}>{p==="ALL"?"All positions":p.toUpperCase()}</option>)}
           </select>
           {tbdCount>0&&<button onClick={()=>setPosFilter("TBD")} style={{fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:5,border:"1.5px solid #C2410C",background:"#FFF7ED",color:"#C2410C",cursor:"pointer"}}>▲ {tbdCount} TBD</button>}
-          <button onClick={()=>setShowExcluded(v=>!v)} style={{fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:5,border:`1.5px solid ${showExcluded?"#5B21B6":"var(--border)"}`,background:showExcluded?"#EDE9FE":"var(--card-3)",color:showExcluded?"#5B21B6":"var(--text-mute)",cursor:"pointer"}}>{showExcluded?"Show all":"Excluded hidden"}</button>
+          <button onClick={()=>setShowExcluded(v=>!v)} style={{fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:5,border:`1.5px solid ${showExcluded?"var(--accent)":"var(--border)"}`,background:showExcluded?"var(--accent-pill-bg)":"var(--card-3)",color:showExcluded?"var(--accent)":"var(--text-mute)",cursor:"pointer"}}>{showExcluded?"Show all":"Excluded hidden"}</button>
           <span style={{marginLeft:"auto",fontSize:9,color:"var(--text-mute)"}}>{(data.items||[]).filter(i=>i.included!==false).length} of {(data.items||[]).length} included</span>
         </div>
 
@@ -5851,7 +5851,7 @@ function ProdTab(){
           <div style={{fontSize:24,marginBottom:8}}>▤</div>
           <div style={{fontSize:11,fontWeight:600,color:"var(--text)",marginBottom:4}}>No manifest loaded</div>
           <div style={{fontSize:10,color:"var(--text-dim)",marginBottom:16}}>Seed from the EU Tour Binder or upload vendor quote PDFs in the Upload tab.</div>
-          <button onClick={seedManifest} style={{fontSize:11,fontWeight:700,padding:"8px 20px",borderRadius:7,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer"}}>Load Tour Manifest</button>
+          <button onClick={seedManifest} style={{fontSize:11,fontWeight:700,padding:"8px 20px",borderRadius:7,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer"}}>Load Tour Manifest</button>
         </div>}
 
         {(data.items||[]).length===0&&!VENUE_GRID[sel]&&<div style={{padding:32,textAlign:"center",color:"var(--text-mute)",fontSize:10}}>No items. Upload vendor quote PDFs in the Upload tab.</div>}
@@ -5872,7 +5872,7 @@ function ProdTab(){
               const excluded=item.included===false;
               return(
                 <div key={item.id} className="rh" style={{display:"grid",gridTemplateColumns:"20px 1fr 60px 60px 60px 60px 60px 70px 70px",gap:0,padding:"5px 8px",borderBottom:"1px solid var(--card-2)",background:flagged?"#FEF2F2":excluded?"var(--card-3)":"var(--card)",alignItems:"center",opacity:excluded?0.45:1}}>
-                  <input type="checkbox" checked={!excluded} onChange={()=>toggleIncluded(item.id)} style={{width:13,height:13,cursor:"pointer",accentColor:"#5B21B6"}}/>
+                  <input type="checkbox" checked={!excluded} onChange={()=>toggleIncluded(item.id)} style={{width:13,height:13,cursor:"pointer",accentColor:"var(--accent)"}}/>
                   <div style={{minWidth:0}}>
                     <div style={{fontSize:10,fontWeight:600,color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:excluded?"line-through":"none"}} title={item.item_name}>{item.item_name}</div>
                     {item.model_ref&&item.model_ref!==item.item_name&&<div style={{fontSize:8,color:"var(--text-mute)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.model_ref}</div>}
@@ -5900,7 +5900,7 @@ function ProdTab(){
       {subTab==="analysis"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
         {!data.analysis?<div style={{padding:32,textAlign:"center"}}>
           <div style={{fontSize:10,color:"var(--text-dim)",marginBottom:12}}>Run analysis to see power budget, weight ledger, and issue detection.</div>
-          {data.items?.length>0&&<button onClick={runAnalysis} disabled={analyzing} style={{fontSize:11,fontWeight:700,padding:"8px 20px",borderRadius:7,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer"}}>{analyzing?"Analyzing…":"Run Analysis"}</button>}
+          {data.items?.length>0&&<button onClick={runAnalysis} disabled={analyzing} style={{fontSize:11,fontWeight:700,padding:"8px 20px",borderRadius:7,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer"}}>{analyzing?"Analyzing…":"Run Analysis"}</button>}
         </div>:<>
           {/* Power Budget */}
           <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:14}}>
@@ -5922,10 +5922,10 @@ function ProdTab(){
           <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:14}}>
             <div style={{...UI.sectionLabel,marginBottom:10}}>Weight Ledger — Fly vs. Ground Split</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
-              <div style={{background:"#EDE9FE",borderRadius:8,padding:"10px 14px",textAlign:"center"}}>
-                <div style={{fontSize:8,color:"#5B21B6",fontWeight:800,textTransform:"uppercase",marginBottom:4}}>Fly</div>
-                <div style={{fontSize:20,fontWeight:800,fontFamily:MN,color:"#5B21B6"}}>{data.analysis.weightLedger.fly_kg} kg</div>
-                <div style={{fontSize:9,color:"#7C3AED"}}>{data.analysis.weightLedger.fly_item_count} item(s)</div>
+              <div style={{background:"var(--accent-pill-bg)",borderRadius:8,padding:"10px 14px",textAlign:"center"}}>
+                <div style={{fontSize:8,color:"var(--accent)",fontWeight:800,textTransform:"uppercase",marginBottom:4}}>Fly</div>
+                <div style={{fontSize:20,fontWeight:800,fontFamily:MN,color:"var(--accent)"}}>{data.analysis.weightLedger.fly_kg} kg</div>
+                <div style={{fontSize:9,color:"var(--accent-soft)"}}>{data.analysis.weightLedger.fly_item_count} item(s)</div>
               </div>
               <div style={{background:"#DCFCE7",borderRadius:8,padding:"10px 14px",textAlign:"center"}}>
                 <div style={{fontSize:8,color:"#166534",fontWeight:800,textTransform:"uppercase",marginBottom:4}}>Ground</div>
@@ -5948,7 +5948,7 @@ function ProdTab(){
       {/* Issues tab */}
       {subTab==="issues"&&<div>
         {!(data.issues?.length)&&<div style={{padding:32,textAlign:"center",color:"var(--text-mute)",fontSize:10}}>
-          {data.items?.length?<><div style={{marginBottom:8}}>No issues detected yet.</div><button onClick={runAnalysis} disabled={analyzing} style={{fontSize:10,fontWeight:700,padding:"5px 14px",borderRadius:6,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer"}}>{analyzing?"Analyzing…":"Run Analysis"}</button></>:<div>Upload documents then run analysis to detect issues.</div>}
+          {data.items?.length?<><div style={{marginBottom:8}}>No issues detected yet.</div><button onClick={runAnalysis} disabled={analyzing} style={{fontSize:10,fontWeight:700,padding:"5px 14px",borderRadius:6,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer"}}>{analyzing?"Analyzing…":"Run Analysis"}</button></>:<div>Upload documents then run analysis to detect issues.</div>}
         </div>}
         {(data.issues||[]).map(issue=>{
           const sv=SEV_STYLES[issue.severity]||SEV_STYLES.LOW;
@@ -6122,7 +6122,7 @@ function GuestListTab(){
   if(!show){
     return<div style={{flex:1,padding:mobile?"10px 8px":"14px 16px",color:"var(--text-dim)",fontSize:11}}>
       Select a show date from the sidebar to manage its guest list.
-      {showDates.length>0&&<div style={{marginTop:8}}><button onClick={()=>setSel(showDates[0])} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Go to {showDates[0]}</button></div>}
+      {showDates.length>0&&<div style={{marginTop:8}}><button onClick={()=>setSel(showDates[0])} style={{background:"var(--accent)",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Go to {showDates[0]}</button></div>}
     </div>;
   }
 
@@ -6140,7 +6140,7 @@ function GuestListTab(){
               {GL_STATUS.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
             <button onClick={()=>setTplMenu(v=>!v)} style={{background:"transparent",color:"var(--text-2)",border:"1px solid var(--border)",borderRadius:6,padding:"6px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>Templates</button>
-            <button onClick={exportDoorList} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Export Door List</button>
+            <button onClick={exportDoorList} style={{background:"var(--accent)",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Export Door List</button>
           </>}
         </div>
       </div>
@@ -6157,31 +6157,31 @@ function GuestListTab(){
               {allTemplates.map(t=><option key={t.id} value={t.id}>{t.name}{t.builtin?" · built-in":""} · {(t.categories||[]).length} cats</option>)}
             </select>
           </label>
-          <button onClick={initShow} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"8px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Initialize Show</button>
+          <button onClick={initShow} style={{background:"var(--accent)",color:"#fff",border:"none",borderRadius:6,padding:"8px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Initialize Show</button>
         </div>
         <div style={{display:"flex",flexWrap:"wrap",gap:4,fontSize:9,color:"var(--text-mute)",fontFamily:MN}}>
           {(allTemplates.find(t=>t.id===configTplId)?.categories||[]).map(c=><span key={c.id} style={{background:"var(--bg)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px"}}>{c.name} · {c.qty}</span>)}
         </div>
       </div>}
 
-      {glExists&&tplMenu&&<div style={{background:"var(--card)",border:"1px solid #5B21B6",borderRadius:10,padding:"12px 14px",display:"flex",flexDirection:"column",gap:10}}>
+      {glExists&&tplMenu&&<div style={{background:"var(--card)",border:"1px solid var(--accent)",borderRadius:10,padding:"12px 14px",display:"flex",flexDirection:"column",gap:10}}>
         <div style={{fontSize:10,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>TEMPLATES</div>
         <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"2fr 1fr",gap:8,alignItems:"end"}}>
           <label style={{display:"flex",flexDirection:"column",gap:4}}>
             <span style={{fontSize:9,color:"var(--text-dim)",letterSpacing:"0.05em"}}>SAVE CURRENT CONFIG AS TEMPLATE</span>
             <input value={tplSaveName} onChange={e=>setTplSaveName(e.target.value)} placeholder={`${show?.venue||"Show"} ${date}`} style={{background:"var(--bg)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:5,padding:"6px 8px",fontSize:11}}/>
           </label>
-          <button onClick={saveAsTemplate} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:5,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Save as Template</button>
+          <button onClick={saveAsTemplate} style={{background:"var(--accent)",color:"#fff",border:"none",borderRadius:5,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Save as Template</button>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:4,maxHeight:200,overflowY:"auto"}}>
           {allTemplates.map(t=>{
             const active=gl.templateId===t.id;
-            return<div key={t.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:8,alignItems:"center",background:active?"#1f0f2a":"var(--bg)",border:`1px solid ${active?"#5B21B6":"var(--border)"}`,borderRadius:5,padding:"6px 8px"}}>
+            return<div key={t.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:8,alignItems:"center",background:active?"#1f0f2a":"var(--bg)",border:`1px solid ${active?"var(--accent)":"var(--border)"}`,borderRadius:5,padding:"6px 8px"}}>
               <div>
-                <div style={{fontSize:11,fontWeight:700,color:"var(--text)"}}>{t.name}{t.builtin&&<span style={{marginLeft:6,fontSize:8,color:"#a78bfa",fontFamily:MN}}>BUILT-IN</span>}{active&&<span style={{marginLeft:6,fontSize:8,color:"#34d399",fontFamily:MN}}>ACTIVE</span>}</div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--text)"}}>{t.name}{t.builtin&&<span style={{marginLeft:6,fontSize:8,color:"var(--link)",fontFamily:MN}}>BUILT-IN</span>}{active&&<span style={{marginLeft:6,fontSize:8,color:"#34d399",fontFamily:MN}}>ACTIVE</span>}</div>
                 <div style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN,marginTop:1}}>{(t.categories||[]).length} categories · walk-on cap {t.walkOnCap??10}</div>
               </div>
-              <button onClick={()=>applyTemplate(t.id)} style={{background:"transparent",color:"#a78bfa",border:"1px solid #5B21B6",borderRadius:4,padding:"4px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>Apply</button>
+              <button onClick={()=>applyTemplate(t.id)} style={{background:"transparent",color:"var(--link)",border:"1px solid var(--accent)",borderRadius:4,padding:"4px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>Apply</button>
               {!t.builtin?<button onClick={()=>deleteTemplate(t.id)} style={{background:"transparent",color:"var(--text-mute)",border:"1px solid var(--border)",borderRadius:4,padding:"4px 8px",fontSize:10,cursor:"pointer"}}>Delete</button>:<span style={{width:38}}/>}
             </div>;
           })}
@@ -6240,15 +6240,15 @@ function GuestListTab(){
         <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
             <span style={{fontSize:10,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>PARTIES · {partyList.length}</span>
-            <button onClick={()=>setAddParty(v=>!v)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>{addParty?"Cancel":"+ Party"}</button>
+            <button onClick={()=>setAddParty(v=>!v)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>{addParty?"Cancel":"+ Party"}</button>
           </div>
-          {addParty&&<div style={{background:"var(--bg)",border:"1px solid #5B21B6",borderRadius:6,padding:10,marginBottom:10,display:"grid",gridTemplateColumns:mobile?"1fr":"2fr 1.2fr 2fr auto",gap:6,alignItems:"center"}}>
+          {addParty&&<div style={{background:"var(--bg)",border:"1px solid var(--accent)",borderRadius:6,padding:10,marginBottom:10,display:"grid",gridTemplateColumns:mobile?"1fr":"2fr 1.2fr 2fr auto",gap:6,alignItems:"center"}}>
             <input autoFocus placeholder="Party name (e.g. Alex Gumuchian)" value={partyForm.name} onChange={e=>setPartyForm(f=>({...f,name:e.target.value}))} style={{background:"var(--card)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:5,padding:"5px 7px",fontSize:11}}/>
             <select value={partyForm.role} onChange={e=>setPartyForm(f=>({...f,role:e.target.value}))} style={{background:"var(--card)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:5,padding:"5px 7px",fontSize:11}}>
               {GL_PARTY_ROLES.map(r=><option key={r.id} value={r.id}>{r.label} ({r.side})</option>)}
             </select>
             <input placeholder="Contact email" value={partyForm.contact} onChange={e=>setPartyForm(f=>({...f,contact:e.target.value}))} style={{background:"var(--card)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:5,padding:"5px 7px",fontSize:11,fontFamily:MN}}/>
-            <button onClick={createParty} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:5,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Add</button>
+            <button onClick={createParty} style={{background:"var(--accent)",color:"#fff",border:"none",borderRadius:5,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Add</button>
           </div>}
           {partyList.length===0&&<div style={{fontSize:10,color:"var(--text-mute)",textAlign:"center",padding:"12px 8px"}}>No parties yet. Add a party to start collecting entries.</div>}
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
@@ -6256,7 +6256,7 @@ function GuestListTab(){
               const cat=gl.categories.find(c=>c.id===p.categoryId);
               const used=(p.entries||[]).reduce((s,e)=>s+1+(e.plusOne?1:0),0);
               const expanded=expandedParty===pid;
-              const sideColor=p.side==="venue"?"#0891B2":"#7C3AED";
+              const sideColor=p.side==="venue"?"#0891B2":"var(--accent-soft)";
               return<div key={pid} style={{background:"var(--bg)",border:`1px solid ${expanded?sideColor:"var(--border)"}`,borderRadius:6,overflow:"hidden"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",cursor:"pointer"}} onClick={()=>setExpandedParty(expanded?null:pid)}>
                   <span style={{fontSize:8,fontWeight:800,color:sideColor,background:p.side==="venue"?"#0a2a2e":"#1f0f2a",border:`1px solid ${sideColor}`,borderRadius:3,padding:"1px 5px",letterSpacing:"0.06em"}}>{p.side.toUpperCase()}</span>
@@ -6280,7 +6280,7 @@ function GuestListTab(){
                         <input type="checkbox" checked={checked} onChange={ev=>updateEntry(pid,e.id,{status:ev.target.checked?"checked_in":"pending",checkedInAt:ev.target.checked?new Date().toISOString():null})} style={{accentColor:"#059669",cursor:"pointer"}}/>
                         <input value={e.name} onChange={ev=>updateEntry(pid,e.id,{name:ev.target.value})} placeholder="Guest name" style={{background:"transparent",color:"var(--text)",border:"none",fontSize:11,padding:2}}/>
                         <label style={{fontSize:10,color:"var(--text-dim)",display:"flex",alignItems:"center",gap:4,fontFamily:MN,cursor:"pointer"}}>
-                          <input type="checkbox" checked={!!e.plusOne} onChange={ev=>updateEntry(pid,e.id,{plusOne:ev.target.checked})} style={{accentColor:"#5B21B6",cursor:"pointer"}}/>+1
+                          <input type="checkbox" checked={!!e.plusOne} onChange={ev=>updateEntry(pid,e.id,{plusOne:ev.target.checked})} style={{accentColor:"var(--accent)",cursor:"pointer"}}/>+1
                         </label>
                         <input value={e.note||""} onChange={ev=>updateEntry(pid,e.id,{note:ev.target.value})} placeholder="note (dietary, access, …)" style={{background:"transparent",color:"var(--text-2)",border:"none",fontSize:10,padding:2}}/>
                         <select value={e.status} onChange={ev=>updateEntry(pid,e.id,{status:ev.target.value})} style={{background:"var(--bg)",color:"var(--text-2)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 4px",fontSize:9}}>
@@ -6294,7 +6294,7 @@ function GuestListTab(){
                       </div>;
                     })}
                   </div>
-                  <button onClick={()=>addEntry(pid)} style={{alignSelf:"flex-start",background:"transparent",color:"#7C3AED",border:"1px dashed #5B21B6",borderRadius:5,padding:"4px 10px",fontSize:10,fontWeight:600,cursor:"pointer"}}>+ Entry</button>
+                  <button onClick={()=>addEntry(pid)} style={{alignSelf:"flex-start",background:"transparent",color:"var(--accent-soft)",border:"1px dashed var(--accent)",borderRadius:5,padding:"4px 10px",fontSize:10,fontWeight:600,cursor:"pointer"}}>+ Entry</button>
                 </div>}
               </div>;
             })}
@@ -6311,7 +6311,7 @@ function GuestListTab(){
             {[...(gl.activity||[])].reverse().map(ev=>{
               const when=new Date(ev.at);
               const whenLabel=`${when.toLocaleDateString(undefined,{month:"short",day:"numeric"})} ${when.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})}`;
-              const kindColor=ev.kind?.startsWith("entry.checkin")?"#34d399":ev.kind?.startsWith("entry.remove")||ev.kind?.startsWith("party.remove")||ev.kind?.startsWith("category.remove")?"#F87171":ev.kind?.startsWith("template")?"#a78bfa":ev.kind?.startsWith("show.status")?"#D97706":"var(--text-dim)";
+              const kindColor=ev.kind?.startsWith("entry.checkin")?"#34d399":ev.kind?.startsWith("entry.remove")||ev.kind?.startsWith("party.remove")||ev.kind?.startsWith("category.remove")?"#F87171":ev.kind?.startsWith("template")?"var(--link)":ev.kind?.startsWith("show.status")?"#D97706":"var(--text-dim)";
               return<div key={ev.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr":"90px 110px 1fr 110px",gap:8,alignItems:"center",background:"var(--bg)",border:"1px solid #1f1f2e",borderRadius:5,padding:"5px 8px",fontSize:10,fontFamily:MN}}>
                 <span style={{color:"var(--text-mute)"}}>{whenLabel}</span>
                 <span style={{color:kindColor,fontWeight:700,fontSize:9,letterSpacing:"0.04em"}}>{ev.kind}</span>

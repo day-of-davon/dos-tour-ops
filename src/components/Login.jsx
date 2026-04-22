@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 
 const C = {
   bg: "var(--bg)", card: "var(--card)", border: "var(--card-2)",
-  accent: "#c9f", text: "var(--text)", textDim: "var(--text-dim)", green: "#4ade80",
+  accent: "var(--link)", text: "var(--text)", textDim: "var(--text-dim)", green: "#4ade80",
 };
 
 export default function Login() {
