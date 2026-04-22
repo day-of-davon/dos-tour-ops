@@ -74,6 +74,14 @@
 
 - [2026-04-22 04:00 UTC] https://thinkpeak.ai/self-hosting-n8n-on-railway/ — n8n Railway self-hosted cost is $8-20/mo depending on load — CONTRADICTS prior memory entry (2026-04-21) which cited ~$5/mo Hobby plan; use $8-20 range for Phase 4 budget planning.
 
+- [2026-04-22 04:30 UTC] https://variety.com/2026/film/news/wasserman-agency-rebrands-the-team-1236682723/ — Wasserman rebranded as THE·TEAM effective March 9, 2026; operates at the.team — CLAUDE.md key contact Matt Adler is listed as "Wasserman (madler@the.team)"; email is correct but company name in CLAUDE.md should be updated to THE·TEAM.
+
+- [2026-04-22 04:30 UTC] https://www.slalom.com/us/en/customer-stories/aeg-increased-growth-and-scalability — AEG Presents built a proprietary internal tour management platform called "Elvis" (built with Slalom), described as "industry gold standard for bookers, accountants, marketers, and ticketers"; Excel data flows in, execs get real-time global touring status — Elvis is internal/not commercial SaaS; directly defines the gap DOS fills for indie/mid-tier market that AEG serves only internally.
+
+- [2026-04-22 04:30 UTC] https://www.ticketnews.com/2026/03/live-nation-leans-on-better-product-defense-as-states-press-vertical-integration-case/ — Live Nation antitrust trial ongoing in 2026 (state AGs pressing vertical-integration case, jury verdict already in, stock -6%); Bloomberg Apr 18 framing: "the fight is over yesterday's technology" as AI disrupts the model — structural breakup or forced divestiture would fragment venue+ticketing+promotion stack, creating openings for independent touring tech like DOS.
+
+- [2026-04-22 04:30 UTC] https://newsroom.livenation.com/news/live-nation-entertainment-full-year-and-fourth-quarter-2025-results/ — Live Nation guided double-digit AOI growth in 2026; 80%+ of large-venue shows already booked; adding 20 major venues by end of 2026 (+6-7M fan capacity) — strong live market demand validates DOS's GTM timing; more shows = more ops complexity = more demand for tools like DOS Platform.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
