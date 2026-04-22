@@ -1823,7 +1823,6 @@ function IntelPanel(){
         </div>}
       </div>;
     })}
-    <FlightsSection/>
   </div>;
 }
 
