@@ -752,98 +752,15 @@ Return this exact JSON:
     throw lastErr;
   };
 
-  const verifySys = `You are a flight data verifier for concert touring operations. You check extracted flight records against source emails for accuracy.
-IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.
 
-Focus especially on:
-1. IATA codes — verify the 3-letter code matches the actual airport in the email, not just the city. London has LHR/LGW/STN/LCY; Paris has CDG/ORY; confirm which one the email specifies.
-2. Passenger names — confirm names from the email body (not just the subject). Names may appear in ALL-CAPS airline format e.g. "JOHNSON/DAVON" = "Davon Johnson".
-3. Three distinct code fields — verify each independently:
-   - pnr: exactly 6 alphanumeric chars (e.g. "F9OCAU"). Record locator only.
-   - confirmNo: booking/order number from the sales channel (6-12 chars, often numeric).
-   - ticketNo: 13-digit airline e-ticket (format "001-1234567890"). Present only on e-ticket issuance emails or PDF receipts. Never put a PNR here.
-   Never duplicate the same value across two fields.
-4. Date/time — ensure depDate and arrDate match the email, especially for overnight flights where arrival date differs from departure date.
-5. Multi-leg — if the email describes a connecting itinerary, each leg should be a separate record.`;
-
-  const buildVerifyPrompt = (batch, flights) =>
-    `Verify these extracted flight records against their source email threads (matched by tid).
-
-SOURCE THREADS:
-${batch.map(t => `tid:${t.id}\nSubject: ${t.subject}${t.forwardedSender ? `\nOriginal sender: ${t.forwardedSender.name}${t.forwardedSender.email ? ` <${t.forwardedSender.email}>` : ""}` : ""}\nBody: ${t.body}`).join("\n\n---\n\n")}
-
-EXTRACTED FLIGHTS:
-${JSON.stringify(flights, null, 2)}
-
-For each flight, re-read its source thread and check every field: flightNo, from, fromCity, to, toCity, depDate, dep, arrDate, arr, pax, pnr, confirmNo, ticketNo, cost, currency.
-If a field is wrong or missing, provide the corrected value. If correct or unknown, omit from corrections.
-Set ok=false if ANY field needs correction. Set ok=true only if the record is fully accurate.
-
-Return this exact JSON:
-{
-  "results": [
-    {
-      "tid": "<thread_id>",
-      "flightNo": "<flight number for reference>",
-      "ok": true,
-      "corrections": {},
-      "note": null
-    },
-    {
-      "tid": "<thread_id>",
-      "flightNo": "<flight number for reference>",
-      "ok": false,
-      "corrections": { "from": "BNA", "fromCity": "Nashville", "to": "BOS", "toCity": "Boston", "pax": ["Davon Johnson"] },
-      "note": "Email shows BNA→BOS not ORD→MIA; passenger is Davon Johnson not Dan Nudelman"
-    }
-  ]
-}`;
-
-  // Parse a batch then immediately verify it — corrections applied before returning
   const parseAndVerifyBatch = async (batch, offset) => {
     const parsed = await callClaude(buildPrompt(batch, offset));
-    const flights = Array.isArray(parsed?.flights) ? parsed.flights : [];
-    if (!flights.length) return flights;
-
-    let verifyResult;
-    try {
-      verifyResult = await callClaude(buildVerifyPrompt(batch, flights), verifySys, 2048, "claude-haiku-4-5-20251001");
-    } catch (e) {
-      console.warn("[flights] verify error:", e.message);
-      return flights.map(f => ({ ...f, parseVerified: null }));
-    }
-
-    const byTid = {};
-    (verifyResult?.results || []).forEach(r => { byTid[r.tid] = r; });
-
-    return flights.map(f => {
-      const v = byTid[f.tid];
-      if (!v) return { ...f, parseVerified: null };
-      const corrected = { ...f, ...v.corrections };
-      return { ...corrected, parseVerified: v.ok, parseNote: v.note || null };
-    });
+    return Array.isArray(parsed?.flights) ? parsed.flights : [];
   };
 
-  // Single-thread parse+verify for pre-screened multi-leg confirmations.
-  // Reuses verifySys and buildVerifyPrompt; source tagged "claude_multileg".
   const parseAndVerifyMultiLeg = async (t) => {
     const parsed = await callClaude(buildMultiLegPrompt(t));
-    const flights = Array.isArray(parsed?.flights) ? parsed.flights : [];
-    if (!flights.length) return [];
-    let verifyResult;
-    try {
-      verifyResult = await callClaude(buildVerifyPrompt([t], flights), verifySys, 2048, "claude-haiku-4-5-20251001");
-    } catch (e) {
-      console.warn("[flights] multi-leg verify error:", e.message);
-      return flights.map(f => ({ ...f, parseVerified: null }));
-    }
-    const byTid = {};
-    (verifyResult?.results || []).forEach(r => { byTid[r.tid] = r; });
-    return flights.map(f => {
-      const v = byTid[f.tid];
-      if (!v) return { ...f, parseVerified: null };
-      return { ...f, ...v.corrections, parseVerified: v.ok, parseNote: v.note || null };
-    });
+    return Array.isArray(parsed?.flights) ? parsed.flights : [];
   };
 
   let claudeFlights = [];

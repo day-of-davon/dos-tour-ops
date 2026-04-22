@@ -1172,7 +1172,7 @@ const STATUS_STYLE={
 function statusStyle(s){return STATUS_STYLE[s]||STATUS_STYLE.Unknown;}
 
 const FOCUS_CARRIERS=["delta","american","united","air canada"];
-const resKey=f=>(f.bookingRef||f.confirmNo||f.tid||`solo_${f.id}`).toString().trim().toUpperCase();
+const resKey=f=>(f.pnr||f.bookingRef||f.confirmNo||f.tid||`solo_${f.id}`).toString().trim().toUpperCase();
 const groupByReservation=list=>{
   const m=new Map();
   list.forEach(f=>{const k=resKey(f);if(!m.has(k))m.set(k,[]);m.get(k).push(f);});
@@ -1183,10 +1183,11 @@ const groupByReservation=list=>{
     const totalCost=costs.length?costs.reduce((a,b)=>a+b.cost,0):null;
     const currency=costs[0]?.currency||"";
     const carriers=[...new Set(sorted.map(s=>s.carrier).filter(Boolean))];
-    const pnrSeg=sorted.find(s=>s.bookingRef||s.confirmNo);
-    const pnr=pnrSeg?.bookingRef||pnrSeg?.confirmNo||"";
+    const pnrSeg=sorted.find(s=>s.pnr)||sorted.find(s=>s.bookingRef||s.confirmNo);
+    const pnr=pnrSeg?.pnr||pnrSeg?.bookingRef||pnrSeg?.confirmNo||"";
+    const ticketNo=sorted.find(s=>s.ticketNo)?.ticketNo||"";
     const tid=sorted.find(s=>s.tid)?.tid||null;
-    return{key:k,segs:sorted,paxUnion,totalCost,currency,carriers,pnr,firstDate:sorted[0]?.depDate||"",tid,isSolo:k.startsWith("SOLO_")};
+    return{key:k,segs:sorted,paxUnion,totalCost,currency,carriers,pnr,ticketNo,firstDate:sorted[0]?.depDate||"",tid,isSolo:k.startsWith("SOLO_")};
   });
   return groups.sort((a,b)=>a.firstDate.localeCompare(b.firstDate));
 };
@@ -1197,6 +1198,7 @@ function ReservationHeader({g}){
     <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 2px",flexWrap:"wrap"}}>
       <span style={{fontSize:8,fontWeight:800,color:"var(--accent)",letterSpacing:"0.06em",background:"var(--accent-pill-bg)",padding:"2px 7px",borderRadius:10}}>RES · {g.segs.length} SEG</span>
       {g.pnr&&<span style={{fontSize:10,fontFamily:MN,fontWeight:700,color:"var(--text)"}}>{g.pnr}</span>}
+      {g.ticketNo&&<span style={{fontSize:9,fontFamily:MN,color:"var(--text-mute)"}}>tkt {g.ticketNo}</span>}
       {g.carriers.length>0&&<span style={{fontSize:9,color:"var(--text-2)"}}>{g.carriers.join(", ")}</span>}
       {g.paxUnion.length>0&&<span style={{fontSize:9,color:"var(--text-dim)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.paxUnion.join(", ")}</span>}
       {g.totalCost!=null&&<span style={{fontSize:9,fontFamily:MN,fontWeight:700,color:"var(--success-fg)"}}>{g.currency||"$"}{g.totalCost.toFixed(2)}</span>}
