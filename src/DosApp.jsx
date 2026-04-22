@@ -2827,13 +2827,6 @@ function DayScheduleView({show,bus,split,sel}){
       const arrMin=hhmmToMin(bus.arr);
       items.push({type:"bus",id:"bus",sortMin:depMin??-1,bus,depMin,arrMin});
     }
-    // Flights — tag last leg of a multi-leg same-day chain as "arr" (see tagFlightRoles)
-    const dayDeps=Object.values(flights).filter(f=>f.status==="confirmed"&&f.depDate===sel);
-    const dayArrs=Object.values(flights).filter(f=>f.status==="confirmed"&&f.arrDate===sel&&f.arrDate!==f.depDate);
-    tagFlightRoles(dayDeps,dayArrs).forEach(({f,role})=>{
-      const isArrOnly=role==="arr"&&f.arrDate===sel&&f.arrDate!==f.depDate;
-      items.push({type:"flight",id:isArrOnly?`${f.id}_arr`:f.id,sortMin:(isArrOnly?hhmmToMin(f.arr):hhmmToMin(f.dep))??-1,f,role});
-    });
     // Lodging: check-in on this date
     Object.values(lodging||{}).filter(h=>h.checkIn===sel).forEach(h=>{
       const t=h.checkInTime||"15:00";
@@ -2849,7 +2842,7 @@ function DayScheduleView({show,bus,split,sel}){
       items.push({type:"item",id:b.id,sortMin:b.startMin??-1,b});
     });
     return items.sort((a,b)=>a.sortMin-b.sortMin);
-  },[isTravel,bus,flights,lodging,sel,dayItems]);
+  },[isTravel,bus,lodging,sel,dayItems]);
 
   const ensureStored=()=>{if(!isStored)uShow(sel,{date:sel,clientId:aC,type:show.type||"off",city:show.city||"",venue:show.venue||"",advance:[],doors:0,curfew:0,busArrive:0,crewCall:0,venueAccess:0,mgTime:0,notes:""});};
   const saveNotes=()=>{ensureStored();uShow(sel,{notes:notesVal});setEditNotes(false);};
@@ -2875,7 +2868,6 @@ function DayScheduleView({show,bus,split,sel}){
 
   return(
     <div className="fi" style={{padding:"16px 20px",maxWidth:680}}>
-      <FlightDayStrip sel={sel}/>
       {/* Header */}
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
         <div style={{flex:1,minWidth:0}}>
@@ -2919,6 +2911,7 @@ function DayScheduleView({show,bus,split,sel}){
         </div>
       )}
 
+      <FlightDayStrip sel={sel}/>
       {/* Split card */}
       {split&&(
         <div style={{background:"var(--warn-bg)",border:"1px solid var(--warn-bg)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
@@ -2979,35 +2972,6 @@ function DayScheduleView({show,bus,split,sel}){
                     </div>
                     {b.flag==="⚠"&&b.note&&<div style={{fontSize:9,color:"var(--danger-fg)",marginTop:3,fontWeight:600}}>{b.note}</div>}
                     {b.note&&b.flag!=="⚠"&&<div style={{fontSize:9,color:"var(--text-mute)",marginTop:2,fontStyle:"italic"}}>{b.note}</div>}
-                  </div>
-                </div>
-              );
-            }
-            if(entry.type==="flight"){
-              const{f,role}=entry;
-              const isDep=role==="dep";
-              const sameDay=f.depDate===f.arrDate;
-              return(
-                <div key={entry.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"10px 12px",background:"var(--info-bg)",border:"1px solid var(--info-bg)",borderRadius:10}}>
-                  <div style={{width:44,flexShrink:0,textAlign:"right"}}>
-                    {isDep&&f.dep&&<div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"var(--link)"}}>{f.dep}</div>}
-                    {isDep&&f.arr&&<div style={{fontFamily:MN,fontSize:9,color:"var(--success-fg)"}}>{f.arr}{!sameDay?` (${f.arrDate?.slice(5)})`:""}</div>}
-                    {!isDep&&f.arr&&<div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"var(--success-fg)"}}>{f.arr}</div>}
-                  </div>
-                  <div style={{width:3,alignSelf:"stretch",background:isDep?"var(--link)":"var(--success-fg)",borderRadius:4,opacity:0.5,flexShrink:0}}/>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
-                      <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:4,background:f.type==="bus"?(isDep?"var(--accent)":"var(--success-fg)"):isDep?"var(--link)":"var(--success-fg)",color:"#fff",letterSpacing:"0.04em"}}>{f.type==="bus"?(isDep?"🚌 DEP":"🚌 ARR"):isDep?"✈ DEP":"✈ ARR"}</span>
-                      <span style={{fontFamily:MN,fontSize:11,fontWeight:800,color:"var(--link)"}}>{f.from}<span style={{fontWeight:400,color:"var(--info-fg)",padding:"0 3px"}}>→</span>{f.to}</span>
-                      <span style={{fontSize:10,fontWeight:700,color:"var(--info-fg)"}}>{f.flightNo||f.carrier}</span>
-                      {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{f.carrier}</span>}
-                    </div>
-                    <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-                      {f.pax?.length>0&&<span style={{fontSize:9,color:"var(--text-2)"}}>{f.pax.join(", ")}</span>}
-                      {f.pnr&&<span style={{fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>{f.pnr}</span>}
-                      {f.fromCity&&isDep&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{f.fromCity}</span>}
-                      {f.toCity&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{isDep?"→ ":""}{f.toCity}</span>}
-                    </div>
                   </div>
                 </div>
               );
@@ -4302,9 +4266,9 @@ function FinLedger(){
   const CAT_COLOR={Flight:{bg:"var(--info-bg)",c:"var(--link)"},Hotel:{bg:"var(--warn-bg)",c:"var(--warn-fg)"},Payout:{bg:"var(--accent-pill-bg)",c:"var(--accent)"},Settlement:{bg:"var(--success-bg)",c:"var(--success-fg)"}};
 
   return(
-    <div style={{flex:1,overflow:"auto",minHeight:0,padding:"14px 20px 30px",display:"flex",flexDirection:"column",gap:12}}>
+    <div style={{flex:1,overflow:"auto",minHeight:0,padding:"14px 20px 30px"}}>
       {/* Filters + totals bar */}
-      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:12}}>
         <span style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em"}}>CATEGORY</span>
         {["all",...cats].map(c=><button key={c} onClick={()=>setFilterCat(c)} style={{fontSize:9,padding:"3px 9px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,background:filterCat===c?"var(--accent)":"var(--card-2)",color:filterCat===c?"var(--card)":"var(--text-2)"}}>{c==="all"?"All":c}</button>)}
         <span style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em",marginLeft:8}}>CURRENCY</span>
