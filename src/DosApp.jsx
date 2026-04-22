@@ -1459,14 +1459,32 @@ function PaxEditor({pax,crew,onSave}){
 }
 
 function FlightsSection(){
-  const{flights,uFlight,setFlights,uRos,gRos,uFin,finance,crew,setShowCrew,shows,aC,sorted,tourStart,tourEnd}=useContext(Ctx);
+  const{flights,uFlight,setFlights,uRos,gRos,uFin,finance,crew,setShowCrew,shows,aC,sorted,tourStart,tourEnd,currentSplit,activeSplitParty,activeSplitPartyId}=useContext(Ctx);
   const a=useAuth();
   const[scanning,setScanning]=useState(false);
   const[scanMsg,setScanMsg]=useState("");
   const[pendingImport,setPendingImport]=useState([]); // scanned but not yet in state
   const[confirmingId,setConfirmingId]=useState(null);
 
-  const allFlights=useMemo(()=>Object.values(flights).sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0),[flights]);
+  // Split-party filter — on a split day, show only flights for the active party.
+  const partyMatch=useMemo(()=>{
+    if(!currentSplit||!activeSplitParty)return null;
+    const names=(activeSplitParty.crew||[]).map(id=>{
+      const c=(crew||[]).find(x=>x.id===id);
+      return (c?.name||id).toLowerCase();
+    });
+    return {names,partyId:activeSplitPartyId};
+  },[currentSplit,activeSplitParty,activeSplitPartyId,crew]);
+  const matchesParty=s=>{
+    if(!partyMatch)return true;
+    if(s.partyId)return s.partyId===partyMatch.partyId;
+    const pax=(s.pax||[]).filter(Boolean);
+    if(!pax.length)return true;
+    const lo=pax.map(n=>String(n).toLowerCase());
+    return partyMatch.names.some(n=>lo.some(p=>p.includes(n)||n.includes(p.split(" ")[0])));
+  };
+
+  const allFlights=useMemo(()=>Object.values(flights).filter(matchesParty).sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0),[flights,partyMatch]);// eslint-disable-line
   const confirmedRaw=allFlights.filter(f=>f.status==="confirmed");
   const confirmedByKey=new Map();confirmedRaw.forEach(f=>{const k=flightDedupKey(f);const cur=confirmedByKey.get(k);if(!cur||(f.confirmedAt||"")>(cur.confirmedAt||""))confirmedByKey.set(k,f);});
   const confirmed=[...confirmedByKey.values()].sort((a,b)=>a.depDate?.localeCompare(b.depDate||"")||0);
