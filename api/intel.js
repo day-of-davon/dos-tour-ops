@@ -438,21 +438,24 @@ module.exports = async function handler(req, res) {
   ].filter(Boolean);
 
   const seenIds = new Set();
-  for (const q of queries) {
-    try {
-      const ids = await gmailSearch(googleToken, q, 20); // bumped from 15
-      ids.forEach((id) => seenIds.add(id));
-    } catch (e) {
-      console.error("Gmail search error:", e.message);
-      if (e.message.includes("401")) return res.status(402).json({ error: "gmail_token_expired" });
+  {
+    const results = await Promise.allSettled(queries.map(q => gmailSearch(googleToken, q, 20)));
+    for (let i = 0; i < results.length; i++) {
+      if (results[i].status === "fulfilled") {
+        results[i].value.forEach(id => seenIds.add(id));
+      } else {
+        const msg = results[i].reason?.message || "";
+        if (msg.includes("401") || msg.includes("403")) return res.status(402).json({ error: "gmail_token_expired" });
+        console.warn("[intel] query failed:", queries[i].slice(0, 80), msg);
+      }
     }
   }
 
-  const ids = [...seenIds].slice(0, 20); // was 8 — far too restrictive
+  const ids = [...seenIds].slice(0, 20);
   const threads = (await Promise.all(ids.map((id) => gmailGetThread(googleToken, id))))
     .filter(Boolean)
     .map(extractHeaders)
-    .map((t) => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 2000) })); // was 400
+    .map((t) => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 1200) }));
 
   // ── Claude system prompt (tour-context-aware) ─────────────────────────────
   const sysPrompt = `You are an email intelligence parser for concert touring operations. You work for Davon Johnson, Tour Manager at Day of Show, LLC.
@@ -513,7 +516,7 @@ Return this exact JSON:
     headers: ANTHROPIC_HEADERS,
     body: JSON.stringify({
       model: DEFAULT_MODEL,
-      max_tokens: 8192,
+      max_tokens: 4096,
       system: [{ type: "text", text: sysPrompt, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: userPrompt }],
     }),
