@@ -458,9 +458,9 @@ module.exports = async function handler(req, res) {
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
 
   const after = sweepFrom ? toGmailDate(sweepFrom) : nDaysAgo(90);
+  const initialParams = { sweepFrom, tourStart, tourEnd, after, showsCount: shows.length };
   const { runId, startedAt } = await startScanRun({
-    scanner: "flights", userId: user.id,
-    params: { sweepFrom, tourStart, tourEnd, after, showsCount: shows.length },
+    scanner: "flights", userId: user.id, params: initialParams,
   });
   const stopReasons = {};
   const runErrors = [];
@@ -920,15 +920,15 @@ Return this exact JSON:
     pdfCount: t.attachments?.length || 0,
   }));
 
-  // Merge perThread telemetry back into scan_runs.params for later airline-rate
-  // analysis. Direct update — scanMemory.finishScanRun is field-scoped and
-  // doesn't accept params merges.
+  // Merge perThread telemetry back into scan_runs.params. Single update,
+  // no select — we still have initialParams in scope so we can rebuild the
+  // merged object without a round-trip (critical for staying under the
+  // 60s Vercel function budget).
   if (runId) {
-    try {
-      const { data: existing } = await supabase.from("scan_runs").select("params").eq("id", runId).maybeSingle();
-      const mergedParams = { ...(existing?.params || {}), perThread };
-      await supabase.from("scan_runs").update({ params: mergedParams }).eq("id", runId);
-    } catch (e) { console.warn("[flights] perThread telemetry write failed:", e.message); }
+    supabase.from("scan_runs")
+      .update({ params: { ...initialParams, perThread } })
+      .eq("id", runId)
+      .then(({ error }) => { if (error) console.warn("[flights] perThread write failed:", error.message); });
   }
 
   await finishScanRun(runId, {
