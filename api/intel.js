@@ -292,7 +292,7 @@ async function handleBulkFetch(req, res, user, supabase) {
 
   let rawThreads;
   try {
-    rawThreads = (await Promise.all(threadIds.map(id => gmailGetThread(googleToken, id)))).filter(Boolean).map(t => {
+    rawThreads = (await Promise.all(threadIds.map(id => gmailGetThread(googleToken, id).catch(() => null)))).filter(Boolean).map(t => {
       const h = extractHeaders(t);
       return { ...h, bodySnippet: (h.bodySnippet || "").slice(0, 800) };
     });
@@ -394,6 +394,7 @@ async function handleLabelScan(req, res, user, supabase) {
       return { ...h, bodySnippet: (h.bodySnippet || "").slice(0, 800) };
     });
   } catch (e) {
+    console.error("[labelScan] thread fetch error:", e.message);
     return res.status(502).json({ error: `Gmail thread fetch failed: ${e.message}` });
   }
 
@@ -530,8 +531,9 @@ module.exports = async function handler(req, res) {
         if (bulkThreadIds?.length) {
           const resolved = bulkThreadIds.map(id => threadPool[id]).filter(Boolean);
           if (resolved.length) {
-            console.log(`[intel] bulk cache hit for ${showId}: ${resolved.length} threads`);
-            threads = resolved.map(t => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 1200) }));
+            const capped = resolved.slice(0, 20);
+            console.log(`[intel] bulk cache hit for ${showId}: ${capped.length}/${resolved.length} threads`);
+            threads = capped.map(t => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 1200) }));
             fromBulkCache = true;
           }
         }
@@ -635,28 +637,42 @@ Return this exact JSON:
   "lastRefreshed": "${new Date().toISOString()}"
 }`;
 
+  const anthropicBody = JSON.stringify({
+    model: DEFAULT_MODEL,
+    max_tokens: 8192,
+    system: [{ type: "text", text: sysPrompt, cache_control: { type: "ephemeral" } }],
+    messages: [{ role: "user", content: userPrompt }],
+  });
+
+  const callAnthropic = async () => fetch(ANTHROPIC_URL, { method: "POST", headers: ANTHROPIC_HEADERS, body: anthropicBody });
+
   let anthropicResp;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      anthropicResp = await callAnthropic();
+    } catch (e) {
+      console.error("[intel] Anthropic fetch network error (attempt", attempt + 1, "):", e.message);
+      if (attempt === 0) { await new Promise(r => setTimeout(r, 2000)); continue; }
+      return res.status(502).json({ error: `Anthropic fetch failed: ${e.message}` });
+    }
+    if (anthropicResp.ok) break;
+    let errBody = "";
+    try { errBody = await anthropicResp.text(); } catch {}
+    console.error("[intel] Anthropic non-ok (attempt", attempt + 1, "):", anthropicResp.status, errBody.slice(0, 300));
+    if ((anthropicResp.status === 429 || anthropicResp.status === 529) && attempt === 0) {
+      await new Promise(r => setTimeout(r, 3000));
+      continue;
+    }
+    return res.status(502).json({ error: `Anthropic error: ${anthropicResp.status}`, detail: errBody });
+  }
+
+  let anthropicData;
   try {
-    anthropicResp = await fetch(ANTHROPIC_URL, {
-      method: "POST",
-      headers: ANTHROPIC_HEADERS,
-      body: JSON.stringify({
-        model: DEFAULT_MODEL,
-        max_tokens: 8192,
-        system: [{ type: "text", text: sysPrompt, cache_control: { type: "ephemeral" } }],
-        messages: [{ role: "user", content: userPrompt }],
-      }),
-    });
+    anthropicData = await anthropicResp.json();
   } catch (e) {
-    return res.status(502).json({ error: `Anthropic fetch failed: ${e.message}` });
+    console.error("[intel] Anthropic response parse error:", e.message);
+    return res.status(502).json({ error: `Anthropic response parse failed: ${e.message}` });
   }
-
-  if (!anthropicResp.ok) {
-    const err = await anthropicResp.text();
-    return res.status(502).json({ error: `Anthropic error: ${anthropicResp.status}`, detail: err });
-  }
-
-  const anthropicData = await anthropicResp.json();
   const inputTokens         = anthropicData.usage?.input_tokens                || 0;
   const outputTokens        = anthropicData.usage?.output_tokens               || 0;
   const cacheReadTokens     = anthropicData.usage?.cache_read_input_tokens     || 0;
