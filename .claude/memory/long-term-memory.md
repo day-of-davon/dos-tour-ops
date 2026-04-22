@@ -56,6 +56,24 @@
 
 - [2026-04-21 06:00 UTC] https://www.eventric.com/ — Master Tour now supports offline tour editing with automatic sync on reconnect — DOS v7 (Supabase-backed, always-online) has no offline mode; EU tour reliability risk if connectivity drops on show day.
 
+- [2026-04-22 04:00 UTC] https://nextjs.org/blog/next-16 — Next.js 16 is STABLE (released Oct 2025, not RC); v16.2 shipped March 18, 2026 — CONTRADICTS prior memory entry (2026-04-21) which said "v16 appears in RC." Platform spec targets Next.js 15 but Dane's Jun/Jul window is post-v16-stable; scaffold decision must explicitly pin version.
+
+- [2026-04-22 04:00 UTC] https://nextjs.org/docs/app/guides/upgrading/version-16 — Next.js 16 additional breaking changes beyond prior memory: params/searchParams in page components are now Promises (not plain objects), middleware.ts renamed to proxy.ts, Turbopack is the default bundler, Node.js 20.9+ required minimum, synchronous request API access fully removed — these affect dos-platform scaffold choices.
+
+- [2026-04-22 04:00 UTC] https://platform.claude.com/docs/en/about-claude/models/overview — Anthropic released Opus 4.7 on April 16, 2026; starting April 23, 2026 the default model for Enterprise pay-as-you-go and Anthropic API users changes to Opus 4.7 — platform spec pins "Claude API (Sonnet 4.6)" which remains valid, but API default will shift; any code without explicit model pinning will route to Opus 4.7 and incur higher cost.
+
+- [2026-04-22 04:00 UTC] https://supabase.com/changelog — Supabase GitHub integration now available on all plans including free tier: connect repo to deploy Postgres migrations from main branch via CI/CD — dos-tour-ops and dos-platform can automate migration deploys at $0 infra cost; use for Phase 0 schema workflow with Josh.
+
+- [2026-04-22 04:00 UTC] https://supabase.com/changelog — Supabase Warehouse announced (Hydra acquisition, co-developed pg_duckdb): analytics queries on Postgres accelerated 600x via DuckDB integration — directly relevant to Phase 6 DOS Market Intel data pipeline; no separate OLAP infra needed if Supabase Warehouse ships before Phase 6.
+
+- [2026-04-22 04:00 UTC] https://supabase.com/changelog — Multigres Kubernetes operator open sourced: horizontal sharding + intelligent sharding for Postgres, zero-downtime rolling upgrades, pgBackRest PITR backups, OTel tracing — long-term scaling option for dos-platform if single-tenant Supabase project hits limits post-Phase 8.
+
+- [2026-04-22 04:00 UTC] https://supabase.com/changelog — BKND (open-source backend framework) joined Supabase; building a Lite offering for agentic workloads — monitor as potential lightweight backend layer for DOS agent architecture in Phase 4; stays open source.
+
+- [2026-04-22 04:00 UTC] https://www.capterra.com/p/151939/FestivalPro/ — FestivalPro pricing starts at £249/month (~$315/mo at current rates) — CONTRADICTS CLAUDE.md which lists $45-499/mo; actual entry price is higher and GBP-denominated, which narrows DOS's festival pricing gap at the low end.
+
+- [2026-04-22 04:00 UTC] https://thinkpeak.ai/self-hosting-n8n-on-railway/ — n8n Railway self-hosted cost is $8-20/mo depending on load — CONTRADICTS prior memory entry (2026-04-21) which cited ~$5/mo Hobby plan; use $8-20 range for Phase 4 budget planning.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
