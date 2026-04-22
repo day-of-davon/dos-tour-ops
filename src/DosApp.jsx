@@ -3335,7 +3335,7 @@ function TourCalendar(){
         <span style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN}}>Pieter Smit T26-021201</span>
         <button onClick={importBusLegs} style={{marginLeft:"auto",fontSize:9,padding:"3px 10px",borderRadius:6,border:"1px solid var(--accent)",background:"var(--accent-pill-bg)",color:"var(--accent)",cursor:"pointer",fontWeight:700,fontFamily:MN}}>→ Import Legs to Travel Days</button>
       </div>
-      <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
+      <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"auto",maxHeight:380}}>
         {days.map((d,i)=>{
           const ts=TS[d.type]||TS.off;
           const isOff=d.type==="off";
