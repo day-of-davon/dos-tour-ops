@@ -32,7 +32,7 @@ function extractHeaders(thread) {
     .map(m => extractBody(m.payload))
     .filter(Boolean)
     .join("\n---\n")
-    .slice(0, 4000);
+    .slice(0, 6000);
   const lastMsg = thread.messages?.[thread.messages.length - 1];
   const lastMsgMs = lastMsg?.internalDate ? Number(lastMsg.internalDate) : null;
   // Raw HTML (pre-strip) from all messages — needed for JSON-LD FlightReservation scanning.
@@ -92,6 +92,44 @@ function jsonLdToFlight(node, tid) {
       bookingStatus: status,
     };
   }).filter(Boolean);
+}
+
+// Heuristic: how many legs does the email likely describe?
+// Round-trip JetBlue/Delta/etc. confirmations often pack 2+ legs in one email.
+// If JSON-LD only surfaces 1 but body signals 2, fall through to Claude for completion.
+function expectedLegCount(body) {
+  if (!body) return 0;
+  const s = body.toLowerCase();
+  // Distinct airline flight numbers (e.g. "B6 123", "DL 154", "LH 440")
+  const flightNums = new Set((body.match(/\b[A-Z]{1,3}\s?\d{2,4}\b/g) || []).filter(x => /[A-Z]/.test(x) && /\d/.test(x)));
+  // Route arrows: "BOS → DUB", "BOS-JFK", "BOS to LAX"
+  const arrows = (body.match(/\b[A-Z]{3}\s*(?:→|->|–|—|to|-)\s*[A-Z]{3}\b/gi) || []).length;
+  // Round-trip / connection labels
+  const roundTrip = /\b(outbound|return(?:ing)?|inbound|departing|connecting\s+flight|connection)\b/g;
+  const roundTripHits = (s.match(roundTrip) || []).length;
+  let n = Math.max(flightNums.size, arrows);
+  if (roundTripHits >= 2 && n < 2) n = 2;
+  return n;
+}
+
+// Dedup flights by (flightNo + depDate + from + to). Merges pax unions so a leg
+// extracted from both JSON-LD and Claude keeps all passenger names.
+function dedupFlights(flights) {
+  const seen = new Map();
+  for (const f of flights) {
+    const k = `${f.flightNo || ""}|${f.depDate || ""}|${f.from || ""}|${f.to || ""}`;
+    const prev = seen.get(k);
+    if (!prev) { seen.set(k, f); continue; }
+    // Prefer JSON-LD as source of truth; merge pax union
+    const winner = prev.source === "jsonld" ? prev : f;
+    const loser  = prev.source === "jsonld" ? f : prev;
+    winner.pax = [...new Set([...(winner.pax || []), ...(loser.pax || [])])];
+    if (!winner.pnr && loser.pnr) winner.pnr = loser.pnr;
+    if (!winner.confirmNo && loser.confirmNo) winner.confirmNo = loser.confirmNo;
+    if (!winner.cost && loser.cost) { winner.cost = loser.cost; winner.currency = loser.currency; }
+    seen.set(k, winner);
+  }
+  return [...seen.values()];
 }
 
 // Validation: a flight is keepable only if it has a PNR OR the (flightNo + depDate +
@@ -357,19 +395,25 @@ module.exports = async function handler(req, res) {
   // FlightReservation JSON-LD in their HTML bodies. Parse these directly and
   // skip Claude for matched threads — zero tokens spent, deterministic output.
   const jsonLdFlights = [];
-  const jsonLdTids = new Set();
+  const jsonLdTids = new Set();   // JSON-LD covered the thread fully; skip Claude
+  let jsonLdPartialTids = 0;
   for (const t of threads) {
     if (!t.htmlRaw) continue;
     const reservations = extractJsonLdReservations(t.htmlRaw);
     if (!reservations.length) continue;
     const mapped = reservations.flatMap(r => jsonLdToFlight(r, t.id));
-    if (mapped.length) {
-      jsonLdFlights.push(...mapped);
+    if (!mapped.length) continue;
+    jsonLdFlights.push(...mapped);
+    const expected = expectedLegCount(t.body);
+    if (mapped.length >= expected) {
       jsonLdTids.add(t.id);
+    } else {
+      jsonLdPartialTids++;
+      console.log(`[flights] jsonld partial: tid=${t.id} got=${mapped.length} expected=${expected} — falling through to Claude`);
     }
   }
   const claudeThreads = threads.filter(t => !jsonLdTids.has(t.id));
-  console.log(`[flights] jsonld-shortcircuit: ${jsonLdTids.size} threads / ${jsonLdFlights.length} flights | claude: ${claudeThreads.length} threads`);
+  console.log(`[flights] jsonld-shortcircuit: ${jsonLdTids.size} threads / ${jsonLdFlights.length} flights | partial: ${jsonLdPartialTids} | claude: ${claudeThreads.length} threads`);
 
   // Known crew for this tour — used to disambiguate pax names extracted in airline format.
   // Airlines print "JOHNSON/DAVON" or "NUDELMAN/DANIEL". Knowing the roster prevents
@@ -387,6 +431,13 @@ module.exports = async function handler(req, res) {
 
   const sysPrompt = `You are a flight itinerary parser for concert touring operations. Extract structured flight segment data from email bodies.
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.
+
+MULTI-LEG IS THE DEFAULT, NOT THE EXCEPTION:
+- Most booking confirmations contain 2+ legs: round-trips (outbound + return), connections (e.g. BOS→JFK→LHR = 2 legs), or multi-city. You MUST enumerate EVERY leg as a separate object in flights[].
+- A round-trip email with "Departing" + "Returning" sections = 2 separate flight objects, one per direction.
+- A connecting itinerary (e.g. "BOS → DUB via JFK") = 2 separate flight objects, one per segment.
+- Never merge legs. Never skip legs. If the email lists 3 flight numbers, flights[] has 3 entries.
+- Scan for ALL of: "Outbound", "Return", "Returning", "Departing", "Inbound", "Connection", "Layover", separate date blocks, or multiple flight number rows.
 
 Rules:
 - Each object in flights[] is one flight leg. Split multi-leg itineraries into separate objects.
@@ -561,15 +612,17 @@ Return this exact JSON:
     }
   }
 
-  const rawFlights = [...jsonLdFlights, ...claudeFlights];
+  // Dedup BEFORE validation — a JSON-LD leg and a Claude leg for the same
+  // segment should merge (JSON-LD wins for structure, Claude may carry extra pax).
+  const merged = dedupFlights([...jsonLdFlights, ...claudeFlights]);
 
   // Validation: drop flights lacking both a usable PNR and the core identifier
   // quartet (flightNo + depDate + from + to). Catches Claude hallucinations and
   // partial JSON-LD nodes that reference a flight without actually describing one.
-  const validFlights = rawFlights.filter(isValidFlight);
-  const droppedCount = rawFlights.length - validFlights.length;
+  const validFlights = merged.filter(isValidFlight);
+  const droppedCount = merged.length - validFlights.length;
 
-  console.log("[flights] threads:", threads.length, "| jsonld:", jsonLdFlights.length, "| claude:", claudeFlights.length, "| dropped:", droppedCount, "| kept:", validFlights.length, "| after:", after);
+  console.log("[flights] threads:", threads.length, "| jsonld:", jsonLdFlights.length, "| claude:", claudeFlights.length, "| merged:", merged.length, "| dropped:", droppedCount, "| kept:", validFlights.length, "| after:", after);
 
   const flights = validFlights.map(f => {
     const showMatch = matchFlightToShow(f, shows);
