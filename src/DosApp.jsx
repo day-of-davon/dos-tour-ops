@@ -1708,7 +1708,7 @@ function IntelPanel(){
     </div>
     {refreshMsg&&<div style={{fontSize:10,color:"var(--accent)",fontFamily:MN}}>{refreshMsg}</div>}
     {(()=>{
-      const arItems=labelIntel?.actionRequired||[];
+      const arItems=(labelIntel?.actionRequired||[]).filter(item=>item.showId===sid);
       if(!arItems.length)return null;
       const BUCKETS=[
         {key:"urgent",label:"URGENT",bg:"var(--danger-bg)",col:"var(--danger-fg)"},
