@@ -331,8 +331,10 @@ function buildFlightQueryGroups(after) {
     `subject:("your flight") ${W}`,
     `subject:("e-ticket") (flight OR airline OR airways) ${W}`,
     `subject:("boarding pass") ${W}`,
-    `subject:("itinerary and receipt") ${W}`,
+    // "itinerary and receipt" — AA format. subject:("itinerary and receipt") fails (Gmail treats "and" as operator)
+    `subject:itinerary subject:receipt ${W}`,
     `subject:("your itinerary") ${W}`,
+    `from:(@aa.com) (itinerary OR receipt OR confirmation) ${W}`,
     `subject:("itinerary") (flight OR airline OR departure) ${W}`,
     `subject:("booking confirmation") (flight OR airline OR airways) ${W}`,
     `subject:("trip confirmation") (flight OR airline) ${W}`,
@@ -453,7 +455,7 @@ module.exports = async function handler(req, res) {
   } = req.body || {};
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
 
-  const after = sweepFrom ? toGmailDate(sweepFrom) : nDaysAgo(90);
+  const after = sweepFrom ? toGmailDate(sweepFrom) : nDaysAgo(180);
   const initialParams = { sweepFrom, tourStart, tourEnd, after, showsCount: shows.length };
   const { runId, startedAt } = await startScanRun({
     scanner: "flights", userId: user.id, params: initialParams,
@@ -977,7 +979,7 @@ Return this exact JSON:
     const showMatch = matchFlightToShow(f, shows);
     return {
       ...f,
-      id: `fl_${(f.tid || "").slice(-6)}_${(f.flightNo || "").replace(/\s/g, "") || Math.random().toString(36).slice(2, 6)}`,
+      id: `fl_${(f.tid || "").slice(-6)}_${String(f.flightNo || "").replace(/\s/g, "") || Math.random().toString(36).slice(2, 6)}`,
       status: "pending",
       fresh48h: freshIds.has(f.tid) ? true : undefined,
       suggestedShowDate: showMatch?.showDate || null,
