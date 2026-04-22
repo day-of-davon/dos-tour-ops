@@ -27,7 +27,7 @@ function Splash({ label }) {
   return (
     <div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}>
       <div style={{textAlign:"center"}}>
-        <div style={{fontSize:18,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}}>DOS</div>
+        <div style={{fontSize:20,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}}>DOS</div>
         <div style={{fontSize:10,color:"var(--text-dim)",marginTop:3,fontFamily:"'JetBrains Mono',monospace"}}>v7.0 {label}</div>
       </div>
     </div>
@@ -52,11 +52,11 @@ function SignIn() {
     <div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui",padding:20}}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
       <div style={{background:"#fff",border:"1px solid var(--border)",borderRadius:14,padding:"32px 28px",width:"100%",maxWidth:360,textAlign:"center",boxShadow:"0 10px 30px rgba(0,0,0,.04)"}}>
-        <div style={{fontSize:22,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}}>DOS</div>
+        <div style={{fontSize:20,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}}>DOS</div>
         <div style={{fontSize:10,color:"var(--text-mute)",fontFamily:"'JetBrains Mono',monospace",marginTop:2}}>v7.0 · Tour Ops</div>
-        <div style={{fontSize:12,color:"var(--text-dim)",margin:"18px 0 22px"}}>Sign in to continue.</div>
-        <button onClick={go} disabled={busy} style={{width:"100%",padding:"10px 14px",borderRadius:8,border:"1px solid var(--border)",background:busy?"var(--card-2)":"#fff",color:"var(--text)",fontSize:13,fontWeight:600,cursor:busy?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-          <span style={{fontSize:14,fontWeight:800,color:"#4285F4"}}>G</span>{busy ? "Redirecting…" : "Continue with Google"}
+        <div style={{fontSize:11,color:"var(--text-dim)",margin:"18px 0 22px"}}>Sign in to continue.</div>
+        <button onClick={go} disabled={busy} style={{width:"100%",padding:"10px 14px",borderRadius:10,border:"1px solid var(--border)",background:busy?"var(--card-2)":"#fff",color:"var(--text)",fontSize:13,fontWeight:600,cursor:busy?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+          <span style={{fontSize:13,fontWeight:800,color:"#4285F4"}}>G</span>{busy ? "Redirecting…" : "Continue with Google"}
         </button>
         {err && <div style={{fontSize:10,color:"var(--danger-fg)",marginTop:12,fontFamily:"'JetBrains Mono',monospace"}}>{err}</div>}
       </div>
