@@ -9,11 +9,14 @@ let mammoth, xlsxLib;
 try { mammoth = require("mammoth"); } catch {}
 try { xlsxLib = require("xlsx"); } catch {}
 
-function buildVerifyPrompt(parsed) {
-  return `Verify this extracted data against the source document. Check every field for accuracy.
+function buildVerifyPrompt(parsed, sourceExcerpt) {
+  const sourceBlock = sourceExcerpt
+    ? `\n\nSOURCE EXCERPT (first 2000 chars):\n${sourceExcerpt}`
+    : "";
+  return `Verify this extracted touring-operations data for internal consistency and obvious errors.${sourceBlock}
 
 EXTRACTED DATA:
-${JSON.stringify(parsed, null, 2)}
+${JSON.stringify(parsed)}
 
 Return this exact JSON:
 {
@@ -199,12 +202,9 @@ module.exports = async function handler(req, res) {
   const VERIFY_SYS = `You are a document data verifier. You check extracted structured data against the source document for accuracy.
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.`;
 
-  const verifyMsgs = usePdfNative
-    ? [{ role: "user", content: [
-        { type: "document", source: { type: "base64", media_type: "application/pdf", data: fileBase64 } },
-        { type: "text", text: buildVerifyPrompt(parsed) },
-      ] }]
-    : [{ role: "user", content: `${buildVerifyPrompt(parsed)}\n\nDOCUMENT CONTENT:\n${extractedText}` }];
+  // Verification uses extracted JSON + a brief source excerpt only — no full document re-send.
+  const sourceExcerpt = usePdfNative ? null : (extractedText || "").slice(0, 2000);
+  const verifyMsgs = [{ role: "user", content: buildVerifyPrompt(parsed, sourceExcerpt) }];
 
   let verified = parsed;
   try {

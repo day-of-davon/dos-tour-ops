@@ -471,7 +471,7 @@ Extract all contacts (name, role, email) from signatures and sender lines.
 Extract every time mention that maps to a show-day field. Fields: doors, curfew, busArrive, crewCall, venueAccess, mgTime, soundcheck, set.
 
 Thread data:
-${JSON.stringify(threads.map(t => ({ id: t.id, subject: t.subject, from: t.from, date: t.date, body: t.bodySnippet })), null, 2)}
+${JSON.stringify(threads.map(t => ({ id: t.id, subject: t.subject, from: t.from, date: t.date, body: t.bodySnippet })))}
 
 Return this exact JSON:
 {

@@ -39,7 +39,7 @@ function extractHeaders(thread) {
   const rawLen = rawParts.join("").length;
   const strippedLen = strippedParts.join("").length;
   if (rawLen > strippedLen) console.log(`[flights] footer-strip tid=${thread.id}: saved ${rawLen - strippedLen} chars`);
-  const body = strippedParts.join("\n---\n").slice(0, 6000);
+  const body = strippedParts.join("\n---\n").slice(0, 3000);
   const lastMsg = thread.messages?.[thread.messages.length - 1];
   const lastMsgMs = lastMsg?.internalDate ? Number(lastMsg.internalDate) : null;
   // Raw HTML (pre-strip) from all messages — needed for JSON-LD FlightReservation scanning.
