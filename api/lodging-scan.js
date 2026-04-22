@@ -8,6 +8,15 @@ const {
   getCachedThread, putCachedThread,
   logEnhancement, bumpStopReason,
 } = require("./lib/scanMemory");
+const {
+  collectThreadAttachments, dedupFolios,
+  fetchAttachmentB64, attachmentFingerprint,
+} = require("./lib/attachments");
+
+// PDF attachment caps.
+const PDF_MAX_PER_THREAD = 2;
+const PDF_MAX_PER_SCAN   = 20;
+const PDF_MAX_BYTES      = 5 * 1024 * 1024;
 
 function extractHeaders(thread) {
   const last = thread.messages?.[thread.messages.length - 1];
@@ -21,7 +30,23 @@ function extractHeaders(thread) {
   if (footerStripSaved) console.log(`[lodging] footer-strip tid=${thread.id}: saved ${footerStripSaved} chars`);
   const body = strippedParts.join("\n---\n").slice(0, 1400);
   const lastMsgMs = last?.internalDate ? Number(last.internalDate) : null;
-  return { id: thread.id, subject: get("Subject"), from: get("From"), date: get("Date"), body, lastMsgMs, footerStripSaved };
+  // Attachments: walk tree, dedup Marriott-style (folio_NNNN, Receipt (2), etc.)
+  const allAttachments = collectThreadAttachments(thread);
+  const { kept: dedupedAttachments, dropped: droppedAttachments } =
+    dedupFolios(allAttachments.filter(a => a.size <= PDF_MAX_BYTES));
+  const attachments = dedupedAttachments.slice(0, PDF_MAX_PER_THREAD);
+  if (droppedAttachments.length) {
+    console.log(`[lodging] folio_dedup_dropped tid=${thread.id}: ${droppedAttachments.map(d => d.filename).join(", ")}`);
+  }
+  const oversized = allAttachments.filter(a => a.size > PDF_MAX_BYTES).map(a => ({ filename: a.filename, size: a.size }));
+  return {
+    id: thread.id, subject: get("Subject"), from: get("From"), date: get("Date"),
+    body, lastMsgMs, footerStripSaved,
+    attachments,
+    attachmentFingerprints: attachmentFingerprint(attachments),
+    droppedAttachments,
+    oversizedAttachments: oversized,
+  };
 }
 
 // ── Query builders ───────────────────────────────────────────────────────────
@@ -178,7 +203,7 @@ module.exports = async function handler(req, res) {
 
   const threads = (await fetchBatched(googleToken, ids, 25)).map(extractHeaders);
 
-  // Cache check.
+  // Cache check (body_hash + lastMsgMs + attachment fingerprints).
   const cacheHits = [];
   const fresh = [];
   for (const t of threads) {
@@ -186,36 +211,32 @@ module.exports = async function handler(req, res) {
     const cached = await getCachedThread("lodging", t.id);
     t.bodyHash = bodyHash;
     t.prevResult = cached?.result || null;
-    if (shouldUseCached(cached, t.lastMsgMs, bodyHash, [])) {
+    if (shouldUseCached(cached, t.lastMsgMs, bodyHash, t.attachmentFingerprints)) {
       cacheHits.push(...(Array.isArray(cached.result) ? cached.result : []));
     } else {
       fresh.push(t);
     }
+    for (const d of t.droppedAttachments || []) errors.push({ kind: "folio_dedup_dropped", tid: t.id, filename: d.filename, reason: d.reason });
+    for (const o of t.oversizedAttachments || []) errors.push({ kind: "pdf_oversized", tid: t.id, filename: o.filename, size: o.size });
   }
   console.log(`[lodging-scan] runId=${runId} threads=${threads.length} cached=${threads.length - fresh.length} fresh=${fresh.length}`);
 
   let inputTokens = 0, outputTokens = 0;
+  let attachmentsScanned = 0;
   let claudeLodgings = [];
-  if (fresh.length) {
-    const sysPrompt = `You are a hotel/accommodation confirmation parser for concert touring operations. Extract structured lodging data from email bodies.
+
+  const sysPrompt = `You are a hotel/accommodation confirmation parser for concert touring operations. Extract structured lodging data from email bodies AND attached folio/receipt PDFs when present.
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.
 Rules:
 - Each object in lodgings[] represents one distinct hotel/property stay (not per-room)
 - Dates: YYYY-MM-DD format
 - Times: HH:MM 24-hour format
-- cost: total cost as number only, no currency symbol. null if not found
+- cost: total cost as number only, no currency symbol. null if not found. When a folio PDF is attached, prefer the PDF's final total (post-tax, post-incidentals) over body estimates.
 - pax: array of guest full names. Empty array if not found
+- When a PDF is attached: trust it over the body text for cost, dates, confirmation numbers, and room type. Body text often shows the initial reservation; folios show actual charges.
 - Skip flight, car rental, or non-accommodation confirmations`;
 
-    const userPrompt = `Extract all hotel/accommodation reservations from these email threads. Tour date range: ${tourStart} to ${tourEnd}.
-
-${fresh.map((t, i) => `[${i}] tid:${t.id}
-Subject: ${t.subject}
-From: ${t.from}
-Date: ${t.date}
-Body: ${t.body}`).join("\n\n---\n\n")}
-
-Return this exact JSON:
+  const returnShape = `Return this exact JSON:
 {
   "lodgings": [
     {
@@ -239,57 +260,148 @@ Return this exact JSON:
   ]
 }`;
 
-    const anthropicResp = await fetch(ANTHROPIC_URL, {
+  // Helper: one Claude call, record tokens + stop_reason.
+  async function callClaude(contentBlocks) {
+    const resp = await fetch(ANTHROPIC_URL, {
       method: "POST",
       headers: ANTHROPIC_HEADERS,
       body: JSON.stringify({
         model: DEFAULT_MODEL,
         max_tokens: 8192,
         system: [{ type: "text", text: sysPrompt, cache_control: { type: "ephemeral" } }],
-        messages: [{ role: "user", content: userPrompt }],
+        messages: [{ role: "user", content: contentBlocks }],
       }),
     });
+    if (!resp.ok) {
+      const err = await resp.text();
+      throw Object.assign(new Error(`Anthropic ${resp.status}`), { status: resp.status, detail: err });
+    }
+    const data = await resp.json();
+    inputTokens  += data.usage?.input_tokens  || 0;
+    outputTokens += data.usage?.output_tokens || 0;
+    bumpStopReason(stopReasons, data.stop_reason);
+    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+    return { text, stopReason: data.stop_reason };
+  }
 
-    if (!anthropicResp.ok) {
-      const err = await anthropicResp.text();
-      errors.push({ kind: "anthropic_error", status: anthropicResp.status, detail: err.slice(0, 500) });
-      await finishScanRun(runId, { threadsFound: threads.length, threadsCached: cacheHits.length, threadsParsed: 0, errors, stopReasons, startedAt });
-      return res.status(502).json({ error: `Anthropic error: ${anthropicResp.status}`, detail: err });
+  // Partition fresh threads: with-PDFs go one-at-a-time (per-thread document
+  // content); without go through the original batched text-only prompt.
+  const withPdf = [];
+  const textOnly = [];
+  for (const t of fresh) (t.attachments?.length ? withPdf : textOnly).push(t);
+
+  const perThreadResults = {}; // tid -> [lodgings]
+  let lastStopReason = null;
+
+  // ── Text-only batch (unchanged shape) ──────────────────────────────────────
+  if (textOnly.length) {
+    const userPrompt = `Extract all hotel/accommodation reservations from these email threads. Tour date range: ${tourStart} to ${tourEnd}.
+
+${textOnly.map((t, i) => `[${i}] tid:${t.id}
+Subject: ${t.subject}
+From: ${t.from}
+Date: ${t.date}
+Body: ${t.body}`).join("\n\n---\n\n")}
+
+${returnShape}`;
+    try {
+      const { text, stopReason } = await callClaude([{ type: "text", text: userPrompt }]);
+      lastStopReason = stopReason;
+      const parsed = extractJson(text);
+      const rows = Array.isArray(parsed?.lodgings) ? parsed.lodgings : [];
+      for (const h of rows) (perThreadResults[h.tid] ||= []).push(h);
+      console.log(`[lodging-scan] text-batch stop=${stopReason} threads=${textOnly.length} rows=${rows.length}`);
+    } catch (e) {
+      errors.push({ kind: "anthropic_error", phase: "text_batch", status: e.status, detail: (e.detail || "").slice(0, 500) });
+    }
+  }
+
+  // ── Per-thread PDF calls (bounded by scan cap) ─────────────────────────────
+  for (const t of withPdf) {
+    if (attachmentsScanned >= PDF_MAX_PER_SCAN) {
+      errors.push({ kind: "pdf_scan_cap_reached", tid: t.id, attemptedFiles: t.attachments.length });
+      // fall through to text-only path for this thread
+      try {
+        const userPrompt = `Extract all hotel/accommodation reservations from this thread. Tour date range: ${tourStart} to ${tourEnd}.
+tid:${t.id}
+Subject: ${t.subject}
+From: ${t.from}
+Date: ${t.date}
+Body: ${t.body}
+
+${returnShape}`;
+        const { text, stopReason } = await callClaude([{ type: "text", text: userPrompt }]);
+        lastStopReason = stopReason;
+        const parsed = extractJson(text);
+        const rows = Array.isArray(parsed?.lodgings) ? parsed.lodgings : [];
+        for (const h of rows) (perThreadResults[h.tid] ||= []).push(h);
+      } catch (e) {
+        errors.push({ kind: "anthropic_error", phase: "fallback_text", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+      }
+      continue;
     }
 
-    const anthropicData = await anthropicResp.json();
-    inputTokens = anthropicData.usage?.input_tokens || 0;
-    outputTokens = anthropicData.usage?.output_tokens || 0;
-    bumpStopReason(stopReasons, anthropicData.stop_reason);
-    const textContent = (anthropicData.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
-    console.log(`[lodging-scan] stop_reason=${anthropicData.stop_reason} fresh=${fresh.length} in=${inputTokens} out=${outputTokens}`);
-
-    const parsed = extractJson(textContent);
-    claudeLodgings = Array.isArray(parsed?.lodgings) ? parsed.lodgings : [];
-
-    // Cache results per-thread + log enhancements.
-    const byTid = {};
-    for (const h of claudeLodgings) {
-      (byTid[h.tid] ||= []).push(h);
-    }
-    for (const t of fresh) {
-      const result = byTid[t.id] || [];
-      await putCachedThread("lodging", t.id, {
-        lastMsgMs: t.lastMsgMs,
-        bodyHash: t.bodyHash,
-        result,
-        stopReason: anthropicData.stop_reason,
-        footerStripSaved: t.footerStripSaved,
-        attachmentFingerprints: [],
+    // Fetch up to PDF_MAX_PER_THREAD attachments (already dedup+size-filtered).
+    const docBlocks = [];
+    const usedFiles = [];
+    for (const a of t.attachments) {
+      if (attachmentsScanned >= PDF_MAX_PER_SCAN) break;
+      const b64 = await fetchAttachmentB64(googleToken, a.messageId, a.attachmentId);
+      if (!b64) { errors.push({ kind: "attachment_fetch_failed", tid: t.id, filename: a.filename }); continue; }
+      docBlocks.push({
+        type: "document",
+        source: { type: "base64", media_type: "application/pdf", data: b64 },
       });
-      // Enhancement log vs previous cached result.
-      if (Array.isArray(t.prevResult) && t.prevResult.length) {
-        const prevById = Object.fromEntries(t.prevResult.map(r => [`${t.id}:${r.confirmNo || r.name}`, r]));
-        for (const h of result) {
-          const key = `${t.id}:${h.confirmNo || h.name}`;
-          const prev = prevById[key];
-          if (prev) await logEnhancement("lodging", key, prev, h, { scanRunId: runId, source: "lodging-scan", scanner: "lodging", userId: user.id, userEmail: user.email });
-        }
+      usedFiles.push(a.filename);
+      attachmentsScanned++;
+    }
+
+    const userPrompt = `Extract all hotel/accommodation reservations for this thread. Tour date range: ${tourStart} to ${tourEnd}.
+${docBlocks.length ? `Attached: ${usedFiles.length} PDF folio/receipt(s) — ${usedFiles.join(", ")}. Prefer PDF totals for cost; use body for context.` : ""}
+
+tid:${t.id}
+Subject: ${t.subject}
+From: ${t.from}
+Date: ${t.date}
+Body: ${t.body}
+
+${returnShape}`;
+    try {
+      const { text, stopReason } = await callClaude([
+        ...docBlocks,
+        { type: "text", text: userPrompt },
+      ]);
+      lastStopReason = stopReason;
+      const parsed = extractJson(text);
+      const rows = Array.isArray(parsed?.lodgings) ? parsed.lodgings : [];
+      for (const h of rows) {
+        if (usedFiles.length) h.sourceAttachment = { filename: usedFiles[0] };
+        (perThreadResults[h.tid] ||= []).push(h);
+      }
+      console.log(`[lodging-scan] pdf tid=${t.id} pdfs=${docBlocks.length} stop=${stopReason} rows=${rows.length}`);
+    } catch (e) {
+      errors.push({ kind: "anthropic_error", phase: "pdf_thread", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+    }
+  }
+
+  // Flatten + cache + enhancement log.
+  for (const t of fresh) {
+    const result = perThreadResults[t.id] || [];
+    claudeLodgings.push(...result);
+    await putCachedThread("lodging", t.id, {
+      lastMsgMs: t.lastMsgMs,
+      bodyHash: t.bodyHash,
+      result,
+      stopReason: lastStopReason,
+      footerStripSaved: t.footerStripSaved,
+      attachmentFingerprints: t.attachmentFingerprints,
+    });
+    if (Array.isArray(t.prevResult) && t.prevResult.length) {
+      const prevByKey = Object.fromEntries(t.prevResult.map(r => [`${t.id}:${r.confirmNo || r.name}`, r]));
+      for (const h of result) {
+        const key = `${t.id}:${h.confirmNo || h.name}`;
+        const prev = prevByKey[key];
+        if (prev) await logEnhancement("lodging", key, prev, h, { scanRunId: runId, source: "lodging-scan", scanner: "lodging", userId: user.id, userEmail: user.email });
       }
     }
   }
@@ -310,7 +422,7 @@ Return this exact JSON:
     threadsFound: threads.length,
     threadsCached: threads.length - fresh.length,
     threadsParsed: fresh.length,
-    attachmentsScanned: 0,
+    attachmentsScanned,
     inputTokens, outputTokens,
     stopReasons, errors,
     startedAt,
@@ -322,6 +434,7 @@ Return this exact JSON:
     scanRunId: runId,
     threadsCached: threads.length - fresh.length,
     threadsParsed: fresh.length,
+    attachmentsScanned,
     tokensUsed: inputTokens + outputTokens,
   });
 };
