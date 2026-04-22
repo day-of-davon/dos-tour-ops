@@ -290,20 +290,28 @@ async function handleBulkFetch(req, res, user, supabase) {
     return res.status(502).json({ error: e.message });
   }
 
-  const rawThreads = (await Promise.all(threadIds.map(id => gmailGetThread(googleToken, id)))).filter(Boolean).map(t => {
-    const h = extractHeaders(t);
-    return { ...h, bodySnippet: (h.bodySnippet || "").slice(0, 800) };
-  });
+  let rawThreads;
+  try {
+    rawThreads = (await Promise.all(threadIds.map(id => gmailGetThread(googleToken, id)))).filter(Boolean).map(t => {
+      const h = extractHeaders(t);
+      return { ...h, bodySnippet: (h.bodySnippet || "").slice(0, 800) };
+    });
+  } catch (e) {
+    console.error("[bulkFetch] thread fetch error:", e.message);
+    return res.status(502).json({ error: e.message });
+  }
 
   const shows = Array.isArray(showsArr) ? showsArr : [];
   const classified = rawThreads.map(t => ({ ...t, category: classifyThread(t.subject, t.from), _show: matchShow(t, shows) }));
 
   const byShow = {};
+  const threadPool = {};
   for (const t of classified) {
+    threadPool[t.id] = t;
     const showId = t._show ? `${t._show.venue}__${t._show.date}`.toLowerCase().replace(/\s+/g, "_") : null;
     if (showId) {
       if (!byShow[showId]) byShow[showId] = [];
-      byShow[showId].push(t);
+      byShow[showId].push(t.id);
     }
   }
 
@@ -339,7 +347,7 @@ async function handleBulkFetch(req, res, user, supabase) {
     return new Date(b.date) - new Date(a.date);
   });
 
-  const payload = { byShow, settlements, crewFlights: crewFlightsRaw, advanceItems, actionRequired, threadCount: threadIds.length, labelThreadsFound: threadIds.length, scannedAt: new Date().toISOString() };
+  const payload = { byShow, threadPool, settlements, crewFlights: crewFlightsRaw, advanceItems, actionRequired, threadCount: threadIds.length, labelThreadsFound: threadIds.length, scannedAt: new Date().toISOString() };
 
   await supabase.from("intel_cache").upsert(
     { user_id: user.id, show_id: BULK_ID, intel: payload, gmail_threads_found: threadIds.length, cached_at: new Date().toISOString(), is_shared: false, user_email: userEmail || null },
@@ -512,11 +520,15 @@ module.exports = async function handler(req, res) {
     if (bulk) {
       const ageMin = (Date.now() - new Date(bulk.cached_at).getTime()) / 60000;
       if (ageMin < CACHE_TTL_MINUTES) {
-        const bulkThreads = bulk.intel?.byShow?.[showId];
-        if (bulkThreads?.length) {
-          console.log(`[intel] bulk cache hit for ${showId}: ${bulkThreads.length} threads`);
-          threads = bulkThreads.map(t => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 1200) }));
-          fromBulkCache = true;
+        const bulkThreadIds = bulk.intel?.byShow?.[showId];
+        const threadPool = bulk.intel?.threadPool || {};
+        if (bulkThreadIds?.length) {
+          const resolved = bulkThreadIds.map(id => threadPool[id]).filter(Boolean);
+          if (resolved.length) {
+            console.log(`[intel] bulk cache hit for ${showId}: ${resolved.length} threads`);
+            threads = resolved.map(t => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 1200) }));
+            fromBulkCache = true;
+          }
         }
       }
     }
