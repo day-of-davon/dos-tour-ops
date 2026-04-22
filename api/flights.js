@@ -458,7 +458,7 @@ Return this exact JSON:
       const resp = await fetch(ANTHROPIC_URL, {
         method: "POST",
         headers: ANTHROPIC_HEADERS,
-        body: JSON.stringify({ model, max_tokens: maxTokens, system: sys, messages: [{ role: "user", content: prompt }] }),
+        body: JSON.stringify({ model, max_tokens: maxTokens, system: [{ type: "text", text: sys, cache_control: { type: "ephemeral" } }], messages: [{ role: "user", content: prompt }] }),
       });
       if (resp.ok) {
         const data = await resp.json();

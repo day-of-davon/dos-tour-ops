@@ -69,7 +69,7 @@ Return this exact JSON structure (use null for missing fields, empty arrays if n
     body: JSON.stringify({
       model: DEFAULT_MODEL,
       max_tokens: 2000,
-      system: sysPrompt,
+      system: [{ type: "text", text: sysPrompt, cache_control: { type: "ephemeral" } }],
       messages: [{
         role: "user",
         content: [

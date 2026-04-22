@@ -258,7 +258,7 @@ module.exports = async function handler(req, res) {
     body: JSON.stringify({
       model: DEFAULT_MODEL,
       max_tokens: 8192,
-      system: "You are a production document parser for concert touring. Return ONLY valid JSON arrays. No markdown, no backticks, no preamble.",
+      system: [{ type: "text", text: "You are a production document parser for concert touring. Return ONLY valid JSON arrays. No markdown, no backticks, no preamble.", cache_control: { type: "ephemeral" } }],
       messages: [{
         role: "user",
         content: [

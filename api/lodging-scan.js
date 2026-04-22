@@ -214,7 +214,7 @@ Return this exact JSON:
     body: JSON.stringify({
       model: DEFAULT_MODEL,
       max_tokens: 8192,
-      system: sysPrompt,
+      system: [{ type: "text", text: sysPrompt, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: userPrompt }],
     }),
   });

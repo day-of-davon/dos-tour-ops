@@ -177,7 +177,7 @@ module.exports = async function handler(req, res) {
     const resp = await fetch(ANTHROPIC_URL, {
       method: "POST",
       headers: ANTHROPIC_HEADERS,
-      body: JSON.stringify({ model: DEFAULT_MODEL, max_tokens: maxTokens, system: sys, messages: msgs }),
+      body: JSON.stringify({ model: DEFAULT_MODEL, max_tokens: maxTokens, system: [{ type: "text", text: sys, cache_control: { type: "ephemeral" } }], messages: msgs }),
     });
     if (!resp.ok) throw Object.assign(new Error(`Anthropic ${resp.status}`), { detail: await resp.text() });
     const data = await resp.json();
