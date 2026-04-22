@@ -33,6 +33,7 @@ const describeScanError=body=>{
 // Preserves user-set status/confirmedAt and non-empty suggestedCrewIds.
 const FLIGHT_ENRICH_FIELDS=["flightNo","carrier","from","fromCity","to","toCity","depDate","dep","arrDate","arr","cost","currency","pnr","confirmNo","ticketNo","bookingStatus"];
 const enrichFlight=(existing,fresh)=>{
+  if(existing.locked)return existing;
   const out={...existing};
   FLIGHT_ENRICH_FIELDS.forEach(k=>{
     if((out[k]==null||out[k]==="")&&fresh[k]!=null&&fresh[k]!=="")out[k]=fresh[k];
@@ -650,7 +651,7 @@ const DEFAULT_ROS=()=>[
   {id:"settlement",label:"Settlement",duration:60,phase:"post",type:"business",color:"var(--warn-fg)",roles:["tm"],note:"30min after headline ends",offsetRef:"bbno_set_end",offsetMin:30},
   {id:"showers",label:"Showers / Wind Down",duration:45,phase:"post",type:"crew",color:"var(--text-2)",roles:["tm","transport"]},
   {id:"clear",label:"Clear Venue",duration:30,phase:"post",type:"bus",color:"var(--text-3)",roles:["tm","transport"],note:"Final walk, bus loaded"},
-  {id:"bus_depart",label:"BUS DEPARTS",duration:0,phase:"post",type:"bus",color:"var(--info-fg)",roles:["tm","transport"],note:"Next city. Crew sleeps."},
+  {id:"bus_depart",label:"BUS DEPARTS",duration:0,phase:"post",type:"bus",color:"var(--info-fg)",roles:["tm","transport"],note:"Next city. Crew sleeps.",isAnchor:true,anchorKey:"busDepart"},
 ];
 
 const RRX_ROS=()=>[
@@ -684,7 +685,7 @@ const RRX_ROS=()=>[
   {id:"settlement",label:"Settlement",duration:60,phase:"post",type:"business",color:"var(--warn-fg)",roles:["tm"],offsetRef:"bbno_set_end",offsetMin:30},
   {id:"showers",label:"Showers / Wind Down",duration:45,phase:"post",type:"crew",color:"var(--text-2)",roles:["tm","transport"]},
   {id:"clear",label:"Clear Venue",duration:30,phase:"post",type:"bus",color:"var(--text-3)",roles:["tm","transport"]},
-  {id:"bus_depart",label:"BUS DEPARTS",duration:0,phase:"post",type:"bus",color:"var(--info-fg)",roles:["tm","transport"]},
+  {id:"bus_depart",label:"BUS DEPARTS",duration:0,phase:"post",type:"bus",color:"var(--info-fg)",roles:["tm","transport"],isAnchor:true,anchorKey:"busDepart"},
 ];
 const CUSTOM_ROS_MAP={"2026-04-16":RRX_ROS};
 
@@ -852,6 +853,7 @@ export default function App(){
   const activeSplitParty=currentSplit?currentSplit.parties.find(p=>p.id===activeSplitPartyId):null;
   const[tourStart,setTourStart]=useState("2026-04-01");
   const[tourEnd,setTourEnd]=useState("2026-06-30");
+  const[lastFlightScanAt,setLastFlightScanAt]=useState(null);
   const mobile=useMobile();
   const st=useRef(null);const stp=useRef(null);
 
@@ -865,6 +867,7 @@ export default function App(){
     if(se?.showOffDays!==undefined)setShowOffDays(se.showOffDays);
     if(se?.sidebarOpen!==undefined)setSidebarOpen(se.sidebarOpen);
     if(se?.tourStart)setTourStart(se.tourStart);if(se?.tourEnd)setTourEnd(se.tourEnd);
+    if(se?.lastFlightScanAt)setLastFlightScanAt(se.lastFlightScanAt);
     if(cr?.crew)setCrew(cr.crew);if(cr?.showCrew)setShowCrew(cr.showCrew);
     setProduction(pr||{});setFlights(fl||{});setLodging(lo||{});setGuestlists(gl||{});setGlTemplates(glt||{});setImmigration(im||{});
     const[np,cp,it]=await Promise.all([sGP(PK.NOTES_PRIV),sGP(PK.CHECKLIST_PRIV),sGP(PK.INTEL)]);
@@ -952,8 +955,8 @@ export default function App(){
 
   const save=useCallback(()=>{
     if(!loaded)return;if(st.current)clearTimeout(st.current);
-    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging),sS(SK.GUESTLISTS,guestlists),sS(SK.GL_TEMPLATES,glTemplates),sS(SK.IMMIGRATION,immigration)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
-  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd]);
+    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging),sS(SK.GUESTLISTS,guestlists),sS(SK.GL_TEMPLATES,glTemplates),sS(SK.IMMIGRATION,immigration)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
+  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt]);
   useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd]);
   useEffect(()=>{const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(v=>!v);}if(e.key==="Escape")setCmd(false);};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
   const labelScanFired=useRef(false);
@@ -965,12 +968,23 @@ export default function App(){
     flightScanFired.current=true;
     (async()=>{
       try{
+        // Skip scan if last scan was within 55 minutes (watermark guard)
+        if(lastFlightScanAt){
+          const age=(Date.now()-new Date(lastFlightScanAt).getTime())/60000;
+          if(age<55){console.log(`[bg-flights] skipping — last scan ${age.toFixed(1)}m ago`);return;}
+        }
         const{data:{session}}=await supabase.auth.getSession();
         if(!session?.provider_token)return;
         const showsArr=Object.values(shows||{}).map(s=>({id:s.id||s.date,date:s.date,venue:s.venue,city:s.city,type:s.type}));
-        const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken:session.provider_token,tourStart,tourEnd,focus:FOCUS_CARRIERS,shows:showsArr})});
+        // Watermark: scan only since last scan (minus 2h overlap) to skip old emails
+        const sweepFrom=lastFlightScanAt
+          ?Math.floor((new Date(lastFlightScanAt).getTime()-2*60*60*1000)/1000)
+          :undefined;
+        const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken:session.provider_token,tourStart,tourEnd,focus:FOCUS_CARRIERS,shows:showsArr,...(sweepFrom?{sweepFrom}:{})})});
         if(!resp.ok)return;
         const data=await resp.json();
+        // Record watermark regardless of whether new flights arrived
+        if(data.scannedAt)setLastFlightScanAt(data.scannedAt);
         if(!data.flights?.length)return;
         setFlights(cur=>{
           const next={...cur};
@@ -1546,7 +1560,7 @@ function FlightsSection(){
                   return(
                     <FlightCard key={f.id} f={f} crew={crew}
                       onUpdatePax={newPax=>uFlight(f.id,{...f,pax:newPax,suggestedCrewIds:matchPaxToCrew(newPax,crew)})}
-                      onUpdate={patch=>uFlight(f.id,{...flights[f.id],...patch})}
+                      onUpdate={patch=>uFlight(f.id,{...flights[f.id],...patch,locked:true,editedAt:Date.now()})}
                       actions={<>
                         <button onClick={()=>confirmFlight(flights[f.id]||f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"none",background:isConf?"var(--success-fg)":"var(--link)",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
                         <button onClick={()=>dismissFlight(f.id)} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Dismiss</button>
@@ -3069,9 +3083,18 @@ function ROSTab(){
   if(!show)return null;
   const today=new Date().toISOString().slice(0,10);const upcoming=cShows.filter(s=>s.date>=today);
 
+  const busCalTimes=useMemo(()=>{
+    const todayBus=BUS_DATA_MAP[sel];
+    const busArriveEff=(todayBus?.arr&&todayBus.arr!=="—")?pM(todayBus.arr):null;
+    let busDepartEff=null,busDepartRoute=null;
+    for(let d=1;d<=4;d++){const dt=new Date(sel+"T12:00:00");dt.setDate(dt.getDate()+d);const e=BUS_DATA_MAP[dt.toISOString().slice(0,10)];if(e?.dep&&e.dep!=="—"){const raw=pM(e.dep);busDepartEff=(raw!=null&&raw<8*60)?raw+1440:raw;busDepartRoute=e.route;break;}}
+    return{busArriveEff,busArriveRoute:todayBus?.route||null,busDepartEff,busDepartRoute};
+  },[sel]);
+
   const times=useMemo(()=>{
     const t={};const{doors,curfew,busArrive,crewCall,venueAccess,mgTime}=effShow;
-    t.bus_arrive={s:busArrive,e:busArrive};t.venue_access={s:venueAccess,e:venueAccess};t.crew_call={s:crewCall,e:crewCall};
+    const effBusArrive=effShow.busArriveConfirmed?busArrive:(busCalTimes.busArriveEff??busArrive);
+    t.bus_arrive={s:effBusArrive,e:effBusArrive};t.venue_access={s:venueAccess,e:venueAccess};t.crew_call={s:crewCall,e:crewCall};
     const pre=blocks.filter(b=>b.phase==="pre"&&!b.isAnchor);let c=crewCall;
     for(const b of pre){t[b.id]={s:c,e:c+b.duration};c+=b.duration;}
     const mgCI=blocks.find(b=>b.id==="mg_checkin")?.duration||30;
@@ -3082,9 +3105,9 @@ function ROSTab(){
     for(const b of sh){t[b.id]={s:c,e:c+b.duration};c+=b.duration;}
     const hE=t.bbno_set?.e||curfew;t.curfew={s:curfew,e:curfew};
     const post=blocks.filter(b=>b.phase==="post");c=curfew;
-    for(const b of post){if(b.offsetRef==="bbno_set_end"){t[b.id]={s:hE+(b.offsetMin||0),e:hE+(b.offsetMin||0)+b.duration};continue;}t[b.id]={s:c,e:c+b.duration};c+=b.duration;}
+    for(const b of post){if(b.anchorKey==="busDepart"){const bt=effShow.busDepart??busCalTimes.busDepartEff;if(bt!=null){t[b.id]={s:bt,e:bt};}else{t[b.id]={s:c,e:c};}continue;}if(b.offsetRef==="bbno_set_end"){t[b.id]={s:hE+(b.offsetMin||0),e:hE+(b.offsetMin||0)+b.duration};continue;}t[b.id]={s:c,e:c+b.duration};c+=b.duration;}
     return t;
-  },[effShow,blocks]);
+  },[effShow,blocks,busCalTimes]);
 
   const setDur=(id,dur)=>uRos(rosKey,blocks.map(b=>b.id===id?{...b,duration:Math.max(0,dur)}:b));
   const setBF=(id,field,val)=>uRos(rosKey,blocks.map(b=>b.id===id?{...b,[field]:val}:b));
@@ -3116,7 +3139,7 @@ function ROSTab(){
   };
   const setAnc=(key,str)=>{const m=pM(str);if(m===null)return;uEffShow({[key]:m,[key+"Confirmed"]:true});};
   const hl=b=>AB.has(b.id)||role==="tm"||b.roles?.includes(role);
-  const AMAP={busArrive:"Bus Arrival",venueAccess:"Venue Access",crewCall:"Crew Call",mgTime:"M&G",doors:"Doors",curfew:"Curfew"};
+  const AMAP={busArrive:"Bus Arrival",busDepart:"Bus Depart",venueAccess:"Venue Access",crewCall:"Crew Call",mgTime:"M&G",doors:"Doors",curfew:"Curfew"};
   const isCustom=!subEvent&&!!CUSTOM_ROS_MAP[sel];
 
   if(show.type==="off"||show.type==="travel"){
@@ -3166,6 +3189,8 @@ function ROSTab(){
               <input type="text" placeholder="7:00p" defaultValue={fmt(effShow[b.anchorKey])} onKeyDown={e=>{if(e.key==="Enter"){setAnc(b.anchorKey,e.target.value);setEditB(null);}if(e.key==="Escape")setEditB(null);}} onBlur={e=>setAnc(b.anchorKey,e.target.value)} style={{...UI.input,fontFamily:MN,width:80,fontWeight:700}}/>
               <button onClick={()=>uEffShow({[b.anchorKey+"Confirmed"]:!isC})} style={UI.expandBtn(false,isC?"var(--success-fg)":"var(--warn-fg)")}>{isC?"✓ Confirmed":"Mark Confirmed"}</button>
               {b.anchorKey==="busArrive"&&<label style={{fontSize:9,fontWeight:700,color:"var(--info-fg)",display:"flex",alignItems:"center",gap:4,cursor:"pointer",background:"var(--info-bg)",padding:"2px 7px",borderRadius:4,border:"1px solid var(--info-bg)"}}><input type="checkbox" checked={!!effShow.busArrivePrevDay} onChange={e=>uEffShow({busArrivePrevDay:e.target.checked})}/>Arrives day before</label>}
+              {b.anchorKey==="busArrive"&&busCalTimes.busArriveEff!=null&&<span style={{fontSize:9,color:"var(--info-fg)",fontWeight:700,background:"var(--info-bg)",padding:"2px 7px",borderRadius:4}}>{`from tour calendar · ${fmt(busCalTimes.busArriveEff)}`}{busCalTimes.busArriveRoute?` · ${busCalTimes.busArriveRoute}`:""}</span>}
+              {b.anchorKey==="busDepart"&&busCalTimes.busDepartEff!=null&&<span style={{fontSize:9,color:"var(--info-fg)",fontWeight:700,background:"var(--info-bg)",padding:"2px 7px",borderRadius:4}}>{`from tour calendar · ${fmt(busCalTimes.busDepartEff)}`}{busCalTimes.busDepartRoute?` · ${busCalTimes.busDepartRoute}`:""}</span>}
               <label style={{fontSize:9,fontWeight:700,color:"var(--text-dim)",display:"flex",alignItems:"center",gap:4,cursor:"pointer"}}><input type="checkbox" checked={!!b.isAnchor} onChange={e=>setBF(b.id,"isAnchor",e.target.checked)}/>Anchor</label>
               <button onClick={()=>removeBlock(b.id)} style={{marginLeft:"auto",background:"none",border:"none",color:"var(--danger-fg)",fontSize:10,cursor:"pointer",fontWeight:700}}>Remove block</button>
               {b.isAnchor&&<AnchorTimes b={b} setBF={setBF}/>}

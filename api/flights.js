@@ -246,25 +246,62 @@ function expectedLegCount(body) {
   return n;
 }
 
-// Dedup flights by (flightNo + depDate + from + to). Merges pax unions so a leg
-// extracted from both JSON-LD and Claude keeps all passenger names.
+// Two-pass dedup:
+// Pass 1 — PNR + flightNo: same reservation + same leg from two sources → merge.
+//   Same PNR + different flightNo = sibling legs → keep both.
+// Pass 2 — quad-key (flightNo + depDate + from + to): same physical flight booked
+//   separately (different PNRs or no PNR) → merge.
 function dedupFlights(flights) {
-  const seen = new Map();
-  for (const f of flights) {
-    const k = `${f.flightNo || ""}|${f.depDate || ""}|${f.from || ""}|${f.to || ""}`;
-    const prev = seen.get(k);
-    if (!prev) { seen.set(k, f); continue; }
-    // Prefer JSON-LD as source of truth; merge pax union
-    const winner = prev.source === "jsonld" ? prev : f;
-    const loser  = prev.source === "jsonld" ? f : prev;
-    const paxMap=new Map();[...(winner.pax||[]),...(loser.pax||[])].forEach(p=>{const k=String(p).toLowerCase();if(!paxMap.has(k))paxMap.set(k,p);});winner.pax=[...paxMap.values()];
+  const byPnrLeg = new Map(); // "PNR|flightNo" → entry
+  const byQuad   = new Map(); // "flightNo|depDate|from|to" → entry
+
+  function prefer(a, b) {
+    if (a.source === "jsonld") return { winner: a, loser: b };
+    if (b.source === "jsonld") return { winner: b, loser: a };
+    return { winner: a, loser: b };
+  }
+
+  function mergePair(winner, loser) {
+    const paxMap = new Map();
+    [...(winner.pax || []), ...(loser.pax || [])].forEach(p => {
+      const k = String(p).toLowerCase();
+      if (!paxMap.has(k)) paxMap.set(k, p);
+    });
+    winner.pax = [...paxMap.values()];
     if (!winner.pnr && loser.pnr) winner.pnr = loser.pnr;
     if (!winner.confirmNo && loser.confirmNo) winner.confirmNo = loser.confirmNo;
     if (!winner.ticketNo && loser.ticketNo) winner.ticketNo = loser.ticketNo;
-    if (!winner.cost && loser.cost) { winner.cost = loser.cost; winner.currency = loser.currency; }
-    seen.set(k, winner);
+    if (winner.cost == null && loser.cost != null) { winner.cost = loser.cost; winner.currency = loser.currency; }
+    if (!winner.dep && loser.dep) winner.dep = loser.dep;
+    if (!winner.arr && loser.arr) winner.arr = loser.arr;
+    if (!winner.fromCity && loser.fromCity) winner.fromCity = loser.fromCity;
+    if (!winner.toCity && loser.toCity) winner.toCity = loser.toCity;
   }
-  return [...seen.values()];
+
+  const kept = [];
+  for (const f of flights) {
+    const pnrKey  = f.pnr && f.flightNo ? `${String(f.pnr).toUpperCase()}|${f.flightNo}` : null;
+    const quadKey = f.flightNo && f.depDate && f.from && f.to
+      ? `${f.flightNo}|${f.depDate}|${f.from}|${f.to}` : null;
+
+    const pnrMatch  = pnrKey  ? byPnrLeg.get(pnrKey)  : null;
+    const quadMatch = !pnrMatch && quadKey ? byQuad.get(quadKey) : null;
+
+    if (pnrMatch || quadMatch) {
+      const existing = pnrMatch || quadMatch;
+      const { winner, loser } = prefer(existing, f);
+      mergePair(winner, loser);
+      if (pnrKey)  byPnrLeg.set(pnrKey, winner);
+      if (quadKey) byQuad.set(quadKey, winner);
+      continue;
+    }
+
+    const entry = { ...f };
+    if (pnrKey)  byPnrLeg.set(pnrKey, entry);
+    if (quadKey) byQuad.set(quadKey, entry);
+    kept.push(entry);
+  }
+  return kept;
 }
 
 // Validation: a flight is keepable only if it has a PNR OR the (flightNo + depDate +
@@ -490,7 +527,12 @@ module.exports = async function handler(req, res) {
     const cached = await getCachedThread("flights", t.id);
     t.bodyHash = bodyHash;
     t.prevResult = cached?.result || null;
-    if (shouldUseCached(cached, t.lastMsgMs, bodyHash, t.attachmentFingerprints)) {
+    // Cache healing: if we expect ≥2 legs but cached only has fewer, treat as stale
+    // so the thread is re-parsed. Fixes round-trips cached with a single leg.
+    const expectedLegs = expectedLegCount(t.body);
+    const cachedLegCount = Array.isArray(cached?.result) ? cached.result.length : 0;
+    const underParsed = expectedLegs >= 2 && cachedLegCount < expectedLegs;
+    if (!underParsed && shouldUseCached(cached, t.lastMsgMs, bodyHash, t.attachmentFingerprints)) {
       if (Array.isArray(cached.result)) cachedFlights.push(...cached.result);
     } else {
       freshThreads.push(t);
@@ -1048,6 +1090,7 @@ Return this exact JSON:
 
   return res.json({
     flights,
+    scannedAt: new Date().toISOString(),
     threadsFound: threads.length,
     freshThreads: freshIds.size,
     jsonLdThreads: jsonLdTids.size,
