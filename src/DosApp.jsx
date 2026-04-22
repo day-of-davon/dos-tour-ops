@@ -1140,7 +1140,9 @@ export default function App(){
     setTabOrder(next);
   },[orderedTabs]);
 
-  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration,me}),[shows,ros,advances,finance,sel,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration,me]);// eslint-disable-line
+  // eventKey: sub-events keyed by their own ID (spans dates/festivals); main event keyed by date.
+  const eventKey=useMemo(()=>selEventId||sel,[selEventId,sel]);
+  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration,me}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration,me]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"var(--text-dim)",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
@@ -1905,14 +1907,14 @@ function IntelPanel(){
 }
 
 function NotesPanel(){
-  const{sel,advances,uAdv,notesPriv,uNotesPriv,pushUndo}=useContext(Ctx);
+  const{sel,eventKey,advances,uAdv,notesPriv,uNotesPriv,pushUndo}=useContext(Ctx);
   const[tabN,setTabN]=useState("public");const[txt,setTxt]=useState("");
-  const shared=advances[sel]?.sharedNotes||[];const priv=notesPriv[sel]||[];
+  const shared=advances[eventKey]?.sharedNotes||[];const priv=notesPriv[eventKey]||[];
   const list=tabN==="public"?shared:priv;
   const add=()=>{if(!txt.trim())return;const n={id:`n${Date.now()}`,text:txt.trim(),ts:Date.now()};
-    if(tabN==="public")uAdv(sel,{sharedNotes:[...shared,n]});else uNotesPriv(sel,[...priv,n]);
+    if(tabN==="public")uAdv(eventKey,{sharedNotes:[...shared,n]});else uNotesPriv(eventKey,[...priv,n]);
     setTxt("");};
-  const del=id=>{if(tabN==="public"){const prev=shared;uAdv(sel,{sharedNotes:shared.filter(n=>n.id!==id)});pushUndo("Note deleted.",()=>uAdv(sel,{sharedNotes:prev}));}else{const prev=priv;uNotesPriv(sel,priv.filter(n=>n.id!==id));pushUndo("Note deleted.",()=>uNotesPriv(sel,prev));}};
+  const del=id=>{if(tabN==="public"){const prev=shared;uAdv(eventKey,{sharedNotes:shared.filter(n=>n.id!==id)});pushUndo("Note deleted.",()=>uAdv(eventKey,{sharedNotes:prev}));}else{const prev=priv;uNotesPriv(eventKey,priv.filter(n=>n.id!==id));pushUndo("Note deleted.",()=>uNotesPriv(eventKey,prev));}};
   return <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px"}}>
     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:7}}>
       <span style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em"}}>NOTES</span>
@@ -2449,7 +2451,7 @@ function ImmigrationPanel(){
 }
 
 function AdvTab(){
-  const{shows,cShows,advances,uAdv,sel,setSel,aC,mobile,checkPriv,uCheckPriv,intel,setIntel,pushUndo}=useContext(Ctx);
+  const{shows,cShows,advances,uAdv,sel,setSel,eventKey,aC,mobile,checkPriv,uCheckPriv,intel,setIntel,pushUndo}=useContext(Ctx);
   const a=useAuth();const meEmail=a?.user?.email||"unknown";
   const[openDone,setOpenDone]=useState({});
   useEffect(()=>setOpenDone({}),[sel]);
@@ -2466,38 +2468,38 @@ function AdvTab(){
   const[editQ,setEditQ]=useState("");
 
   const show=shows[sel];
-  const adv=advances[sel]||{};
+  const adv=advances[eventKey]||{};
   const items=adv.items||{};
   const customItems=adv.customItems||[];
   const overrides=adv.itemOverrides||{};
 
-  const privList=checkPriv[sel]||[];
+  const privList=checkPriv[eventKey]||[];
   const allItems=useMemo(()=>[...AT,...customItems,...privList],[customItems,privList]);
   const getQ=item=>overrides[item.id]?.q||item.q;
   const getStatus=id=>{const it=allItems.find(x=>x.id===id);if(it?.private)return it.status||"pending";return items[id]?.status||"pending";};
   const setStatus=(id,status)=>{const it=allItems.find(x=>x.id===id);
     const meta=status==="confirmed"?{confirmedBy:meEmail,confirmedAt:new Date().toISOString()}:{confirmedBy:null,confirmedAt:null};
     const prevStatus=it?.private?(privList.find(p=>p.id===id)?.status||"pending"):(items[id]?.status||"pending");
-    if(it?.private)uCheckPriv(sel,privList.map(p=>p.id===id?{...p,status,...meta}:p));
-    else uAdv(sel,{items:{...items,[id]:{...items[id],status,...meta}}});
+    if(it?.private)uCheckPriv(eventKey,privList.map(p=>p.id===id?{...p,status,...meta}:p));
+    else uAdv(eventKey,{items:{...items,[id]:{...items[id],status,...meta}}});
     if(prevStatus!==status){
-      logAudit({entityType:"advance",entityId:`${sel}:${id}`,action:"status_change",
+      logAudit({entityType:"advance",entityId:`${eventKey}:${id}`,action:"status_change",
         before:{status:prevStatus},after:{status},
         meta:{private:!!it?.private,question:it?.q||null},
         teamScoped:!it?.private});
     }};
-  const setOverride=(id,q)=>uAdv(sel,{itemOverrides:{...overrides,[id]:{...overrides[id],q}}});
+  const setOverride=(id,q)=>uAdv(eventKey,{itemOverrides:{...overrides,[id]:{...overrides[id],q}}});
   const deleteCustom=id=>{const it=allItems.find(x=>x.id===id);if(!it)return;
-    if(it.private){const prev=privList;uCheckPriv(sel,privList.filter(c=>c.id!==id));pushUndo(`Deleted "${(it.q||"").slice(0,40)}"`,()=>uCheckPriv(sel,prev));}
-    else{const prev=customItems;uAdv(sel,{customItems:customItems.filter(c=>c.id!==id)});pushUndo(`Deleted "${(it.q||"").slice(0,40)}"`,()=>uAdv(sel,{customItems:prev}));}};
-  const addCustom=dept=>{if(!newQ.trim())return;const it={id:`c${Date.now()}`,dept,dir:newDir,q:newQ.trim(),custom:true};if(newScope==="private"){uCheckPriv(sel,[...privList,{...it,private:true,status:"pending"}]);}else{uAdv(sel,{customItems:[...customItems,it]});}setNewQ("");setNewDir("bilateral");setNewScope("public");setAddingDept(null);};
+    if(it.private){const prev=privList;uCheckPriv(eventKey,privList.filter(c=>c.id!==id));pushUndo(`Deleted "${(it.q||"").slice(0,40)}"`,()=>uCheckPriv(eventKey,prev));}
+    else{const prev=customItems;uAdv(eventKey,{customItems:customItems.filter(c=>c.id!==id)});pushUndo(`Deleted "${(it.q||"").slice(0,40)}"`,()=>uAdv(eventKey,{customItems:prev}));}};
+  const addCustom=dept=>{if(!newQ.trim())return;const it={id:`c${Date.now()}`,dept,dir:newDir,q:newQ.trim(),custom:true};if(newScope==="private"){uCheckPriv(eventKey,[...privList,{...it,private:true,status:"pending"}]);}else{uAdv(eventKey,{customItems:[...customItems,it]});}setNewQ("");setNewDir("bilateral");setNewScope("public");setAddingDept(null);};
 
   const itemDependents=adv.itemDependents||{};
   const getDependents=id=>itemDependents[id]||[];
   const toggleDependent=(id,memberId)=>{
     const cur=itemDependents[id]||[];
     const next=cur.includes(memberId)?cur.filter(x=>x!==memberId):[...cur,memberId];
-    uAdv(sel,{itemDependents:{...itemDependents,[id]:next}});
+    uAdv(eventKey,{itemDependents:{...itemDependents,[id]:next}});
   };
 
   const deptCounts=useMemo(()=>{const r={};DEPTS.filter(d=>d.id!=="all").forEach(d=>{const di=allItems.filter(t=>t.dept===d.id);r[d.id]={total:di.length,pending:di.filter(t=>getStatus(t.id)==="pending").length};});return r;},[allItems,items]);
@@ -2678,8 +2680,8 @@ function AdvTab(){
             <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
               <div style={{fontSize:9,fontWeight:700,color:"var(--text-dim)",marginBottom:6,letterSpacing:"0.06em"}}>THREAD & NOTES</div>
               <div style={{display:"flex",flexDirection:"column",gap:5}}>
-                <div><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>Gmail thread link</div><input defaultValue={adv.threadLink||""} onBlur={e=>uAdv(sel,{threadLink:e.target.value})} placeholder="https://mail.google.com/..." style={{width:"100%",background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",fontSize:10,fontFamily:MN,padding:"4px 7px",outline:"none"}}/></div>
-                <div><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>Notes</div><textarea defaultValue={adv.notes||""} onBlur={e=>uAdv(sel,{notes:e.target.value})} placeholder="Open issues, follow-ups..." rows={2} style={{width:"100%",background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",fontSize:10,padding:"4px 7px",outline:"none",resize:"vertical",fontFamily:"inherit"}}/></div>
+                <div><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>Gmail thread link</div><input defaultValue={adv.threadLink||""} onBlur={e=>uAdv(eventKey,{threadLink:e.target.value})} placeholder="https://mail.google.com/..." style={{width:"100%",background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",fontSize:10,fontFamily:MN,padding:"4px 7px",outline:"none"}}/></div>
+                <div><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>Notes</div><textarea defaultValue={adv.notes||""} onBlur={e=>uAdv(eventKey,{notes:e.target.value})} placeholder="Open issues, follow-ups..." rows={2} style={{width:"100%",background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",fontSize:10,padding:"4px 7px",outline:"none",resize:"vertical",fontFamily:"inherit"}}/></div>
               </div>
             </div>
           </div>
@@ -3184,7 +3186,7 @@ function EventSwitcher({show,sel}){
 }
 
 function ROSTab(){
-  const{shows,uShow,gRos,uRos,ros,sel,setSel,cShows,role,aC,selEventId,setSelEventId}=useContext(Ctx);
+  const{shows,uShow,gRos,uRos,ros,sel,setSel,eventKey,cShows,role,aC,selEventId,setSelEventId}=useContext(Ctx);
   const[editB,setEditB]=useState(null);const[dOver,setDOver]=useState(null);
   const[editShow,setEditShow]=useState(false);
   const[editVenue,setEditVenue]=useState("");const[editCity,setEditCity]=useState("");const[editPromoter,setEditPromoter]=useState("");
@@ -3192,7 +3194,7 @@ function ROSTab(){
   // Sub-event support: use compound ROS key when a sub-event is selected
   const subEvent=selEventId?(show?.subEvents||[]).find(e=>e.id===selEventId)||null:null;
   const effShow=subEvent||show;
-  const rosKey=selEventId?`${sel}_${selEventId}`:sel;
+  const rosKey=eventKey;
   const blocks=gRos(rosKey);
   if(!show)return null;
   const today=new Date().toISOString().slice(0,10);const upcoming=cShows.filter(s=>s.date>=today);
@@ -4489,26 +4491,26 @@ function FinEventsPanel({selS,fin,uFin,pushUndo}){
 }
 
 function FinTab(){
-  const{shows,cShows,finance,uFin,pushUndo,labelIntel,sel}=useContext(Ctx);
+  const{shows,cShows,finance,uFin,pushUndo,labelIntel,sel,eventKey}=useContext(Ctx);
   const today=new Date().toISOString().slice(0,10);
   const[finView,setFinView]=useState("settlement");
   const[addP,setAddP]=useState(false);
   const[pForm,setPForm]=useState({name:"",role:"",dept:"Drivers",amount:"",currency:"USD",method:"Wire",payMethod:"",status:"pending"});
   const show=sel?shows[sel]:null;
-  const fin=sel?finance[sel]||{}:{};
+  const fin=eventKey?finance[eventKey]||{}:{};
   const stages=fin.stages||{};
   const payouts=fin.payouts||[];
   const toggleStage=id=>{
     const prev=!!stages[id];const next=!prev;
-    uFin(sel,{stages:{...stages,[id]:next}});
-    logAudit({entityType:"finance",entityId:`${sel}:${id}`,action:"stage_toggle",
+    uFin(eventKey,{stages:{...stages,[id]:next}});
+    logAudit({entityType:"finance",entityId:`${eventKey}:${id}`,action:"stage_toggle",
       before:{done:prev},after:{done:next},meta:{stage:id}});
   };
   const done=["wire_ref_confirmed","signed_sheet","payment_initiated"].every(id=>stages[id]);
-  const addPayout=()=>{if(!sel||!pForm.name||!pForm.amount)return;uFin(sel,{payouts:[...payouts,{...pForm,id:`p${Date.now()}`,date:today}]});setPForm({name:"",role:"",dept:"Drivers",amount:"",currency:"USD",method:"Wire",payMethod:"",status:"pending"});setAddP(false);};
+  const addPayout=()=>{if(!eventKey||!pForm.name||!pForm.amount)return;uFin(eventKey,{payouts:[...payouts,{...pForm,id:`p${Date.now()}`,date:today}]});setPForm({name:"",role:"",dept:"Drivers",amount:"",currency:"USD",method:"Wire",payMethod:"",status:"pending"});setAddP(false);};
   const currencies=[...new Set(payouts.map(p=>p.currency))];
   const batchTotal=cur=>payouts.filter(p=>p.currency===cur).reduce((s,p)=>s+parseFloat(p.amount||0),0).toFixed(2);
-  const curStatus=!sel?"":done?"settled":stages["payment_initiated"]?"in_progress":"pending";
+  const curStatus=!eventKey?"":done?"settled":stages["payment_initiated"]?"in_progress":"pending";
 
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",flex:1,minHeight:0}}>
@@ -4567,11 +4569,11 @@ function FinTab(){
               {!done&&stages["payment_initiated"]&&<div style={{marginTop:8,padding:"7px 10px",background:"var(--warn-bg)",borderRadius:6,fontSize:10,color:"var(--warn-fg)",fontWeight:600}}>Wire ref # and signed settlement sheet both required to mark as done.</div>}
               <div style={{marginTop:10,fontSize:9,color:"var(--text-mute)",fontStyle:"italic"}}>Legacy flat fields below. Prefer <b>Financial Events</b> above for new settlements, wires, withholding, and merch — each tracks independently.</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginTop:6}}>
-                {[{l:"Wire Ref #",k:"wireRef",ph:"REF-20260520"},{l:"Wire Date",k:"wireDate",ph:"2026-05-22"},{l:"Settlement Amount",k:"settlementAmount",ph:"0.00"}].map(f=><div key={f.k}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>{f.l}</div><input defaultValue={fin[f.k]||""} onBlur={e=>{const v=e.target.value;const prev=fin[f.k]||"";if(v===prev)return;uFin(sel,{[f.k]:v});pushUndo(`${f.l} updated.`,()=>uFin(selS,{[f.k]:prev}));}} placeholder={f.ph} style={{width:"100%",background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",fontSize:10,fontFamily:MN,padding:"4px 6px",outline:"none"}}/></div>)}
+                {[{l:"Wire Ref #",k:"wireRef",ph:"REF-20260520"},{l:"Wire Date",k:"wireDate",ph:"2026-05-22"},{l:"Settlement Amount",k:"settlementAmount",ph:"0.00"}].map(f=><div key={f.k}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>{f.l}</div><input defaultValue={fin[f.k]||""} onBlur={e=>{const v=e.target.value;const prev=fin[f.k]||"";if(v===prev)return;uFin(eventKey,{[f.k]:v});pushUndo(`${f.l} updated.`,()=>uFin(eventKey,{[f.k]:prev}));}} placeholder={f.ph} style={{width:"100%",background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",fontSize:10,fontFamily:MN,padding:"4px 6px",outline:"none"}}/></div>)}
               </div>
-              <div style={{marginTop:7}}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>Settlement Notes</div><textarea defaultValue={fin.notes||""} onBlur={e=>{const v=e.target.value;const prev=fin.notes||"";if(v===prev)return;uFin(sel,{notes:v});pushUndo("Settlement notes updated.",()=>uFin(selS,{notes:prev}));}} placeholder="Deductions, disputes, bonus splits..." rows={2} style={{width:"100%",background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",fontSize:10,padding:"4px 6px",outline:"none",resize:"vertical",fontFamily:"inherit"}}/></div>
+              <div style={{marginTop:7}}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>Settlement Notes</div><textarea defaultValue={fin.notes||""} onBlur={e=>{const v=e.target.value;const prev=fin.notes||"";if(v===prev)return;uFin(eventKey,{notes:v});pushUndo("Settlement notes updated.",()=>uFin(eventKey,{notes:prev}));}} placeholder="Deductions, disputes, bonus splits..." rows={2} style={{width:"100%",background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",fontSize:10,padding:"4px 6px",outline:"none",resize:"vertical",fontFamily:"inherit"}}/></div>
             </div>
-            <FinEventsPanel selS={sel} fin={fin} uFin={uFin} pushUndo={pushUndo}/>
+            <FinEventsPanel selS={eventKey} fin={fin} uFin={uFin} pushUndo={pushUndo}/>
             {(fin.flightExpenses||[]).length>0&&<div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"14px",marginBottom:10}}>
               <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em",marginBottom:8}}>FLIGHT EXPENSES</div>
               <table style={{width:"100%",borderCollapse:"collapse"}}>
@@ -4652,7 +4654,7 @@ const DOC_TYPE_META={
 };
 
 function FileUploadModal({onClose}){
-  const{uFin,uFlight,uShow,uProd,setSel,setTab,sel,aC,shows,flights,finance}=useContext(Ctx);
+  const{uFin,uFlight,uShow,uProd,setSel,setTab,sel,eventKey,aC,shows,flights,finance}=useContext(Ctx);
   const[dragging,setDragging]=useState(false);
   const[file,setFile]=useState(null);
   const[parsing,setParsing]=useState(false);
@@ -4748,7 +4750,7 @@ function FileUploadModal({onClose}){
 
   const applyTechPack=()=>{
     if(!result?.techPack)return;
-    uProd(sel,{techPackData:result.techPack,techPackContacts:result.contacts||[],techPackFile:file?.name,techPackAt:new Date().toISOString()});
+    uProd(eventKey,{techPackData:result.techPack,techPackContacts:result.contacts||[],techPackFile:file?.name,techPackAt:new Date().toISOString()});
     setTab("production");
     setApplied(`Tech pack applied to Production for ${sel}.`);setApplying(false);
   };
@@ -5009,14 +5011,14 @@ function LifecyclePills({crewId,date,state,slots,onJump,compact}){
 }
 
 function CrewTab(){
-  const{sel,setSel,shows,tourDaysSorted,tourDays,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights,lodging,setTab,currentSplit,activeSplitPartyId}=useContext(Ctx);
+  const{sel,setSel,shows,tourDaysSorted,tourDays,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights,lodging,setTab,currentSplit,activeSplitPartyId,eventKey}=useContext(Ctx);
   const[panel,setPanel]=useState(null);
   const[editMode,setEditMode]=useState(false);
   const[flightPicker,setFlightPicker]=useState(null); // {crewId, dir}
   const show=shows[sel];
   const today=new Date().toISOString().slice(0,10);
   // On split days, crew selection is independent per event — key showCrew by `${date}#${partyId}`.
-  const scKey=currentSplit&&activeSplitPartyId?`${sel}#${activeSplitPartyId}`:sel;
+  const scKey=currentSplit&&activeSplitPartyId?`${eventKey}#${activeSplitPartyId}`:eventKey;
   const realDate=k=>String(k).split("#")[0];
   const sc=showCrew[scKey]||{};
   const uid=()=>Math.random().toString(36).slice(2,9);
@@ -6150,9 +6152,9 @@ function HotelFormModal({date,hotel,onClose,onSave,existingHotels}){
 }
 
 function ProdTab(){
-  const{shows,sel,production,uProd,mobile}=useContext(Ctx);
+  const{shows,sel,eventKey,production,uProd,mobile}=useContext(Ctx);
   const show=shows?.[sel];
-  const data=production[sel]||{docs:[],items:[],issues:[],analysis:null};
+  const data=production[eventKey]||{docs:[],items:[],issues:[],analysis:null};
 
   const[subTab,setSubTab]=useState("venue");
   const[uploading,setUploading]=useState(false);
@@ -6165,7 +6167,7 @@ function ProdTab(){
   const[posFilter,setPosFilter]=useState("ALL");
   const fileRef=useRef(null);
 
-  const upd=useCallback(patch=>uProd(sel,{...data,...patch}),[sel,data,uProd]);
+  const upd=useCallback(patch=>uProd(eventKey,{...data,...patch}),[eventKey,data,uProd]);
 
   const handleFile=async e=>{
     const file=e.target.files?.[0];if(!file)return;
@@ -6563,7 +6565,7 @@ function ProdTab(){
 }
 
 function GuestListTab(){
-  const{guestlists,uGuestlist,glTemplates,setGlTemplates,sel,setSel,sorted,shows,mobile,crew,role}=useContext(Ctx);
+  const{guestlists,uGuestlist,glTemplates,setGlTemplates,sel,setSel,eventKey,sorted,shows,mobile,crew,role}=useContext(Ctx);
   const a=useAuth();
   const by=(a?.user?.email||"unknown").toLowerCase();
   const allTemplates=useMemo(()=>[glBuiltinTemplate(),...Object.values(glTemplates||{}).sort((a,b)=>(a.name||"").localeCompare(b.name||""))],[glTemplates]);
@@ -6575,8 +6577,9 @@ function GuestListTab(){
   const showDates=useMemo(()=>(sorted||[]).filter(s=>s.type!=="off"&&s.type!=="travel"&&s.type!=="split").map(s=>s.date),[sorted]);
   const date=sel&&shows?.[sel]?sel:(showDates[0]||sel);
   const show=shows?.[date];
-  const gl=guestlists[date]||GL_DEFAULT_SHOW();
-  const glExists=!!guestlists[date];
+  const glKey=eventKey||(sel&&shows?.[sel]?sel:(showDates[0]||sel));
+  const gl=guestlists[glKey]||GL_DEFAULT_SHOW();
+  const glExists=!!guestlists[glKey];
   const[addParty,setAddParty]=useState(false);
   const[partyForm,setPartyForm]=useState({name:"",role:"manager",contact:""});
   const[expandedParty,setExpandedParty]=useState(null);
@@ -6607,11 +6610,11 @@ function GuestListTab(){
   },[gl.categories,categoryUsage]);
 
   const logEntry=(kind,label,meta)=>({id:glNewId("act"),at:new Date().toISOString(),by,role,kind,label,meta:meta||null});
-  const mutate=(kind,label,mut,meta)=>uGuestlist(date,cur=>{
+  const mutate=(kind,label,mut,meta)=>uGuestlist(glKey,cur=>{
     const base=typeof mut==="function"?mut(cur||GL_DEFAULT_SHOW()):{...(cur||GL_DEFAULT_SHOW()),...mut};
     return{...base,activity:glAppendActivity(base.activity,logEntry(kind,label,meta))};
   });
-  const logOnly=(kind,label,meta)=>uGuestlist(date,cur=>({...cur,activity:glAppendActivity(cur?.activity,logEntry(kind,label,meta))}));
+  const logOnly=(kind,label,meta)=>uGuestlist(glKey,cur=>({...cur,activity:glAppendActivity(cur?.activity,logEntry(kind,label,meta))}));
 
   function initShow(){
     const tpl=allTemplates.find(t=>t.id===configTplId)||glBuiltinTemplate();
