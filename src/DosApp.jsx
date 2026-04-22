@@ -4949,17 +4949,12 @@ function CrewTab(){
     return confirmedFlights.filter(f=>f.depDate===sel);
   };
   const outboundNearby=useMemo(()=>{
-    const baseCity=((shows[sel]?.city||"").split(",")[0]).toLowerCase().trim();
-    if(!baseCity)return[];
     const d1=new Date(sel+"T12:00:00");d1.setDate(d1.getDate()+1);
-    const d2=new Date(sel+"T12:00:00");d2.setDate(d2.getDate()+2);
-    const d1s=d1.toISOString().slice(0,10),d2s=d2.toISOString().slice(0,10);
-    return confirmedFlights.filter(f=>{
-      if(!f.depDate||f.depDate<d1s||f.depDate>d2s)return false;
-      const fc=(f.fromCity||f.from||"").toLowerCase();
-      return fc.includes(baseCity)||baseCity.includes(fc);
-    });
-  },[confirmedFlights,sel,shows]);
+    const d5=new Date(sel+"T12:00:00");d5.setDate(d5.getDate()+5);
+    const d1s=d1.toISOString().slice(0,10),d5s=d5.toISOString().slice(0,10);
+    return confirmedFlights.filter(f=>f.depDate&&f.depDate>=d1s&&f.depDate<=d5s)
+      .sort((a,b)=>a.depDate<b.depDate?-1:1);
+  },[confirmedFlights,sel]);
   const assignFlight=(crewId,dir,f)=>{
     const leg={id:`leg_${f.id}`,flight:f.flightNo||"",carrier:f.carrier||"",from:f.from,fromCity:f.fromCity||f.from,to:f.to,toCity:f.toCity||f.to,depart:f.dep,arrive:f.arr,conf:f.confirmNo||f.bookingRef||"",status:"confirmed",flightId:f.id};
     const confKey=dir==="inbound"?"inboundConfirmed":"outboundConfirmed";
@@ -5168,7 +5163,7 @@ function CrewTab(){
                                   return(<>
                                     {exact.map(f=>renderRow(f,null))}
                                     {nearby.length>0&&<>
-                                      <div style={{padding:"4px 10px",fontSize:8,fontWeight:800,letterSpacing:"0.07em",color:"var(--text-mute)",background:"var(--card-2)",borderTop:exact.length?"1px solid var(--border)":"none"}}>NEARBY DEPARTURES — {shows[sel]?.city?.split(",")[0]||""}</div>
+                                      <div style={{padding:"4px 10px",fontSize:8,fontWeight:800,letterSpacing:"0.07em",color:"var(--text-mute)",background:"var(--card-2)",borderTop:exact.length?"1px solid var(--border)":"none"}}>UPCOMING DEPARTURES</div>
                                       {nearby.map(f=>renderRow(f,`D+${Math.round((new Date(f.depDate+"T12:00:00")-new Date(sel+"T12:00:00"))/86400000)}`))}
                                     </>}
                                   </>);
