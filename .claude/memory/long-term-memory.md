@@ -44,6 +44,14 @@
 
 - [2026-04-21 05:30 UTC] https://techcrunch.com/2025/10/03/supabase-nabs-5b-valuation-four-months-after-hitting-2b/ — Supabase reached $5B valuation Oct 2025 (up from $2B in Jun 2025); infrastructure dependency risk low; Supabase is well-capitalized and scaling; confirms safe bet for both v7 and dos-platform long-term.
 
+- [2026-04-21 18:30 UTC] https://nextjs.org/blog/next-16 + https://nextjs.org/blog/next-16-1 — Next.js 16.2 is current stable (Dec 2025–Apr 2026); CLAUDE.md targets "Next.js 15" for dos-platform scaffold but that is now one major version behind. Breaking change: proxy.ts replaces middleware.ts (new network boundary model). Key additions: Turbopack default for dev+build (2–5x faster production builds), React Compiler 1.0 stable (auto-memoization, zero code changes required), Cache Components (PPR-based), Next.js DevTools MCP for AI-assisted debugging in dev workflow. Platform scaffold should target 16.2, not 15; update CLAUDE.md before Phase 0 Dane handoff.
+
+- [2026-04-21 18:30 UTC] https://www.eventric.com/pricing/ — Master Tour pricing shown as $59.99/mo on Eventric's own pricing page and multiple 2026 review aggregators; CLAUDE.md canonical decision (Apr 13) says $74.99/mo. Either price was reduced or CLAUDE.md entry was wrong. Verify directly before using in investor/GTM materials — competitive table may overstate Master Tour's price disadvantage.
+
+- [2026-04-21 18:30 UTC] https://support.eventric.com/hc/en-us/articles/46286508608532-Master-Tour-Mobile-7-1-10-Beta-2026-02-20 — Master Tour Mobile 7.1.10 Beta (Feb 20, 2026): Ground Travel Items now auto-calculate Arrival Time, Travel Time, Distance, and Start/End Timezones when Origin + Destination are entered. Master Tour is advancing transport automation in mobile — DOS Transport tab (currently manual) now has a closer feature gap than the Apr 13 competitive assessment assumed.
+
+- [2026-04-21 18:30 UTC] https://supabase.com/changelog — Supabase dashboard (March/April 2026): table filters now AI-powered (describe what to find, dashboard generates correct Postgres filter); AI prompts from dashboard are now exportable for local agent/tool use. Both features speed up Phase 0 schema audit with Josh — use AI filter export to generate reusable query patterns during schema review sessions.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
