@@ -631,7 +631,7 @@ ${JSON.stringify(threads.map(t => ({ id: t.id, subject: t.subject, from: t.from,
 Return this exact JSON:
 {
   "threads": [{"id":"t1","tid":"<thread_id>","subject":"<subject>","from":"<sender_name>","intent":"<INTENT>","status":"<STATUS>","date":"<Mon DD>","snippet":"<<=120 chars>"}],
-  "followUps": [{"action":"<action>","owner":"<OWNER>","priority":"<PRIORITY>","deadline":"<Mon DD or null>"}],
+  "followUps": [{"action":"<action>","owner":"<OWNER>","priority":"<PRIORITY>","deadline":"<Mon DD or null>","tid":"<source thread_id or null>"}],
   "showContacts": [{"name":"<n>","role":"<role>","email":"<email or null>"}],
   "schedule": [{"time":"<HH:MM 24h>","item":"<short label>","field":"<doors|curfew|busArrive|crewCall|venueAccess|mgTime|soundcheck|set>","tid":"<thread_id>"}],
   "lastRefreshed": "${new Date().toISOString()}"
