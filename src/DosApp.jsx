@@ -543,6 +543,23 @@ const SC_CYCLE=["pending","in_progress","confirmed"];
 const SC_ORDER=["pending","in_progress","sent","received","respond","follow_up","escalate","confirmed","na"];
 const PRE_STAGES=[{id:"contract_received",l:"Contract Received"},{id:"estimate_received",l:"Pre-Show Estimate"},{id:"guarantee_confirmed",l:"Guarantee Confirmed"}];
 const POST_STAGES=[{id:"expenses_reviewed",l:"Expenses Reviewed"},{id:"disputes_resolved",l:"Disputes Resolved"},{id:"payment_initiated",l:"Payment Initiated"},{id:"wire_ref_confirmed",l:"Wire Ref # Confirmed",req:true},{id:"signed_sheet",l:"Signed Sheet Received",req:true}];
+// Financial events — distinct timelines per event. Settlement lands same-night,
+// wire can arrive T+45, withholding triggers T+30. Modeling as independent events
+// avoids status collisions on a single show-level record.
+const FIN_EVENT_TYPES=[
+  {id:"settlement",l:"Settlement",c:"var(--success-fg)",b:"var(--success-bg)"},
+  {id:"wire",l:"Wire",c:"var(--link)",b:"var(--info-bg)"},
+  {id:"withholding",l:"Withholding",c:"var(--warn-fg)",b:"var(--warn-bg)"},
+  {id:"merch",l:"Merch",c:"var(--accent)",b:"var(--accent-pill-bg)"},
+  {id:"reconciliation",l:"Reconciliation",c:"var(--text-2)",b:"var(--muted-bg)"},
+  {id:"other",l:"Other",c:"var(--text-dim)",b:"var(--muted-bg)"},
+];
+const FIN_EVENT_STATUS=[
+  {id:"pending",l:"Pending",c:"var(--text-dim)",b:"var(--muted-bg)"},
+  {id:"in_progress",l:"In Progress",c:"var(--link)",b:"var(--info-bg)"},
+  {id:"confirmed",l:"Confirmed",c:"var(--success-fg)",b:"var(--success-bg)"},
+  {id:"disputed",l:"Disputed",c:"var(--danger-fg)",b:"var(--danger-bg)"},
+];
 
 const toM=(h,m=0)=>h*60+m;
 const fmt=mins=>{if(mins==null)return"--";const n=((mins%1440)+1440)%1440,h=Math.floor(n/60),m=n%60,p=h>=12?"p":"a",h12=h===0?12:h>12?h-12:h;return`${h12}:${String(m).padStart(2,"0")}${p}`;};
@@ -3856,10 +3873,17 @@ function FinLedger(){
         if(!le.amount&&le.amount!==0)return;
         out.push({id:le.id||`le_${date}_${Math.random()}`,date:le.date||date,show:showLabel,cat:"Hotel",desc:le.description||"",payee:le.vendor||"—",amount:parseFloat(le.amount||0),currency:le.currency||"USD",status:"confirmed",ref:le.source||""});
       });
-      // Settlement amount
-      if(fin.settlementAmount&&parseFloat(fin.settlementAmount)>0){
+      // Settlement amount (legacy flat field — skip if events[] has a settlement/wire entry)
+      const hasEventForLegacy=(fin.events||[]).some(e=>e.type==="settlement"||e.type==="wire");
+      if(fin.settlementAmount&&parseFloat(fin.settlementAmount)>0&&!hasEventForLegacy){
         out.push({id:`sa_${date}`,date,show:showLabel,cat:"Settlement",desc:"Settlement payment",payee:"—",amount:parseFloat(fin.settlementAmount),currency:"USD",status:fin.stages?.payment_initiated?"confirmed":"pending",ref:fin.wireRef||""});
       }
+      // Financial events — settlement, wire, withholding, merch, reconciliation
+      (fin.events||[]).forEach(ev=>{
+        if(!ev||!ev.amount)return;
+        const cat=(FIN_EVENT_TYPES.find(t=>t.id===ev.type)?.l)||"Event";
+        out.push({id:ev.id,date:ev.actualDate||ev.expectedDate||date,show:showLabel,cat,desc:ev.note||cat,payee:"—",amount:parseFloat(ev.amount)||0,currency:ev.currency||"USD",status:ev.status||"pending",ref:ev.ref||""});
+      });
     });
     // Confirmed flights from flights store
     Object.values(flights||{}).forEach(f=>{
@@ -3961,6 +3985,115 @@ function FinLedger(){
   );
 }
 
+function FinEventsPanel({selS,fin,uFin,pushUndo}){
+  const events=fin.events||[];
+  const[adding,setAdding]=useState(false);
+  const[form,setForm]=useState({type:"settlement",amount:"",currency:"USD",expectedDate:"",actualDate:"",status:"pending",ref:"",note:""});
+  const reset=()=>setForm({type:"settlement",amount:"",currency:"USD",expectedDate:"",actualDate:"",status:"pending",ref:"",note:""});
+
+  const add=()=>{
+    if(!form.amount)return;
+    const ev={...form,id:`ev_${Date.now()}`,createdAt:new Date().toISOString(),amount:parseFloat(form.amount)||0};
+    uFin(selS,{events:[...events,ev]});
+    logAudit({entityType:"finance",entityId:`${selS}:${ev.id}`,action:"event_create",
+      before:null,after:ev,meta:{type:ev.type}});
+    reset();setAdding(false);
+  };
+  const update=(id,patch)=>{
+    const prev=events.find(e=>e.id===id);if(!prev)return;
+    const next={...prev,...patch};
+    uFin(selS,{events:events.map(e=>e.id===id?next:e)});
+    logAudit({entityType:"finance",entityId:`${selS}:${id}`,action:"event_update",
+      before:prev,after:next,meta:{fields:Object.keys(patch)}});
+  };
+  const del=id=>{
+    const prev=events.find(e=>e.id===id);if(!prev)return;
+    uFin(selS,{events:events.filter(e=>e.id!==id)});
+    pushUndo("Event deleted.",()=>uFin(selS,{events:[...events]}));
+    logAudit({entityType:"finance",entityId:`${selS}:${id}`,action:"event_delete",
+      before:prev,after:null,meta:{type:prev.type}});
+  };
+
+  // Migrate legacy flat wireRef/wireDate/settlementAmount into a settlement event.
+  const hasLegacy=(fin.settlementAmount||fin.wireRef||fin.wireDate)&&!events.some(e=>e.type==="settlement"||e.type==="wire");
+  const migrate=()=>{
+    const migrated=[];
+    if(fin.settlementAmount){
+      migrated.push({id:`ev_mig_s_${Date.now()}`,type:"settlement",amount:parseFloat(fin.settlementAmount)||0,currency:"USD",
+        expectedDate:selS,actualDate:fin.stages?.payment_initiated?selS:"",status:fin.stages?.payment_initiated?"confirmed":"pending",
+        ref:"",note:"migrated from legacy settlementAmount",createdAt:new Date().toISOString()});
+    }
+    if(fin.wireRef||fin.wireDate){
+      migrated.push({id:`ev_mig_w_${Date.now()+1}`,type:"wire",amount:parseFloat(fin.settlementAmount)||0,currency:"USD",
+        expectedDate:fin.wireDate||"",actualDate:fin.wireDate||"",status:fin.stages?.wire_ref_confirmed?"confirmed":"pending",
+        ref:fin.wireRef||"",note:"migrated from legacy wireRef/wireDate",createdAt:new Date().toISOString()});
+    }
+    if(!migrated.length)return;
+    uFin(selS,{events:[...events,...migrated]});
+    migrated.forEach(ev=>logAudit({entityType:"finance",entityId:`${selS}:${ev.id}`,action:"event_create",before:null,after:ev,meta:{type:ev.type,source:"migration"}}));
+  };
+
+  const typeOf=t=>FIN_EVENT_TYPES.find(x=>x.id===t)||FIN_EVENT_TYPES[FIN_EVENT_TYPES.length-1];
+  const statusOf=s=>FIN_EVENT_STATUS.find(x=>x.id===s)||FIN_EVENT_STATUS[0];
+
+  return(
+    <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"14px",marginBottom:10}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+        <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>FINANCIAL EVENTS</div>
+        <div style={{display:"flex",gap:6}}>
+          {hasLegacy&&<button onClick={migrate} style={{fontSize:9,padding:"3px 9px",borderRadius:4,border:"1px solid var(--warn-fg)",background:"var(--warn-bg)",color:"var(--warn-fg)",cursor:"pointer",fontWeight:700}}>Migrate legacy ↗</button>}
+          <button onClick={()=>setAdding(v=>!v)} style={{fontSize:9,padding:"4px 10px",borderRadius:6,border:"none",cursor:"pointer",fontWeight:700,background:"var(--accent)",color:"#fff"}}>{adding?"Cancel":"+ Add Event"}</button>
+        </div>
+      </div>
+      {adding&&(
+        <div style={{background:"var(--card-3)",borderRadius:10,padding:"10px",marginBottom:10}}>
+          <div style={{display:"grid",gridTemplateColumns:"110px 90px 70px 110px 110px 100px",gap:5,marginBottom:5}}>
+            <select value={form.type} onChange={e=>setForm(p=>({...p,type:e.target.value}))} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 5px",outline:"none"}}>
+              {FIN_EVENT_TYPES.map(t=><option key={t.id} value={t.id}>{t.l}</option>)}
+            </select>
+            <input placeholder="Amount" value={form.amount} onChange={e=>setForm(p=>({...p,amount:e.target.value}))} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none",fontFamily:MN}}/>
+            <select value={form.currency} onChange={e=>setForm(p=>({...p,currency:e.target.value}))} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 5px",outline:"none"}}>
+              {["USD","CAD","GBP","EUR"].map(c=><option key={c}>{c}</option>)}
+            </select>
+            <input type="date" placeholder="Expected" value={form.expectedDate} onChange={e=>setForm(p=>({...p,expectedDate:e.target.value}))} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none",fontFamily:MN}}/>
+            <input type="date" placeholder="Actual" value={form.actualDate} onChange={e=>setForm(p=>({...p,actualDate:e.target.value}))} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none",fontFamily:MN}}/>
+            <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 5px",outline:"none"}}>
+              {FIN_EVENT_STATUS.map(s=><option key={s.id} value={s.id}>{s.l}</option>)}
+            </select>
+          </div>
+          <div style={{display:"flex",gap:5,marginBottom:5}}>
+            <input placeholder="Ref # (wire, invoice, etc.)" value={form.ref} onChange={e=>setForm(p=>({...p,ref:e.target.value}))} style={{flex:1,background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none",fontFamily:MN}}/>
+            <input placeholder="Note" value={form.note} onChange={e=>setForm(p=>({...p,note:e.target.value}))} style={{flex:2,background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none"}}/>
+            <button onClick={add} disabled={!form.amount} style={{background:"var(--success-fg)",border:"none",borderRadius:4,color:"#fff",fontSize:10,padding:"4px 12px",cursor:form.amount?"pointer":"not-allowed",fontWeight:700,opacity:form.amount?1:0.5}}>Add</button>
+          </div>
+        </div>
+      )}
+      {events.length===0&&!adding&&<div style={{fontSize:10,color:"var(--text-mute)",padding:"6px 0",fontStyle:"italic"}}>No financial events yet. Settlement, wire, withholding, and merch each track independently.</div>}
+      {events.length>0&&(
+        <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <thead><tr style={{background:"var(--card-3)"}}>{["Type","Amount","Expected","Actual","Status","Ref","Note",""].map(h=><th key={h} style={{padding:"5px 7px",textAlign:"left",fontSize:8,fontWeight:700,color:"var(--text-dim)",letterSpacing:"0.05em",borderBottom:"1px solid var(--border)"}}>{h}</th>)}</tr></thead>
+          <tbody>{events.map(ev=>{const t=typeOf(ev.type);const s=statusOf(ev.status);return(
+            <tr key={ev.id} style={{borderBottom:"1px solid var(--card-3)"}}>
+              <td style={{padding:"5px 7px"}}><span style={{fontSize:9,padding:"1px 6px",borderRadius:4,background:t.b,color:t.c,fontWeight:700}}>{t.l}</span></td>
+              <td style={{padding:"5px 7px",fontFamily:MN,fontSize:10,fontWeight:700}}>{ev.currency} {Number(ev.amount||0).toFixed(2)}</td>
+              <td style={{padding:"5px 7px",fontFamily:MN,fontSize:9,color:"var(--text-dim)"}}>{ev.expectedDate||"—"}</td>
+              <td style={{padding:"5px 7px",fontFamily:MN,fontSize:9,color:ev.actualDate?"var(--text)":"var(--text-mute)"}}>{ev.actualDate||"—"}</td>
+              <td style={{padding:"5px 7px"}}>
+                <select value={ev.status} onChange={e=>update(ev.id,{status:e.target.value})} style={{background:s.b,color:s.c,border:"none",borderRadius:4,fontSize:9,padding:"2px 4px",outline:"none",fontWeight:700,cursor:"pointer"}}>
+                  {FIN_EVENT_STATUS.map(x=><option key={x.id} value={x.id}>{x.l}</option>)}
+                </select>
+              </td>
+              <td style={{padding:"5px 7px",fontFamily:MN,fontSize:9,color:"var(--text-2)"}}>{ev.ref||"—"}</td>
+              <td style={{padding:"5px 7px",fontSize:9,color:"var(--text-dim)",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.note||"—"}</td>
+              <td style={{padding:"5px 7px"}}><button onClick={()=>del(ev.id)} style={{background:"transparent",border:"none",color:"var(--text-mute)",fontSize:11,cursor:"pointer",padding:"2px 6px"}} title="Delete">×</button></td>
+            </tr>
+          );})}</tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
 function FinTab(){
   const{shows,cShows,finance,uFin,pushUndo,labelIntel,sel}=useContext(Ctx);
   const today=new Date().toISOString().slice(0,10);
@@ -4054,11 +4187,13 @@ function FinTab(){
                 </div>
               </div>
               {!done&&stages["payment_initiated"]&&<div style={{marginTop:8,padding:"7px 10px",background:"var(--warn-bg)",borderRadius:6,fontSize:10,color:"var(--warn-fg)",fontWeight:600}}>Wire ref # and signed settlement sheet both required to mark as done.</div>}
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginTop:10}}>
+              <div style={{marginTop:10,fontSize:9,color:"var(--text-mute)",fontStyle:"italic"}}>Legacy flat fields below. Prefer <b>Financial Events</b> above for new settlements, wires, withholding, and merch — each tracks independently.</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginTop:6}}>
                 {[{l:"Wire Ref #",k:"wireRef",ph:"REF-20260520"},{l:"Wire Date",k:"wireDate",ph:"2026-05-22"},{l:"Settlement Amount",k:"settlementAmount",ph:"0.00"}].map(f=><div key={f.k}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>{f.l}</div><input defaultValue={fin[f.k]||""} onBlur={e=>{const v=e.target.value;const prev=fin[f.k]||"";if(v===prev)return;uFin(selS,{[f.k]:v});pushUndo(`${f.l} updated.`,()=>uFin(selS,{[f.k]:prev}));}} placeholder={f.ph} style={{width:"100%",background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",fontSize:10,fontFamily:MN,padding:"4px 6px",outline:"none"}}/></div>)}
               </div>
               <div style={{marginTop:7}}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>Settlement Notes</div><textarea defaultValue={fin.notes||""} onBlur={e=>{const v=e.target.value;const prev=fin.notes||"";if(v===prev)return;uFin(selS,{notes:v});pushUndo("Settlement notes updated.",()=>uFin(selS,{notes:prev}));}} placeholder="Deductions, disputes, bonus splits..." rows={2} style={{width:"100%",background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",fontSize:10,padding:"4px 6px",outline:"none",resize:"vertical",fontFamily:"inherit"}}/></div>
             </div>
+            <FinEventsPanel selS={selS} fin={fin} uFin={uFin} pushUndo={pushUndo}/>
             {(fin.flightExpenses||[]).length>0&&<div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"14px",marginBottom:10}}>
               <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em",marginBottom:8}}>FLIGHT EXPENSES</div>
               <table style={{width:"100%",borderCollapse:"collapse"}}>
