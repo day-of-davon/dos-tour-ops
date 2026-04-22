@@ -2402,14 +2402,6 @@ function AdvTab(){
         <span style={{fontWeight:700,fontSize:11}}>{show.venue}</span>
         <span style={{fontSize:11,color:"var(--text-dim)"}}>{show.city} · {fFull(sel)}</span>
         <span style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:totalPending===0?"var(--success-bg)":"var(--warn-bg)",color:totalPending===0?"var(--success-fg)":"var(--warn-fg)",fontWeight:700}}>{totalPending===0?"Complete":`${totalPending} pending`}</span>
-        <div style={{marginLeft:"auto",display:"flex",gap:5,alignItems:"center"}}>
-          {!showEmail?<>
-            <select value={emailDept} onChange={e=>setEmailDept(e.target.value)} style={{fontSize:9,padding:"3px 6px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-3)",color:"var(--text)",cursor:"pointer"}}>
-              {DEPTS.map(d=><option key={d.id} value={d.id}>{d.label}</option>)}
-            </select>
-            <button onClick={()=>setShowEmail(true)} style={{background:"var(--accent)",border:"none",borderRadius:6,color:"#fff",fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700}}>Generate Email</button>
-          </>:<button onClick={()=>setShowEmail(false)} style={{background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-2)",fontSize:10,padding:"4px 10px",cursor:"pointer",fontWeight:600}}>← Checklist</button>}
-        </div>
       </div>
       {!showEmail&&<div style={{padding:"4px 20px",borderBottom:"1px solid var(--border)",background:"var(--card-3)",display:"flex",gap:2,overflowX:"auto",flexShrink:0,scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
         {DEPTS.map(d=>{const isA=activeDept===d.id;const cnt=d.id==="all"?null:deptCounts[d.id];
