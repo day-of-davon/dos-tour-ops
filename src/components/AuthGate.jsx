@@ -58,7 +58,7 @@ function SignIn() {
         <button onClick={go} disabled={busy} style={{width:"100%",padding:"10px 14px",borderRadius:8,border:"1px solid #d6d3cd",background:busy?"#ebe8e3":"#fff",color:"#0f172a",fontSize:13,fontWeight:600,cursor:busy?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
           <span style={{fontSize:14,fontWeight:800,color:"#4285F4"}}>G</span>{busy ? "Redirecting…" : "Continue with Google"}
         </button>
-        {err && <div style={{fontSize:10,color:"#B91C1C",marginTop:12,fontFamily:"'JetBrains Mono',monospace"}}>{err}</div>}
+        {err && <div style={{fontSize:10,color:"var(--danger-fg)",marginTop:12,fontFamily:"'JetBrains Mono',monospace"}}>{err}</div>}
       </div>
     </div>
   );
