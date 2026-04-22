@@ -8,6 +8,89 @@ const {
   getCachedThread, putCachedThread,
   logEnhancement, bumpStopReason,
 } = require("./lib/scanMemory");
+const {
+  collectThreadAttachments, dedupFolios,
+  fetchAttachmentB64, attachmentFingerprint,
+} = require("./lib/attachments");
+
+// PDF attachment caps (match lodging-scan).
+const PDF_MAX_PER_THREAD = 2;
+const PDF_MAX_PER_SCAN   = 20;
+const PDF_MAX_BYTES      = 5 * 1024 * 1024;
+const SCAN_PDFS = process.env.SCAN_PDFS_FLIGHTS === "1";
+
+// Map a sender address/domain to a carrier label. Used for telemetry
+// (which airlines deliver PDFs?) — not authoritative. Claude still extracts
+// the canonical `carrier` field from content.
+const CARRIER_DOMAINS = [
+  [/@(?:.*\.)?delta\.com/i, "Delta"],
+  [/@t\.delta\.com/i, "Delta"],
+  [/@(?:.*\.)?aa\.com/i, "American"],
+  [/@(?:.*\.)?united\.com/i, "United"],
+  [/@(?:.*\.)?southwest\.com/i, "Southwest"],
+  [/@luv\.southwest\.com/i, "Southwest"],
+  [/@(?:.*\.)?alaskaair\.com/i, "Alaska"],
+  [/@(?:.*\.)?jetblue\.com/i, "JetBlue"],
+  [/@(?:.*\.)?spirit\.com/i, "Spirit"],
+  [/@(?:.*\.)?flyfrontier\.com/i, "Frontier"],
+  [/@(?:.*\.)?allegiantair\.com/i, "Allegiant"],
+  [/@(?:.*\.)?hawaiianairlines\.com/i, "Hawaiian"],
+  [/@(?:.*\.)?aircanada\.(?:com|ca)/i, "Air Canada"],
+  [/@(?:.*\.)?westjet\.com/i, "WestJet"],
+  [/@(?:.*\.)?flyporter\.com/i, "Porter"],
+  [/@(?:.*\.)?ba\.com/i, "British Airways"],
+  [/@(?:.*\.)?lufthansa\.com/i, "Lufthansa"],
+  [/@(?:.*\.)?airfrance\.(?:com|fr)/i, "Air France"],
+  [/@(?:.*\.)?klm\.com/i, "KLM"],
+  [/@(?:.*\.)?iberia\.com/i, "Iberia"],
+  [/@(?:.*\.)?swiss\.com/i, "Swiss"],
+  [/@(?:.*\.)?austrian\.com/i, "Austrian"],
+  [/@(?:.*\.)?brusselsairlines\.com/i, "Brussels Airlines"],
+  [/@(?:.*\.)?finnair\.com/i, "Finnair"],
+  [/@(?:.*\.)?flysas\.com/i, "SAS"],
+  [/@(?:.*\.)?tap\.pt/i, "TAP Portugal"],
+  [/@(?:.*\.)?turkishairlines\.com/i, "Turkish"],
+  [/@(?:.*\.)?aerlingus\.com/i, "Aer Lingus"],
+  [/@(?:.*\.)?lot\.com/i, "LOT"],
+  [/@(?:.*\.)?ryanair\.com/i, "Ryanair"],
+  [/@(?:.*\.)?easyjet\.com/i, "easyJet"],
+  [/@(?:.*\.)?wizzair\.com/i, "Wizz Air"],
+  [/@(?:.*\.)?norwegian\.com/i, "Norwegian"],
+  [/@(?:.*\.)?vueling\.com/i, "Vueling"],
+  [/@(?:.*\.)?transavia\.com/i, "Transavia"],
+  [/@(?:.*\.)?jet2\.com/i, "Jet2"],
+  [/@(?:.*\.)?volotea\.com/i, "Volotea"],
+  [/@(?:.*\.)?emirates\.com/i, "Emirates"],
+  [/@emails\.emirates\.com/i, "Emirates"],
+  [/@(?:.*\.)?etihad\.com/i, "Etihad"],
+  [/@(?:.*\.)?qatarairways\.com/i, "Qatar"],
+  [/@(?:.*\.)?flydubai\.com/i, "flydubai"],
+  [/@(?:.*\.)?singaporeair\.com/i, "Singapore"],
+  [/@(?:.*\.)?cathaypacific\.com/i, "Cathay"],
+  [/@(?:.*\.)?jal\.co\.jp/i, "JAL"],
+  [/@(?:.*\.)?ana\.co\.jp/i, "ANA"],
+  [/@(?:.*\.)?koreanair\.com/i, "Korean"],
+  [/@(?:.*\.)?qantas\.com\.au/i, "Qantas"],
+  [/@(?:.*\.)?airnewzealand\.co\.nz/i, "Air NZ"],
+  [/@(?:.*\.)?airasia\.com/i, "AirAsia"],
+  [/@(?:.*\.)?latam\.com/i, "LATAM"],
+  [/@(?:.*\.)?avianca\.com/i, "Avianca"],
+  [/@(?:.*\.)?copaair\.com/i, "Copa"],
+  [/@(?:.*\.)?netjets\.com/i, "NetJets"],
+  [/@(?:.*\.)?vistajet\.com/i, "VistaJet"],
+  [/@(?:.*\.)?wheelsup\.com/i, "Wheels Up"],
+  [/@(?:.*\.)?flyexclusive\.com/i, "flyExclusive"],
+  [/@(?:.*\.)?jsx\.com/i, "JSX"],
+  [/@(?:.*\.)?expedia\.com/i, "OTA:Expedia"],
+  [/@(?:.*\.)?concur\.com/i, "OTA:Concur"],
+  [/@(?:.*\.)?booking\.com/i, "OTA:Booking"],
+  [/@(?:.*\.)?travelport\.com/i, "OTA:Travelport"],
+];
+function carrierFromSender(from) {
+  if (!from) return null;
+  for (const [re, label] of CARRIER_DOMAINS) if (re.test(from)) return label;
+  return null;
+}
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 function toGmailDate(d) { return d.replace(/-/g, "/"); }
@@ -48,7 +131,29 @@ function extractHeaders(thread) {
     .filter(Boolean)
     .join("\n");
   const forwardedSender = detectForwardedSender(body);
-  return { id: thread.id, subject: get("Subject"), from: get("From"), date: get("Date"), lastMsgMs, body, htmlRaw, forwardedSender };
+  const from = get("From");
+
+  // PDF attachments (gated). Even when gated off we collect fingerprints so
+  // cache invalidation reacts to attachment changes if the flag flips later.
+  let attachments = [], attachmentFingerprints = [], droppedAttachments = [], oversizedAttachments = [];
+  if (SCAN_PDFS) {
+    const all = collectThreadAttachments(thread);
+    const { kept, dropped } = dedupFolios(all.filter(a => a.size <= PDF_MAX_BYTES));
+    attachments = kept.slice(0, PDF_MAX_PER_THREAD);
+    droppedAttachments = dropped;
+    oversizedAttachments = all.filter(a => a.size > PDF_MAX_BYTES).map(a => ({ filename: a.filename, size: a.size }));
+    attachmentFingerprints = attachmentFingerprint(attachments);
+    if (droppedAttachments.length) {
+      console.log(`[flights] folio_dedup_dropped tid=${thread.id}: ${droppedAttachments.map(d => d.filename).join(", ")}`);
+    }
+  }
+
+  return {
+    id: thread.id, subject: get("Subject"), from, date: get("Date"),
+    lastMsgMs, body, htmlRaw, forwardedSender,
+    carrierGuess: carrierFromSender(from),
+    attachments, attachmentFingerprints, droppedAttachments, oversizedAttachments,
+  };
 }
 
 // Map a schema.org FlightReservation node to our flight shape. Returns null if
@@ -92,6 +197,7 @@ function jsonLdToFlight(node, tid) {
       pax,
       pnr: node.reservationNumber || null,
       confirmNo: node.reservationId && node.reservationId !== node.reservationNumber ? node.reservationId : null,
+      ticketNo: node.ticketNumber || node.ticket?.ticketNumber || null,
       cost: node.totalPrice?.price ? Number(node.totalPrice.price) : (typeof node.totalPrice === "number" ? node.totalPrice : null),
       currency: node.totalPrice?.priceCurrency || null,
       tid,
@@ -133,6 +239,7 @@ function dedupFlights(flights) {
     winner.pax = [...new Set([...(winner.pax || []), ...(loser.pax || [])])];
     if (!winner.pnr && loser.pnr) winner.pnr = loser.pnr;
     if (!winner.confirmNo && loser.confirmNo) winner.confirmNo = loser.confirmNo;
+    if (!winner.ticketNo && loser.ticketNo) winner.ticketNo = loser.ticketNo;
     if (!winner.cost && loser.cost) { winner.cost = loser.cost; winner.currency = loser.currency; }
     seen.set(k, winner);
   }
@@ -416,11 +523,13 @@ module.exports = async function handler(req, res) {
     const cached = await getCachedThread("flights", t.id);
     t.bodyHash = bodyHash;
     t.prevResult = cached?.result || null;
-    if (shouldUseCached(cached, t.lastMsgMs, bodyHash, [])) {
+    if (shouldUseCached(cached, t.lastMsgMs, bodyHash, t.attachmentFingerprints)) {
       if (Array.isArray(cached.result)) cachedFlights.push(...cached.result);
     } else {
       freshThreads.push(t);
     }
+    for (const d of t.droppedAttachments || []) runErrors.push({ kind: "folio_dedup_dropped", tid: t.id, filename: d.filename, reason: d.reason });
+    for (const o of t.oversizedAttachments || []) runErrors.push({ kind: "pdf_oversized", tid: t.id, filename: o.filename, size: o.size });
   }
   console.log(`[flights] cache: hit=${threads.length - freshThreads.length} fresh=${freshThreads.length} runId=${runId}`);
 
@@ -489,17 +598,43 @@ Passenger extraction (critical):
 - If a booking references multiple passengers across separate ticket rows, list all of them in pax[].
 - pax: array of all passenger full names. Empty array ONLY if truly no names found anywhere.
 
-Confirmation codes (critical):
-- pnr: 6-character alphanumeric airline record locator / PNR (e.g. "F9OCAU", "ABC123"). Distinct from order/booking numbers.
-- confirmNo: booking/order/e-ticket number if different from PNR. null if same as pnr or absent.
-- Look for labels: "Confirmation Code", "Record Locator", "Booking Reference", "PNR", "E-Ticket Number", "Ticket #".
-- Do NOT confuse a booking order number (e.g. "Order #28471922") with a PNR — those go in confirmNo, not pnr.
+Confirmation codes (critical — extract all three as distinct fields, each to its own key; return null if absent):
+
+- pnr        : exactly 6 alphanumeric characters, the airline record locator.
+               Labels: "Record Locator", "PNR", "Airline Booking Reference",
+               "Reservation Code". Example: "F9OCAU".
+
+- confirmNo  : the booking/order number from the channel that sold the ticket
+               (airline website, Expedia, Concur, corporate tool). Usually
+               6-12 chars, may be numeric or alphanumeric, distinct from pnr.
+               Labels: "Confirmation Number", "Booking Reference", "Order #",
+               "Itinerary Number". Example: "KL7X9M" or "1234567890".
+
+- ticketNo   : the airline e-ticket number. 13 digits, commonly shown as
+               "001-1234567890123" where 001 is the airline ticketing prefix
+               (001=AA, 005=CO/UA, 006=DL, 016=UA, 020=LH, 014=AC, 027=AS,
+                079=B6, 081=QF, 220=LH, 235=TK, 057=AF). Include the dash.
+               Labels: "E-Ticket Number", "Ticket Number", "Ticket #".
+               Do NOT put the PNR here. Do NOT put the booking ref here.
+               If multiple ticket numbers exist (one per pax), take the first.
+
+Never duplicate the same code across fields. If only one alphanumeric code is
+present and it is exactly 6 chars, it is the pnr and confirmNo/ticketNo stay null.
+
+Attached PDFs: when a PDF e-ticket, itinerary, or receipt is attached, trust
+the PDF over the body text for cost, dates, flight numbers, and the three
+confirmation-code fields above. E-ticket numbers almost always come from the PDF.
 
 Skip hotel, train, rental car confirmations — flights and private charters only.`;
 
+  // Partition fresh Claude-bound threads: withPdf go one-at-a-time with
+  // document blocks; textOnly go through the batched pipeline as before.
+  const withPdfThreads = SCAN_PDFS ? claudeThreads.filter(t => t.attachments?.length) : [];
+  const textOnlyThreads = claudeThreads.filter(t => !withPdfThreads.includes(t));
+
   const BATCH = 8;
   const threadBatches = [];
-  for (let i = 0; i < claudeThreads.length; i += BATCH) threadBatches.push(claudeThreads.slice(i, i + BATCH));
+  for (let i = 0; i < textOnlyThreads.length; i += BATCH) threadBatches.push(textOnlyThreads.slice(i, i + BATCH));
 
   const buildPrompt = (batch, offset) =>
     `Extract all flight segments from these email threads. Tour date range: ${tourStart} to ${tourEnd}.
@@ -526,7 +661,8 @@ Return this exact JSON:
       "arr": "09:30",
       "pax": ["Davon Johnson", "Daniel Nudelman"],
       "pnr": "F9OCAU",
-      "confirmNo": null,
+      "confirmNo": "KL7X9M",
+      "ticketNo": "006-1234567890",
       "cost": 648.50,
       "currency": "USD",
       "tid": "<thread_id_from_above>"
@@ -571,7 +707,11 @@ IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no
 Focus especially on:
 1. IATA codes — verify the 3-letter code matches the actual airport in the email, not just the city. London has LHR/LGW/STN/LCY; Paris has CDG/ORY; confirm which one the email specifies.
 2. Passenger names — confirm names from the email body (not just the subject). Names may appear in ALL-CAPS airline format e.g. "JOHNSON/DAVON" = "Davon Johnson".
-3. PNR vs confirmNo — PNR is exactly 6 alphanumeric chars (e.g. "F9OCAU"). Booking order numbers (longer or numeric-heavy) go in confirmNo.
+3. Three distinct code fields — verify each independently:
+   - pnr: exactly 6 alphanumeric chars (e.g. "F9OCAU"). Record locator only.
+   - confirmNo: booking/order number from the sales channel (6-12 chars, often numeric).
+   - ticketNo: 13-digit airline e-ticket (format "001-1234567890"). Present only on e-ticket issuance emails or PDF receipts. Never put a PNR here.
+   Never duplicate the same value across two fields.
 4. Date/time — ensure depDate and arrDate match the email, especially for overnight flights where arrival date differs from departure date.
 5. Multi-leg — if the email describes a connecting itinerary, each leg should be a separate record.`;
 
@@ -584,7 +724,7 @@ ${batch.map(t => `tid:${t.id}\nSubject: ${t.subject}${t.forwardedSender ? `\nOri
 EXTRACTED FLIGHTS:
 ${JSON.stringify(flights, null, 2)}
 
-For each flight, re-read its source thread and check every field: flightNo, from, fromCity, to, toCity, depDate, dep, arrDate, arr, pax, pnr, confirmNo, cost, currency.
+For each flight, re-read its source thread and check every field: flightNo, from, fromCity, to, toCity, depDate, dep, arrDate, arr, pax, pnr, confirmNo, ticketNo, cost, currency.
 If a field is wrong or missing, provide the corrected value. If correct or unknown, omit from corrections.
 Set ok=false if ANY field needs correction. Set ok=true only if the record is fully accurate.
 
@@ -649,6 +789,77 @@ Return this exact JSON:
     }
   }
 
+  // ── Per-thread PDF calls (sequential, bounded by scan cap) ────────────────
+  let attachmentsScanned = 0;
+  for (const t of withPdfThreads) {
+    if (attachmentsScanned >= PDF_MAX_PER_SCAN) {
+      runErrors.push({ kind: "pdf_scan_cap_reached", tid: t.id, attemptedFiles: t.attachments.length });
+      // Fall back to text-only single-thread parse so we don't drop the record.
+      try {
+        const pdfFallback = await parseAndVerifyBatch([t], 0);
+        claudeFlights.push(...pdfFallback.map(f => ({ ...f, source: f.source || "claude" })));
+      } catch (e) {
+        runErrors.push({ kind: "anthropic_error", phase: "pdf_fallback_text", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+      }
+      continue;
+    }
+
+    const docBlocks = [];
+    const usedFiles = [];
+    for (const a of t.attachments) {
+      if (attachmentsScanned >= PDF_MAX_PER_SCAN) break;
+      const b64 = await fetchAttachmentB64(googleToken, a.messageId, a.attachmentId);
+      if (!b64) { runErrors.push({ kind: "attachment_fetch_failed", tid: t.id, filename: a.filename }); continue; }
+      docBlocks.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: b64 } });
+      usedFiles.push(a.filename);
+      attachmentsScanned++;
+    }
+
+    const userPrompt = `Extract all flight segments from this thread. Tour date range: ${tourStart} to ${tourEnd}.
+${docBlocks.length ? `Attached: ${usedFiles.length} PDF e-ticket/itinerary/receipt(s) — ${usedFiles.join(", ")}. Trust the PDF over body text for cost, dates, pnr/confirmNo/ticketNo.` : ""}
+
+[0] tid:${t.id}
+Subject: ${t.subject}
+From: ${t.from}${t.forwardedSender ? `\nOriginal sender: ${t.forwardedSender.name}${t.forwardedSender.email ? ` <${t.forwardedSender.email}>` : ""}` : ""}
+Date: ${t.date}
+Body: ${t.body}
+
+Return this exact JSON:
+{
+  "flights": [
+    {
+      "flightNo": "DL154",
+      "carrier": "Delta",
+      "from": "BOS", "fromCity": "Boston",
+      "to": "DUB", "toCity": "Dublin",
+      "depDate": "2026-05-02", "dep": "21:55",
+      "arrDate": "2026-05-03", "arr": "09:30",
+      "pax": ["Davon Johnson"],
+      "pnr": "F9OCAU", "confirmNo": "KL7X9M", "ticketNo": "006-1234567890",
+      "cost": 648.50, "currency": "USD",
+      "tid": "${t.id}"
+    }
+  ]
+}`;
+
+    try {
+      const parsed = await callClaude([...docBlocks, { type: "text", text: userPrompt }]);
+      const rows = Array.isArray(parsed?.flights) ? parsed.flights : [];
+      for (const f of rows) {
+        claudeFlights.push({
+          ...f,
+          tid: f.tid || t.id,
+          source: "claude_pdf",
+          parseVerified: null, // PDF-backed records skip Haiku verify; PDF is authoritative
+          sourceAttachment: usedFiles.length ? { filename: usedFiles[0] } : null,
+        });
+      }
+      console.log(`[flights] pdf tid=${t.id} pdfs=${docBlocks.length} rows=${rows.length}`);
+    } catch (e) {
+      runErrors.push({ kind: "anthropic_error", phase: "pdf_thread", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+    }
+  }
+
   // Dedup BEFORE validation — a JSON-LD leg and a Claude leg for the same
   // segment should merge (JSON-LD wins for structure, Claude may carry extra pax).
   const freshMerged = dedupFlights([...jsonLdFlights, ...claudeFlights]);
@@ -664,7 +875,7 @@ Return this exact JSON:
       result,
       stopReason: null, // per-thread stop_reason not tracked in flights batch mode
       footerStripSaved: null,
-      attachmentFingerprints: [],
+      attachmentFingerprints: t.attachmentFingerprints || [],
     });
     if (Array.isArray(t.prevResult) && t.prevResult.length) {
       const prevByKey = Object.fromEntries(t.prevResult.map(r => [`${r.flightNo}|${r.depDate}|${r.from}|${r.to}`, r]));
@@ -699,11 +910,32 @@ Return this exact JSON:
     };
   });
 
+  // Airline-attachment telemetry: one row per thread showing carrier guess +
+  // whether it carried a PDF. Retrospective query answers "does United ship
+  // PDFs?" without a new table — just read scan_runs.params.perThread.
+  const perThread = threads.map(t => ({
+    tid: t.id,
+    carrierGuess: t.carrierGuess || null,
+    hadPdf: (t.attachments?.length || 0) > 0,
+    pdfCount: t.attachments?.length || 0,
+  }));
+
+  // Merge perThread telemetry back into scan_runs.params for later airline-rate
+  // analysis. Direct update — scanMemory.finishScanRun is field-scoped and
+  // doesn't accept params merges.
+  if (runId) {
+    try {
+      const { data: existing } = await supabase.from("scan_runs").select("params").eq("id", runId).maybeSingle();
+      const mergedParams = { ...(existing?.params || {}), perThread };
+      await supabase.from("scan_runs").update({ params: mergedParams }).eq("id", runId);
+    } catch (e) { console.warn("[flights] perThread telemetry write failed:", e.message); }
+  }
+
   await finishScanRun(runId, {
     threadsFound: threads.length,
     threadsCached: threads.length - freshThreads.length,
     threadsParsed: freshThreads.length,
-    attachmentsScanned: 0,
+    attachmentsScanned,
     inputTokens: inputTokensTotal,
     outputTokens: outputTokensTotal,
     stopReasons,
@@ -722,6 +954,7 @@ Return this exact JSON:
     scanRunId: runId,
     threadsCached: threads.length - freshThreads.length,
     threadsParsed: freshThreads.length,
+    attachmentsScanned,
     tokensUsed: inputTokensTotal + outputTokensTotal,
   });
 };

@@ -1227,7 +1227,9 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
         {onUpdatePax
           ?<PaxEditor pax={f.pax||[]} crew={crew} onSave={onUpdatePax}/>
           :(f.pax?.length>0&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>PAX</div><div style={{fontSize:10,color:"var(--text)"}}>{f.pax.join(", ")}</div></div>)}
-        {f.confirmNo&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>CONF #</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.confirmNo}</div></div>}
+        {f.pnr&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>PNR</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.pnr}</div></div>}
+        {f.confirmNo&&f.confirmNo!==f.pnr&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>CONF #</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.confirmNo}</div></div>}
+        {f.ticketNo&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>TICKET #</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.ticketNo}</div></div>}
         {f.cost&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>COST</div><div style={{fontFamily:MN,fontSize:10,color:"var(--success-fg)",fontWeight:700}}>{f.currency||"$"}{f.cost}</div></div>}
       </div>
       {crew&&f.suggestedCrewIds?.length>0&&(
@@ -3936,9 +3938,13 @@ function SegmentDrawer({seg,crew,sorted,onChange,onClose}){
         <PaxEditor pax={seg.pax||[]} crew={crew} onSave={newPax=>setField("pax",(newPax||[]).map(s=>String(s||"").trim()).filter(Boolean))}/>
       </div>
 
-      {/* Notes + confirm# + cost */}
+      {/* Codes: PNR / Confirm# / Ticket# + cost */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-        {sub("Confirm #",<input value={seg.confirmNo||""} onChange={e=>setField("confirmNo",e.target.value)} style={{...inp,fontFamily:MN}}/>)}
+        {sub("PNR",<input value={seg.pnr||""} onChange={e=>setField("pnr",e.target.value)} placeholder="F9OCAU" style={{...inp,fontFamily:MN}}/>)}
+        {sub("Confirm #",<input value={seg.confirmNo||""} onChange={e=>setField("confirmNo",e.target.value)} placeholder="Booking/order #" style={{...inp,fontFamily:MN}}/>)}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+        {sub("Ticket # (e-ticket)",<input value={seg.ticketNo||""} onChange={e=>setField("ticketNo",e.target.value)} placeholder="001-1234567890" style={{...inp,fontFamily:MN}}/>)}
         {sub("Cost",<input type="number" value={seg.cost||""} onChange={e=>setField("cost",Number(e.target.value)||"")} placeholder="0.00" style={inp}/>)}
       </div>
       {sub("Notes",<textarea value={seg.notes||""} onChange={e=>setField("notes",e.target.value)} rows={2} placeholder="Dispatch instructions, pickup location, etc." style={{...inp,resize:"vertical",minHeight:50}}/>)}
