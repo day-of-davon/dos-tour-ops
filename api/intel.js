@@ -531,7 +531,7 @@ module.exports = async function handler(req, res) {
         if (bulkThreadIds?.length) {
           const resolved = bulkThreadIds.map(id => threadPool[id]).filter(Boolean);
           if (resolved.length) {
-            const capped = resolved.slice(0, 20);
+            const capped = resolved.slice(0, 8);
             console.log(`[intel] bulk cache hit for ${showId}: ${capped.length}/${resolved.length} threads`);
             threads = capped.map(t => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 1200) }));
             fromBulkCache = true;
@@ -646,6 +646,7 @@ Return this exact JSON:
 
   const callAnthropic = async () => fetch(ANTHROPIC_URL, { method: "POST", headers: ANTHROPIC_HEADERS, body: anthropicBody });
 
+  console.log(`[intel] calling Anthropic: ${threads.length} threads, fromBulkCache=${fromBulkCache}`);
   let anthropicResp;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -659,7 +660,7 @@ Return this exact JSON:
     let errBody = "";
     try { errBody = await anthropicResp.text(); } catch {}
     console.error("[intel] Anthropic non-ok (attempt", attempt + 1, "):", anthropicResp.status, errBody.slice(0, 300));
-    if ((anthropicResp.status === 429 || anthropicResp.status === 529) && attempt === 0) {
+    if ((anthropicResp.status === 429 || anthropicResp.status === 500 || anthropicResp.status === 503 || anthropicResp.status === 529) && attempt === 0) {
       await new Promise(r => setTimeout(r, 3000));
       continue;
     }
