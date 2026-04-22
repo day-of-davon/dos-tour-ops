@@ -4948,6 +4948,18 @@ function CrewTab(){
     if(dir==="inbound") return confirmedFlights.filter(f=>f.arrDate===sel);
     return confirmedFlights.filter(f=>f.depDate===sel);
   };
+  const outboundNearby=useMemo(()=>{
+    const baseCity=((shows[sel]?.city||"").split(",")[0]).toLowerCase().trim();
+    if(!baseCity)return[];
+    const d1=new Date(sel+"T12:00:00");d1.setDate(d1.getDate()+1);
+    const d2=new Date(sel+"T12:00:00");d2.setDate(d2.getDate()+2);
+    const d1s=d1.toISOString().slice(0,10),d2s=d2.toISOString().slice(0,10);
+    return confirmedFlights.filter(f=>{
+      if(!f.depDate||f.depDate<d1s||f.depDate>d2s)return false;
+      const fc=(f.fromCity||f.from||"").toLowerCase();
+      return fc.includes(baseCity)||baseCity.includes(fc);
+    });
+  },[confirmedFlights,sel,shows]);
   const assignFlight=(crewId,dir,f)=>{
     const leg={id:`leg_${f.id}`,flight:f.flightNo||"",carrier:f.carrier||"",from:f.from,fromCity:f.fromCity||f.from,to:f.to,toCity:f.toCity||f.to,depart:f.dep,arrive:f.arr,conf:f.confirmNo||f.bookingRef||"",status:"confirmed",flightId:f.id};
     const confKey=dir==="inbound"?"inboundConfirmed":"outboundConfirmed";
@@ -5139,20 +5151,28 @@ function CrewTab(){
                                   <span style={{fontSize:9,fontWeight:800,color:"var(--accent)",letterSpacing:"0.06em"}}>ASSIGN FLIGHT — {dir==="inbound"?"ARRIVALS":"DEPARTURES"} {fD(sel)}</span>
                                   <button onClick={()=>setFlightPicker(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-mute)",fontSize:13,padding:0,lineHeight:1}}>×</button>
                                 </div>
-                                {flightsForDir(dir).length===0?(
-                                  <div style={{padding:"12px 10px",fontSize:10,color:"var(--text-mute)",textAlign:"center"}}>No confirmed {dir==="inbound"?"arrivals":"departures"} on {fD(sel)}.<br/><span style={{fontSize:9}}>Scan Gmail for flights in Transport tab.</span></div>
-                                ):flightsForDir(dir).map(f=>{
-                                  const alreadyAssigned=(cd[dir]||[]).some(l=>l.flightId===f.id);
-                                  return(
+                                {(()=>{
+                                  const exact=flightsForDir(dir);
+                                  const nearby=dir==="outbound"?outboundNearby:[];
+                                  const renderRow=(f,badge)=>{const alreadyAssigned=(cd[dir]||[]).some(l=>l.flightId===f.id);return(
                                     <div key={f.id} onClick={()=>!alreadyAssigned&&assignFlight(c.id,dir,f)} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",borderBottom:"1px solid var(--card-3)",cursor:alreadyAssigned?"default":"pointer",background:alreadyAssigned?"var(--card-3)":"var(--card)",opacity:alreadyAssigned?0.6:1}} className="rh">
                                       <span style={{fontSize:10,fontWeight:700,color:"var(--accent)",minWidth:60}}>{f.flightNo||f.carrier}</span>
                                       <span style={{fontSize:10,flex:1,color:"var(--text)"}}>{f.fromCity||f.from} → {f.toCity||f.to}</span>
-                                      <span style={{fontSize:9,fontFamily:MN,color:"var(--text-dim)"}}>{f.dep} → {f.arr}</span>
+                                      <span style={{fontSize:9,fontFamily:MN,color:"var(--text-dim)"}}>{f.depDate!==sel?fD(f.depDate):""} {f.dep} → {f.arr}</span>
                                       {f.pax?.length>0&&<span style={{fontSize:8,color:"var(--text-mute)"}}>{f.pax.join(", ")}</span>}
+                                      {badge&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--warn-bg)",color:"var(--warn-fg)",fontWeight:700,whiteSpace:"nowrap"}}>{badge}</span>}
                                       {alreadyAssigned?<span style={{fontSize:8,color:"var(--success-fg)",fontWeight:700}}>✓ Assigned</span>:<span style={{fontSize:9,color:"var(--accent)",fontWeight:700}}>Assign →</span>}
                                     </div>
-                                  );
-                                })}
+                                  );};
+                                  if(exact.length===0&&nearby.length===0)return <div style={{padding:"12px 10px",fontSize:10,color:"var(--text-mute)",textAlign:"center"}}>No confirmed {dir==="inbound"?"arrivals":"departures"} on {fD(sel)}.<br/><span style={{fontSize:9}}>Scan Gmail for flights in Transport tab.</span></div>;
+                                  return(<>
+                                    {exact.map(f=>renderRow(f,null))}
+                                    {nearby.length>0&&<>
+                                      <div style={{padding:"4px 10px",fontSize:8,fontWeight:800,letterSpacing:"0.07em",color:"var(--text-mute)",background:"var(--card-2)",borderTop:exact.length?"1px solid var(--border)":"none"}}>NEARBY DEPARTURES — {shows[sel]?.city?.split(",")[0]||""}</div>
+                                      {nearby.map(f=>renderRow(f,`D+${Math.round((new Date(f.depDate+"T12:00:00")-new Date(sel+"T12:00:00"))/86400000)}`))}
+                                    </>}
+                                  </>);
+                                })()}
                                 <div style={{padding:"6px 10px",borderTop:"1px solid var(--border)",background:"var(--card-3)"}}>
                                   <button onClick={()=>addLeg(c.id,dir)} style={{...btn("var(--text-dim)"),fontSize:8,padding:"2px 8px"}}>+ Enter manually</button>
                                 </div>
