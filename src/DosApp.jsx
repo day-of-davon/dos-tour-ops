@@ -4995,7 +4995,7 @@ function CrewTab(){
   const panelCrew=panel?crew.find(c=>c.id===panel.crewId):null;
   const panelCD=panel?getCD(panel.crewId):null;
 
-  const TRAVEL_MODES=["bus","fly","local","vendor","drive"];
+  const TRAVEL_MODES=["bus","fly","local","vendor","drive","n/a"];
   const LEG_STATUS=["pending","confirmed","cancelled"];
   const inp={background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,fontSize:10,padding:"4px 6px",outline:"none",width:"100%",fontFamily:"'Outfit',system-ui"};
   const btn=(bg="var(--accent)",col="var(--card)")=>({background:bg,border:"none",borderRadius:6,color:col,fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700});
