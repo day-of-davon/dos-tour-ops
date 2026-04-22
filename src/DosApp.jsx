@@ -362,7 +362,8 @@ const ROLE_LABEL={tm_td:"TM/TD",transport_coord:"Transport Coord",viewer:"Viewer
 const GUEST_ME={id:"guest",label:"Guest",initials:"··",role:"viewer",clients:["bbn"],primary:[]};
 const resolveMe=(email)=>TEAM[(email||"").toLowerCase()]||GUEST_ME;
 const isClientOwner=(me,clientId)=>!!(me?.primary||[]).includes(clientId);
-const ROLES=[{id:"tm",label:"TM",c:"var(--accent)"},{id:"production",label:"PROD",c:"var(--warn-fg)"},{id:"hospitality",label:"HOSPO",c:"var(--success-fg)"},{id:"transport",label:"TRANSPORT",c:"var(--link)"}];
+const ROLES=[{id:"tm",label:"TM",c:"var(--accent)"},{id:"production",label:"Prod",c:"var(--warn-fg)"}];
+const TM_EMAILS=new Set(["d.johnson@dayofshow.net","o.mims@dayofshow.net","advance@dayofshow.net"]);
 const TABS=[{id:"dash",label:"Dashboard",icon:"⊞"},{id:"advance",label:"Advance",icon:"◎"},{id:"guestlist",label:"Guest List",icon:"◉"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"}];
 const GL_DEFAULT_CATEGORIES=[
   {id:"artist_guest",name:"Artist Guest",side:"artist",zones:["FOH"],qty:6,walkOnQty:2},
@@ -2033,6 +2034,8 @@ function TopBar({ss}){
   const[dragId,setDragId]=useState(null);
   const[overId,setOverId]=useState(null);
   const{me}=useContext(Ctx);
+  const _auth=useAuth();const _email=_auth?.user?.email||"";
+  const visibleRoles=ROLES.filter(r=>r.id!=="tm"||TM_EMAILS.has(_email));
   const curClient=CM[aC];
   const activeClients=CLIENTS.filter(c=>c.status==="active"&&me.clients.includes(c.id));
   React.useEffect(()=>{if(!activeClients.find(c=>c.id===aC))setAC(me.clients[0]||"bbn");},[me.clients.join(",")]);
@@ -2070,7 +2073,7 @@ function TopBar({ss}){
         {!mobile&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1,flexShrink:0}}>
           <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN,fontWeight:700,letterSpacing:"0.08em"}}>DJ</span>
           <div style={{display:"flex",gap:1,background:"var(--border)",borderRadius:6,padding:2}}>
-            {ROLES.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:9,fontWeight:role===r.id?700:500,padding:"3px 8px",borderRadius:6,border:"none",cursor:"pointer",background:role===r.id?"var(--card)":"transparent",color:role===r.id?r.c:"var(--text-dim)",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
+            {visibleRoles.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:9,fontWeight:role===r.id?700:500,padding:"3px 8px",borderRadius:6,border:"none",cursor:"pointer",background:role===r.id?"var(--card)":"transparent",color:role===r.id?r.c:"var(--text-dim)",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
           </div>
         </div>}
         <div style={{display:"flex",alignItems:"center",gap:mobile?4:8,flexShrink:0,minWidth:0,maxWidth:"100%"}}>
@@ -2093,7 +2096,7 @@ function TopBar({ss}){
           <input type="date" value={tourEnd} onChange={e=>setTourEnd(e.target.value)} style={{fontSize:9,padding:"2px 5px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-3)",color:"var(--text-2)",fontFamily:MN,cursor:"pointer"}}/>
         </div>}
         {mobile&&<div style={{display:"flex",gap:1,background:"var(--border)",borderRadius:6,padding:2,marginLeft:"auto"}}>
-          {ROLES.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:10,fontWeight:role===r.id?700:500,padding:"4px 8px",borderRadius:6,border:"none",cursor:"pointer",background:role===r.id?"var(--card)":"transparent",color:role===r.id?r.c:"var(--text-dim)",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
+          {visibleRoles.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:10,fontWeight:role===r.id?700:500,padding:"4px 8px",borderRadius:6,border:"none",cursor:"pointer",background:role===r.id?"var(--card)":"transparent",color:role===r.id?r.c:"var(--text-dim)",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
         </div>}
         {mobile&&ss&&<span style={{fontSize:9,color:ss==="saved"?"var(--success-fg)":"var(--text-mute)",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
       </div>
