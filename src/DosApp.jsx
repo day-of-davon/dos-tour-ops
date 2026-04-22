@@ -4093,7 +4093,7 @@ function FinLedger(){
   const CAT_COLOR={Flight:{bg:"var(--info-bg)",c:"var(--link)"},Hotel:{bg:"var(--warn-bg)",c:"var(--warn-fg)"},Payout:{bg:"var(--accent-pill-bg)",c:"var(--accent)"},Settlement:{bg:"var(--success-bg)",c:"var(--success-fg)"}};
 
   return(
-    <div style={{flex:1,overflow:"auto",padding:"14px 20px 30px",display:"flex",flexDirection:"column",gap:12}}>
+    <div style={{flex:1,overflow:"auto",minHeight:0,padding:"14px 20px 30px",display:"flex",flexDirection:"column",gap:12}}>
       {/* Filters + totals bar */}
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
         <span style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em"}}>CATEGORY</span>
@@ -4286,29 +4286,15 @@ function FinTab(){
         ))}
       </div>
       {finView==="ledger"&&<FinLedger/>}
-      {finView==="settlement"&&<div style={{display:"flex",flex:1,overflow:"hidden"}}>
-      <div style={{width:195,borderRight:"1px solid var(--border)",background:"var(--card)",overflow:"auto",flexShrink:0}}>
-        <div style={{padding:"7px 12px",fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em",borderBottom:"1px solid var(--border)"}}>SHOWS</div>
-        {allS.map(s=>{const f=finance[s.date]||{};const st2=f.stages||{};const ok=["wire_ref_confirmed","signed_sheet","payment_initiated"].every(id=>st2[id]);const ip=st2["payment_initiated"];const past=s.date<today;const isSel=selS===s.date;
-          return(<div key={s.date} onClick={()=>setSelS(s.date)} className="br rh" style={{padding:"7px 12px",cursor:"pointer",borderBottom:"1px solid var(--card-3)",background:isSel?"var(--card-3)":"transparent"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:1}}>
-              <span style={{fontFamily:MN,fontSize:9,color:"var(--text-dim)"}}>{fD(s.date)}</span>
-              <span style={{fontSize:8,padding:"1px 4px",borderRadius:4,background:ok?"var(--success-bg)":ip?"var(--info-bg)":"var(--warn-bg)",color:ok?"var(--success-fg)":ip?"var(--link)":"var(--warn-fg)",fontWeight:700}}>{ok?"Done":ip?"Active":"Pending"}</span>
-            </div>
-            <div style={{fontSize:10,fontWeight:600,color:past?"var(--text-mute)":"var(--text)"}}>{s.city}</div>
-            <div style={{fontSize:9,color:"var(--text-mute)"}}>{s.venue}</div>
-          </div>);
-        })}
-      </div>
-      <div style={{flex:1,overflow:"auto",padding:"14px 20px 30px"}}>
-        {!selS?(<div style={{textAlign:"center",padding:"40px 0",color:"var(--text-mute)"}}><div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Finance</div><div style={{fontSize:11}}>Select a show.</div></div>):(
+      {finView==="settlement"&&<div style={{flex:1,overflow:"auto",padding:"14px 20px 30px"}}>
+        {!sel?(<div style={{textAlign:"center",padding:"40px 0",color:"var(--text-mute)"}}><div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Finance</div><div style={{fontSize:11}}>No show selected.</div></div>):(
           <div>
             <div style={{marginBottom:10}}>
               <div style={{fontSize:13,fontWeight:800}}>{show?.city} — {show?.venue}</div>
-              <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:MN,marginTop:1}}>{fFull(selS)}</div>
+              <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:MN,marginTop:1}}>{fFull(sel)}</div>
               {done&&<div style={{marginTop:6,display:"inline-flex",alignItems:"center",gap:5,padding:"4px 10px",background:"var(--success-bg)",borderRadius:10,fontSize:10,fontWeight:800,color:"var(--success-fg)"}}>SETTLEMENT DONE ✓</div>}
             </div>
-            {(()=>{const ps=(labelIntel?.settlements||[]).filter(s=>s.showId===showIdFor(shows?.[selS]||{}));return ps.length>0?(
+            {(()=>{const ps=(labelIntel?.settlements||[]).filter(s=>s.showId===showIdFor(shows?.[sel]||{}));return ps.length>0?(
               <div style={{background:"var(--info-bg)",border:"1px solid var(--info-bg)",borderRadius:10,padding:"10px 12px",marginBottom:10}}>
                 <div style={{fontSize:9,fontWeight:800,color:"var(--link)",letterSpacing:"0.08em",marginBottom:6}}>INBOX SETTLEMENTS ({ps.length})</div>
                 {ps.map(s=>(
@@ -4348,11 +4334,11 @@ function FinTab(){
               {!done&&stages["payment_initiated"]&&<div style={{marginTop:8,padding:"7px 10px",background:"var(--warn-bg)",borderRadius:6,fontSize:10,color:"var(--warn-fg)",fontWeight:600}}>Wire ref # and signed settlement sheet both required to mark as done.</div>}
               <div style={{marginTop:10,fontSize:9,color:"var(--text-mute)",fontStyle:"italic"}}>Legacy flat fields below. Prefer <b>Financial Events</b> above for new settlements, wires, withholding, and merch — each tracks independently.</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginTop:6}}>
-                {[{l:"Wire Ref #",k:"wireRef",ph:"REF-20260520"},{l:"Wire Date",k:"wireDate",ph:"2026-05-22"},{l:"Settlement Amount",k:"settlementAmount",ph:"0.00"}].map(f=><div key={f.k}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>{f.l}</div><input defaultValue={fin[f.k]||""} onBlur={e=>{const v=e.target.value;const prev=fin[f.k]||"";if(v===prev)return;uFin(selS,{[f.k]:v});pushUndo(`${f.l} updated.`,()=>uFin(selS,{[f.k]:prev}));}} placeholder={f.ph} style={{width:"100%",background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",fontSize:10,fontFamily:MN,padding:"4px 6px",outline:"none"}}/></div>)}
+                {[{l:"Wire Ref #",k:"wireRef",ph:"REF-20260520"},{l:"Wire Date",k:"wireDate",ph:"2026-05-22"},{l:"Settlement Amount",k:"settlementAmount",ph:"0.00"}].map(f=><div key={f.k}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>{f.l}</div><input defaultValue={fin[f.k]||""} onBlur={e=>{const v=e.target.value;const prev=fin[f.k]||"";if(v===prev)return;uFin(sel,{[f.k]:v});pushUndo(`${f.l} updated.`,()=>uFin(selS,{[f.k]:prev}));}} placeholder={f.ph} style={{width:"100%",background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",fontSize:10,fontFamily:MN,padding:"4px 6px",outline:"none"}}/></div>)}
               </div>
-              <div style={{marginTop:7}}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>Settlement Notes</div><textarea defaultValue={fin.notes||""} onBlur={e=>{const v=e.target.value;const prev=fin.notes||"";if(v===prev)return;uFin(selS,{notes:v});pushUndo("Settlement notes updated.",()=>uFin(selS,{notes:prev}));}} placeholder="Deductions, disputes, bonus splits..." rows={2} style={{width:"100%",background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",fontSize:10,padding:"4px 6px",outline:"none",resize:"vertical",fontFamily:"inherit"}}/></div>
+              <div style={{marginTop:7}}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>Settlement Notes</div><textarea defaultValue={fin.notes||""} onBlur={e=>{const v=e.target.value;const prev=fin.notes||"";if(v===prev)return;uFin(sel,{notes:v});pushUndo("Settlement notes updated.",()=>uFin(selS,{notes:prev}));}} placeholder="Deductions, disputes, bonus splits..." rows={2} style={{width:"100%",background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",fontSize:10,padding:"4px 6px",outline:"none",resize:"vertical",fontFamily:"inherit"}}/></div>
             </div>
-            <FinEventsPanel selS={selS} fin={fin} uFin={uFin} pushUndo={pushUndo}/>
+            <FinEventsPanel selS={sel} fin={fin} uFin={uFin} pushUndo={pushUndo}/>
             {(fin.flightExpenses||[]).length>0&&<div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"14px",marginBottom:10}}>
               <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em",marginBottom:8}}>FLIGHT EXPENSES</div>
               <table style={{width:"100%",borderCollapse:"collapse"}}>
@@ -4414,7 +4400,6 @@ function FinTab(){
             </div>
           </div>
         )}
-      </div>
       </div>}
     </div>
   );
