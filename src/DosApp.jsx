@@ -355,10 +355,10 @@ const GL_DEFAULT_CATEGORIES=[
 ];
 const GL_STATUS=[
   {id:"draft",label:"Draft",color:"var(--text-dim)",bg:"var(--card-2)"},
-  {id:"pending_approval",label:"Pending Approval",color:"var(--warn-fg)",bg:"#2a1f0f"},
-  {id:"open",label:"Open",color:"var(--success-fg)",bg:"#0f2a1f"},
-  {id:"locked",label:"Locked",color:"var(--accent)",bg:"#1f0f2a"},
-  {id:"closed",label:"Closed",color:"var(--text-3)",bg:"#0f0f14"},
+  {id:"pending_approval",label:"Pending Approval",color:"var(--warn-fg)",bg:"var(--warn-bg)"},
+  {id:"open",label:"Open",color:"var(--success-fg)",bg:"var(--success-bg)"},
+  {id:"locked",label:"Locked",color:"var(--accent)",bg:"var(--accent-pill-bg)"},
+  {id:"closed",label:"Closed",color:"var(--text-3)",bg:"var(--bg)"},
 ];
 const GL_PARTY_ROLES=[
   {id:"artist",label:"Artist",side:"artist",defaultCategory:"artist_guest"},
@@ -450,8 +450,8 @@ const DEPTS=[
   {id:"ar_hospo",label:"AR / Hospo",color:"var(--success-fg)",bg:"var(--success-bg)"},
   {id:"transport",label:"Transport",color:"var(--link)",bg:"var(--info-bg)"},
   {id:"production",label:"Production",color:"var(--warn-fg)",bg:"var(--warn-bg)"},
-  {id:"vendors",label:"Vendors",color:"var(--accent-soft)",bg:"#F5F3FF"},
-  {id:"site_ops",label:"Site Ops",color:"var(--info-fg)",bg:"#ECFEFF"},
+  {id:"vendors",label:"Vendors",color:"var(--accent-soft)",bg:"var(--accent-pill-bg)"},
+  {id:"site_ops",label:"Site Ops",color:"var(--info-fg)",bg:"var(--info-bg)"},
   {id:"quartermaster",label:"Quartermaster",color:"var(--text-dim)",bg:"var(--card-3)"},
 ];
 const DM=DEPTS.reduce((a,d)=>{a[d.id]=d;return a},{});
@@ -604,9 +604,9 @@ const RRX_ROS=()=>[
   {id:"programming",label:"Programming",duration:90,phase:"pre",type:"setup",color:"var(--info-fg)",roles:["tm","production"],note:"LX, VX, Laser. MA3, Depense R4."},
   {id:"sc_bbno",label:"SC: bbno$",duration:60,phase:"pre",type:"soundcheck",color:"var(--accent)",roles:["tm","production"]},
   {id:"sc_ot",label:"SC: Oliver Tree",duration:45,phase:"pre",type:"soundcheck",color:"var(--accent-soft)",roles:["tm","production"]},
-  {id:"sc_kaarijaa",label:"SC: Käärijä",duration:30,phase:"pre",type:"soundcheck",color:"#8B5CF6",roles:["tm","production"]},
-  {id:"sc_yngmartyr",label:"SC: YNG Martyr",duration:25,phase:"pre",type:"soundcheck",color:"#9333EA",roles:["tm","production"]},
-  {id:"sc_jb",label:"SC: Jungle Bobby",duration:20,phase:"pre",type:"soundcheck",color:"#A855F7",roles:["tm","production"]},
+  {id:"sc_kaarijaa",label:"SC: Käärijä",duration:30,phase:"pre",type:"soundcheck",color:"var(--accent-pill-border)",roles:["tm","production"]},
+  {id:"sc_yngmartyr",label:"SC: YNG Martyr",duration:25,phase:"pre",type:"soundcheck",color:"var(--accent)",roles:["tm","production"]},
+  {id:"sc_jb",label:"SC: Jungle Bobby",duration:20,phase:"pre",type:"soundcheck",color:"var(--accent-pill-border)",roles:["tm","production"]},
   {id:"security",label:"Security Meeting",duration:30,phase:"pre",type:"meeting",color:"var(--danger-fg)",roles:["tm"]},
   {id:"mg_checkin",label:"M&G Check In",duration:30,phase:"mg",type:"mg",color:"var(--success-fg)",roles:["tm","hospitality"]},
   {id:"mg",label:"Meet & Greet",duration:120,phase:"mg",type:"mg",color:"var(--success-fg)",roles:["tm","hospitality"],isAnchor:true,anchorKey:"mgTime"},
@@ -618,7 +618,7 @@ const RRX_ROS=()=>[
   {id:"co2",label:"Changeover 2",duration:5,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm","production"]},
   {id:"kaarijaa_set",label:"Käärijä",duration:50,phase:"show",type:"performance",color:"var(--accent-soft)",roles:["tm","production"]},
   {id:"co3",label:"Changeover 3",duration:5,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm","production"]},
-  {id:"oliver_tree",label:"Oliver Tree",duration:50,phase:"show",type:"performance",color:"#8B5CF6",roles:["tm","production"]},
+  {id:"oliver_tree",label:"Oliver Tree",duration:50,phase:"show",type:"performance",color:"var(--accent-pill-border)",roles:["tm","production"]},
   {id:"co4",label:"Changeover 4",duration:10,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm","production"]},
   {id:"bbno_set",label:"bbno$ HEADLINE SET",duration:105,phase:"show",type:"headline",color:"var(--danger-fg)",roles:["tm","production"]},
   {id:"curfew",label:"CURFEW (HARD)",duration:0,phase:"curfew",type:"curfew",color:"var(--danger-fg)",roles:["tm"],isAnchor:true,anchorKey:"curfew"},
@@ -983,7 +983,7 @@ export default function App(){
   return(
     <Ctx.Provider value={ctxValue}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-      <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0;transition:background 0.13s ease}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:var(--bg)}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#3b1868;border-radius:4px}::-webkit-scrollbar-thumb:hover{background:var(--accent)}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#15152a!important}.rh:hover{background:#15152a!important}button{transition:opacity 0.12s ease,background 0.12s ease,box-shadow 0.12s ease}input:focus,select:focus,textarea:focus{outline:none!important;box-shadow:0 0 0 2px rgba(109,40,217,0.45)!important;border-color:var(--accent)!important}details summary::-webkit-details-marker{display:none}::selection{background:rgba(91,33,182,0.35);color:var(--text)}`}</style>
+      <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0;transition:background 0.13s ease}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:var(--bg)}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}::-webkit-scrollbar-thumb:hover{background:var(--accent)}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:var(--card-2)!important}.rh:hover{background:var(--card-2)!important}button{transition:opacity 0.12s ease,background 0.12s ease,box-shadow 0.12s ease}input:focus,select:focus,textarea:focus{outline:none!important;box-shadow:0 0 0 2px rgba(109,40,217,0.45)!important;border-color:var(--accent)!important}details summary::-webkit-details-marker{display:none}::selection{background:rgba(91,33,182,0.35);color:var(--text)}`}</style>
       <div style={{fontFamily:"'Outfit',system-ui",background:"var(--bg)",color:"var(--text)",height:"100vh",width:"100%",maxWidth:"100vw",overflow:"hidden",display:"flex",flexDirection:"column"}}>
         <TopBar ss={ss}/>
         <div style={{flex:1,display:"flex",flexDirection:"row",minWidth:0,minHeight:0,width:"100%",overflow:"hidden"}}>
@@ -1731,7 +1731,7 @@ function NavSidebar(){
   if(!sidebarOpen)return null;
 
   return(
-    <div style={{width:200,flexShrink:0,background:"#0c0c18",borderRight:"1px solid #1a1a2e",display:"flex",flexDirection:"column",height:"100%",minHeight:0,overflow:"hidden"}}>
+    <div style={{width:200,flexShrink:0,background:"var(--bg)",borderRight:"1px solid var(--card-2)",display:"flex",flexDirection:"column",height:"100%",minHeight:0,overflow:"hidden"}}>
       {/* Mini stats */}
       {next&&(
         <div style={{padding:"10px 12px 8px",borderBottom:"1px solid var(--border)"}}>
@@ -1754,8 +1754,8 @@ function NavSidebar(){
       {/* Off/travel toggle */}
       <div style={{padding:"7px 12px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
         <span style={{fontSize:9,fontWeight:600,color:"var(--text-dim)"}}>Off / travel days</span>
-        <button onClick={()=>setShowOffDays(v=>!v)} style={{position:"relative",width:28,height:16,borderRadius:99,border:"none",cursor:"pointer",background:showOffDays?"var(--accent)":"#1e1e32",padding:0,transition:"background 0.2s ease",flexShrink:0,boxShadow:"inset 0 1px 3px rgba(0,0,0,0.4)"}}>
-          <span style={{position:"absolute",top:2,left:showOffDays?14:2,width:12,height:12,borderRadius:99,background:showOffDays?"#fff":"#9090b8",transition:"left 0.2s ease,background 0.2s ease",boxShadow:"0 1px 4px rgba(0,0,0,.4)"}}/>
+        <button onClick={()=>setShowOffDays(v=>!v)} style={{position:"relative",width:28,height:16,borderRadius:99,border:"none",cursor:"pointer",background:showOffDays?"var(--accent)":"var(--card-2)",padding:0,transition:"background 0.2s ease",flexShrink:0,boxShadow:"inset 0 1px 3px rgba(0,0,0,0.4)"}}>
+          <span style={{position:"absolute",top:2,left:showOffDays?14:2,width:12,height:12,borderRadius:99,background:showOffDays?"#fff":"var(--text-dim)",transition:"left 0.2s ease,background 0.2s ease",boxShadow:"0 1px 4px rgba(0,0,0,.4)"}}/>
         </button>
       </div>
       {/* Date list */}
@@ -1776,7 +1776,7 @@ function NavSidebar(){
               <div style={{width:46,flexShrink:0,textAlign:"center"}}>
                 <div style={{fontSize:8,fontWeight:700,color:isSel?"var(--link)":"var(--text-mute)",fontFamily:MN,letterSpacing:"0.04em"}}>{wd.toUpperCase()}</div>
                 <div style={{fontSize:14,fontWeight:800,color:isSel?"var(--accent-pill-border)":"var(--text)",lineHeight:1}}>{dt}</div>
-                <div style={{fontSize:8,color:isSel?"#9333ea":"var(--text-mute)"}}>{mo}</div>
+                <div style={{fontSize:8,color:isSel?"var(--accent)":"var(--text-mute)"}}>{mo}</div>
               </div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:1}}>
@@ -1828,7 +1828,7 @@ function TopBar({ss}){
   const stepDate=dir=>{if(curIdx<0)return;const ni=curIdx+dir;if(ni<0||ni>=stepList.length)return;setSel(stepList[ni].date);};
   const canPrev=curIdx>0;const canNext=curIdx>=0&&curIdx<stepList.length-1;
   return(
-    <div style={{borderBottom:"1px solid #1a1a2e",background:"#0e0e1a",width:"100%",maxWidth:"100%",overflow:"visible",boxShadow:"0 1px 0 rgba(109,40,217,0.15),0 2px 12px rgba(0,0,0,0.45)"}}>
+    <div style={{borderBottom:"1px solid var(--card-2)",background:"var(--bg)",width:"100%",maxWidth:"100%",overflow:"visible",boxShadow:"0 1px 0 rgba(109,40,217,0.15),0 2px 12px rgba(0,0,0,0.45)"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px 5px",minWidth:0,gap:8,width:"100%"}}>
         <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flexShrink:1,overflow:"hidden"}}>
           <span style={{fontSize:16,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em",flexShrink:0}}>DOS</span>
@@ -2838,7 +2838,7 @@ function ROSTab(){
         onDrop={e=>{e.preventDefault();if(dId.current&&dId.current!==b.id)reorder(dId.current,b.id);dId.current=null;setDOver(null);}}
         onDragEnd={()=>{dId.current=null;setDOver(null);}}
         onClick={()=>canE&&setEditB(isE?null:b.id)} className="br"
-        style={{position:"relative",display:"flex",alignItems:"center",gap:8,padding:isA?"10px 14px":"7px 14px",background:isDT?"#ede9fe":"var(--card)",border:isA?`2px solid ${b.color}50`:isE?`1px solid ${b.color}`:"1px solid var(--border)",borderRadius:isA?12:8,cursor:canD?"grab":canE?"pointer":"default",opacity:hi?1:0.22,transition:"border .12s ease,background .12s ease",boxShadow:isA?"0 2px 6px rgba(0,0,0,.06)":"none",minHeight:isA?undefined:Math.max(32,Math.min(180,b.duration*0.8))}}>
+        style={{position:"relative",display:"flex",alignItems:"center",gap:8,padding:isA?"10px 14px":"7px 14px",background:isDT?"var(--accent-pill-bg)":"var(--card)",border:isA?`2px solid ${b.color}50`:isE?`1px solid ${b.color}`:"1px solid var(--border)",borderRadius:isA?12:8,cursor:canD?"grab":canE?"pointer":"default",opacity:hi?1:0.22,transition:"border .12s ease,background .12s ease",boxShadow:isA?"0 2px 6px rgba(0,0,0,.06)":"none",minHeight:isA?undefined:Math.max(32,Math.min(180,b.duration*0.8))}}>
         {!isA&&b.duration>0&&<div onMouseDown={e=>startResize(b,"top",e)} title="Drag to shift start" style={{position:"absolute",top:-3,left:8,right:8,height:6,cursor:"ns-resize",zIndex:2}}/>}
         {!isA&&b.duration>0&&<div onMouseDown={e=>startResize(b,"bottom",e)} title="Drag to change duration" style={{position:"absolute",bottom:-3,left:8,right:8,height:6,cursor:"ns-resize",zIndex:2}}/>}
         {canD?<div style={{color:"var(--text-mute)",fontSize:14,cursor:"grab",userSelect:"none",width:16,flexShrink:0,textAlign:"center"}}>⋮⋮</div>:<div style={{width:16,flexShrink:0}}/>}
@@ -2904,7 +2904,7 @@ function ROSTab(){
       <EventSwitcher show={show} sel={sel}/>
       <div style={{padding:"6px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:10,flexWrap:"wrap",fontSize:11,flexShrink:0,alignItems:"center"}}>
         <span style={{fontWeight:700}}>{effShow.venue}</span><span style={{color:"var(--text-2)",fontSize:10}}>{effShow.promoter}</span>
-        {isCustom&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"#ede9fe",color:"var(--accent)",fontWeight:700}}>Custom ROS</span>}
+        {isCustom&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:700}}>Custom ROS</span>}
         {subEvent&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:700}}>{subEvent.name}</span>}
         {effShow.notes&&<span style={{color:"var(--warn-fg)",fontWeight:600,fontSize:9}}>{effShow.notes}</span>}
         <div style={{marginLeft:"auto",display:"flex",gap:6}}>
@@ -3002,7 +3002,7 @@ function TourCalendar(){
           </div>
         ))}
         <span style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN}}>Pieter Smit T26-021201</span>
-        <button onClick={importBusLegs} style={{marginLeft:"auto",fontSize:9,padding:"3px 10px",borderRadius:5,border:"1px solid var(--accent)",background:"#f5f3ff",color:"var(--accent)",cursor:"pointer",fontWeight:700,fontFamily:MN}}>→ Import Legs to Travel Days</button>
+        <button onClick={importBusLegs} style={{marginLeft:"auto",fontSize:9,padding:"3px 10px",borderRadius:5,border:"1px solid var(--accent)",background:"var(--accent-pill-bg)",color:"var(--accent)",cursor:"pointer",fontWeight:700,fontFamily:MN}}>→ Import Legs to Travel Days</button>
       </div>
       <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
         {days.map((d,i)=>{
@@ -3485,16 +3485,16 @@ function TravelDayView(){
   return(
     <div style={{display:"flex",flexDirection:"column",gap:12,minHeight:0}}>
       {/* Header */}
-      <div style={{background:"linear-gradient(90deg,#1E1B4B 0%,#312E81 100%)",borderRadius:10,padding:"14px 18px",color:"#fff",display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+      <div style={{background:"linear-gradient(90deg,var(--accent) 0%,var(--accent) 100%)",borderRadius:10,padding:"14px 18px",color:"#fff",display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
         <div style={{minWidth:0}}>
           <div style={{fontSize:18,fontWeight:800,letterSpacing:"-0.02em"}}>{title}</div>
-          <div style={{fontSize:11,color:"#C7D2FE",marginTop:2}}>{subTitle}</div>
-          <div style={{fontSize:9,fontFamily:MN,color:"#A5B4FC",marginTop:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>Travel Notes</div>
+          <div style={{fontSize:11,color:"var(--accent-pill-bg)",marginTop:2}}>{subTitle}</div>
+          <div style={{fontSize:9,fontFamily:MN,color:"var(--accent-pill-border)",marginTop:6,textTransform:"uppercase",letterSpacing:"0.08em"}}>Travel Notes</div>
           <textarea value={travelNotes} onChange={e=>setTravelNotes(e.target.value)} placeholder="Notes for today's travel (scratchpad, not persisted yet)" rows={2} style={{marginTop:4,width:"100%",minWidth:220,maxWidth:560,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.15)",borderRadius:6,padding:"6px 9px",color:"#fff",fontSize:10,fontFamily:"'Outfit',system-ui",resize:"vertical",outline:"none"}}/>
         </div>
-        <div style={{textAlign:"right",fontSize:11,color:"#C7D2FE",flexShrink:0}}>
+        <div style={{textAlign:"right",fontSize:11,color:"var(--accent-pill-bg)",flexShrink:0}}>
           <div style={{fontWeight:700,fontSize:12,color:"#fff"}}>{fFull(sel)}</div>
-          <div style={{fontSize:10,marginTop:2,letterSpacing:"0.04em",textTransform:"uppercase",color:"#A5B4FC"}}>{dayLabel}</div>
+          <div style={{fontSize:10,marginTop:2,letterSpacing:"0.04em",textTransform:"uppercase",color:"var(--accent-pill-border)"}}>{dayLabel}</div>
           <button onClick={()=>setDateMenu(true)} style={{marginTop:8,background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",fontSize:10,padding:"4px 10px",borderRadius:5,cursor:"pointer",fontWeight:700}}>☰ Change Day</button>
         </div>
       </div>
@@ -4211,7 +4211,7 @@ function FileUploadModal({onClose}){
             onDragLeave={()=>setDragging(false)}
             onDrop={onDrop}
             onClick={()=>fileRef.current?.click()}
-            style={{margin:"16px 18px",border:`2px dashed ${dragging?"var(--accent)":"var(--border)"}`,borderRadius:12,padding:"32px 20px",textAlign:"center",cursor:"pointer",background:dragging?"#F5F3FF":"var(--card-3)",transition:"all .15s"}}
+            style={{margin:"16px 18px",border:`2px dashed ${dragging?"var(--accent)":"var(--border)"}`,borderRadius:12,padding:"32px 20px",textAlign:"center",cursor:"pointer",background:dragging?"var(--accent-pill-bg)":"var(--card-3)",transition:"all .15s"}}
           >
             <div style={{fontSize:28,marginBottom:8}}>📄</div>
             <div style={{fontSize:12,fontWeight:700,color:"var(--text)",marginBottom:4}}>Drop a file or click to browse</div>
@@ -4290,7 +4290,7 @@ function FileUploadModal({onClose}){
 
             {/* TECH PACK preview */}
             {isTechPack&&result.techPack&&(
-              <div style={{background:"#F5F3FF",border:"1px solid #DDD6FE",borderRadius:8,padding:"10px 12px",display:"flex",flexDirection:"column",gap:5}}>
+              <div style={{background:"var(--accent-pill-bg)",border:"1px solid var(--accent-pill-bg)",borderRadius:8,padding:"10px 12px",display:"flex",flexDirection:"column",gap:5}}>
                 {[["Venue",result.techPack.venueName],["City",result.techPack.city],["Stage",result.techPack.stageDimensions],["Rigging",result.techPack.riggingPoints],["Power",result.techPack.powerSpec],["Load-in",result.techPack.loadIn],["Curfew",result.techPack.curfew]].filter(([,v])=>v).map(([k,v])=>(
                   <div key={k} style={{display:"flex",gap:10,fontSize:10}}><span style={{color:"var(--accent)",minWidth:80,fontWeight:600}}>{k}</span><span style={{color:"var(--text)"}}>{v}</span></div>
                 ))}
@@ -5310,7 +5310,7 @@ function LodgingTab(){
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {pendingImport.map(h=>(
-                <div key={h.id} style={{background:"var(--card)",borderRadius:8,padding:"10px 12px",border:"1px solid #DDD6FE",display:"flex",flexDirection:"column",gap:4}}>
+                <div key={h.id} style={{background:"var(--card)",borderRadius:8,padding:"10px 12px",border:"1px solid var(--accent-pill-bg)",display:"flex",flexDirection:"column",gap:4}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
                     <div>
                       <span style={{fontSize:12,fontWeight:700,color:"var(--text)"}}>{h.name}</span>
@@ -5440,7 +5440,7 @@ function HotelCard({hotel,date,onEdit,crew,uLodging,uFin,finance}){
               const cm=crew.find(c=>c.id===r.crewId);
               const rMeta=ROOM_STATUS_META[r.status||"pending"]||ROOM_STATUS_META.pending;
               return(
-                <div key={r.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid #f1f0ee",fontSize:11}}>
+                <div key={r.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-2)",fontSize:11}}>
                   <button onClick={()=>cycleRoomStatus(r.id)} style={{fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:99,...rMeta,border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>{rMeta.label}</button>
                   <span style={{flex:1,fontWeight:600,color:"var(--text)"}}>{cm?.name||r.crewId}</span>
                   {r.roomNo&&<span style={{fontFamily:MN,color:"var(--text-dim)"}}>#{r.roomNo}</span>}
@@ -5493,7 +5493,7 @@ function HotelCard({hotel,date,onEdit,crew,uLodging,uFin,finance}){
           </div>
 
           {/* Finance row */}
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:4,borderTop:"1px solid #f1f0ee"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:4,borderTop:"1px solid var(--card-2)"}}>
             <div style={{fontSize:11,color:"var(--text-dim)"}}>
               Total: <strong style={{color:"var(--success-fg)",fontFamily:MN}}>{hotel.currency||"USD"} {totalCost.toFixed(2)}</strong>
               {rooms.length>0&&<span style={{color:"var(--text-mute)",marginLeft:6}}>({rooms.length} room{rooms.length!==1?"s":""})</span>}
@@ -5734,7 +5734,7 @@ function ProdTab(){
               <div style={{fontSize:11,fontWeight:800,fontFamily:MN,color:"var(--border)"}}>BBNO$ EU TOUR RIG — {DESIGN_RIG.version}</div>
               <div style={{fontSize:9,color:"var(--text-dim)",fontFamily:MN}}>Designer: {DESIGN_RIG.drawnBy} · {DESIGN_RIG.publishedAt} · {DESIGN_RIG.file}</div>
             </div>
-            <span style={{fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:6,background:"#1e293b",color:"var(--text-mute)",fontFamily:MN}}>~{DESIGN_RIG.req.power_kw_est} kW est.</span>
+            <span style={{fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:6,background:"var(--card-2)",color:"var(--text-mute)",fontFamily:MN}}>~{DESIGN_RIG.req.power_kw_est} kW est.</span>
           </div>
           <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
             {[["Rig W",`${DESIGN_RIG.dims.rig_width_mm/1000}m`],["LED Tower H",`${DESIGN_RIG.dims.led_tower_h_mm/1000}m`],["Fly Trim",`${DESIGN_RIG.dims.fly_trim_mm/1000}m`],["Stage Depth",`${DESIGN_RIG.dims.stage_depth_mm/1000}m`],["Stage W total",`${DESIGN_RIG.dims.stage_w_total_mm/1000}m`],["Min Clear (GS)",`${DESIGN_RIG.req.min_clearance_gs_m}m`],["Min Clear (fly)",`${DESIGN_RIG.req.min_clearance_fly_m}m`],["Lasers",`${DESIGN_RIG.req.laser_count}× Class 4`]].map(([k,v])=><div key={k} style={{textAlign:"center"}}>
@@ -6176,7 +6176,7 @@ function GuestListTab(){
         <div style={{display:"flex",flexDirection:"column",gap:4,maxHeight:200,overflowY:"auto"}}>
           {allTemplates.map(t=>{
             const active=gl.templateId===t.id;
-            return<div key={t.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:8,alignItems:"center",background:active?"#1f0f2a":"var(--bg)",border:`1px solid ${active?"var(--accent)":"var(--border)"}`,borderRadius:5,padding:"6px 8px"}}>
+            return<div key={t.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:8,alignItems:"center",background:active?"var(--accent-pill-bg)":"var(--bg)",border:`1px solid ${active?"var(--accent)":"var(--border)"}`,borderRadius:5,padding:"6px 8px"}}>
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:"var(--text)"}}>{t.name}{t.builtin&&<span style={{marginLeft:6,fontSize:8,color:"var(--link)",fontFamily:MN}}>BUILT-IN</span>}{active&&<span style={{marginLeft:6,fontSize:8,color:"var(--success-fg)",fontFamily:MN}}>ACTIVE</span>}</div>
                 <div style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN,marginTop:1}}>{(t.categories||[]).length} categories · walk-on cap {t.walkOnCap??10}</div>
@@ -6259,7 +6259,7 @@ function GuestListTab(){
               const sideColor=p.side==="venue"?"var(--info-fg)":"var(--accent-soft)";
               return<div key={pid} style={{background:"var(--bg)",border:`1px solid ${expanded?sideColor:"var(--border)"}`,borderRadius:6,overflow:"hidden"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",cursor:"pointer"}} onClick={()=>setExpandedParty(expanded?null:pid)}>
-                  <span style={{fontSize:8,fontWeight:800,color:sideColor,background:p.side==="venue"?"#0a2a2e":"#1f0f2a",border:`1px solid ${sideColor}`,borderRadius:3,padding:"1px 5px",letterSpacing:"0.06em"}}>{p.side.toUpperCase()}</span>
+                  <span style={{fontSize:8,fontWeight:800,color:sideColor,background:p.side==="venue"?"var(--info-bg)":"var(--accent-pill-bg)",border:`1px solid ${sideColor}`,borderRadius:3,padding:"1px 5px",letterSpacing:"0.06em"}}>{p.side.toUpperCase()}</span>
                   <span style={{fontSize:11,fontWeight:700,color:"var(--text)",flex:1}}>{p.name}</span>
                   <span style={{fontSize:10,color:"var(--text-dim)",fontFamily:MN}}>{cat?.name||"—"}</span>
                   <span style={{fontSize:10,color:used>(cat?.qty||0)?"var(--danger-fg)":"var(--text-dim)",fontFamily:MN}}>{used}/{cat?.qty||0}</span>
@@ -6276,7 +6276,7 @@ function GuestListTab(){
                   <div style={{display:"flex",flexDirection:"column",gap:4}}>
                     {(p.entries||[]).map(e=>{
                       const checked=e.status==="checked_in";
-                      return<div key={e.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr auto":"24px 2fr 60px 2fr 90px 24px",gap:6,alignItems:"center",background:checked?"#0f2a1f":"var(--card)",border:`1px solid ${checked?"var(--success-fg)":"var(--border)"}`,borderRadius:5,padding:"5px 7px"}}>
+                      return<div key={e.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr auto":"24px 2fr 60px 2fr 90px 24px",gap:6,alignItems:"center",background:checked?"var(--success-bg)":"var(--card)",border:`1px solid ${checked?"var(--success-fg)":"var(--border)"}`,borderRadius:5,padding:"5px 7px"}}>
                         <input type="checkbox" checked={checked} onChange={ev=>updateEntry(pid,e.id,{status:ev.target.checked?"checked_in":"pending",checkedInAt:ev.target.checked?new Date().toISOString():null})} style={{accentColor:"var(--success-fg)",cursor:"pointer"}}/>
                         <input value={e.name} onChange={ev=>updateEntry(pid,e.id,{name:ev.target.value})} placeholder="Guest name" style={{background:"transparent",color:"var(--text)",border:"none",fontSize:11,padding:2}}/>
                         <label style={{fontSize:10,color:"var(--text-dim)",display:"flex",alignItems:"center",gap:4,fontFamily:MN,cursor:"pointer"}}>
@@ -6312,7 +6312,7 @@ function GuestListTab(){
               const when=new Date(ev.at);
               const whenLabel=`${when.toLocaleDateString(undefined,{month:"short",day:"numeric"})} ${when.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})}`;
               const kindColor=ev.kind?.startsWith("entry.checkin")?"var(--success-fg)":ev.kind?.startsWith("entry.remove")||ev.kind?.startsWith("party.remove")||ev.kind?.startsWith("category.remove")?"var(--danger-fg)":ev.kind?.startsWith("template")?"var(--link)":ev.kind?.startsWith("show.status")?"var(--warn-fg)":"var(--text-dim)";
-              return<div key={ev.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr":"90px 110px 1fr 110px",gap:8,alignItems:"center",background:"var(--bg)",border:"1px solid #1f1f2e",borderRadius:5,padding:"5px 8px",fontSize:10,fontFamily:MN}}>
+              return<div key={ev.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr":"90px 110px 1fr 110px",gap:8,alignItems:"center",background:"var(--bg)",border:"1px solid var(--card-2)",borderRadius:5,padding:"5px 8px",fontSize:10,fontFamily:MN}}>
                 <span style={{color:"var(--text-mute)"}}>{whenLabel}</span>
                 <span style={{color:kindColor,fontWeight:700,fontSize:9,letterSpacing:"0.04em"}}>{ev.kind}</span>
                 <span style={{color:"var(--text-3)",fontFamily:"'Outfit',system-ui",fontSize:10}}>{ev.label}</span>

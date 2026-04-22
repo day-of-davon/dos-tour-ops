@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 
 const C = {
   bg: "var(--bg)", card: "var(--card)", border: "var(--card-2)",
-  accent: "var(--link)", text: "var(--text)", textDim: "var(--text-dim)", green: "#4ade80",
+  accent: "var(--link)", text: "var(--text)", textDim: "var(--text-dim)", green: "var(--success-fg)",
 };
 
 export default function Login() {
@@ -48,12 +48,12 @@ export default function Login() {
           disabled={loading}
           style={{
             width: "100%", padding: "12px 24px", borderRadius: 6, border: `1px solid ${C.border}`,
-            background: loading ? "#1a1a28" : "#1e1e30", color: C.text, fontSize: 14, fontWeight: 600,
+            background: loading ? "var(--card-2)" : "var(--card-3)", color: C.text, fontSize: 14, fontWeight: 600,
             cursor: loading ? "not-allowed" : "pointer", display: "flex", alignItems: "center",
             justifyContent: "center", gap: 10, transition: "background 0.15s",
           }}
-          onMouseEnter={e => { if (!loading) e.currentTarget.style.background = "#252538"; }}
-          onMouseLeave={e => { e.currentTarget.style.background = loading ? "#1a1a28" : "#1e1e30"; }}
+          onMouseEnter={e => { if (!loading) e.currentTarget.style.background = "var(--card-4)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = loading ? "var(--card-2)" : "var(--card-3)"; }}
         >
           {/* Google icon */}
           <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
@@ -72,7 +72,7 @@ export default function Login() {
         </div>
 
         {error && (
-          <div style={{ marginTop: 16, padding: "10px 14px", background: "#f8717122", border: "1px solid #f87171", borderRadius: 6, fontSize: 12, color: "#f87171" }}>
+          <div style={{ marginTop: 16, padding: "10px 14px", background: "var(--danger-fg)22", border: "1px solid var(--danger-fg)", borderRadius: 6, fontSize: 12, color: "var(--danger-fg)" }}>
             {error}
           </div>
         )}
