@@ -7,7 +7,7 @@ import { logAudit } from "./lib/audit";
 // DOS TOUR OPS v7.0 — Day of Show, LLC
 // Client-first · All dept advance lanes · Custom + editable items · Full settlement
 
-const SK={SHOWS:"dos-v7-shows",ROS:"dos-v7-ros",ADVANCES:"dos-v7-advances",FINANCE:"dos-v7-finance",SETTINGS:"dos-v7-settings",CREW:"dos-v7-crew",PRODUCTION:"dos-v7-production",FLIGHTS:"dos-v7-flights",LODGING:"dos-v7-lodging",GUESTLISTS:"dos-v7-guestlists",GL_TEMPLATES:"dos-v7-guestlist-templates"};
+const SK={SHOWS:"dos-v7-shows",ROS:"dos-v7-ros",ADVANCES:"dos-v7-advances",FINANCE:"dos-v7-finance",SETTINGS:"dos-v7-settings",CREW:"dos-v7-crew",PRODUCTION:"dos-v7-production",FLIGHTS:"dos-v7-flights",LODGING:"dos-v7-lodging",GUESTLISTS:"dos-v7-guestlists",GL_TEMPLATES:"dos-v7-guestlist-templates",IMMIGRATION:"dos-v7-immigration"};
 const hhmmToMin=s=>{if(!s)return null;const[h,m]=s.split(":").map(Number);return isNaN(h)||isNaN(m)?null:h*60+m;};
 // Group same-day flight legs by itinerary (confirmNo / bookingRef / pax signature) and tag
 // each with role: final leg of a multi-leg chain = "arr", all prior legs = "dep". Single-leg
@@ -541,6 +541,24 @@ const TEAM_MEMBERS=[
 ];
 const SC_CYCLE=["pending","in_progress","confirmed"];
 const SC_ORDER=["pending","in_progress","sent","received","respond","follow_up","escalate","confirmed","na"];
+// Immigration entity — country-scoped, spans multiple shows.
+// Lifecycle: not_started → in_progress → submitted → received → approved (or rejected).
+const IMM_TYPES=[
+  {id:"work_permit",l:"Work Permit"},
+  {id:"visa",l:"Visa"},
+  {id:"withholding",l:"Withholding / Tax"},
+  {id:"customs",l:"Customs / Carnet"},
+  {id:"other",l:"Other"},
+];
+const IMM_STATUS=[
+  {id:"not_started",l:"Not Started",c:"var(--text-dim)",b:"var(--muted-bg)"},
+  {id:"in_progress",l:"In Progress",c:"var(--link)",b:"var(--info-bg)"},
+  {id:"submitted",l:"Submitted",c:"var(--warn-fg)",b:"var(--warn-bg)"},
+  {id:"received",l:"Received",c:"var(--accent)",b:"var(--accent-pill-bg)"},
+  {id:"approved",l:"Approved",c:"var(--success-fg)",b:"var(--success-bg)"},
+  {id:"rejected",l:"Rejected",c:"var(--danger-fg)",b:"var(--danger-bg)"},
+  {id:"na",l:"N/A",c:"var(--text-mute)",b:"var(--muted-bg)"},
+];
 const PRE_STAGES=[{id:"contract_received",l:"Contract Received"},{id:"estimate_received",l:"Pre-Show Estimate"},{id:"guarantee_confirmed",l:"Guarantee Confirmed"}];
 const POST_STAGES=[{id:"expenses_reviewed",l:"Expenses Reviewed"},{id:"disputes_resolved",l:"Disputes Resolved"},{id:"payment_initiated",l:"Payment Initiated"},{id:"wire_ref_confirmed",l:"Wire Ref # Confirmed",req:true},{id:"signed_sheet",l:"Signed Sheet Received",req:true}];
 // Financial events — distinct timelines per event. Settlement lands same-night,
@@ -791,6 +809,7 @@ export default function App(){
   const[lodging,setLodging]=useState({});
   const[guestlists,setGuestlists]=useState({});
   const[glTemplates,setGlTemplates]=useState({});
+  const[immigration,setImmigration]=useState({});
   const[refreshMsg,setRefreshMsg]=useState("");
   const[selEventId,setSelEventId]=useState(null);
   // Reset sub-event selection whenever the selected day changes
@@ -814,7 +833,7 @@ export default function App(){
   const st=useRef(null);const stp=useRef(null);
 
   useEffect(()=>{(async()=>{
-    const[s,r,a,f,se,cr,pr,fl,lo,gl,glt]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW),sG(SK.PRODUCTION),sG(SK.FLIGHTS),sG(SK.LODGING),sG(SK.GUESTLISTS),sG(SK.GL_TEMPLATES)]);
+    const[s,r,a,f,se,cr,pr,fl,lo,gl,glt,im]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW),sG(SK.PRODUCTION),sG(SK.FLIGHTS),sG(SK.LODGING),sG(SK.GUESTLISTS),sG(SK.GL_TEMPLATES),sG(SK.IMMIGRATION)]);
     const init=ALL_SHOWS.reduce((acc,sh)=>{acc[sh.date]={...sh,doorsConfirmed:false,curfewConfirmed:false,busArriveConfirmed:false,crewCallConfirmed:false,venueAccessConfirmed:false,mgTimeConfirmed:false,etaSource:"schedule",lastModified:Date.now()};return acc;},{});
     const merged={...init};if(s)Object.keys(s).forEach(k=>{if(merged[k])merged[k]={...merged[k],...s[k]};});
     setShows(merged);setRos(r||{});setAdvances(a||{});setFinance(f||{});
@@ -824,7 +843,7 @@ export default function App(){
     if(se?.sidebarOpen!==undefined)setSidebarOpen(se.sidebarOpen);
     if(se?.tourStart)setTourStart(se.tourStart);if(se?.tourEnd)setTourEnd(se.tourEnd);
     if(cr?.crew)setCrew(cr.crew);if(cr?.showCrew)setShowCrew(cr.showCrew);
-    setProduction(pr||{});setFlights(fl||{});setLodging(lo||{});setGuestlists(gl||{});setGlTemplates(glt||{});
+    setProduction(pr||{});setFlights(fl||{});setLodging(lo||{});setGuestlists(gl||{});setGlTemplates(glt||{});setImmigration(im||{});
     const[np,cp,it]=await Promise.all([sGP(PK.NOTES_PRIV),sGP(PK.CHECKLIST_PRIV),sGP(PK.INTEL)]);
     setNotesPriv(np||{});setCheckPriv(cp||{});setIntel(it||{});
     setLoaded(true);
@@ -910,9 +929,9 @@ export default function App(){
 
   const save=useCallback(()=>{
     if(!loaded)return;if(st.current)clearTimeout(st.current);
-    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging),sS(SK.GUESTLISTS,guestlists),sS(SK.GL_TEMPLATES,glTemplates)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
-  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,flights,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,tourStart,tourEnd]);
-  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,tourStart,tourEnd]);
+    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging),sS(SK.GUESTLISTS,guestlists),sS(SK.GL_TEMPLATES,glTemplates),sS(SK.IMMIGRATION,immigration)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
+  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd]);
+  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd]);
   useEffect(()=>{const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(v=>!v);}if(e.key==="Escape")setCmd(false);};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
   const labelScanFired=useRef(false);
   useEffect(()=>{if(loaded&&!labelScanFired.current){labelScanFired.current=true;refreshLabelIntel();}},[loaded]);// eslint-disable-line
@@ -949,6 +968,7 @@ export default function App(){
     })();
   },[loaded]);// eslint-disable-line
 
+  const uImmigration=useCallback((id,data)=>setImmigration(p=>{if(data===null){const n={...p};delete n[id];return n;}return{...p,[id]:{...(p[id]||{}),...data}};}),[]);
   const uShow=useCallback((d,u)=>setShows(p=>({...p,[d]:{...p[d],...u,lastModified:Date.now()}})),[]);
   const uRos=useCallback((d,b)=>setRos(p=>{const n={...p};if(b)n[d]=b;else delete n[d];return n;}),[]);
   const uAdv=useCallback((d,u)=>setAdvances(p=>({...p,[d]:{...(p[d]||{}),...u}})),[]);
@@ -1012,7 +1032,7 @@ export default function App(){
     setTabOrder(next);
   },[orderedTabs]);
 
-  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty}),[shows,ros,advances,finance,sel,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty]);// eslint-disable-line
+  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration}),[shows,ros,advances,finance,sel,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"var(--text-dim)",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
@@ -2061,6 +2081,103 @@ function SplitPartyTabs(){
   );
 }
 
+function ImmigrationPanel(){
+  const{immigration,uImmigration,shows,sel,aC,pushUndo}=useContext(Ctx);
+  const show=shows[sel];
+  const country=show?.country||null;
+  // Country-scoped: show all items for selected show's country + items whose showDates include the selected date.
+  const items=useMemo(()=>Object.values(immigration||{}).filter(it=>it.clientId===aC&&(it.country===country||(Array.isArray(it.showDates)&&it.showDates.includes(sel)))),[immigration,country,sel,aC]);
+  const[adding,setAdding]=useState(false);
+  const blank={country:country||"",type:"work_permit",label:"",status:"not_started",dueDate:"",ref:"",note:"",assignedTo:"",showDates:[]};
+  const[form,setForm]=useState(blank);
+  useEffect(()=>{setForm(f=>({...f,country:country||f.country}));},[country]);
+
+  if(!country&&!items.length)return null;
+
+  const typeOf=t=>IMM_TYPES.find(x=>x.id===t)||IMM_TYPES[IMM_TYPES.length-1];
+  const statusOf=s=>IMM_STATUS.find(x=>x.id===s)||IMM_STATUS[0];
+
+  const add=()=>{
+    if(!form.label||!form.country)return;
+    const id=`imm_${Date.now()}`;
+    const row={...form,id,clientId:aC,createdAt:new Date().toISOString()};
+    uImmigration(id,row);
+    logAudit({entityType:"immigration",entityId:id,action:"create",before:null,after:row,meta:{country:row.country,type:row.type}});
+    setForm({...blank,country:country||""});setAdding(false);
+  };
+  const updateStatus=(id,status)=>{
+    const prev=immigration[id];if(!prev)return;
+    const next={...prev,status};
+    if(status==="submitted"&&!prev.submittedDate)next.submittedDate=new Date().toISOString().slice(0,10);
+    if(status==="received"&&!prev.receivedDate)next.receivedDate=new Date().toISOString().slice(0,10);
+    if(status==="approved"&&!prev.approvedDate)next.approvedDate=new Date().toISOString().slice(0,10);
+    uImmigration(id,next);
+    logAudit({entityType:"immigration",entityId:id,action:"status_change",before:{status:prev.status},after:{status},meta:{country:prev.country,type:prev.type}});
+  };
+  const del=id=>{
+    const prev=immigration[id];if(!prev)return;
+    uImmigration(id,null);
+    pushUndo("Immigration item deleted.",()=>uImmigration(id,prev));
+    logAudit({entityType:"immigration",entityId:id,action:"delete",before:prev,after:null});
+  };
+
+  return(
+    <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px",marginBottom:10}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+        <div>
+          <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>IMMIGRATION — {country||"?"}</div>
+          <div style={{fontSize:9,color:"var(--text-mute)",marginTop:1}}>Country-scoped. Spans multiple shows.</div>
+        </div>
+        <button onClick={()=>setAdding(v=>!v)} style={{fontSize:9,padding:"4px 10px",borderRadius:6,border:"none",cursor:"pointer",fontWeight:700,background:"var(--accent)",color:"#fff"}}>{adding?"Cancel":"+ Add"}</button>
+      </div>
+      {adding&&(
+        <div style={{background:"var(--card-3)",borderRadius:8,padding:"8px",marginBottom:8}}>
+          <div style={{display:"grid",gridTemplateColumns:"60px 110px 1fr 110px 90px",gap:5,marginBottom:5}}>
+            <input placeholder="CC" maxLength={3} value={form.country} onChange={e=>setForm(p=>({...p,country:e.target.value.toUpperCase()}))} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none",fontFamily:MN,textTransform:"uppercase"}}/>
+            <select value={form.type} onChange={e=>setForm(p=>({...p,type:e.target.value}))} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 5px",outline:"none"}}>
+              {IMM_TYPES.map(t=><option key={t.id} value={t.id}>{t.l}</option>)}
+            </select>
+            <input placeholder="Label (e.g. FR Short-Term Work Permit)" value={form.label} onChange={e=>setForm(p=>({...p,label:e.target.value}))} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none"}}/>
+            <input type="date" placeholder="Due" value={form.dueDate} onChange={e=>setForm(p=>({...p,dueDate:e.target.value}))} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none",fontFamily:MN}}/>
+            <select value={form.status} onChange={e=>setForm(p=>({...p,status:e.target.value}))} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 5px",outline:"none"}}>
+              {IMM_STATUS.map(s=><option key={s.id} value={s.id}>{s.l}</option>)}
+            </select>
+          </div>
+          <div style={{display:"flex",gap:5}}>
+            <input placeholder="Ref / tracking #" value={form.ref} onChange={e=>setForm(p=>({...p,ref:e.target.value}))} style={{flex:1,background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none",fontFamily:MN}}/>
+            <input placeholder="Assigned to (email)" value={form.assignedTo} onChange={e=>setForm(p=>({...p,assignedTo:e.target.value}))} style={{flex:1,background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none"}}/>
+            <input placeholder="Note" value={form.note} onChange={e=>setForm(p=>({...p,note:e.target.value}))} style={{flex:2,background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none"}}/>
+            <button onClick={add} disabled={!form.label||!form.country} style={{background:"var(--success-fg)",border:"none",borderRadius:4,color:"#fff",fontSize:10,padding:"4px 12px",cursor:(form.label&&form.country)?"pointer":"not-allowed",fontWeight:700,opacity:(form.label&&form.country)?1:0.5}}>Add</button>
+          </div>
+        </div>
+      )}
+      {items.length===0&&!adding&&<div style={{fontSize:10,color:"var(--text-mute)",padding:"4px 0",fontStyle:"italic"}}>No immigration items for {country}. Add work permits, visas, withholding, or customs docs.</div>}
+      {items.length>0&&(
+        <div style={{display:"flex",flexDirection:"column",gap:4}}>
+          {items.map(it=>{const t=typeOf(it.type);const s=statusOf(it.status);const daysToDue=it.dueDate?Math.ceil((new Date(it.dueDate+"T12:00:00")-new Date())/86400000):null;const overdue=daysToDue!==null&&daysToDue<0&&it.status!=="approved"&&it.status!=="na";return(
+            <div key={it.id} style={{display:"grid",gridTemplateColumns:"40px 100px 1fr 90px 100px 80px 28px",gap:6,alignItems:"center",padding:"6px 8px",borderRadius:6,background:overdue?"var(--danger-bg)":"var(--card-3)",border:overdue?"1px solid var(--danger-fg)":"1px solid var(--border)"}}>
+              <span style={{fontSize:9,fontFamily:MN,fontWeight:800,color:"var(--text)"}}>{it.country}</span>
+              <span style={{fontSize:9,color:"var(--text-dim)",fontWeight:600}}>{t.l}</span>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.label}</div>
+                {it.note&&<div style={{fontSize:9,color:"var(--text-mute)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.note}</div>}
+              </div>
+              <div style={{fontSize:9,fontFamily:MN,color:overdue?"var(--danger-fg)":daysToDue!==null&&daysToDue<=14?"var(--warn-fg)":"var(--text-dim)",fontWeight:700}}>
+                {it.dueDate?`${it.dueDate}${daysToDue!==null?` (${daysToDue>=0?daysToDue:Math.abs(daysToDue)+"d late"})`:""}`:"—"}
+              </div>
+              <select value={it.status} onChange={e=>updateStatus(it.id,e.target.value)} style={{background:s.b,color:s.c,border:"none",borderRadius:4,fontSize:9,padding:"3px 5px",outline:"none",fontWeight:700,cursor:"pointer"}}>
+                {IMM_STATUS.map(x=><option key={x.id} value={x.id}>{x.l}</option>)}
+              </select>
+              <span style={{fontSize:9,fontFamily:MN,color:"var(--text-2)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{it.ref||"—"}</span>
+              <button onClick={()=>del(it.id)} style={{background:"transparent",border:"none",color:"var(--text-mute)",fontSize:12,cursor:"pointer",padding:"2px 4px"}} title="Delete">×</button>
+            </div>
+          );})}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdvTab(){
   const{shows,cShows,advances,uAdv,sel,setSel,aC,mobile,checkPriv,uCheckPriv,intel,setIntel,pushUndo}=useContext(Ctx);
   const a=useAuth();const meEmail=a?.user?.email||"unknown";
@@ -2189,6 +2306,7 @@ function AdvTab(){
         ):(
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             <IntelPanel/>
+            <ImmigrationPanel/>
             {showDepts.map(dept=>{
               const dItems=allItems.filter(t=>t.dept===dept.id);
               if(!dItems.length)return null;
