@@ -1635,20 +1635,38 @@ function IntelPanel(){
       <button onClick={()=>refreshIntel(show,true)} disabled={!!refreshing} style={{background:refreshing?"var(--border)":"var(--accent)",color:refreshing?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:refreshing?"default":"pointer",fontWeight:700}}>{busy?"Scanning…":"Refresh Intel"}</button>
     </div>
     {refreshMsg&&<div style={{fontSize:10,color:"var(--accent)",fontFamily:MN}}>{refreshMsg}</div>}
-    {labelIntel?.actionRequired?.length>0&&(
-      <div style={{background:"var(--warn-bg)",border:"1px solid var(--warn-bg)",borderRadius:10,padding:"10px 12px"}}>
-        <div style={{fontSize:9,fontWeight:800,color:"var(--warn-fg)",letterSpacing:"0.08em",marginBottom:8}}>ACTION REQUIRED · LABEL SCAN ({labelIntel.actionRequired.length})</div>
-        {labelIntel.actionRequired.map(item=>(
-          <div key={item.id} style={{display:"flex",gap:8,padding:"5px 0",borderBottom:"1px solid var(--warn-bg)",alignItems:"flex-start"}}>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.subject}</div>
-              <div style={{fontSize:9,color:"var(--warn-fg)"}}>{item.signal} · {item.from}</div>
+    {(()=>{
+      const arItems=labelIntel?.actionRequired||[];
+      if(!arItems.length)return null;
+      const BUCKETS=[
+        {key:"urgent",label:"URGENT",bg:"var(--danger-bg)",col:"var(--danger-fg)"},
+        {key:"input",label:"INPUT / APPROVAL NEEDED",bg:"var(--warn-bg)",col:"var(--warn-fg)"},
+        {key:"standing_by",label:"STANDING BY",bg:"var(--info-bg)",col:"var(--link)"},
+        {key:"fresh",label:"FRESH",bg:"var(--accent-pill-bg)",col:"var(--accent)"},
+        {key:"active",label:"ACTIVE",bg:"var(--card)",col:"var(--text-2)"},
+      ];
+      const grouped={urgent:[],input:[],standing_by:[],fresh:[],active:[]};
+      for(const item of arItems){const k=item.bucket||"active";grouped[k]?grouped[k].push(item):grouped.active.push(item);}
+      return(
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          <div style={{fontSize:9,fontWeight:800,color:"var(--warn-fg)",letterSpacing:"0.08em"}}>ACTION REQUIRED · LABEL SCAN ({arItems.length})</div>
+          {BUCKETS.filter(b=>grouped[b.key].length>0).map(b=>(
+            <div key={b.key} style={{background:b.bg,border:`1px solid ${b.col}30`,borderRadius:10,padding:"8px 12px"}}>
+              <div style={{fontSize:8,fontWeight:800,color:b.col,letterSpacing:"0.08em",marginBottom:5}}>{b.label} ({grouped[b.key].length})</div>
+              {grouped[b.key].map(item=>(
+                <div key={item.id} style={{display:"flex",gap:8,padding:"4px 0",borderBottom:`1px solid ${b.col}18`,alignItems:"flex-start"}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.subject}</div>
+                    <div style={{fontSize:9,color:b.col,opacity:0.85}}>{item.category&&item.category!=="MISC"?`${item.category} · `:""}{item.signal} · {item.from}</div>
+                  </div>
+                  <a href={gmailUrl(item.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",flexShrink:0}}>open ↗</a>
+                </div>
+              ))}
             </div>
-            <a href={gmailUrl(item.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",flexShrink:0}}>open ↗</a>
-          </div>
-        ))}
-      </div>
-    )}
+          ))}
+        </div>
+      );
+    })()}
     <IntelSection title="SCHEDULE INCONSISTENCIES" count={scheduleFlags.length+(data.manualFlags||[]).length} defaultOpen={true} actions={<button onClick={addManualFlag} style={{...UI.expandBtn(false,"var(--warn-fg)"),fontSize:9}}>+ Add</button>}>
       {scheduleFlags.length===0&&(data.manualFlags||[]).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No inconsistencies.</div>:
       <div style={{display:"flex",flexDirection:"column",gap:6}}>

@@ -180,6 +180,19 @@ function detectActionSignal(subject, snippet) {
   return null;
 }
 
+function bucketActionItem(signal, category, dateStr) {
+  const ageHours = (Date.now() - new Date(dateStr).getTime()) / 3600000;
+  const s = signal || "";
+  if (category === "LEGAL" || /urgent|asap|deadline|overdue|time.?sensitive|needed_by/.test(s)) return "urgent";
+  if (/please_sign|sign_and_return|awaiting_your|please_fill|please_complete|please_return|please_confirm|please_respond/.test(s)) return "input";
+  if (/following_up|checking_back|bumping|any_update|checking_in_here|do_we_know/.test(s)) return "standing_by";
+  if (ageHours < 60) return "fresh";
+  return "active";
+}
+
+const TRANSACTIONAL_SUBJECT = /confirmation|confirmed|reservation|your\s+stay|booking\s+ref|e-?ticket|itinerary|receipt|check-in\s+(is\s+)?open|time\s+to\s+check/i;
+const CAT_PRI = { LEGAL: 0, ADVANCE: 1, PRODUCTION: 2, FINANCE: 3, MERCH: 4, LOGISTICS: 5, GUEST_LIST: 6, MISC: 7 };
+
 function matchShow(thread, shows) {
   const combined = ((thread.subject || "") + " " + (thread.bodySnippet || "")).toLowerCase();
   let best = null; let bestScore = 0;
@@ -300,14 +313,27 @@ async function handleLabelScan(req, res, user, supabase) {
     if (t.category === "CREW_FLIGHT" && !keptFlightIds.has(t.id)) continue;
     const showId = t._show ? `${t._show.venue}__${t._show.date}`.toLowerCase().replace(/\s+/g, "_") : null;
     if (showId) { if (!byShow[showId]) byShow[showId] = []; byShow[showId].push(t.id); }
-    const base = { id: t.id, subject: t.subject, from: t.from, date: t.date, snippet: (t.bodySnippet || "").slice(0, 200), showId };
+    const base = { id: t.id, subject: t.subject, from: t.from, date: t.date, snippet: (t.bodySnippet || "").slice(0, 200), showId, category: t.category };
     if (t.category === "SETTLEMENT") settlements.push(base);
     else if (t.category === "CREW_FLIGHT") crewFlightsRaw.push(base);
     else if (["ADVANCE","PRODUCTION","MERCH","LEGAL","GUEST_LIST","LOGISTICS","FINANCE"].includes(t.category)) advanceItems.push({ ...base, category: t.category });
+    // Skip transactional confirmations (flight receipts, hotel bookings) unless a genuine action signal is present
+    const isTransactional = t.category === "CREW_FLIGHT" ||
+      (["LOGISTICS","FINANCE"].includes(t.category) && TRANSACTIONAL_SUBJECT.test(t.subject || ""));
     const signal = detectActionSignal(t.subject, t.bodySnippet);
     const senderKey = (t.from || "").toLowerCase().replace(/\s+/g, "");
-    if (signal || senderCounts[senderKey] >= 2) actionRequired.push({ ...base, signal: signal || "repeat_sender" });
+    if (!isTransactional || signal) {
+      if (signal || senderCounts[senderKey] >= 2) {
+        actionRequired.push({ ...base, signal: signal || "repeat_sender", bucket: bucketActionItem(signal || "repeat_sender", t.category, t.date) });
+      }
+    }
   }
+
+  actionRequired.sort((a, b) => {
+    const pa = CAT_PRI[a.category] ?? 8; const pb = CAT_PRI[b.category] ?? 8;
+    if (pa !== pb) return pa - pb;
+    return new Date(b.date) - new Date(a.date);
+  });
 
   const payload = { byShow, settlements, crewFlights: crewFlightsRaw, advanceItems, actionRequired, labelThreadsFound: threadIds.length, scannedAt: new Date().toISOString() };
 
