@@ -82,6 +82,8 @@
 
 - [2026-04-22 04:30 UTC] https://newsroom.livenation.com/news/live-nation-entertainment-full-year-and-fourth-quarter-2025-results/ — Live Nation guided double-digit AOI growth in 2026; 80%+ of large-venue shows already booked; adding 20 major venues by end of 2026 (+6-7M fan capacity) — strong live market demand validates DOS's GTM timing; more shows = more ops complexity = more demand for tools like DOS Platform.
 
+- [2026-04-22 05:00 UTC] https://www.iata.org/en/publications/api-pnr-toolkit/ — IATA API/PNR Toolkit: international standard for Advance Passenger Information (API = passport MRZ data: name, DOB, gender, nationality, passport number) and Passenger Name Records (PNR = booking data); 100+ countries require API, ~60 require PNR; EU routes all via eu-LISA centralized router; iAPI (2024) adds real-time pre-departure go/no-go per passenger. For bbno$ EU tour: airlines handle API submission on the Dublin inbound and Warsaw outbound flights; bus legs between Schengen countries have no API requirement. Outstanding French work authorization forms (Paris, Chambord, Villeurbanne) are separate labor permits, NOT resolved by API/PNR compliance. DOS Platform relevance: if DOS Advance collects crew/artist passport data, it touches API-schema fields (PAXLST format) and triggers GDPR Article 9 (identity/biometric data); design the travel document collection feature with this in mind before Phase 4.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
