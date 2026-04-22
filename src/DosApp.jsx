@@ -1637,6 +1637,8 @@ function IntelPanel(){
   const{sel,shows,intel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,setIntel,uShow,labelIntel}=useContext(Ctx);
   const show=shows[sel];const sid=show?showIdFor(show):"";const data=intel[sid]||{};
   const upd=patch=>setIntel(p=>({...p,[sid]:{...(p[sid]||{}),...patch}}));
+  const arStatus=data.arStatus||{};
+  const setArStatus=(id,status)=>upd({arStatus:{...(data.arStatus||{}),[id]:status}});
   const toggleTodo=id=>upd({todos:(data.todos||[]).map(t=>t.id===id?{...t,done:!t.done}:t)});
   const delTodo=id=>upd({todos:(data.todos||[]).filter(t=>t.id!==id)});
   const dismissFlag=k=>upd({dismissedFlags:[...(data.dismissedFlags||[]),k]});
@@ -1708,7 +1710,7 @@ function IntelPanel(){
     </div>
     {refreshMsg&&<div style={{fontSize:10,color:"var(--accent)",fontFamily:MN}}>{refreshMsg}</div>}
     {(()=>{
-      const arItems=(labelIntel?.actionRequired||[]).filter(item=>item.showId===sid);
+      const arItems=(labelIntel?.actionRequired||[]).filter(item=>item.showId===sid&&arStatus[item.id]!=="dismissed");
       if(!arItems.length)return null;
       const BUCKETS=[
         {key:"urgent",label:"URGENT",bg:"var(--danger-bg)",col:"var(--danger-fg)"},
@@ -1725,15 +1727,18 @@ function IntelPanel(){
           {BUCKETS.filter(b=>grouped[b.key].length>0).map(b=>(
             <div key={b.key} style={{background:b.bg,border:`1px solid ${b.col}30`,borderRadius:10,padding:"8px 12px"}}>
               <div style={{fontSize:8,fontWeight:800,color:b.col,letterSpacing:"0.08em",marginBottom:5}}>{b.label} ({grouped[b.key].length})</div>
-              {grouped[b.key].map(item=>(
-                <div key={item.id} style={{display:"flex",gap:8,padding:"4px 0",borderBottom:`1px solid ${b.col}18`,alignItems:"flex-start"}}>
+              {grouped[b.key].map(item=>{const st=arStatus[item.id]||"open";const done=st==="actioned";return(
+                <div key={item.id} style={{display:"flex",gap:8,padding:"4px 0",borderBottom:`1px solid ${b.col}18`,alignItems:"center",opacity:done?0.45:1}}>
                   <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.subject}</div>
+                    <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:done?"line-through":"none"}}>{item.subject}</div>
                     <div style={{fontSize:9,color:b.col,opacity:0.85}}>{item.category&&item.category!=="MISC"?`${item.category} · `:""}{item.signal} · {item.from}</div>
                   </div>
-                  <a href={gmailUrl(item.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",flexShrink:0}}>open ↗</a>
+                  <a href={gmailUrl(item.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",flexShrink:0}}>↗</a>
+                  <button onClick={()=>setArStatus(item.id,done?"open":"actioned")} title={done?"Mark open":"Mark actioned"} style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"none",background:done?"var(--success-bg)":"var(--card-2)",color:done?"var(--success-fg)":"var(--text-2)",cursor:"pointer",fontWeight:700,flexShrink:0}}>{done?"✓":"✓"}</button>
+                  <button onClick={()=>setArStatus(item.id,"dismissed")} title="Dismiss" style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"none",background:"var(--card-2)",color:"var(--text-mute)",cursor:"pointer",fontWeight:700,flexShrink:0}}>✕</button>
                 </div>
-              ))}
+              );})}
+
             </div>
           ))}
         </div>
@@ -1781,16 +1786,6 @@ function IntelPanel(){
           <button onClick={()=>delTodo(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:11}}>×</button>
         </div>)}
     </IntelSection>
-    <IntelSection title="THREADS (PRIVATE)" count={(data.threads||[]).length} defaultOpen={true} actions={<button onClick={addThread} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Add</button>}>
-      {(data.threads||[]).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No threads.</div>:
-        data.threads.map(t=><div key={t.tid} style={{display:"grid",gridTemplateColumns:"1fr auto auto 28px",gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-3)",fontSize:10,alignItems:"center"}}>
-          {t.manual?<input value={t.subject||""} onChange={e=>upd({threads:data.threads.map(x=>x.tid===t.tid?{...x,subject:e.target.value}:x)})} placeholder="Subject" style={UI.input}/>:
-            <a href={gmailUrl(t.tid)} target="_blank" rel="noopener noreferrer" style={{color:"var(--text)",textDecoration:"none",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{fontWeight:600}}>{t.subject||"(no subject)"}</span> <span style={{color:"var(--text-dim)",fontSize:9}}>· {t.from}</span></a>}
-          <span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:700}}>{t.intent||"?"}</span>
-          <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN}}>{t.date}</span>
-          <button onClick={()=>delThread(t.tid)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:11}}>×</button>
-        </div>)}
-    </IntelSection>
     <IntelSection title="FOLLOW-UPS" count={(data.followUps||[]).length} defaultOpen={true} actions={<button onClick={addFollowUp} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Add</button>}>
       {(data.followUps||[]).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No follow-ups.</div>:
         data.followUps.map((f,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 100px 80px 100px 28px",gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-3)",fontSize:10,alignItems:"center"}}>
@@ -1799,6 +1794,16 @@ function IntelPanel(){
           {f.manual?<select value={f.priority||"MED"} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,priority:e.target.value}:x)})} style={UI.input}><option>CRITICAL</option><option>HIGH</option><option>MED</option><option>LOW</option></select>:<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:f.priority==="CRITICAL"?"var(--danger-bg)":"var(--card-2)",color:f.priority==="CRITICAL"?"var(--danger-fg)":"var(--text-dim)",fontWeight:700}}>{f.priority}</span>}
           {f.manual?<input value={f.deadline||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,deadline:e.target.value}:x)})} placeholder="YYYY-MM-DD" style={UI.input}/>:<span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN}}>{f.deadline}</span>}
           <button onClick={()=>delFollowUp(i)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:11}}>×</button>
+        </div>)}
+    </IntelSection>
+    <IntelSection title="THREADS (PRIVATE)" count={(data.threads||[]).filter(t=>t.manual||t.subject).length} defaultOpen={true} actions={<button onClick={addThread} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Add</button>}>
+      {(data.threads||[]).filter(t=>t.manual||t.subject).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No threads.</div>:
+        (data.threads||[]).filter(t=>t.manual||t.subject).map(t=><div key={t.tid} style={{display:"grid",gridTemplateColumns:"1fr auto auto 28px",gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-3)",fontSize:10,alignItems:"center"}}>
+          {t.manual?<input value={t.subject||""} onChange={e=>upd({threads:data.threads.map(x=>x.tid===t.tid?{...x,subject:e.target.value}:x)})} placeholder="Subject" style={UI.input}/>:
+            <a href={gmailUrl(t.tid)} target="_blank" rel="noopener noreferrer" style={{color:"var(--text)",textDecoration:"none",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{fontWeight:600}}>{t.subject}</span> <span style={{color:"var(--text-dim)",fontSize:9}}>· {t.from}</span></a>}
+          <span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:700}}>{t.intent||"?"}</span>
+          <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN}}>{t.date}</span>
+          <button onClick={()=>delThread(t.tid)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:11}}>×</button>
         </div>)}
     </IntelSection>
     {(data.showContacts||[]).length>0&&<div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px"}}>
