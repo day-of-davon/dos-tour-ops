@@ -323,7 +323,7 @@ async function handleBulkFetch(req, res, user, supabase) {
     else if (t.category === "CREW_FLIGHT") crewFlightsRaw.push(base);
     else if (["ADVANCE","PRODUCTION","MERCH","LEGAL","GUEST_LIST","LOGISTICS","FINANCE"].includes(t.category)) advanceItems.push({ ...base, category: t.category });
     const isTransactional = t.category === "CREW_FLIGHT" ||
-      (["LOGISTICS","FINANCE"].includes(t.category) && TRANSACTIONAL_SUBJECT.test(t.subject || ""));
+      TRANSACTIONAL_SUBJECT.test(t.subject || "");
     const signal = detectActionSignal(t.subject, t.bodySnippet);
     const senderKey = (t.from || "").toLowerCase().replace(/\s+/g, "");
     if (!isTransactional || signal) {
@@ -404,7 +404,7 @@ async function handleLabelScan(req, res, user, supabase) {
     else if (["ADVANCE","PRODUCTION","MERCH","LEGAL","GUEST_LIST","LOGISTICS","FINANCE"].includes(t.category)) advanceItems.push({ ...base, category: t.category });
     // Skip transactional confirmations (flight receipts, hotel bookings) unless a genuine action signal is present
     const isTransactional = t.category === "CREW_FLIGHT" ||
-      (["LOGISTICS","FINANCE"].includes(t.category) && TRANSACTIONAL_SUBJECT.test(t.subject || ""));
+      TRANSACTIONAL_SUBJECT.test(t.subject || "");
     const signal = detectActionSignal(t.subject, t.bodySnippet);
     const senderKey = (t.from || "").toLowerCase().replace(/\s+/g, "");
     if (!isTransactional || signal) {
