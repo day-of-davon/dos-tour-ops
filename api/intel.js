@@ -34,6 +34,34 @@ const TOUR_CONTEXT = {
   ownerMap: "DAVON=Davon Johnson, SHECK=Mike Sheck (advance/promoter comms), DAN=Dan Nudelman (on-site/production), MANAGEMENT=Sam Alavi/Matt Adler/Wasserman, VENDOR=external vendors, CREW=tour crew members, ACCOUNTANT=Tony Yacowar",
 };
 
+// Extended window to 90d — EU tour bookings made Jan/Feb are within this range.
+const EXTRA_QUERIES = [
+  `from:(DeltaAirLines@t.delta.com) newer_than:90d`,
+  `from:(notification@notification.aircanada.ca) newer_than:90d`,
+  `from:(no-reply@info.email.aa.com) newer_than:90d`,
+  `from:(Receipts@united.com) newer_than:90d`,
+  `from:(noreply@ba.com) newer_than:90d`,
+  `from:(do_not_reply@ba.com) newer_than:90d`,
+  `from:(noreply@aerlingus.com) newer_than:90d`,
+  `from:(noreply@ryanair.com) newer_than:90d`,
+  `from:(no-reply@easyjet.com) newer_than:90d`,
+  `from:(noreply@lufthansa.com) newer_than:90d`,
+  `from:(noreply@airfrance.fr) newer_than:90d`,
+  `from:(donotreply@klm.com) newer_than:90d`,
+  `from:(noreply.com) newer_than:30d`,
+  `from:(noreply@uber.com) newer_than:30d`,
+  `subject:settlement newer_than:45d`,
+  `subject:"flight receipt" newer_than:90d`,
+  `subject:"booking confirmation" (flight OR airline) newer_than:90d`,
+  `subject:"travel itinerary" newer_than:90d`,
+  `"pieter smit" newer_than:180d`,
+  `"fly by nite" OR "flybynite" newer_than:180d`,
+  `"neg earth" newer_than:180d`,
+  `"tsl lighting" newer_than:180d`,
+  `subject:(immigration OR "work permit" OR carnet) newer_than:90d`,
+  `(DUB OR MAN OR GLA OR LHR OR ZRH OR AMS OR CDG OR PRG OR BER OR WAW) (confirmation OR receipt OR itinerary) newer_than:90d`,
+];
+
 function buildTourContextBlock() {
   return `Tour: ${TOUR_CONTEXT.tour} by ${TOUR_CONTEXT.artist}.
 TM: ${TOUR_CONTEXT.tm}.
@@ -338,35 +366,6 @@ async function handleLabelScan(req, res, user, supabase) {
     }
   }
 
-  // Extended window to 90d — EU tour bookings made Jan/Feb are within this range.
-  // Added EU airline and logistics senders missed by the prior 60d queries.
-  const EXTRA_QUERIES = [
-    `from:(DeltaAirLines@t.delta.com) newer_than:90d`,
-    `from:(notification@notification.aircanada.ca) newer_than:90d`,
-    `from:(no-reply@info.email.aa.com) newer_than:90d`,
-    `from:(Receipts@united.com) newer_than:90d`,
-    `from:(noreply@ba.com) newer_than:90d`,
-    `from:(do_not_reply@ba.com) newer_than:90d`,
-    `from:(noreply@aerlingus.com) newer_than:90d`,
-    `from:(noreply@ryanair.com) newer_than:90d`,
-    `from:(no-reply@easyjet.com) newer_than:90d`,
-    `from:(noreply@lufthansa.com) newer_than:90d`,
-    `from:(noreply@airfrance.fr) newer_than:90d`,
-    `from:(donotreply@klm.com) newer_than:90d`,
-    `from:(noreply.com) newer_than:30d`,
-    `from:(noreply@uber.com) newer_than:30d`,
-    `subject:settlement newer_than:45d`,
-    `subject:"flight receipt" newer_than:90d`,
-    `subject:"booking confirmation" (flight OR airline) newer_than:90d`,
-    `subject:"travel itinerary" newer_than:90d`,
-    // EU tour specific
-    `"pieter smit" newer_than:180d`,
-    `"fly by nite" OR "flybynite" newer_than:180d`,
-    `"neg earth" newer_than:180d`,
-    `"tsl lighting" newer_than:180d`,
-    `subject:(immigration OR "work permit" OR carnet) newer_than:90d`,
-    `(DUB OR MAN OR GLA OR LHR OR ZRH OR AMS OR CDG OR PRG OR BER OR WAW) (confirmation OR receipt OR itinerary) newer_than:90d`,
-  ];
 
   let threadIds = [];
   try {
