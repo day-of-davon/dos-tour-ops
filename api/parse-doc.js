@@ -1,13 +1,14 @@
 // api/parse-doc.js — Unified document triage + extraction
-// Handles PDF (Claude native), DOCX (mammoth), XLSX (xlsx→CSV)
+// Handles PDF (pdf-parse text extraction), DOCX (mammoth), XLSX (xlsx→CSV)
 // Returns { docType, confidence, summary, receipt, flights, show, contacts, techPack, expenses }
 const { createClient } = require("@supabase/supabase-js");
 const { extractJson } = require("./lib/gmail");
 const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
 
-let mammoth, xlsxLib;
+let mammoth, xlsxLib, pdfParse;
 try { mammoth = require("mammoth"); } catch {}
 try { xlsxLib = require("xlsx"); } catch {}
+try { pdfParse = require("pdf-parse"); } catch {}
 
 function buildVerifyPrompt(parsed, sourceExcerpt) {
   const sourceBlock = sourceExcerpt
@@ -145,11 +146,14 @@ module.exports = async function handler(req, res) {
   const isXlsx = mimeType.includes("spreadsheetml") || name.endsWith(".xlsx") || name.endsWith(".xls");
 
   let extractedText = null;
-  let usePdfNative = false;
 
   try {
-    if (isPdf) {
-      usePdfNative = true;
+    if (isPdf && pdfParse) {
+      const buf = Buffer.from(fileBase64, "base64");
+      const result = await pdfParse(buf);
+      extractedText = result.text.slice(0, 14000);
+    } else if (isPdf) {
+      extractedText = "[PDF extraction unavailable — pdf-parse not loaded]";
     } else if (isDocx && mammoth) {
       const buf = Buffer.from(fileBase64, "base64");
       const result = await mammoth.extractRawText({ buffer: buf });
@@ -169,13 +173,9 @@ module.exports = async function handler(req, res) {
 
   const userPromptText = PROMPT(filename, contextDate);
 
-  const messages = usePdfNative
-    ? [{ role: "user", content: [
-        { type: "document", source: { type: "base64", media_type: "application/pdf", data: fileBase64 } },
-        { type: "text", text: userPromptText },
-      ] }]
-    : [{ role: "user", content: `${userPromptText}\n\nDOCUMENT CONTENT:\n${extractedText}` }];
+  const messages = [{ role: "user", content: `${userPromptText}\n\nDOCUMENT CONTENT:\n${extractedText}` }];
 
+  let inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheCreationTokens = 0;
   const callClaude = async (sys, msgs, maxTokens = 4096) => {
     const resp = await fetch(ANTHROPIC_URL, {
       method: "POST",
@@ -184,7 +184,11 @@ module.exports = async function handler(req, res) {
     });
     if (!resp.ok) throw Object.assign(new Error(`Anthropic ${resp.status}`), { detail: await resp.text() });
     const data = await resp.json();
-    console.log("[parse-doc] stop_reason:", data.stop_reason);
+    inputTokens         += data.usage?.input_tokens                || 0;
+    outputTokens        += data.usage?.output_tokens               || 0;
+    cacheReadTokens     += data.usage?.cache_read_input_tokens     || 0;
+    cacheCreationTokens += data.usage?.cache_creation_input_tokens || 0;
+    console.log(`[parse-doc] stop=${data.stop_reason} in=${data.usage?.input_tokens} out=${data.usage?.output_tokens} cache_read=${data.usage?.cache_read_input_tokens}`);
     return (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
   };
 
@@ -203,7 +207,7 @@ module.exports = async function handler(req, res) {
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.`;
 
   // Verification uses extracted JSON + a brief source excerpt only — no full document re-send.
-  const sourceExcerpt = usePdfNative ? null : (extractedText || "").slice(0, 2000);
+  const sourceExcerpt = (extractedText || "").slice(0, 2000);
   const verifyMsgs = [{ role: "user", content: buildVerifyPrompt(parsed, sourceExcerpt) }];
 
   let verified = parsed;
@@ -227,5 +231,6 @@ IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no
     verified = { ...parsed, parseVerified: null };
   }
 
-  return res.json({ ...verified, filename });
+  console.log(`[parse-doc] total tokens: in=${inputTokens} out=${outputTokens} cache_read=${cacheReadTokens} cache_create=${cacheCreationTokens}`);
+  return res.json({ ...verified, filename, tokensUsed: inputTokens + outputTokens });
 };
