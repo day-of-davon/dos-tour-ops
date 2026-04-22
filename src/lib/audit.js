@@ -10,6 +10,14 @@ import { supabase } from "./supabase";
 
 const TEAM_ID = "dos-bbno-2026";
 
+// Current user role + display id — set once on auth resolve, attached to every audit row.
+let CURRENT_ROLE = null;
+let CURRENT_USER_KEY = null;
+export function setAuditIdentity({ role, userKey }) {
+  CURRENT_ROLE = role || null;
+  CURRENT_USER_KEY = userKey || null;
+}
+
 export function logAudit({ entityType, entityId, action, before = null, after = null, meta = null, teamScoped = true }) {
   // Non-blocking: kick the promise, handle errors in background.
   (async () => {
@@ -25,7 +33,7 @@ export function logAudit({ entityType, entityId, action, before = null, after = 
         action,
         before_value: before,
         after_value: after,
-        metadata: meta,
+        metadata: { ...(meta || {}), role: CURRENT_ROLE, userKey: CURRENT_USER_KEY },
       };
       const { error } = await supabase.from("audit_log").insert(row);
       if (error) console.warn("[audit] insert failed:", error.message);

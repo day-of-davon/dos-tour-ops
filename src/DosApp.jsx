@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo, createContext
 import { useAuth } from "./components/AuthGate.jsx";
 import { Button, Pill } from "./components/ui.jsx";
 import { supabase } from "./lib/supabase";
-import { logAudit } from "./lib/audit";
+import { logAudit, setAuditIdentity } from "./lib/audit";
 
 // DOS TOUR OPS v7.0 — Day of Show, LLC
 // Client-first · All dept advance lanes · Custom + editable items · Full settlement
@@ -350,8 +350,17 @@ const CLIENTS=[
   {id:"elm",name:"Elements",type:"festival",status:"active",color:"var(--warn-fg)",short:"ELM"},
 ];
 const CM=CLIENTS.reduce((a,c)=>{a[c.id]=c;return a},{});
-// Only these users can see festival clients in the selector
-const FESTIVAL_ACCESS_EMAILS=["d.johnson@dayofshow.net","olivia@dayofshow.net"];
+// ── TEAM registry — single source of truth for user → role → client binding ──
+// email → {id, label, initials, role, clients[]: access, primary[]: ownership}
+// Shared across: client selector gating, audit metadata, owner inference.
+const TEAM={
+  "d.johnson@dayofshow.net":{id:"davon",label:"Davon",initials:"DJ",role:"tm_td",clients:["bbn","wkn","bwc","elm"],primary:["bbn"]},
+  "olivia@dayofshow.net":   {id:"olivia",label:"Olivia",initials:"OM",role:"transport_coord",clients:["bbn","wkn","bwc","elm"],primary:["elm","bwc","wkn"]},
+};
+const ROLE_LABEL={tm_td:"TM/TD",transport_coord:"Transport Coord",viewer:"Viewer"};
+const GUEST_ME={id:"guest",label:"Guest",initials:"··",role:"viewer",clients:["bbn"],primary:[]};
+const resolveMe=(email)=>TEAM[(email||"").toLowerCase()]||GUEST_ME;
+const isClientOwner=(me,clientId)=>!!(me?.primary||[]).includes(clientId);
 const ROLES=[{id:"tm",label:"TM",c:"var(--accent)"},{id:"production",label:"PROD",c:"var(--warn-fg)"},{id:"hospitality",label:"HOSPO",c:"var(--success-fg)"},{id:"transport",label:"TRANSPORT",c:"var(--link)"}];
 const TABS=[{id:"advance",label:"Advance",icon:"◎"},{id:"guestlist",label:"Guest List",icon:"◉"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"}];
 const GL_DEFAULT_CATEGORIES=[
@@ -796,6 +805,9 @@ const sGP=async k=>{try{const r=await window.storage.getPrivate(k);return r?JSON
 const sSP=async(k,v)=>{try{await window.storage.setPrivate(k,JSON.stringify(v));return true}catch{return false}};
 
 export default function App(){
+  const auth=useAuth();
+  const me=useMemo(()=>resolveMe(auth?.user?.email),[auth?.user?.email]);
+  useEffect(()=>{setAuditIdentity({role:me.role,userKey:me.id});},[me.role,me.id]);
   const[tab,setTab]=useState("advance");
   const[role,setRole]=useState("tm");
   const[aC,setAC]=useState("bbn");
@@ -1043,7 +1055,7 @@ export default function App(){
     setTabOrder(next);
   },[orderedTabs]);
 
-  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration}),[shows,ros,advances,finance,sel,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration]);// eslint-disable-line
+  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration,me}),[shows,ros,advances,finance,sel,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration,me]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"var(--text-dim)",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
@@ -1883,11 +1895,10 @@ function TopBar({ss}){
   const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd}=useContext(Ctx);
   const[dragId,setDragId]=useState(null);
   const[overId,setOverId]=useState(null);
-  const a=useAuth();const userEmail=(a?.user?.email||"").toLowerCase();
+  const{me}=useContext(Ctx);
   const curClient=CM[aC];
-  const canSeeFestivals=FESTIVAL_ACCESS_EMAILS.some(e=>e.toLowerCase()===userEmail);
-  const activeClients=CLIENTS.filter(c=>c.status==="active"&&(c.type!=="festival"||canSeeFestivals));
-  React.useEffect(()=>{if(!activeClients.find(c=>c.id===aC))setAC("bbn");},[canSeeFestivals]);
+  const activeClients=CLIENTS.filter(c=>c.status==="active"&&me.clients.includes(c.id));
+  React.useEffect(()=>{if(!activeClients.find(c=>c.id===aC))setAC(me.clients[0]||"bbn");},[me.clients.join(",")]);
   const stepBtn={background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-2)",fontSize:11,padding:mobile?"5px 8px":"3px 7px",cursor:"pointer",fontWeight:700,minHeight:mobile?30:undefined,lineHeight:1};
   const stepList=useMemo(()=>{
     const tourIds=new Set((tourDaysSorted||[]).map(d=>d.date));
@@ -3937,8 +3948,8 @@ function SegmentDrawer({seg,crew,sorted,onChange,onClose}){
 
 function TransTab(){
   const{flights,uFlight,sel,labelIntel}=useContext(Ctx);
-  const a=useAuth();const userEmail=(a?.user?.email||"").toLowerCase();
-  const canSeeFestivalDispatch=FESTIVAL_ACCESS_EMAILS.some(e=>e.toLowerCase()===userEmail);
+  const{me}=useContext(Ctx);
+  const canSeeFestivalDispatch=me.clients.some(c=>CM[c]?.type==="festival");
   const[view,setView]=useState("travel");
   const[crewFlightsOpen,setCrewFlightsOpen]=useState(false);
   const confirmedCount=Object.values(flights).filter(f=>f.status==="confirmed").length;
