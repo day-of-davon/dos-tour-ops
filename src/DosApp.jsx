@@ -3098,15 +3098,15 @@ function EventSwitcher({show,sel}){
     setDelId(null);
   };
   if(subEvents.length===0&&!adding)return(
-    <div style={{padding:"4px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",alignItems:"center",gap:6}}>
-      <span style={{fontSize:9,color:"var(--text-mute)",fontStyle:"italic"}}>Single event day</span>
-      <button onClick={()=>setAdding(true)} style={{fontSize:9,padding:"2px 8px",borderRadius:6,border:"1px dashed var(--text-mute)",background:"transparent",color:"var(--text-dim)",cursor:"pointer",fontWeight:600,marginLeft:"auto"}}>+ Add Event</button>
+    <div style={{padding:"6px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",alignItems:"center",gap:6}}>
+      <span style={{fontSize:11,color:"var(--text-mute)",fontStyle:"italic"}}>Single event day</span>
+      <button onClick={()=>setAdding(true)} style={{fontSize:11,padding:"3px 10px",borderRadius:6,border:"1px dashed var(--text-mute)",background:"transparent",color:"var(--text-dim)",cursor:"pointer",fontWeight:600,marginLeft:"auto"}}>+ Add Event</button>
     </div>
   );
   return(
     <div style={{padding:"0 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",alignItems:"center",gap:2,overflowX:"auto",scrollbarWidth:"none"}}>
       {/* Main event tab */}
-      <button onClick={()=>setSelEventId(null)} style={{padding:"6px 12px",fontSize:11,fontWeight:!selEventId?700:500,color:!selEventId?"var(--text)":"var(--text-dim)",border:"none",borderBottom:!selEventId?"2px solid var(--text)":"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
+      <button onClick={()=>setSelEventId(null)} style={{padding:"10px 16px",fontSize:13,fontWeight:!selEventId?700:500,color:!selEventId?"var(--text)":"var(--text-dim)",border:"none",borderBottom:!selEventId?"2px solid var(--text)":"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
         {show.venue||"Main"}
       </button>
       {/* Sub-event tabs */}
@@ -3114,26 +3114,26 @@ function EventSwitcher({show,sel}){
         const isA=selEventId===ev.id;
         return(
           <div key={ev.id} style={{display:"flex",alignItems:"center",flexShrink:0}}>
-            <button onClick={()=>setSelEventId(ev.id)} style={{padding:"6px 10px",fontSize:11,fontWeight:isA?700:500,color:isA?"var(--accent)":"var(--text-dim)",border:"none",borderBottom:isA?"2px solid var(--accent)":"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap"}}>
+            <button onClick={()=>setSelEventId(ev.id)} style={{padding:"10px 14px",fontSize:13,fontWeight:isA?700:500,color:isA?"var(--accent)":"var(--text-dim)",border:"none",borderBottom:isA?"2px solid var(--accent)":"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap"}}>
               {ev.name}
             </button>
-            <button onClick={()=>setDelId(delId===ev.id?null:ev.id)} style={{background:"none",border:"none",color:"var(--text-faint)",fontSize:11,cursor:"pointer",padding:"0 2px",lineHeight:1}}>×</button>
-            {delId===ev.id&&<span style={{fontSize:9,display:"flex",alignItems:"center",gap:4}}>
-              <button onClick={()=>removeEvent(ev.id)} style={{fontSize:9,padding:"2px 6px",borderRadius:4,border:"none",background:"var(--danger-bg)",color:"var(--danger-fg)",cursor:"pointer",fontWeight:700}}>Delete</button>
-              <button onClick={()=>setDelId(null)} style={{fontSize:9,padding:"2px 6px",borderRadius:4,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Cancel</button>
+            <button onClick={()=>setDelId(delId===ev.id?null:ev.id)} style={{background:"none",border:"none",color:"var(--text-faint)",fontSize:13,cursor:"pointer",padding:"0 2px",lineHeight:1}}>×</button>
+            {delId===ev.id&&<span style={{fontSize:11,display:"flex",alignItems:"center",gap:4}}>
+              <button onClick={()=>removeEvent(ev.id)} style={{fontSize:11,padding:"3px 8px",borderRadius:4,border:"none",background:"var(--danger-bg)",color:"var(--danger-fg)",cursor:"pointer",fontWeight:700}}>Delete</button>
+              <button onClick={()=>setDelId(null)} style={{fontSize:11,padding:"3px 8px",borderRadius:4,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Cancel</button>
             </span>}
           </div>
         );
       })}
       {/* Add new event */}
       {adding?(
-        <div style={{display:"flex",alignItems:"center",gap:5,marginLeft:4,flexShrink:0}}>
-          <input autoFocus value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addEvent();if(e.key==="Escape"){setAdding(false);setNewName("");}}} placeholder="Event name" style={{...UI.input,width:130,fontSize:10}}/>
-          <button onClick={addEvent} style={{fontSize:9,padding:"3px 8px",borderRadius:6,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>Add</button>
-          <button onClick={()=>{setAdding(false);setNewName("");}} style={{fontSize:9,padding:"3px 8px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>✕</button>
+        <div style={{display:"flex",alignItems:"center",gap:5,marginLeft:6,flexShrink:0}}>
+          <input autoFocus value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addEvent();if(e.key==="Escape"){setAdding(false);setNewName("");}}} placeholder="Event name" style={{...UI.input,width:140,fontSize:12}}/>
+          <button onClick={addEvent} style={{fontSize:11,padding:"4px 10px",borderRadius:6,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>Add</button>
+          <button onClick={()=>{setAdding(false);setNewName("");}} style={{fontSize:11,padding:"4px 10px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>✕</button>
         </div>
       ):(
-        <button onClick={()=>setAdding(true)} style={{padding:"4px 10px",fontSize:9,fontWeight:700,color:"var(--text-dim)",border:"none",borderBottom:"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,marginLeft:4}}>+ Event</button>
+        <button onClick={()=>setAdding(true)} style={{padding:"8px 12px",fontSize:11,fontWeight:700,color:"var(--text-dim)",border:"none",borderBottom:"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,marginLeft:4}}>+ Event</button>
       )}
     </div>
   );
