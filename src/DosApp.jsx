@@ -4198,27 +4198,27 @@ function FinLedger(){
       (fin.flightExpenses||[]).forEach(fe=>{
         if(confirmedFlightIds.has(fe.flightId))return;
         if(!fe.amount&&fe.amount!==0)return;
-        out.push({id:fe.flightId||`fe_${date}_${Math.random()}`,date,show:showLabel,cat:"Flight",desc:fe.label||"",payee:(fe.pax||[]).join(", ")||"—",amount:parseFloat(fe.amount||0),currency:fe.currency||"USD",status:"confirmed",ref:fe.carrier||""});
+        out.push({id:fe.flightId||`fe_${date}_${Math.random()}`,date,show:showLabel,cat:"Flight",desc:fe.label||"",payee:(fe.pax||[]).join(", ")||"—",amount:parseFloat(fe.amount||0),currency:fe.currency||"USD",status:"confirmed",ref:fe.carrier||"",payMethod:fe.payMethod||""});
       });
       // Payouts
       (fin.payouts||[]).forEach(p=>{
-        out.push({id:p.id||`po_${date}_${Math.random()}`,date,show:showLabel,cat:"Payout",desc:`${p.dept||""}${p.role?` · ${p.role}`:""}`,payee:p.name||"—",amount:parseFloat(p.amount||0),currency:p.currency||"USD",status:p.status||"pending",ref:p.method||""});
+        out.push({id:p.id||`po_${date}_${Math.random()}`,date,show:showLabel,cat:"Payout",desc:`${p.dept||""}${p.role?` · ${p.role}`:""}`,payee:p.name||"—",amount:parseFloat(p.amount||0),currency:p.currency||"USD",status:p.status||"pending",ref:p.method||"",payMethod:p.payMethod||p.method||""});
       });
       // Lodging expenses
       (fin.ledgerEntries||[]).forEach(le=>{
         if(!le.amount&&le.amount!==0)return;
-        out.push({id:le.id||`le_${date}_${Math.random()}`,date:le.date||date,show:showLabel,cat:"Hotel",desc:le.description||"",payee:le.vendor||"—",amount:parseFloat(le.amount||0),currency:le.currency||"USD",status:"confirmed",ref:le.source||""});
+        out.push({id:le.id||`le_${date}_${Math.random()}`,date:le.date||date,show:showLabel,cat:"Hotel",desc:le.description||"",payee:le.vendor||"—",amount:parseFloat(le.amount||0),currency:le.currency||"USD",status:"confirmed",ref:le.source||"",payMethod:le.payMethod||""});
       });
       // Settlement amount (legacy flat field — skip if events[] has a settlement/wire entry)
       const hasEventForLegacy=(fin.events||[]).some(e=>e.type==="settlement"||e.type==="wire");
       if(fin.settlementAmount&&parseFloat(fin.settlementAmount)>0&&!hasEventForLegacy){
-        out.push({id:`sa_${date}`,date,show:showLabel,cat:"Settlement",desc:"Settlement payment",payee:"—",amount:parseFloat(fin.settlementAmount),currency:"USD",status:fin.stages?.payment_initiated?"confirmed":"pending",ref:fin.wireRef||""});
+        out.push({id:`sa_${date}`,date,show:showLabel,cat:"Settlement",desc:"Settlement payment",payee:"—",amount:parseFloat(fin.settlementAmount),currency:"USD",status:fin.stages?.payment_initiated?"confirmed":"pending",ref:fin.wireRef||"",payMethod:""});
       }
       // Financial events — settlement, wire, withholding, merch, reconciliation
       (fin.events||[]).forEach(ev=>{
         if(!ev||!ev.amount)return;
         const cat=(FIN_EVENT_TYPES.find(t=>t.id===ev.type)?.l)||"Event";
-        out.push({id:ev.id,date:ev.actualDate||ev.expectedDate||date,show:showLabel,cat,desc:ev.note||cat,payee:"—",amount:parseFloat(ev.amount)||0,currency:ev.currency||"USD",status:ev.status||"pending",ref:ev.ref||""});
+        out.push({id:ev.id,date:ev.actualDate||ev.expectedDate||date,show:showLabel,cat,desc:ev.note||cat,payee:"—",amount:parseFloat(ev.amount)||0,currency:ev.currency||"USD",status:ev.status||"pending",ref:ev.ref||"",payMethod:ev.payMethod||""});
       });
     });
     // Confirmed flights from flights store
@@ -4238,6 +4238,7 @@ function FinLedger(){
         currency:f.currency||"USD",
         status:"confirmed",
         ref:f.carrier||f.flightNo||"",
+        payMethod:f.payMethod||"",
       });
     });
     return out;
@@ -4285,7 +4286,7 @@ function FinLedger(){
       ):(
         <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <thead><tr>{[["date","Date"],["show","Show"],["cat","Category"],["payee","Payee"],["desc","Description"],["amount","Amount"],["currency","Curr"],["status","Status"],["ref","Ref"]].map(([col,label])=>th(label,col))}</tr></thead>
+            <thead><tr>{[["date","Date"],["show","Show"],["cat","Category"],["payee","Payee"],["desc","Description"],["amount","Amount"],["currency","Curr"],["status","Status"],["ref","Ref"],["payMethod","Payment"]].map(([col,label])=>th(label,col))}</tr></thead>
             <tbody>
               {sorted.map((r,i)=>{
                 const cc=CAT_COLOR[r.cat]||{bg:"var(--card-2)",c:"var(--text-2)"};
@@ -4300,6 +4301,7 @@ function FinLedger(){
                     <td style={{padding:"6px 8px",fontSize:9,color:"var(--text-dim)"}}>{r.currency}</td>
                     <td style={{padding:"6px 8px"}}><span style={{fontSize:8,padding:"2px 5px",borderRadius:4,fontWeight:700,background:r.status==="confirmed"?"var(--success-bg)":"var(--warn-bg)",color:r.status==="confirmed"?"var(--success-fg)":"var(--warn-fg)"}}>{r.status}</span></td>
                     <td style={{padding:"6px 8px",fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>{r.ref||"—"}</td>
+                    <td style={{padding:"6px 8px",fontSize:9,color:"var(--text-2)",whiteSpace:"nowrap"}}>{r.payMethod||"—"}</td>
                   </tr>
                 );
               })}
@@ -4324,8 +4326,8 @@ function FinLedger(){
 function FinEventsPanel({selS,fin,uFin,pushUndo}){
   const events=fin.events||[];
   const[adding,setAdding]=useState(false);
-  const[form,setForm]=useState({type:"settlement",amount:"",currency:"USD",expectedDate:"",actualDate:"",status:"pending",ref:"",note:""});
-  const reset=()=>setForm({type:"settlement",amount:"",currency:"USD",expectedDate:"",actualDate:"",status:"pending",ref:"",note:""});
+  const[form,setForm]=useState({type:"settlement",amount:"",currency:"USD",expectedDate:"",actualDate:"",status:"pending",ref:"",payMethod:"",note:""});
+  const reset=()=>setForm({type:"settlement",amount:"",currency:"USD",expectedDate:"",actualDate:"",status:"pending",ref:"",payMethod:"",note:""});
 
   const add=()=>{
     if(!form.amount)return;
@@ -4399,6 +4401,7 @@ function FinEventsPanel({selS,fin,uFin,pushUndo}){
           </div>
           <div style={{display:"flex",gap:5,marginBottom:5}}>
             <input placeholder="Ref # (wire, invoice, etc.)" value={form.ref} onChange={e=>setForm(p=>({...p,ref:e.target.value}))} style={{flex:1,background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none",fontFamily:MN}}/>
+            <input placeholder="Card / payment method (e.g. Amex 4567)" value={form.payMethod} onChange={e=>setForm(p=>({...p,payMethod:e.target.value}))} style={{flex:1,background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none"}}/>
             <input placeholder="Note" value={form.note} onChange={e=>setForm(p=>({...p,note:e.target.value}))} style={{flex:2,background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none"}}/>
             <button onClick={add} disabled={!form.amount} style={{background:"var(--success-fg)",border:"none",borderRadius:4,color:"#fff",fontSize:10,padding:"4px 12px",cursor:form.amount?"pointer":"not-allowed",fontWeight:700,opacity:form.amount?1:0.5}}>Add</button>
           </div>
@@ -4407,7 +4410,7 @@ function FinEventsPanel({selS,fin,uFin,pushUndo}){
       {events.length===0&&!adding&&<div style={{fontSize:10,color:"var(--text-mute)",padding:"6px 0",fontStyle:"italic"}}>No financial events yet. Settlement, wire, withholding, and merch each track independently.</div>}
       {events.length>0&&(
         <table style={{width:"100%",borderCollapse:"collapse"}}>
-          <thead><tr style={{background:"var(--card-3)"}}>{["Type","Amount","Expected","Actual","Status","Ref","Note",""].map(h=><th key={h} style={{padding:"5px 7px",textAlign:"left",fontSize:8,fontWeight:700,color:"var(--text-dim)",letterSpacing:"0.05em",borderBottom:"1px solid var(--border)"}}>{h}</th>)}</tr></thead>
+          <thead><tr style={{background:"var(--card-3)"}}>{["Type","Amount","Expected","Actual","Status","Ref","Payment","Note",""].map(h=><th key={h} style={{padding:"5px 7px",textAlign:"left",fontSize:8,fontWeight:700,color:"var(--text-dim)",letterSpacing:"0.05em",borderBottom:"1px solid var(--border)"}}>{h}</th>)}</tr></thead>
           <tbody>{events.map(ev=>{const t=typeOf(ev.type);const s=statusOf(ev.status);return(
             <tr key={ev.id} style={{borderBottom:"1px solid var(--card-3)"}}>
               <td style={{padding:"5px 7px"}}><span style={{fontSize:9,padding:"1px 6px",borderRadius:4,background:t.b,color:t.c,fontWeight:700}}>{t.l}</span></td>
@@ -4420,6 +4423,7 @@ function FinEventsPanel({selS,fin,uFin,pushUndo}){
                 </select>
               </td>
               <td style={{padding:"5px 7px",fontFamily:MN,fontSize:9,color:"var(--text-2)"}}>{ev.ref||"—"}</td>
+              <td style={{padding:"5px 7px",fontSize:9,color:"var(--text-2)",whiteSpace:"nowrap"}}>{ev.payMethod||"—"}</td>
               <td style={{padding:"5px 7px",fontSize:9,color:"var(--text-dim)",maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.note||"—"}</td>
               <td style={{padding:"5px 7px"}}><button onClick={()=>del(ev.id)} style={{background:"transparent",border:"none",color:"var(--text-mute)",fontSize:11,cursor:"pointer",padding:"2px 6px"}} title="Delete">×</button></td>
             </tr>
@@ -4435,7 +4439,7 @@ function FinTab(){
   const today=new Date().toISOString().slice(0,10);
   const[finView,setFinView]=useState("settlement");
   const[addP,setAddP]=useState(false);
-  const[pForm,setPForm]=useState({name:"",role:"",dept:"Drivers",amount:"",currency:"USD",method:"Wire",status:"pending"});
+  const[pForm,setPForm]=useState({name:"",role:"",dept:"Drivers",amount:"",currency:"USD",method:"Wire",payMethod:"",status:"pending"});
   const show=sel?shows[sel]:null;
   const fin=sel?finance[sel]||{}:{};
   const stages=fin.stages||{};
@@ -4447,7 +4451,7 @@ function FinTab(){
       before:{done:prev},after:{done:next},meta:{stage:id}});
   };
   const done=["wire_ref_confirmed","signed_sheet","payment_initiated"].every(id=>stages[id]);
-  const addPayout=()=>{if(!sel||!pForm.name||!pForm.amount)return;uFin(sel,{payouts:[...payouts,{...pForm,id:`p${Date.now()}`,date:today}]});setPForm({name:"",role:"",dept:"Drivers",amount:"",currency:"USD",method:"Wire",status:"pending"});setAddP(false);};
+  const addPayout=()=>{if(!sel||!pForm.name||!pForm.amount)return;uFin(sel,{payouts:[...payouts,{...pForm,id:`p${Date.now()}`,date:today}]});setPForm({name:"",role:"",dept:"Drivers",amount:"",currency:"USD",method:"Wire",payMethod:"",status:"pending"});setAddP(false);};
   const currencies=[...new Set(payouts.map(p=>p.currency))];
   const batchTotal=cur=>payouts.filter(p=>p.currency===cur).reduce((s,p)=>s+parseFloat(p.amount||0),0).toFixed(2);
   const curStatus=!sel?"":done?"settled":stages["payment_initiated"]?"in_progress":"pending";
@@ -4554,12 +4558,13 @@ function FinTab(){
                 </div>
                 <div style={{display:"flex",gap:5}}>
                   <input placeholder="Role / position" value={pForm.role} onChange={e=>setPForm(p=>({...p,role:e.target.value}))} style={{flex:1,background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none"}}/>
+                  <input placeholder="Card / payment (e.g. Amex 4567)" value={pForm.payMethod} onChange={e=>setPForm(p=>({...p,payMethod:e.target.value}))} style={{flex:1,background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none"}}/>
                   <button onClick={addPayout} style={{background:"var(--success-fg)",border:"none",borderRadius:4,color:"#fff",fontSize:10,padding:"4px 12px",cursor:"pointer",fontWeight:700}}>Add</button>
                   <button onClick={()=>setAddP(false)} style={{background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:4,color:"var(--text-dim)",fontSize:10,padding:"4px 8px",cursor:"pointer"}}>Cancel</button>
                 </div>
               </div>}
               {payouts.length>0?(<table style={{width:"100%",borderCollapse:"collapse"}}>
-                <thead><tr style={{background:"var(--card-3)"}}>{["Name","Role","Dept","Amount","Curr","Method","Status","Date"].map(h=><th key={h} style={{padding:"5px 7px",textAlign:"left",fontSize:8,fontWeight:700,color:"var(--text-dim)",letterSpacing:"0.05em",borderBottom:"1px solid var(--border)"}}>{h}</th>)}</tr></thead>
+                <thead><tr style={{background:"var(--card-3)"}}>{["Name","Role","Dept","Amount","Curr","Method","Payment","Status","Date"].map(h=><th key={h} style={{padding:"5px 7px",textAlign:"left",fontSize:8,fontWeight:700,color:"var(--text-dim)",letterSpacing:"0.05em",borderBottom:"1px solid var(--border)"}}>{h}</th>)}</tr></thead>
                 <tbody>{payouts.map((p,i)=><tr key={p.id||i} style={{borderBottom:"1px solid var(--card-3)"}}>
                   <td style={{padding:"5px 7px",fontSize:10,fontWeight:600}}>{p.name}</td>
                   <td style={{padding:"5px 7px",fontSize:9,color:"var(--text-2)"}}>{p.role}</td>
@@ -4567,6 +4572,7 @@ function FinTab(){
                   <td style={{padding:"5px 7px",fontFamily:MN,fontSize:10,fontWeight:700}}>{p.amount}</td>
                   <td style={{padding:"5px 7px",fontSize:9,color:"var(--text-dim)"}}>{p.currency}</td>
                   <td style={{padding:"5px 7px",fontSize:9,color:"var(--text-dim)"}}>{p.method}</td>
+                  <td style={{padding:"5px 7px",fontSize:9,color:"var(--text-2)",whiteSpace:"nowrap"}}>{p.payMethod||"—"}</td>
                   <td style={{padding:"5px 7px"}}><span style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:p.status==="confirmed"?"var(--success-bg)":"var(--warn-bg)",color:p.status==="confirmed"?"var(--success-fg)":"var(--warn-fg)",fontWeight:700}}>{p.status}</span></td>
                   <td style={{padding:"5px 7px",fontFamily:MN,fontSize:9,color:"var(--text-mute)"}}>{p.date}</td>
                 </tr>)}</tbody>
