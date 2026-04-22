@@ -235,6 +235,60 @@ function matchShow(thread, shows) {
   return bestScore >= 4 ? best : null;
 }
 
+async function handleBulkFetch(req, res, user, supabase) {
+  const { googleToken, forceRefresh, shows: showsArr, userEmail } = req.body || {};
+  if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
+  const BULK_ID = "__bulk__";
+
+  if (!forceRefresh) {
+    const { data: cached } = await supabase.from("intel_cache").select("intel, cached_at").eq("user_id", user.id).eq("show_id", BULK_ID).single();
+    if (cached) {
+      const ageMin = (Date.now() - new Date(cached.cached_at).getTime()) / 60000;
+      if (ageMin < CACHE_TTL_MINUTES) {
+        return res.json({ ...cached.intel, fromCache: true });
+      }
+    }
+  }
+
+  let threadIds = [];
+  try {
+    const [labelIds, ...extraResults] = await Promise.all([
+      gmailSearch(googleToken, "label:bbno$", 60),
+      ...EXTRA_QUERIES.map(q => gmailSearch(googleToken, q, 25).catch(() => [])),
+    ]);
+    threadIds = [...new Set([...labelIds, ...extraResults.flat()])];
+  } catch (e) {
+    if (e.message.includes("401") || e.message.includes("403")) return res.status(402).json({ error: "gmail_token_expired" });
+    return res.status(502).json({ error: e.message });
+  }
+
+  const rawThreads = (await Promise.all(threadIds.map(id => gmailGetThread(googleToken, id)))).filter(Boolean).map(t => {
+    const h = extractHeaders(t);
+    return { ...h, bodySnippet: (h.bodySnippet || "").slice(0, 800) };
+  });
+
+  const shows = Array.isArray(showsArr) ? showsArr : [];
+  const classified = rawThreads.map(t => ({ ...t, category: classifyThread(t.subject, t.from), _show: matchShow(t, shows) }));
+
+  const byShow = {};
+  for (const t of classified) {
+    const showId = t._show ? `${t._show.venue}__${t._show.date}`.toLowerCase().replace(/\s+/g, "_") : null;
+    if (showId) {
+      if (!byShow[showId]) byShow[showId] = [];
+      byShow[showId].push(t);
+    }
+  }
+
+  const payload = { byShow, threadCount: threadIds.length, scannedAt: new Date().toISOString() };
+
+  await supabase.from("intel_cache").upsert(
+    { user_id: user.id, show_id: BULK_ID, intel: payload, gmail_threads_found: threadIds.length, cached_at: new Date().toISOString(), is_shared: false, user_email: userEmail || null },
+    { onConflict: "user_id,show_id" }
+  );
+
+  return res.json({ ...payload, fromCache: false });
+}
+
 async function handleLabelScan(req, res, user, supabase) {
   const { googleToken, forceRefresh, shows: showsArr, userEmail } = req.body || {};
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
@@ -364,6 +418,7 @@ module.exports = async function handler(req, res) {
 
   const { show, googleToken, forceRefresh, userEmail, action, isShared } = req.body || {};
   if (action === "labelScan") return handleLabelScan(req, res, user, supabase);
+  if (action === "bulkFetch") return handleBulkFetch(req, res, user, supabase);
   if (!show) return res.status(400).json({ error: "Missing show" });
 
   const showId = `${show.venue}__${show.date}`.toLowerCase().replace(/\s+/g, "_");
@@ -418,27 +473,44 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // ── Build per-show Gmail queries ─────────────────────────────────────────────
-  // More signals = more recall: venue name, city, artist, tour name, promoter, date vicinity.
-  const promoterWords = (show.promoter || "")
-    .split(/[/,\s]+/)
-    .map(w => w.trim())
-    .filter(w => w.length > 4 && !/^(the|and|llc|inc|ltd)$/i.test(w));
-
-  const queries = [
-    `"${show.venue}" newer_than:45d`,
-    `"${show.city}" "bbno$" newer_than:45d`,
-    `"bbno$" "${show.venue}" newer_than:45d`,
-    `"bbno" "${show.venue}" newer_than:45d`,
-    `"Internet Explorer" "${show.city}" newer_than:45d`,
-    `"${show.city}" newer_than:45d`,
-    ...(promoterWords.length ? [`"${promoterWords[0]}" "${show.city}" newer_than:45d`] : []),
-    ...(show.date ? [`"${show.date}" (bbno OR "${show.city}" OR "${show.venue}") newer_than:60d`] : []),
-    ...(show.country && show.country !== "US" ? [`"${show.venue}" newer_than:90d`] : []),
-  ].filter(Boolean);
-
-  const seenIds = new Set();
+  // ── Check bulk cache first — skip Gmail if threads already fetched ────────────
+  let threads = null;
+  let fromBulkCache = false;
   {
+    const { data: bulk } = await supabase.from("intel_cache").select("intel, cached_at").eq("user_id", user.id).eq("show_id", "__bulk__").single();
+    if (bulk) {
+      const ageMin = (Date.now() - new Date(bulk.cached_at).getTime()) / 60000;
+      if (ageMin < CACHE_TTL_MINUTES) {
+        const bulkThreads = bulk.intel?.byShow?.[showId];
+        if (bulkThreads?.length) {
+          console.log(`[intel] bulk cache hit for ${showId}: ${bulkThreads.length} threads`);
+          threads = bulkThreads.map(t => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 1200) }));
+          fromBulkCache = true;
+        }
+      }
+    }
+  }
+
+  // ── Build per-show Gmail queries (skipped when bulk cache provides threads) ──
+  if (!threads) {
+    const promoterWords = (show.promoter || "")
+      .split(/[/,\s]+/)
+      .map(w => w.trim())
+      .filter(w => w.length > 4 && !/^(the|and|llc|inc|ltd)$/i.test(w));
+
+    const queries = [
+      `"${show.venue}" newer_than:45d`,
+      `"${show.city}" "bbno$" newer_than:45d`,
+      `"bbno$" "${show.venue}" newer_than:45d`,
+      `"bbno" "${show.venue}" newer_than:45d`,
+      `"Internet Explorer" "${show.city}" newer_than:45d`,
+      `"${show.city}" newer_than:45d`,
+      ...(promoterWords.length ? [`"${promoterWords[0]}" "${show.city}" newer_than:45d`] : []),
+      ...(show.date ? [`"${show.date}" (bbno OR "${show.city}" OR "${show.venue}") newer_than:60d`] : []),
+      ...(show.country && show.country !== "US" ? [`"${show.venue}" newer_than:90d`] : []),
+    ].filter(Boolean);
+
+    const seenIds = new Set();
     const results = await Promise.allSettled(queries.map(q => gmailSearch(googleToken, q, 20)));
     for (let i = 0; i < results.length; i++) {
       if (results[i].status === "fulfilled") {
@@ -449,13 +521,13 @@ module.exports = async function handler(req, res) {
         console.warn("[intel] query failed:", queries[i].slice(0, 80), msg);
       }
     }
-  }
 
-  const ids = [...seenIds].slice(0, 20);
-  const threads = (await Promise.all(ids.map((id) => gmailGetThread(googleToken, id))))
-    .filter(Boolean)
-    .map(extractHeaders)
-    .map((t) => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 1200) }));
+    const ids = [...seenIds].slice(0, 20);
+    threads = (await Promise.all(ids.map((id) => gmailGetThread(googleToken, id))))
+      .filter(Boolean)
+      .map(extractHeaders)
+      .map((t) => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 1200) }));
+  }
 
   // ── Claude system prompt (tour-context-aware) ─────────────────────────────
   const sysPrompt = `You are an email intelligence parser for concert touring operations. You work for Davon Johnson, Tour Manager at Day of Show, LLC.
@@ -632,6 +704,7 @@ Return this exact JSON:
     isShared: existing?.is_shared ?? false,
     sharedByOthers: sharedByOthers || [],
     fromCache: false,
+    fromBulkCache,
     scanRunId: runId,
     tokensUsed: inputTokens + outputTokens,
   });
