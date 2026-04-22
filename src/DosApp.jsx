@@ -1228,7 +1228,6 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
           ?<PaxEditor pax={f.pax||[]} crew={crew} onSave={onUpdatePax}/>
           :(f.pax?.length>0&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>PAX</div><div style={{fontSize:10,color:"var(--text)"}}>{f.pax.join(", ")}</div></div>)}
         {f.pnr&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>PNR</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.pnr}</div></div>}
-        {f.confirmNo&&f.confirmNo!==f.pnr&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>CONF #</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.confirmNo}</div></div>}
         {f.ticketNo&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>TICKET #</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.ticketNo}</div></div>}
         {f.cost&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>COST</div><div style={{fontFamily:MN,fontSize:10,color:"var(--success-fg)",fontWeight:700}}>{f.currency||"$"}{f.cost}</div></div>}
       </div>
@@ -2566,7 +2565,7 @@ function FlightDayStrip({sel}){
                     <span style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"var(--link)"}}>{f.from}<span style={{fontSize:10,color:"var(--info-fg)",fontWeight:400,padding:"0 4px"}}>→</span>{f.to}</span>
                     <span style={{fontSize:10,fontWeight:700,color:"var(--info-fg)"}}>{f.flightNo||f.carrier}</span>
                     {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{f.carrier}</span>}
-                    {f.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>#{f.confirmNo}</span>}
+                    {f.pnr&&<span style={{fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>{f.pnr}</span>}
                   </div>
                   {f.pax?.length>0&&<div style={{fontSize:9,color:"var(--text-2)",marginBottom:live?3:0}}>{f.pax.join(", ")}</div>}
                   {live&&<div style={{display:"flex",gap:10,flexWrap:"wrap",fontSize:9,color:"var(--text-2)"}}>
@@ -2808,7 +2807,7 @@ function DayScheduleView({show,bus,split,sel}){
                     </div>
                     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
                       {f.pax?.length>0&&<span style={{fontSize:9,color:"var(--text-2)"}}>{f.pax.join(", ")}</span>}
-                      {f.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>#{f.confirmNo}</span>}
+                      {f.pnr&&<span style={{fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>{f.pnr}</span>}
                       {f.fromCity&&isDep&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{f.fromCity}</span>}
                       {f.toCity&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{isDep?"→ ":""}{f.toCity}</span>}
                     </div>
@@ -3938,13 +3937,12 @@ function SegmentDrawer({seg,crew,sorted,onChange,onClose}){
         <PaxEditor pax={seg.pax||[]} crew={crew} onSave={newPax=>setField("pax",(newPax||[]).map(s=>String(s||"").trim()).filter(Boolean))}/>
       </div>
 
-      {/* Codes: PNR / Confirm# / Ticket# + cost */}
+      {/* Codes: PNR / Ticket# / Cost */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
         {sub("PNR",<input value={seg.pnr||""} onChange={e=>setField("pnr",e.target.value)} placeholder="F9OCAU" style={{...inp,fontFamily:MN}}/>)}
-        {sub("Confirm #",<input value={seg.confirmNo||""} onChange={e=>setField("confirmNo",e.target.value)} placeholder="Booking/order #" style={{...inp,fontFamily:MN}}/>)}
+        {sub("Ticket # (e-ticket)",<input value={seg.ticketNo||""} onChange={e=>setField("ticketNo",e.target.value)} placeholder="001-1234567890" style={{...inp,fontFamily:MN}}/>)}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-        {sub("Ticket # (e-ticket)",<input value={seg.ticketNo||""} onChange={e=>setField("ticketNo",e.target.value)} placeholder="001-1234567890" style={{...inp,fontFamily:MN}}/>)}
         {sub("Cost",<input type="number" value={seg.cost||""} onChange={e=>setField("cost",Number(e.target.value)||"")} placeholder="0.00" style={inp}/>)}
       </div>
       {sub("Notes",<textarea value={seg.notes||""} onChange={e=>setField("notes",e.target.value)} rows={2} placeholder="Dispatch instructions, pickup location, etc." style={{...inp,resize:"vertical",minHeight:50}}/>)}
@@ -3971,7 +3969,7 @@ function TransTab(){
       <div style={{flex:1,overflow:"auto",padding:"12px 20px 30px"}}>
         {view==="travel"&&<TravelDayView/>}
         {view==="calendar"&&<TourCalendar/>}
-        {view==="flights"&&<>{labelIntel?.crewFlights?.length>0&&(
+        {view==="flights"&&<>{false&&labelIntel?.crewFlights?.length>0&&(
           <div style={{background:"var(--info-bg)",border:"1px solid var(--info-bg)",borderRadius:10,marginBottom:12,overflow:"hidden"}}>
             <div onClick={()=>setCrewFlightsOpen(v=>!v)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",cursor:"pointer",userSelect:"none"}}>
               <div style={{fontSize:9,fontWeight:800,color:"var(--info-fg)",letterSpacing:"0.08em"}}>CREW FLIGHTS · LABEL SCAN ({labelIntel.crewFlights.length} deduped)</div>
