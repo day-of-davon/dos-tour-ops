@@ -1441,7 +1441,7 @@ function FlightsSection(){
       if(opts.reset){setFlights({});setPendingImport([]);}
       setScanning(true);setScanMsg(opts.reset?"Reset. Rescanning Gmail…":"Scanning Gmail for flight confirmations…");
       const showsArr=Object.values(shows||{}).filter(s=>s.clientId===aC).map(s=>({id:s.id||s.date,date:s.date,venue:s.venue,city:s.city,type:s.type}));
-      const flightBody=JSON.stringify({googleToken,tourStart,tourEnd,focus:FOCUS_CARRIERS,shows:showsArr});
+      const flightBody=JSON.stringify({googleToken,tourStart,tourEnd,focus:FOCUS_CARRIERS,shows:showsArr,...(opts.force?{force:true}:{})});
       const flightOpts={method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:flightBody};
       let resp=await fetch("/api/flights",flightOpts);
       for(let retry=0;resp.status===404&&retry<2;retry++){
@@ -1553,6 +1553,7 @@ function FlightsSection(){
         {scanMsg&&<span style={{fontSize:9,color:scanning?"var(--accent)":"var(--text-dim)",fontFamily:MN}}>{scanMsg}</span>}
         <div style={{marginLeft:"auto",display:"flex",gap:6}}>
           <button onClick={()=>{if(confirm(`Clear all ${allFlights.length} flights and rescan Gmail?`))scanFlights({reset:true});}} disabled={scanning} style={{background:scanning?"var(--border)":"var(--danger-fg)",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>Reset & Rescan</button>
+          <button onClick={()=>scanFlights({force:true})} disabled={scanning} title="Force re-parse all emails — extracts payment method from existing confirmations" style={{background:scanning?"var(--border)":"var(--warn-bg)",color:scanning?"var(--text-dim)":"var(--warn-fg)",border:`1px solid ${scanning?"var(--border)":"var(--warn-fg)"}`,borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>Force Rescan</button>
           <button onClick={()=>scanFlights()} disabled={scanning} style={{background:scanning?"var(--border)":"var(--link)",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail"}</button>
         </div>
       </div>
@@ -4241,7 +4242,19 @@ function FinLedger(){
         payMethod:f.payMethod||"",
       });
     });
-    return out;
+    // Deduplicate: first by id, then flights by flightNo+depDate+route
+    const seenIds=new Set();
+    const seenFlightKeys=new Set();
+    return out.filter(r=>{
+      if(seenIds.has(r.id))return false;
+      seenIds.add(r.id);
+      if(r.cat==="Flight"&&r.desc){
+        const k=r.desc+"|"+r.date;
+        if(seenFlightKeys.has(k))return false;
+        seenFlightKeys.add(k);
+      }
+      return true;
+    });
   },[finance,flights,shows]);
 
   const cats=[...new Set(rows.map(r=>r.cat))].sort();

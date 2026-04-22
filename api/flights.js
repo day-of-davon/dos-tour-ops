@@ -452,6 +452,7 @@ module.exports = async function handler(req, res) {
     tourEnd = "2026-06-30",
     sweepFrom = null,
     shows = [],
+    force = false,
   } = req.body || {};
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
 
@@ -540,7 +541,7 @@ module.exports = async function handler(req, res) {
     const expectedLegs = expectedLegCount(t.body);
     const cachedLegCount = Array.isArray(cached?.result) ? cached.result.length : 0;
     const underParsed = expectedLegs >= 2 && cachedLegCount < expectedLegs;
-    if (!underParsed && shouldUseCached(cached, t.lastMsgMs, bodyHash, t.attachmentFingerprints)) {
+    if (!force && !underParsed && shouldUseCached(cached, t.lastMsgMs, bodyHash, t.attachmentFingerprints)) {
       if (Array.isArray(cached.result)) cachedFlights.push(...cached.result);
     } else {
       freshThreads.push(t);
@@ -605,6 +606,7 @@ Rules:
 - IATA airport codes: 3 uppercase letters. If the email shows a city name instead of IATA, use the correct IATA code for that airport. Common: Dublin=DUB, Manchester=MAN, London Heathrow=LHR, London Gatwick=LGW, Paris CDG=CDG, Paris Orly=ORY, Amsterdam=AMS, Zurich=ZRH, Prague=PRG, Berlin=BER, Warsaw=WAW, Brussels=BRU, Milan Malpensa=MXP.
 - cost: number only, no currency symbol. null if not present.
 - currency: 3-letter ISO code (USD, GBP, EUR, CAD). null if not present.
+- payMethod: card or payment method used. Look for "charged to", "payment method", "card ending in", "Visa", "Mastercard", "Amex", "American Express" followed by last 4 digits. Format as "Amex 4567" or "Visa 1234". null if not present.
 
 Passenger extraction (critical):
 - Scan the ENTIRE body for any section labeled: "Passengers", "Travelers", "Traveler", "Passenger", "Guest", "Name", or any passenger table.
@@ -685,6 +687,7 @@ Return this exact JSON:
       "pax": ["Grace Offerdahl"],
       "pnr": "CODGXZ", "confirmNo": null, "ticketNo": null,
       "cost": null, "currency": "USD",
+      "payMethod": null,
       "tid": "${t.id}"
     }
   ]
@@ -720,6 +723,7 @@ Return this exact JSON:
       "ticketNo": "006-1234567890",
       "cost": 648.50,
       "currency": "USD",
+      "payMethod": "Amex 4567",
       "tid": "<thread_id_from_above>"
     }
   ]
@@ -836,6 +840,7 @@ Return this exact JSON:
       "pax": ["Grace Offerdahl"],
       "pnr": "CODGXZ", "confirmNo": null, "ticketNo": null,
       "cost": null, "currency": "USD",
+      "payMethod": null,
       "tid": "${t.id}"
     }
   ]
