@@ -92,6 +92,18 @@ function carrierFromSender(from) {
   return null;
 }
 
+// Marketing / operational-but-not-booking subject blocklist. Airlines send many
+// pre/post-flight emails (seat upgrades, check-in reminders, inflight menus,
+// rate-your-flight surveys, loyalty-points promos) that keyword-match our
+// subject sweeps ("your flight", "flight") but contain zero booking data.
+// Dropping them at header time saves a Claude call per thread and stops them
+// polluting the scan cap.
+const MARKETING_SUBJECT = /(what you can look forward to|look forward to on your flight|time to check[- ]in|check[- ]in (is )?(now )?open|online check[- ]in|ready to check[- ]in|pre[- ]order (your )?meal|meal service|upgrade your seat|seat upgrade|bid for (an )?upgrade|reserve your seat|choose your seat|rate your flight|how was your (flight|trip)|tell us about your (flight|trip)|survey|feedback|enjoy (your|the) flight|get ready for your (flight|trip)|preparing for your (flight|trip)|packing tips|travel tips|baggage (info|tips|reminder)|flight status update|flight delay|flight schedule change|earn (miles|points|status)|elite status|mileage (plus|statement)|frequent flyer|loyalty|skymiles|aadvantage|mileageplus|lounge access|duty[- ]free|inflight (entertainment|menu|shopping)|welcome aboard|thank you for flying|we hope you enjoyed|missed you|we[' ]?d love to have you back|exclusive (offer|deal|fare)|limited[- ]time offer|deal alert|fare sale|save \d+%|% off)/i;
+
+function isMarketingSubject(subject) {
+  return MARKETING_SUBJECT.test(String(subject || ""));
+}
+
 // ── Date helpers ──────────────────────────────────────────────────────────────
 function toGmailDate(d) { return d.replace(/-/g, "/"); }
 function nDaysAgo(n) {
@@ -122,7 +134,16 @@ function extractHeaders(thread) {
   const rawLen = rawParts.join("").length;
   const strippedLen = strippedParts.join("").length;
   if (rawLen > strippedLen) console.log(`[flights] footer-strip tid=${thread.id}: saved ${rawLen - strippedLen} chars`);
-  const body = strippedParts.join("\n---\n").slice(0, 3000);
+  // Body capture: 8000 chars. Forwarded airline receipts often front-load 1-2KB
+  // of Gmail "Fwd:" chrome + From/To/Date headers before the inner airline body
+  // starts, so a 3KB cap was dropping leg #2 on round-trip JetBlue/Air Canada.
+  // Prefer a slice starting at the forwarded-message marker when present, so the
+  // airline content stays in-window instead of getting trimmed.
+  const joined = strippedParts.join("\n---\n");
+  const fwdMarker = joined.search(/[-]{3,}\s*(?:Forwarded message|Begin forwarded message)/i);
+  const body = (fwdMarker > 0 && joined.length > 8000)
+    ? joined.slice(Math.max(0, fwdMarker - 200), fwdMarker - 200 + 8000)
+    : joined.slice(0, 8000);
   const lastMsg = thread.messages?.[thread.messages.length - 1];
   const lastMsgMs = lastMsg?.internalDate ? Number(lastMsg.internalDate) : null;
   // Raw HTML (pre-strip) from all messages — needed for JSON-LD FlightReservation scanning.
@@ -304,6 +325,8 @@ function buildFlightQueryGroups(after) {
     `from:(noreply@hawaiianairlines.com) ${W}`,
     // Canada
     `from:(noreply@aircanada.com) ${W}`,
+    `from:(noreply@aircanada.ca) ${W}`,
+    `from:(aircanada.ca) ${W}`,
     `from:(noreply@westjet.com) ${W}`,
     `from:(noreply@flyporter.com) ${W}`,
     // European full-service
@@ -498,8 +521,17 @@ module.exports = async function handler(req, res) {
   }
 
   let threads, freshIds;
+  let marketingSkipped = 0;
   try {
-    threads = (await fetchBatched(googleToken, ids, 20)).map(extractHeaders);
+    const allThreads = (await fetchBatched(googleToken, ids, 20)).map(extractHeaders);
+    threads = allThreads.filter(t => {
+      if (isMarketingSubject(t.subject)) {
+        marketingSkipped++;
+        console.log(`[flights] marketing-skip tid=${t.id}: "${(t.subject || "").slice(0, 80)}"`);
+        return false;
+      }
+      return true;
+    });
     const cutoff48h = Date.now() - 48 * 3600 * 1000;
     freshIds = new Set(
       threads
@@ -632,7 +664,11 @@ Skip hotel, train, rental car confirmations — flights and private charters onl
   const withPdfThreads = SCAN_PDFS ? claudeThreads.filter(t => t.attachments?.length) : [];
   const textOnlyThreads = claudeThreads.filter(t => !withPdfThreads.includes(t));
 
-  const BATCH = 8;
+  // BATCH was 8; dropped to 5 so multi-leg round-trip confirmations (JetBlue
+  // "CODGXZ"-type) don't hit the 4096 output cap and truncate the 2nd leg.
+  // Combined with max_tokens bump below, Claude has room to enumerate every
+  // segment of a connecting itinerary per batch.
+  const BATCH = 5;
   const threadBatches = [];
   for (let i = 0; i < textOnlyThreads.length; i += BATCH) threadBatches.push(textOnlyThreads.slice(i, i + BATCH));
 
@@ -672,7 +708,7 @@ Return this exact JSON:
 
   const RETRYABLE = new Set([408, 409, 425, 429, 500, 502, 503, 504, 529]);
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const callClaude = async (prompt, sys = sysPrompt, maxTokens = 4096, model = DEFAULT_MODEL) => {
+  const callClaude = async (prompt, sys = sysPrompt, maxTokens = 8192, model = DEFAULT_MODEL) => {
     let lastErr;
     for (let attempt = 0; attempt < 3; attempt++) {
       if (attempt > 0) await sleep(500 * 2 ** (attempt - 1));
@@ -955,6 +991,7 @@ Return this exact JSON:
     threadsCached: threads.length - freshThreads.length,
     threadsParsed: freshThreads.length,
     attachmentsScanned,
+    marketingSkipped,
     tokensUsed: inputTokensTotal + outputTokensTotal,
   });
 };
