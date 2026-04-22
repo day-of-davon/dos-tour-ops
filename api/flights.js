@@ -331,6 +331,8 @@ function buildFlightQueryGroups(after) {
     `subject:("your flight") ${W}`,
     `subject:("e-ticket") (flight OR airline OR airways) ${W}`,
     `subject:("boarding pass") ${W}`,
+    `subject:("itinerary and receipt") ${W}`,
+    `subject:("your itinerary") ${W}`,
     `subject:("itinerary") (flight OR airline OR departure) ${W}`,
     `subject:("booking confirmation") (flight OR airline OR airways) ${W}`,
     `subject:("trip confirmation") (flight OR airline) ${W}`,
@@ -458,7 +460,7 @@ module.exports = async function handler(req, res) {
   });
   const stopReasons = {};
   const runErrors = [];
-  let inputTokensTotal = 0, outputTokensTotal = 0;
+  let inputTokensTotal = 0, outputTokensTotal = 0, cacheReadTokensTotal = 0, cacheCreationTokensTotal = 0;
   const { high, low } = buildFlightQueryGroups(after);
   const seen = new Set();
   const CAP = 60;
@@ -735,8 +737,10 @@ Return this exact JSON:
       if (resp.ok) {
         const data = await resp.json();
         const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
-        inputTokensTotal  += data.usage?.input_tokens  || 0;
-        outputTokensTotal += data.usage?.output_tokens || 0;
+        inputTokensTotal        += data.usage?.input_tokens                || 0;
+        outputTokensTotal       += data.usage?.output_tokens               || 0;
+        cacheReadTokensTotal    += data.usage?.cache_read_input_tokens     || 0;
+        cacheCreationTokensTotal += data.usage?.cache_creation_input_tokens || 0;
         bumpStopReason(stopReasons, data.stop_reason);
         console.log("[flights] stop_reason:", data.stop_reason, "| model:", data.model, "| attempt:", attempt + 1);
         return extractJson(text);
@@ -1010,6 +1014,8 @@ Return this exact JSON:
     attachmentsScanned,
     inputTokens: inputTokensTotal,
     outputTokens: outputTokensTotal,
+    cacheReadTokens: cacheReadTokensTotal,
+    cacheCreationTokens: cacheCreationTokensTotal,
     stopReasons,
     errors: [...runErrors, ...queryErrors.map(q => ({ kind: "gmail_query_failed", ...q }))],
     startedAt,
