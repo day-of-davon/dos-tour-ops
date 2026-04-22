@@ -1,6 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { useAuth } from "./components/AuthGate.jsx";
 import { supabase } from "./lib/supabase";
+import GmailReauthModal from "./components/GmailReauthModal.jsx";
+import { isGmailAuthError } from "./lib/gmailAuth";
+import { mirrorWrite } from "./lib/offlineMirror";
+import { enqueue as enqueueWrite } from "./lib/writeQueue";
+import { TEAM_ID } from "./lib/storage";
 
 // DOS TOUR OPS v7.0 — Day of Show, LLC
 // Client-first · All dept advance lanes · Custom + editable items · Full settlement
@@ -348,6 +353,9 @@ const sGP=async k=>{try{const r=await window.storage.getPrivate(k);return r?JSON
 const sSP=async(k,v)=>{try{await window.storage.setPrivate(k,JSON.stringify(v));return true}catch{return false}};
 
 export default function App(){
+  const auth=useAuth();
+  const userIdRef=useRef(null);
+  useEffect(()=>{userIdRef.current=auth?.user?.id||null;},[auth]);
   const[tab,setTab]=useState("advance");
   const[role,setRole]=useState("tm");
   const[aC,setAC]=useState("bbn");
@@ -380,6 +388,7 @@ export default function App(){
   const[dateMenu,setDateMenu]=useState(false);
   const[showOffDays,setShowOffDays]=useState(true);
   const[sidebarOpen,setSidebarOpen]=useState(true);
+  const[gmailReauth,setGmailReauth]=useState(false);
   const mobile=useMobile();
   const st=useRef(null);const stp=useRef(null);
 
@@ -416,7 +425,7 @@ export default function App(){
       const googleToken=session.provider_token;
       if(!googleToken){setRefreshMsg("Gmail token missing — sign out and back in");return;}
       const resp=await fetch("/api/intel",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({show,googleToken,forceRefresh:force,userEmail:session.user?.email})});
-      if(!resp.ok){const err=await resp.json().catch(()=>({}));setRefreshMsg(err.error==="gmail_token_expired"?"Gmail token expired — re-sign in":`Error: ${resp.status}`);return;}
+      if(!resp.ok){const err=await resp.json().catch(()=>({}));if(isGmailAuthError(resp,err)){setGmailReauth(true);setRefreshMsg("");return;}setRefreshMsg(`Error: ${resp.status}`);return;}
       const data=await resp.json();const ni=data.intel;
       if(!ni||!ni.threads){
         const hint=data.debug?.stopReason==="max_tokens"?" (response truncated — too many threads)":data.debug?.rawText?` — raw: ${data.debug.rawText.slice(0,120)}`:"";
@@ -454,6 +463,42 @@ export default function App(){
     st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
   },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,flights,lodging,showOffDays,sidebarOpen]);
   useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,showOffDays,sidebarOpen]);
+
+  // Synchronous flush of pending debounced writes — runs on tab close / reload.
+  // Mirrors into localStorage (read-survives-offline) and enqueues into the
+  // write queue (replayed to Supabase on next app load via drainQueue()).
+  const flushPending=useCallback(()=>{
+    if(!loaded)return;
+    if(st.current){clearTimeout(st.current);st.current=null;}
+    if(stp.current){clearTimeout(stp.current);stp.current=null;}
+    const uid=userIdRef.current;
+    const sharedPairs=[
+      [SK.SHOWS,shows],[SK.ROS,ros],[SK.ADVANCES,advances],[SK.FINANCE,finance],
+      [SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen}],
+      [SK.CREW,{crew,showCrew}],[SK.PRODUCTION,production],
+      [SK.FLIGHTS,flights],[SK.LODGING,lodging],
+    ];
+    const privatePairs=[
+      [PK.NOTES_PRIV,notesPriv],[PK.CHECKLIST_PRIV,checkPriv],[PK.INTEL,intel],
+    ];
+    sharedPairs.forEach(([k,v])=>{
+      const s=JSON.stringify(v);
+      mirrorWrite("shared",k,s);
+      enqueueWrite({type:"set",scope:"shared",key:k,value:s,teamId:TEAM_ID,userId:uid});
+    });
+    privatePairs.forEach(([k,v])=>{
+      const s=JSON.stringify(v);
+      mirrorWrite("private",k,s);
+      enqueueWrite({type:"set",scope:"private",key:k,value:s,userId:uid});
+    });
+  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,showOffDays,sidebarOpen,notesPriv,checkPriv,intel]);
+  useEffect(()=>{
+    const h=()=>flushPending();
+    window.addEventListener("beforeunload",h);
+    window.addEventListener("pagehide",h);
+    return()=>{window.removeEventListener("beforeunload",h);window.removeEventListener("pagehide",h);};
+  },[flushPending]);
+
   useEffect(()=>{const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(v=>!v);}if(e.key==="Escape")setCmd(false);};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
 
   const uShow=useCallback((d,u)=>setShows(p=>({...p,[d]:{...p[d],...u,lastModified:Date.now()}})),[]);
@@ -516,7 +561,7 @@ export default function App(){
   if(!loaded||!shows)return(<div style={{background:"#F5F3EF",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#0f172a",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"#64748b",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
   return(
-    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen}}>
+    <Ctx.Provider value={{shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,setGmailReauth}}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
       <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:#F5F3EF}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:3px}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#f0ede8!important}.rh:hover{background:#f8f7f5!important}`}</style>
       <div style={{fontFamily:"'Outfit',system-ui",background:"#F5F3EF",color:"#0f172a",height:"100vh",width:"100%",maxWidth:"100vw",overflow:"hidden",display:"flex",flexDirection:"column"}}>
@@ -531,6 +576,7 @@ export default function App(){
         {exp&&<ExportModal onClose={()=>setExp(false)}/>}
         {dateMenu&&<DateDrawer onClose={()=>setDateMenu(false)}/>}
         {uploadOpen&&<FileUploadModal onClose={()=>setUploadOpen(false)}/>}
+        {gmailReauth&&<GmailReauthModal onClose={()=>setGmailReauth(false)}/>}
         {undoToast&&<div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",background:"#0f172a",color:"#fff",borderRadius:8,padding:"8px 14px",display:"flex",alignItems:"center",gap:10,fontSize:11,boxShadow:"0 8px 24px rgba(0,0,0,.2)",zIndex:90}}>
           <span>{undoToast.label}</span>
           <button onClick={()=>{undoToast.undo();setUndoToast(null);}} style={{background:"#5B21B6",border:"none",borderRadius:5,color:"#fff",fontSize:10,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>Undo</button>
@@ -682,7 +728,7 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing}){
 }
 
 function FlightsSection(){
-  const{flights,uFlight,setFlights,uRos,gRos,uFin,finance,crew,setShowCrew,shows}=useContext(Ctx);
+  const{flights,uFlight,setFlights,uRos,gRos,uFin,finance,crew,setShowCrew,shows,setGmailReauth}=useContext(Ctx);
   const a=useAuth();
   const[scanning,setScanning]=useState(false);
   const[scanMsg,setScanMsg]=useState("");
@@ -702,7 +748,7 @@ function FlightsSection(){
       if(opts.reset){setFlights({});setPendingImport([]);}
       setScanning(true);setScanMsg(opts.reset?"Reset. Rescanning Gmail…":"Scanning Gmail for flight confirmations…");
       const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken,tourStart:"2026-04-01",tourEnd:"2026-06-30",focus:FOCUS_CARRIERS})});
-      if(resp.status===402){setScanMsg("Gmail session expired — please re-login.");setScanning(false);return;}
+      if(isGmailAuthError(resp)){setGmailReauth(true);setScanMsg("");setScanning(false);return;}
       const data=await resp.json();
       if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
       const newFlights=data.flights||[];
@@ -1588,7 +1634,7 @@ function AnchorTimes({b,setBF}){
 }
 
 function FlightDayStrip({sel}){
-  const{flights,uFlight,lodging,setTab}=useContext(Ctx);
+  const{flights,uFlight,lodging,setTab,setGmailReauth}=useContext(Ctx);
   const[open,setOpen]=useState(true);
   const[scanning,setScanning]=useState(false);
   const[refreshing,setRefreshing]=useState(false);
@@ -1608,7 +1654,7 @@ function FlightDayStrip({sel}){
     setScanning(true);setStripMsg("Scanning…");
     try{
       const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken,tourStart:"2026-04-01",tourEnd:"2026-06-30"})});
-      if(resp.status===402){setStripMsg("Gmail expired — re-login.");setScanning(false);return;}
+      if(isGmailAuthError(resp)){setGmailReauth(true);setStripMsg("");setScanning(false);return;}
       const data=await resp.json();
       if(data.error){setStripMsg(`Error: ${data.error}`);setScanning(false);return;}
       const allFlights=Object.values(flights);
@@ -2415,7 +2461,7 @@ function TourCalendar(){
 }
 
 function FlightsListView(){
-  const{flights,uFlight,uRos,gRos,uFin,finance,crew,setShowCrew,setSel,setTab}=useContext(Ctx);
+  const{flights,uFlight,uRos,gRos,uFin,finance,crew,setShowCrew,setSel,setTab,setGmailReauth}=useContext(Ctx);
   const goToSchedule=(date)=>{setSel(date);setTab("ros");};
   const[scanning,setScanning]=useState(false);
   const[scanMsg,setScanMsg]=useState("");
@@ -2439,7 +2485,7 @@ function FlightsListView(){
       if(!googleToken){setScanMsg("Gmail access not available — re-login with Google.");return;}
       setScanning(true);setScanMsg("Scanning Gmail…");
       const resp=await fetch("/api/flights",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken,tourStart:"2026-04-01",tourEnd:"2026-06-30"})});
-      if(resp.status===402){setScanMsg("Gmail session expired — re-login.");setScanning(false);return;}
+      if(isGmailAuthError(resp)){setGmailReauth(true);setScanMsg("");setScanning(false);return;}
       const data=await resp.json();
       if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
       const existingKeys=new Set(allFlights.map(f=>`${f.flightNo}__${f.depDate}`));

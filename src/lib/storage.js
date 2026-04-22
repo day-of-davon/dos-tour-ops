@@ -1,7 +1,11 @@
-// storage.js — Supabase-backed key/value, scoped by RLS.
+// storage.js — Supabase-backed key/value with retry, offline mirror, write queue.
 // Two scopes: private (user_id, team_id null) and shared (team_id).
+// On network failure, writes are enqueued; on reconnect they flush automatically.
+// Reads fall back to the localStorage mirror.
 
 import { supabase } from "./supabase";
+import { mirrorRead, mirrorWrite, mirrorDelete } from "./offlineMirror";
+import { enqueue, drain } from "./writeQueue";
 
 const TEAM_ID = "dos-bbno-eu-2026";
 
@@ -15,91 +19,178 @@ export const isSharedKey = (k) => SHARED_KEYS.has(k);
 export const isPrivateKey = (k) => PRIVATE_KEYS.has(k);
 export { TEAM_ID };
 
+// ── Retry helper ────────────────────────────────────────────────────────────
+// Retries transient failures (network). Does not retry on auth or constraint errors.
+async function withRetry(fn, attempts = 3, baseMs = 500) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      throw new Error("offline");
+    }
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      const msg = (e && (e.message || e.code || "")).toString();
+      // PostgREST auth/permission errors are terminal; don't retry.
+      if (/JWT|permission|denied|401|403/i.test(msg)) throw e;
+      if (i < attempts - 1) {
+        await new Promise(r => setTimeout(r, baseMs * Math.pow(2, i)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+async function currentUser() {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
+  return user;
+}
+
 // ── Shared (team-scoped) ────────────────────────────────────────────────────
 export async function getShared(key) {
-  const { data, error } = await supabase
-    .from("app_storage").select("value").eq("team_id", TEAM_ID).eq("key", key).maybeSingle();
-  if (error) { console.error("getShared:", error); return null; }
-  return data ? { key, value: data.value } : null;
+  try {
+    const data = await withRetry(async () => {
+      const { data, error } = await supabase
+        .from("app_storage").select("value").eq("team_id", TEAM_ID).eq("key", key).maybeSingle();
+      if (error) throw error;
+      return data;
+    });
+    if (data) {
+      mirrorWrite("shared", key, data.value);
+      return { key, value: data.value };
+    }
+    return null;
+  } catch (e) {
+    console.warn("getShared: falling back to mirror", key, e?.message || e);
+    const cached = mirrorRead("shared", key);
+    return cached != null ? { key, value: cached } : null;
+  }
 }
 
 export async function setShared(key, value) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated");
-
-  const { data: existing } = await supabase
-    .from("app_storage")
-    .select("id")
-    .eq("team_id", TEAM_ID)
-    .eq("key", key)
-    .maybeSingle();
-
-  if (existing) {
-    const { error } = await supabase
-      .from("app_storage")
-      .update({ value, updated_at: new Date().toISOString() })
-      .eq("team_id", TEAM_ID)
-      .eq("key", key);
-    if (error) { console.error("setShared update:", error); return null; }
-  } else {
-    const { error } = await supabase
-      .from("app_storage")
-      .insert({ user_id: user.id, team_id: TEAM_ID, key, value });
-    if (error) { console.error("setShared insert:", error); return null; }
+  mirrorWrite("shared", key, value);
+  let user;
+  try { user = await currentUser(); } catch (e) {
+    console.warn("setShared: no user, enqueueing", e?.message || e);
+    enqueue({ type: "set", scope: "shared", key, value, teamId: TEAM_ID });
+    return { key, value };
   }
-  return { key, value };
+  try {
+    await withRetry(async () => {
+      const { data: existing, error: selErr } = await supabase
+        .from("app_storage").select("id").eq("team_id", TEAM_ID).eq("key", key).maybeSingle();
+      if (selErr) throw selErr;
+      if (existing) {
+        const { error } = await supabase.from("app_storage")
+          .update({ value, updated_at: new Date().toISOString() })
+          .eq("team_id", TEAM_ID).eq("key", key);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("app_storage")
+          .insert({ user_id: user.id, team_id: TEAM_ID, key, value });
+        if (error) throw error;
+      }
+    });
+    // opportunistic drain after a success
+    drain();
+    return { key, value };
+  } catch (e) {
+    console.warn("setShared: enqueueing after failure", key, e?.message || e);
+    enqueue({ type: "set", scope: "shared", key, value, userId: user.id, teamId: TEAM_ID });
+    return { key, value };
+  }
 }
 
 export async function deleteShared(key) {
-  const { error } = await supabase.from("app_storage")
-    .delete().eq("team_id", TEAM_ID).eq("key", key);
-  if (error) { console.error("deleteShared:", error); return null; }
-  return { key, deleted: true };
+  mirrorDelete("shared", key);
+  try {
+    await withRetry(async () => {
+      const { error } = await supabase.from("app_storage")
+        .delete().eq("team_id", TEAM_ID).eq("key", key);
+      if (error) throw error;
+    });
+    drain();
+    return { key, deleted: true };
+  } catch (e) {
+    console.warn("deleteShared: enqueueing after failure", key, e?.message || e);
+    enqueue({ type: "delete", scope: "shared", key, teamId: TEAM_ID });
+    return { key, deleted: true };
+  }
 }
 
 // ── Private (user-scoped) ───────────────────────────────────────────────────
 export const storage = {
   async get(key) {
-    const { data, error } = await supabase
-      .from("app_storage").select("value").is("team_id", null).eq("key", key).maybeSingle();
-    if (error) { console.error("storage.get error:", error); return null; }
-    return data ? { key, value: data.value } : null;
+    try {
+      const data = await withRetry(async () => {
+        const { data, error } = await supabase
+          .from("app_storage").select("value").is("team_id", null).eq("key", key).maybeSingle();
+        if (error) throw error;
+        return data;
+      });
+      if (data) {
+        mirrorWrite("private", key, data.value);
+        return { key, value: data.value };
+      }
+      return null;
+    } catch (e) {
+      console.warn("storage.get: falling back to mirror", key, e?.message || e);
+      const cached = mirrorRead("private", key);
+      return cached != null ? { key, value: cached } : null;
+    }
   },
 
   async set(key, value) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Not authenticated");
-
-    const { data: existing } = await supabase
-      .from("app_storage")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("key", key)
-      .is("team_id", null)
-      .maybeSingle();
-
-    if (existing) {
-      const { error } = await supabase
-        .from("app_storage")
-        .update({ value, updated_at: new Date().toISOString() })
-        .eq("user_id", user.id)
-        .eq("key", key)
-        .is("team_id", null);
-      if (error) { console.error("storage.set update:", error); return null; }
-    } else {
-      const { error } = await supabase
-        .from("app_storage")
-        .insert({ user_id: user.id, team_id: null, key, value });
-      if (error) { console.error("storage.set insert:", error); return null; }
+    mirrorWrite("private", key, value);
+    let user;
+    try { user = await currentUser(); } catch (e) {
+      console.warn("storage.set: no user, enqueueing", e?.message || e);
+      enqueue({ type: "set", scope: "private", key, value });
+      return { key, value };
     }
-    return { key, value };
+    try {
+      await withRetry(async () => {
+        const { data: existing, error: selErr } = await supabase
+          .from("app_storage").select("id")
+          .eq("user_id", user.id).eq("key", key).is("team_id", null).maybeSingle();
+        if (selErr) throw selErr;
+        if (existing) {
+          const { error } = await supabase.from("app_storage")
+            .update({ value, updated_at: new Date().toISOString() })
+            .eq("user_id", user.id).eq("key", key).is("team_id", null);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from("app_storage")
+            .insert({ user_id: user.id, team_id: null, key, value });
+          if (error) throw error;
+        }
+      });
+      drain();
+      return { key, value };
+    } catch (e) {
+      console.warn("storage.set: enqueueing after failure", key, e?.message || e);
+      enqueue({ type: "set", scope: "private", key, value, userId: user.id });
+      return { key, value };
+    }
   },
 
   async delete(key) {
-    const { error } = await supabase
-      .from("app_storage").delete().is("team_id", null).eq("key", key);
-    if (error) { console.error("storage.delete error:", error); return null; }
-    return { key, deleted: true };
+    mirrorDelete("private", key);
+    try {
+      await withRetry(async () => {
+        const { error } = await supabase.from("app_storage")
+          .delete().is("team_id", null).eq("key", key);
+        if (error) throw error;
+      });
+      drain();
+      return { key, deleted: true };
+    } catch (e) {
+      console.warn("storage.delete: enqueueing after failure", key, e?.message || e);
+      enqueue({ type: "delete", scope: "private", key });
+      return { key, deleted: true };
+    }
   },
 };
 
