@@ -1881,11 +1881,11 @@ function NavSidebar(){
   // Merge tour days + non-tour shows, filter off/travel per toggle
   const rows=useMemo(()=>{
     const tourIds=new Set((tourDaysSorted||[]).map(d=>d.date));
-    const extras=(sorted||[]).filter(s=>!tourIds.has(s.date)).map(s=>({date:s.date,type:s.type||"show",show:s,city:s.city,venue:s.venue,synthetic:false}));
+    const extras=(sorted||[]).filter(s=>s.clientId===aC&&!tourIds.has(s.date)).map(s=>({date:s.date,type:s.type||"show",show:s,city:s.city,venue:s.venue,synthetic:false}));
     const all=[...(tourDaysSorted||[]),...extras].sort((a,b)=>a.date.localeCompare(b.date));
     if(!showOffDays)return all.filter(d=>d.type!=="off"&&d.type!=="travel");
     return all;
-  },[tourDaysSorted,sorted,showOffDays]);
+  },[tourDaysSorted,sorted,showOffDays,aC]);
 
   const pendingCount=d=>{const adv=advances[d]||{};const items=adv.items||{};const custom=adv.customItems||[];return[...AT,...custom].filter(t=>(items[t.id]?.status||"pending")==="pending").length;};
 
@@ -1998,10 +1998,10 @@ function TopBar({ss}){
   const stepBtn={background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-2)",fontSize:11,padding:mobile?"5px 8px":"3px 7px",cursor:"pointer",fontWeight:700,minHeight:mobile?30:undefined,lineHeight:1};
   const stepList=useMemo(()=>{
     const tourIds=new Set((tourDaysSorted||[]).map(d=>d.date));
-    const extras=(sorted||[]).filter(s=>!tourIds.has(s.date)).map(s=>({date:s.date,type:s.type||"show"}));
+    const extras=(sorted||[]).filter(s=>s.clientId===aC&&!tourIds.has(s.date)).map(s=>({date:s.date,type:s.type||"show"}));
     const all=[...(tourDaysSorted||[]).map(d=>({date:d.date,type:d.type})),...extras].sort((a,b)=>a.date.localeCompare(b.date));
     return showOffDays?all:all.filter(d=>d.type!=="off"&&d.type!=="travel");
-  },[tourDaysSorted,sorted,showOffDays]);
+  },[tourDaysSorted,sorted,showOffDays,aC]);
   const curIdx=stepList.findIndex(d=>d.date===sel);
   const stepDate=dir=>{if(curIdx<0)return;const ni=curIdx+dir;if(ni<0||ni>=stepList.length)return;setSel(stepList[ni].date);};
   const canPrev=curIdx>0;const canNext=curIdx>=0&&curIdx<stepList.length-1;
@@ -2104,11 +2104,11 @@ function DateDrawer({onClose}){
   // Merge tour days with non-tour shows (post-EU shows, festivals). Use tourDays for Apr16-May31, fall back to sorted for everything else.
   const rows=useMemo(()=>{
     const tourIds=new Set((tourDaysSorted||[]).map(d=>d.date));
-    const extras=(sorted||[]).filter(s=>!tourIds.has(s.date)).map(s=>({date:s.date,type:s.type||"show",show:s,city:s.city,venue:s.venue}));
+    const extras=(sorted||[]).filter(s=>s.clientId===aC&&!tourIds.has(s.date)).map(s=>({date:s.date,type:s.type||"show",show:s,city:s.city,venue:s.venue}));
     const all=[...(tourDaysSorted||[]),...extras].sort((a,b)=>a.date.localeCompare(b.date));
     if(filter==="all")return all;
     return all.filter(d=>d.type===filter);
-  },[tourDaysSorted,sorted,filter]);
+  },[tourDaysSorted,sorted,filter,aC]);
   return(
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.3)",zIndex:80,display:"flex",justifyContent:"flex-end"}}>
       <div onClick={e=>e.stopPropagation()} style={{width:320,maxWidth:"90vw",height:"100%",background:"var(--card)",boxShadow:"-4px 0 16px rgba(0,0,0,0.12)",display:"flex",flexDirection:"column",fontFamily:"'Outfit',system-ui"}}>
