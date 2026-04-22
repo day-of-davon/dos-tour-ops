@@ -1910,6 +1910,8 @@ function NavSidebar(){
   const{sidebarOpen,tab,sel,setSel,sorted,tourDaysSorted,shows,uShow,advances,aC,setTab,next,tourDays,showOffDays,setShowOffDays}=useContext(Ctx);
   const[newDate,setNewDate]=useState("");
   const[newType,setNewType]=useState("off");
+  const[newVenue,setNewVenue]=useState("");
+  const[newCity,setNewCity]=useState("");
   const today=new Date().toISOString().slice(0,10);
 
   // Merge tour days + non-tour shows, filter off/travel per toggle
@@ -1928,8 +1930,8 @@ function NavSidebar(){
   const add=()=>{
     if(!newDate||shows[newDate])return;
     const isShow=newType==="show";
-    uShow(newDate,{date:newDate,clientId:aC,type:newType,city:newType==="travel"?"Travel":isShow?"":"Off Day",venue:newType==="travel"?"Travel Day":isShow?"":"Off Day",country:"",region:"",promoter:"",advance:[],doors:isShow?toM(19):0,curfew:isShow?toM(23):0,busArrive:isShow?toM(9):0,crewCall:isShow?toM(10):0,venueAccess:isShow?toM(9):0,mgTime:isShow?toM(16,30):0,notes:""});
-    setSel(newDate);setNewDate("");
+    uShow(newDate,{date:newDate,clientId:aC,type:newType,city:newType==="travel"?"Travel":isShow?(newCity||""):"Off Day",venue:newType==="travel"?"Travel Day":isShow?(newVenue||""):"Off Day",country:"",region:"",promoter:"",advance:[],doors:isShow?toM(19):0,curfew:isShow?toM(23):0,busArrive:isShow?toM(9):0,crewCall:isShow?toM(10):0,venueAccess:isShow?toM(9):0,mgTime:isShow?toM(16,30):0,notes:""});
+    setSel(newDate);setNewDate("");setNewVenue("");setNewCity("");
   };
 
   const listRef=useRef(null);
@@ -2015,6 +2017,10 @@ function NavSidebar(){
             <option value="travel">Travel</option>
           </select>
         </div>
+        {newType==="show"&&<>
+          <input value={newVenue} onChange={e=>setNewVenue(e.target.value)} placeholder="Venue" style={{...UI.input,fontSize:10,padding:"4px 5px"}}/>
+          <input value={newCity} onChange={e=>setNewCity(e.target.value)} placeholder="City" style={{...UI.input,fontSize:10,padding:"4px 5px"}}/>
+        </>}
         <button onClick={add} disabled={!newDate||!!shows[newDate]} style={{...UI.expandBtn(false,"var(--success-fg)"),fontSize:9,padding:"4px 0",width:"100%",opacity:(!newDate||shows[newDate])?0.4:1}}>+ Add Date</button>
       </div>
     </div>
@@ -2119,12 +2125,14 @@ function DateDrawer({onClose}){
   const{sorted,tourDaysSorted,sel,setSel,uShow,aC,shows,tourDays}=useContext(Ctx);
   const[newDate,setNewDate]=useState("");
   const[newType,setNewType]=useState("off");
+  const[newVenue,setNewVenue]=useState("");
+  const[newCity,setNewCity]=useState("");
   const[filter,setFilter]=useState("all");
   const add=()=>{
     if(!newDate||shows[newDate])return;
     const isShow=newType==="show";
-    uShow(newDate,{date:newDate,clientId:aC,type:newType,city:newType==="travel"?"Travel":isShow?"":"Off Day",venue:newType==="travel"?"Travel Day":isShow?"":"Off Day",country:"",region:"",promoter:"",advance:[],doors:isShow?toM(19):0,curfew:isShow?toM(23):0,busArrive:isShow?toM(9):0,crewCall:isShow?toM(10):0,venueAccess:isShow?toM(9):0,mgTime:isShow?toM(16,30):0,notes:""});
-    setSel(newDate);setNewDate("");onClose();
+    uShow(newDate,{date:newDate,clientId:aC,type:newType,city:newType==="travel"?"Travel":isShow?(newCity||""):"Off Day",venue:newType==="travel"?"Travel Day":isShow?(newVenue||""):"Off Day",country:"",region:"",promoter:"",advance:[],doors:isShow?toM(19):0,curfew:isShow?toM(23):0,busArrive:isShow?toM(9):0,crewCall:isShow?toM(10):0,venueAccess:isShow?toM(9):0,mgTime:isShow?toM(16,30):0,notes:""});
+    setSel(newDate);setNewDate("");setNewVenue("");setNewCity("");onClose();
   };
   const drawerLabel=useMemo(()=>{
     if(!sel)return"DATES";
@@ -2150,13 +2158,19 @@ function DateDrawer({onClose}){
           <span style={{fontSize:11,fontWeight:800,letterSpacing:"0.06em",color:"var(--text)"}}>{drawerLabel}</span>
           <button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",fontSize:20,color:"var(--text-dim)"}}>×</button>
         </div>
-        <div style={{padding:"10px 16px",borderBottom:"1px solid var(--border)",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
-          <input type="date" value={newDate} onChange={e=>setNewDate(e.target.value)} style={{...UI.input,fontFamily:MN,padding:"5px 8px"}}/>
-          <select value={newType} onChange={e=>setNewType(e.target.value)} style={{...UI.input,padding:"5px 8px"}}>
-            <option value="show">Show</option>
-            <option value="off">Off Day</option>
-            <option value="travel">Travel Day</option>
-          </select>
+        <div style={{padding:"10px 16px",borderBottom:"1px solid var(--border)",display:"flex",flexDirection:"column",gap:6}}>
+          <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+            <input type="date" value={newDate} onChange={e=>setNewDate(e.target.value)} style={{...UI.input,fontFamily:MN,padding:"5px 8px",flex:1}}/>
+            <select value={newType} onChange={e=>setNewType(e.target.value)} style={{...UI.input,padding:"5px 8px"}}>
+              <option value="show">Show</option>
+              <option value="off">Off Day</option>
+              <option value="travel">Travel Day</option>
+            </select>
+          </div>
+          {newType==="show"&&<div style={{display:"flex",gap:6}}>
+            <input value={newVenue} onChange={e=>setNewVenue(e.target.value)} placeholder="Venue" style={{...UI.input,padding:"5px 8px",flex:1}}/>
+            <input value={newCity} onChange={e=>setNewCity(e.target.value)} placeholder="City" style={{...UI.input,padding:"5px 8px",flex:1}}/>
+          </div>}
           <button onClick={add} disabled={!newDate||!!shows[newDate]} style={{...UI.expandBtn(false,"var(--success-fg)"),opacity:(!newDate||shows[newDate])?0.4:1}}>+ Add</button>
         </div>
         <div style={{padding:"6px 12px",borderBottom:"1px solid var(--border)",display:"flex",gap:4,flexWrap:"wrap"}}>
@@ -3104,6 +3118,8 @@ function EventSwitcher({show,sel}){
 function ROSTab(){
   const{shows,uShow,gRos,uRos,ros,sel,setSel,cShows,role,aC,selEventId,setSelEventId}=useContext(Ctx);
   const[editB,setEditB]=useState(null);const[dOver,setDOver]=useState(null);
+  const[editShow,setEditShow]=useState(false);
+  const[editVenue,setEditVenue]=useState("");const[editCity,setEditCity]=useState("");const[editPromoter,setEditPromoter]=useState("");
   const dId=useRef(null);const client=CM[aC];const show=shows[sel];
   // Sub-event support: use compound ROS key when a sub-event is selected
   const subEvent=selEventId?(show?.subEvents||[]).find(e=>e.id===selEventId)||null:null;
@@ -3268,8 +3284,16 @@ function ROSTab(){
           {!effShow.busSkip&&<button onClick={()=>uEffShow({busPre:!effShow.busPre})} title="Bus arrived before show day" style={{background:effShow.busPre?"var(--info-bg)":"var(--card-3)",border:`1px solid ${effShow.busPre?"var(--link)":"var(--border)"}`,borderRadius:6,color:effShow.busPre?"var(--link)":"var(--text-mute)",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>Pre-day</button>}
           <button onClick={()=>uEffShow({mgSkip:!effShow.mgSkip})} title="Toggle Meet & Greet" style={{background:effShow.mgSkip?"var(--card-3)":"var(--success-bg)",border:`1px solid ${effShow.mgSkip?"var(--border)":"var(--success-fg)"}`,borderRadius:6,color:effShow.mgSkip?"var(--text-mute)":"var(--success-fg)",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{effShow.mgSkip?"+ M&G":"✓ M&G"}</button>
           <button onClick={()=>{uRos(rosKey,null);setEditB(null);}} style={{background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-dim)",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:600}}>Reset</button>
+          <button onClick={()=>{setEditVenue(effShow.venue||"");setEditCity(effShow.city||"");setEditPromoter(effShow.promoter||"");setEditShow(v=>!v);}} style={{background:editShow?"var(--accent-pill-bg)":"var(--card-3)",border:`1px solid ${editShow?"var(--accent)":"var(--border)"}`,borderRadius:6,color:editShow?"var(--accent)":"var(--text-dim)",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:600}}>✏ Edit</button>
         </div>
       </div>
+      {editShow&&<div style={{padding:"8px 20px",background:"var(--card-3)",borderBottom:"1px solid var(--border)",display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",flexShrink:0}}>
+        <input value={editVenue} onChange={e=>setEditVenue(e.target.value)} placeholder="Venue" style={{...UI.input,fontSize:10,minWidth:120,flex:2}}/>
+        <input value={editCity} onChange={e=>setEditCity(e.target.value)} placeholder="City" style={{...UI.input,fontSize:10,minWidth:90,flex:1}}/>
+        <input value={editPromoter} onChange={e=>setEditPromoter(e.target.value)} placeholder="Promoter" style={{...UI.input,fontSize:10,minWidth:110,flex:2}}/>
+        <button onClick={()=>{uEffShow({venue:editVenue,city:editCity,promoter:editPromoter});setEditShow(false);}} style={{fontSize:9,padding:"4px 10px",borderRadius:6,border:"none",background:"var(--success-fg)",color:"#fff",cursor:"pointer",fontWeight:700,flexShrink:0}}>Save</button>
+        <button onClick={()=>setEditShow(false)} style={{fontSize:9,padding:"4px 10px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer",flexShrink:0}}>Cancel</button>
+      </div>}
       <div style={{padding:"10px 20px 30px",background:"var(--bg)",flex:1,overflowY:"auto"}}>
         <FlightDayStrip sel={sel}/>
         {phases.filter(ph=>!(ph.k==="mg"&&effShow.mgSkip)&&!(ph.k==="bus_in"&&(effShow.busSkip||effShow.busPre))).map(ph=>{const pb=blocks.filter(b=>ph.k==="bus_in"?b.phase==="bus_in":ph.k==="curfew"?b.id==="curfew":ph.k==="doors"?b.phase==="doors":ph.k==="mg"?b.phase==="mg":b.phase===ph.k);const canAdd=!["bus_in","curfew","doors","mg"].includes(ph.k);
