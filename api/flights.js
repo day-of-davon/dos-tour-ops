@@ -32,7 +32,7 @@ function extractHeaders(thread) {
     .map(m => extractBody(m.payload))
     .filter(Boolean)
     .join("\n---\n")
-    .slice(0, 8000);
+    .slice(0, 4000);
   const lastMsg = thread.messages?.[thread.messages.length - 1];
   const lastMsgMs = lastMsg?.internalDate ? Number(lastMsg.internalDate) : null;
   // Raw HTML (pre-strip) from all messages — needed for JSON-LD FlightReservation scanning.
@@ -412,7 +412,7 @@ Confirmation codes (critical):
 
 Skip hotel, train, rental car confirmations — flights and private charters only.`;
 
-  const BATCH = 12;
+  const BATCH = 8;
   const threadBatches = [];
   for (let i = 0; i < claudeThreads.length; i += BATCH) threadBatches.push(claudeThreads.slice(i, i + BATCH));
 
@@ -528,7 +528,7 @@ Return this exact JSON:
 
     let verifyResult;
     try {
-      verifyResult = await callClaude(buildVerifyPrompt(batch, flights), verifySys, 2048);
+      verifyResult = await callClaude(buildVerifyPrompt(batch, flights), verifySys, 2048, "claude-haiku-4-5-20251001");
     } catch (e) {
       console.warn("[flights] verify error:", e.message);
       return flights.map(f => ({ ...f, parseVerified: null }));

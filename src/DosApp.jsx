@@ -4482,26 +4482,29 @@ function LifecyclePills({crewId,date,state,slots,onJump,compact}){
 }
 
 function CrewTab(){
-  const{sel,setSel,shows,tourDaysSorted,tourDays,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights,lodging,setTab}=useContext(Ctx);
+  const{sel,setSel,shows,tourDaysSorted,tourDays,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights,lodging,setTab,currentSplit,activeSplitPartyId}=useContext(Ctx);
   const[panel,setPanel]=useState(null);
   const[editMode,setEditMode]=useState(false);
   const[flightPicker,setFlightPicker]=useState(null); // {crewId, dir}
   const show=shows[sel];
   const today=new Date().toISOString().slice(0,10);
-  const sc=showCrew[sel]||{};
+  // On split days, crew selection is independent per event — key showCrew by `${date}#${partyId}`.
+  const scKey=currentSplit&&activeSplitPartyId?`${sel}#${activeSplitPartyId}`:sel;
+  const realDate=k=>String(k).split("#")[0];
+  const sc=showCrew[scKey]||{};
   const uid=()=>Math.random().toString(36).slice(2,9);
 
-  // Nearest prior date with any crew data
+  // Nearest prior date with any crew data (strip split suffix when comparing)
   const prevDate=useMemo(()=>{
-    const candidates=Object.keys(showCrew).filter(d=>d<sel&&Object.keys(showCrew[d]||{}).length>0).sort();
+    const candidates=Object.keys(showCrew).filter(k=>realDate(k)<sel&&Object.keys(showCrew[k]||{}).length>0).sort();
     return candidates[candidates.length-1]||null;
   },[sel,showCrew]);
   const prevCrew=prevDate?showCrew[prevDate]:null;
-  const isInheriting=!showCrew[sel]&&!!prevCrew;
+  const isInheriting=!showCrew[scKey]&&!!prevCrew;
 
   const copyFromPrev=()=>{
     if(!prevCrew)return;
-    setShowCrew(p=>({...p,[sel]:{...prevCrew}}));
+    setShowCrew(p=>({...p,[scKey]:{...prevCrew}}));
   };
 
   const getCD=(crewId)=>{
@@ -4509,7 +4512,7 @@ function CrewTab(){
     const legacy=d.travelMode||"bus";
     return{attending:false,inboundMode:legacy,outboundMode:legacy,inboundConfirmed:false,outboundConfirmed:false,inbound:[],outbound:[],inboundDate:"",inboundTime:"",inboundNotes:"",outboundDate:"",outboundTime:"",outboundNotes:"",parkingReq:"none",...d,travelMode:undefined};
   };
-  const updateSC=(crewId,patch)=>setShowCrew(p=>({...p,[sel]:{...p[sel],[crewId]:{...getCD(crewId),...patch}}}));
+  const updateSC=(crewId,patch)=>setShowCrew(p=>({...p,[scKey]:{...p[scKey],[crewId]:{...getCD(crewId),...patch}}}));
   const toggleAttending=(crewId)=>{const cd=getCD(crewId);updateSC(crewId,{attending:!cd.attending});};
   const setInboundMode=(crewId,mode)=>updateSC(crewId,{inboundMode:mode});
   const setOutboundMode=(crewId,mode)=>updateSC(crewId,{outboundMode:mode});
@@ -4534,16 +4537,16 @@ function CrewTab(){
     const timeVal=dir==="inbound"?f.arr:f.dep;
     const dateVal=dir==="inbound"?(f.arrDate||sel):f.depDate;
     setShowCrew(p=>{
-      const cur=p[sel]?.[crewId]||{};
+      const cur=p[scKey]?.[crewId]||{};
       const ex=(cur[dir]||[]).filter(l=>l.flightId!==f.id);
-      return{...p,[sel]:{...p[sel],[crewId]:{...cur,attending:true,inboundMode:dir==="inbound"?cur.inboundMode||"fly":cur.inboundMode,outboundMode:dir==="outbound"?cur.outboundMode||"fly":cur.outboundMode,[dir]:[...ex,leg],[confKey]:true,[dateKey]:dateVal,[timeKey]:timeVal||""}}};
+      return{...p,[scKey]:{...p[scKey],[crewId]:{...cur,attending:true,inboundMode:dir==="inbound"?cur.inboundMode||"fly":cur.inboundMode,outboundMode:dir==="outbound"?cur.outboundMode||"fly":cur.outboundMode,[dir]:[...ex,leg],[confKey]:true,[dateKey]:dateVal,[timeKey]:timeVal||""}}};
     });
     setFlightPicker(null);
   };
   const unassignFlight=(crewId,dir,flightId)=>{
     setShowCrew(p=>{
-      const cur=p[sel]?.[crewId]||{};
-      return{...p,[sel]:{...p[sel],[crewId]:{...cur,[dir]:(cur[dir]||[]).filter(l=>l.flightId!==flightId)}}};
+      const cur=p[scKey]?.[crewId]||{};
+      return{...p,[scKey]:{...p[scKey],[crewId]:{...cur,[dir]:(cur[dir]||[]).filter(l=>l.flightId!==flightId)}}};
     });
   };
 
@@ -4552,13 +4555,15 @@ function CrewTab(){
   // bus-mid vs bus-join vs bus-leave for the lifecycle pills.
   const attendingDatesByCrew=useMemo(()=>{
     const m={};
-    Object.entries(showCrew||{}).forEach(([d,perCrew])=>{
+    Object.entries(showCrew||{}).forEach(([k,perCrew])=>{
+      const d=realDate(k);
       Object.entries(perCrew||{}).forEach(([cid,rec])=>{
-        if(rec?.attending){(m[cid]=m[cid]||[]).push(d);}
+        if(rec?.attending){const arr=(m[cid]=m[cid]||new Set());arr.add(d);}
       });
     });
-    Object.keys(m).forEach(k=>m[k].sort());
-    return m;
+    const out={};
+    Object.keys(m).forEach(cid=>{out[cid]=[...m[cid]].sort();});
+    return out;
   },[showCrew]);
   const jumpToTravelDay=(date)=>{setSel(date);setTab("transport");};
   const panelCrew=panel?crew.find(c=>c.id===panel.crewId):null;
@@ -4627,7 +4632,7 @@ function CrewTab(){
                     {cd.attending&&(()=>{
                       const attDates=attendingDatesByCrew[c.id]||[sel];
                       const state=crewLifecycleState(c.id,sel,attDates,tourDays);
-                      const slots=crewLifecycleSlots({state,crewId:c.id,crew,date:sel,showCrew,flights,lodging});
+                      const slots=crewLifecycleSlots({state,crewId:c.id,crew,date:sel,showCrew:currentSplit?{...showCrew,[sel]:showCrew[scKey]||{}}:showCrew,flights,lodging});
                       const jump=slot=>{
                         setSel(sel);
                         if(slot?.key==="hotel")setTab("lodging");
