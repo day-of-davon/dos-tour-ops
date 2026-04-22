@@ -882,6 +882,33 @@ export default function App(){
   useEffect(()=>{if(!undoToast)return;const t=setTimeout(()=>setUndoToast(null),30000);return()=>clearTimeout(t);},[undoToast]);
   const pushUndo=useCallback((label,undo)=>setUndoToast({label,undo,ts:Date.now()}),[]);
 
+  useEffect(()=>{
+    if(!loaded)return;
+    const confirmed=Object.values(flights||{}).filter(f=>f&&f.status==="confirmed"&&f.suggestedShowDate&&f.suggestedRole&&Array.isArray(f.suggestedCrewIds)&&f.suggestedCrewIds.length>0);
+    if(!confirmed.length)return;
+    setShowCrew(p=>{
+      let next=p;
+      for(const f of confirmed){
+        const dir=f.suggestedRole;
+        const dateKey=f.suggestedShowDate;
+        const leg={id:`leg_${f.id}`,flight:f.flightNo||"",carrier:f.carrier||"",from:f.from,fromCity:f.fromCity||f.from,to:f.to,toCity:f.toCity||f.to,depart:f.dep,arrive:f.arr,conf:f.confirmNo||f.bookingRef||"",status:"confirmed",flightId:f.id,autoPopulated:true};
+        const confKey=dir==="inbound"?"inboundConfirmed":"outboundConfirmed";
+        const dateField=dir==="inbound"?"inboundDate":"outboundDate";
+        const timeField=dir==="inbound"?"inboundTime":"outboundTime";
+        const timeVal=dir==="inbound"?f.arr:f.dep;
+        const dateVal=dir==="inbound"?(f.arrDate||dateKey):f.depDate;
+        for(const crewId of f.suggestedCrewIds){
+          const cur=(next[dateKey]||{})[crewId]||{};
+          const existing=(cur[dir]||[]);
+          if(existing.some(l=>l.flightId===f.id))continue;
+          const modeKey=dir==="inbound"?"inboundMode":"outboundMode";
+          next={...next,[dateKey]:{...next[dateKey],[crewId]:{...cur,attending:true,[modeKey]:cur[modeKey]||"fly",[dir]:[...existing,leg],[confKey]:true,[dateField]:dateVal,[timeField]:timeVal||""}}};
+        }
+      }
+      return next;
+    });
+  },[flights,loaded]);
+
   const refreshIntel=useCallback(async(show,force=false)=>{
     if(refreshing)return;
     const sid=showIdFor(show);
