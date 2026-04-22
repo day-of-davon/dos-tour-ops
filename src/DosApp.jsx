@@ -4060,8 +4060,6 @@ function SegmentDrawer({seg,crew,sorted,onChange,onClose}){
 
 function TransTab(){
   const{flights,uFlight,sel,labelIntel}=useContext(Ctx);
-  const{me}=useContext(Ctx);
-  const canSeeFestivalDispatch=me.clients.some(c=>CM[c]?.type==="festival");
   const[view,setView]=useState("travel");
   const[crewFlightsOpen,setCrewFlightsOpen]=useState(false);
   const confirmedCount=Object.values(flights).filter(f=>f.status==="confirmed").length;
@@ -4069,14 +4067,12 @@ function TransTab(){
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
       <div style={{padding:"7px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"nowrap",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
-        {[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["calendar","Tour Calendar"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`]].map(([v,l])=>(
+        {[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`]].map(([v,l])=>(
           <button key={v} onClick={()=>setView(v)} style={{padding:"4px 12px",borderRadius:6,border:"1px solid var(--border)",background:view===v?"var(--accent)":"var(--card-3)",color:view===v?"var(--card)":"var(--text-dim)",fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
         ))}
-        {view==="calendar"&&<div style={{marginLeft:"auto",fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>Apr 16 – May 31 · Internet Explorer EU 2026</div>}
       </div>
       <div style={{flex:1,overflow:"auto",padding:"12px 20px 30px"}}>
-        {view==="travel"&&<TravelDayView/>}
-        {view==="calendar"&&<TourCalendar/>}
+        {view==="travel"&&<><TravelDayView/><div style={{margin:"20px 0 8px",display:"flex",alignItems:"center",gap:10}}><div style={{flex:1,height:1,background:"var(--border)"}}></div><span style={{fontSize:8,fontWeight:800,color:"var(--text-mute)",letterSpacing:"0.1em",whiteSpace:"nowrap"}}>TOUR CALENDAR</span><div style={{flex:1,height:1,background:"var(--border)"}}></div></div><TourCalendar/></>}
         {view==="flights"&&<>{false&&labelIntel?.crewFlights?.length>0&&(
           <div style={{background:"var(--info-bg)",border:"1px solid var(--info-bg)",borderRadius:10,marginBottom:12,overflow:"hidden"}}>
             <div onClick={()=>setCrewFlightsOpen(v=>!v)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",cursor:"pointer",userSelect:"none"}}>
