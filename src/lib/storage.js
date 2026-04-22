@@ -3,7 +3,7 @@
 
 import { supabase } from "./supabase";
 
-const TEAM_ID = "dos-bbno-eu-2026";
+const TEAM_ID = "dos-bbno-2026";
 
 const SHARED_KEYS = new Set([
   "dos-v7-shows","dos-v7-ros","dos-v7-advances","dos-v7-finance","dos-v7-settings","dos-v7-crew","dos-v7-production",

@@ -53,32 +53,32 @@ create policy "read own or team"
   on app_storage for select
   using (
     (team_id is null and auth.uid() = user_id)
-    or team_id = 'dos-bbno-eu-2026'
+    or team_id = 'dos-bbno-2026'
   );
 
 create policy "insert own or team"
   on app_storage for insert
   with check (
     auth.uid() = user_id
-    and (team_id is null or team_id = 'dos-bbno-eu-2026')
+    and (team_id is null or team_id = 'dos-bbno-2026')
   );
 
 create policy "update own or team"
   on app_storage for update
   using (
     (team_id is null and auth.uid() = user_id)
-    or team_id = 'dos-bbno-eu-2026'
+    or team_id = 'dos-bbno-2026'
   )
   with check (
     (team_id is null and auth.uid() = user_id)
-    or team_id = 'dos-bbno-eu-2026'
+    or team_id = 'dos-bbno-2026'
   );
 
 create policy "delete own or team"
   on app_storage for delete
   using (
     (team_id is null and auth.uid() = user_id)
-    or team_id = 'dos-bbno-eu-2026'
+    or team_id = 'dos-bbno-2026'
   );
 
 -- ── Atomic upsert — avoids race conditions with partial-index ON CONFLICT ─────

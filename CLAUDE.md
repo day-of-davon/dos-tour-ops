@@ -74,7 +74,7 @@ The artifact informs the platform. Features are prototyped manually in v7, then 
 | `dos-v7-checklist-private` | private | Custom private checklist items |
 
 ### Team ID
-All shared storage uses `team_id = 'dos-bbno-eu-2026'`.
+All shared storage uses `team_id = 'dos-bbno-2026'` (tour-scoped; leg derived from show date).
 
 ---
 
@@ -92,6 +92,7 @@ All shared storage uses `team_id = 'dos-bbno-eu-2026'`.
 | Team/private storage split: shared keys use team_id, private keys use user_id | Apr 13 | Single user_id scoping |
 | Google OAuth required gate (in progress) | Apr 13 | No auth |
 | Master Tour is $74.99/mo single-user, no dispatch/settlement/AI | Apr 13 | $59.99 estimate |
+| team_id rescoped tour-level (`dos-bbno-2026`); leg derived from show date | Apr 22 | `dos-bbno-eu-2026` |
 
 ---
 
