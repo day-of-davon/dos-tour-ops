@@ -461,7 +461,7 @@ module.exports = async function handler(req, res) {
   let inputTokensTotal = 0, outputTokensTotal = 0;
   const { high, low } = buildFlightQueryGroups(after);
   const seen = new Set();
-  const CAP = 100;
+  const CAP = 60;
   const queryErrors = [];
 
   const runParallel = async (queries, maxResults = 25) => {
@@ -520,11 +520,15 @@ module.exports = async function handler(req, res) {
   }
 
   // ── Cache check: split threads into hit (use cached flights) vs fresh (parse). ──
+  // Parallel fetch: all getCachedThread calls run simultaneously instead of sequentially
+  // to avoid ~50ms × N threads of serial Supabase latency.
   const cachedFlights = [];
   const freshThreads = [];
-  for (const t of threads) {
+  const cacheRows = await Promise.all(threads.map(t => getCachedThread("flights", t.id)));
+  for (let i = 0; i < threads.length; i++) {
+    const t = threads[i];
+    const cached = cacheRows[i];
     const bodyHash = hashBody(t.subject, t.from, t.body);
-    const cached = await getCachedThread("flights", t.id);
     t.bodyHash = bodyHash;
     t.prevResult = cached?.result || null;
     // Cache healing: if we expect ≥2 legs but cached only has fewer, treat as stale
@@ -883,7 +887,7 @@ Return this exact JSON:
   });
   if (missedThreads.length) {
     console.log(`[flights] missed-leg retry: ${missedThreads.length} threads`);
-    for (const t of missedThreads) {
+    const retryResults = await Promise.allSettled(missedThreads.map(t => {
       const expected = expectedLegCount(t.body);
       const got = byTidCount[t.id] || 0;
       const hintedPrompt = `Extract all flight segments from this single email thread. Tour date range: ${tourStart} to ${tourEnd}.
@@ -913,24 +917,28 @@ Return this exact JSON:
     }
   ]
 }`;
-      try {
-        const parsed = await callClaude(hintedPrompt);
-        const rows = Array.isArray(parsed?.flights) ? parsed.flights : [];
-        // Dedup by (flightNo|depDate|from|to) against already-collected records for this tid.
-        const existingKeys = new Set(claudeFlights.filter(f => f.tid === t.id)
-          .map(f => `${f.flightNo || ""}|${f.depDate || ""}|${f.from || ""}|${f.to || ""}`));
-        let added = 0;
-        for (const f of rows) {
-          const k = `${f.flightNo || ""}|${f.depDate || ""}|${f.from || ""}|${f.to || ""}`;
-          if (existingKeys.has(k)) continue;
-          claudeFlights.push({ ...f, tid: f.tid || t.id, source: "claude_retry", parseVerified: null });
-          existingKeys.add(k);
-          added++;
-        }
-        console.log(`[flights] retry tid=${t.id} expected=${expected} got_before=${got} added=${added}`);
-      } catch (e) {
-        runErrors.push({ kind: "anthropic_error", phase: "missed_leg_retry", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+      return callClaude(hintedPrompt).then(parsed => ({ t, expected, got, parsed }));
+    }));
+    for (let i = 0; i < retryResults.length; i++) {
+      const r = retryResults[i];
+      const t = missedThreads[i];
+      if (r.status === "rejected") {
+        runErrors.push({ kind: "anthropic_error", phase: "missed_leg_retry", tid: t.id, detail: String(r.reason?.message || "").slice(0, 300) });
+        continue;
       }
+      const { expected, got, parsed } = r.value;
+      const rows = Array.isArray(parsed?.flights) ? parsed.flights : [];
+      const existingKeys = new Set(claudeFlights.filter(f => f.tid === t.id)
+        .map(f => `${f.flightNo || ""}|${f.depDate || ""}|${f.from || ""}|${f.to || ""}`));
+      let added = 0;
+      for (const f of rows) {
+        const k = `${f.flightNo || ""}|${f.depDate || ""}|${f.from || ""}|${f.to || ""}`;
+        if (existingKeys.has(k)) continue;
+        claudeFlights.push({ ...f, tid: f.tid || t.id, source: "claude_retry", parseVerified: null });
+        existingKeys.add(k);
+        added++;
+      }
+      console.log(`[flights] retry tid=${t.id} expected=${expected} got_before=${got} added=${added}`);
     }
   }
 
@@ -1012,22 +1020,24 @@ Return this exact JSON:
   // Cache fresh results per-thread + log enhancements vs previous.
   const freshByTid = {};
   for (const f of freshMerged) (freshByTid[f.tid] ||= []).push(f);
+  // Fire-and-forget cache writes — don't await, avoids blocking the response.
   for (const t of freshThreads) {
     const result = freshByTid[t.id] || [];
-    await putCachedThread("flights", t.id, {
+    putCachedThread("flights", t.id, {
       lastMsgMs: t.lastMsgMs,
       bodyHash: t.bodyHash,
       result,
-      stopReason: null, // per-thread stop_reason not tracked in flights batch mode
+      stopReason: null,
       footerStripSaved: null,
       attachmentFingerprints: t.attachmentFingerprints || [],
-    });
+    }).catch(e => console.warn("[flights] putCachedThread failed:", t.id, e.message));
     if (Array.isArray(t.prevResult) && t.prevResult.length) {
       const prevByKey = Object.fromEntries(t.prevResult.map(r => [`${r.flightNo}|${r.depDate}|${r.from}|${r.to}`, r]));
       for (const f of result) {
         const key = `${f.flightNo}|${f.depDate}|${f.from}|${f.to}`;
         const prev = prevByKey[key];
-        if (prev) await logEnhancement("flight", `${t.id}:${key}`, prev, f, { scanRunId: runId, source: "flights", scanner: "flights", userId: user.id, userEmail: user.email });
+        if (prev) logEnhancement("flight", `${t.id}:${key}`, prev, f, { scanRunId: runId, source: "flights", scanner: "flights", userId: user.id, userEmail: user.email })
+          .catch(() => {});
       }
     }
   }
