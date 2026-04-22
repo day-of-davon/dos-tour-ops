@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { useAuth } from "./components/AuthGate.jsx";
+import { Button, Pill } from "./components/ui.jsx";
 import { supabase } from "./lib/supabase";
 
 // DOS TOUR OPS v7.0 — Day of Show, LLC
@@ -1685,7 +1686,7 @@ function NotesPanel(){
 function ThemeToggle(){
   const[theme,setTheme]=useState(()=>{try{return localStorage.getItem("dos-theme")||"dark";}catch{return "dark";}});
   const toggle=()=>{const next=theme==="dark"?"light":"dark";setTheme(next);try{localStorage.setItem("dos-theme",next);}catch{}document.documentElement.setAttribute("data-theme",next);};
-  return <button onClick={toggle} title={`Switch to ${theme==="dark"?"light":"dark"} theme`} style={{background:"var(--border)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-2)",fontSize:11,padding:"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minWidth:28}}>{theme==="dark"?"☼":"☾"}</button>;
+  return <Button variant="secondary" size="sm" onClick={toggle} title={`Switch to ${theme==="dark"?"light":"dark"} theme`} style={{minWidth:28}}>{theme==="dark"?"☼":"☾"}</Button>;
 }
 
 function SignOut(){
@@ -1856,9 +1857,9 @@ function TopBar({ss}){
         </div>}
         <div style={{display:"flex",alignItems:"center",gap:mobile?4:8,flexShrink:0,minWidth:0,maxWidth:"100%"}}>
           {ss&&!mobile&&<span style={{fontSize:9,color:ss==="saved"?"var(--success-fg)":"var(--text-mute)",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
-          <button onClick={()=>setUploadOpen(true)} title="Upload document" style={{background:"var(--border)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-2)",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>{mobile?"↑":"↑ Upload"}</button>
-          <button onClick={()=>setExp(true)} title="Export / Import" style={{background:"var(--border)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-2)",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>⇅</button>
-          <button onClick={()=>setCmd(true)} title="Command palette (⌘K)" style={{background:"var(--border)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text-2)",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>{mobile?"⌘":"⌘K"}</button>
+          <Button variant="secondary" size="sm" onClick={()=>setUploadOpen(true)} title="Upload document" style={mobile?{fontSize:11,padding:"5px 9px",minHeight:30}:{fontSize:9}}>{mobile?"↑":"↑ Upload"}</Button>
+          <Button variant="secondary" size="sm" onClick={()=>setExp(true)} title="Export / Import" style={mobile?{fontSize:11,padding:"5px 9px",minHeight:30}:{fontSize:9}}>⇅</Button>
+          <Button variant="secondary" size="sm" onClick={()=>setCmd(true)} title="Command palette (⌘K)" style={mobile?{fontSize:11,padding:"5px 9px",minHeight:30}:{fontSize:9}}>{mobile?"⌘":"⌘K"}</Button>
           <ThemeToggle/>
           <SignOut/>
         </div>
