@@ -3084,6 +3084,8 @@ function EventSwitcher({show,sel}){
   const[adding,setAdding]=useState(false);
   const[newName,setNewName]=useState("");
   const[delId,setDelId]=useState(null);
+  const BAR={minHeight:40,borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",alignItems:"center"};
+  if(!show)return <div style={{...BAR}}/>;
   const subEvents=show.subEvents||[];
   const addEvent=()=>{
     const id=`ev_${Date.now()}`;
@@ -3098,13 +3100,13 @@ function EventSwitcher({show,sel}){
     setDelId(null);
   };
   if(subEvents.length===0&&!adding)return(
-    <div style={{padding:"6px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",alignItems:"center",gap:6}}>
+    <div style={{...BAR,padding:"0 20px",gap:6}}>
       <span style={{fontSize:11,color:"var(--text-mute)",fontStyle:"italic"}}>Single event day</span>
       <button onClick={()=>setAdding(true)} style={{fontSize:11,padding:"3px 10px",borderRadius:6,border:"1px dashed var(--text-mute)",background:"transparent",color:"var(--text-dim)",cursor:"pointer",fontWeight:600,marginLeft:"auto"}}>+ Add Event</button>
     </div>
   );
   return(
-    <div style={{padding:"0 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",alignItems:"center",gap:2,overflowX:"auto",scrollbarWidth:"none"}}>
+    <div style={{...BAR,padding:"0 20px",gap:2,overflowX:"auto",scrollbarWidth:"none"}}>
       {/* Main event tab */}
       <button onClick={()=>setSelEventId(null)} style={{padding:"10px 16px",fontSize:13,fontWeight:!selEventId?700:500,color:!selEventId?"var(--text)":"var(--text-dim)",border:"none",borderBottom:!selEventId?"2px solid var(--text)":"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
         {show.venue||"Main"}
