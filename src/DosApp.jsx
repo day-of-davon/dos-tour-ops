@@ -749,6 +749,17 @@ function matchScore(itemText,thread){
   return hit/Math.min(a.size,b.size);
 }
 const confOf=(s)=>s>=0.6?"high":s>=0.35?"medium":s>=0.18?"low":null;
+// Suggest advance status from thread subject+snippet. Returns {status, reason} or null.
+function suggestStatusFromThread(thread,currentStatus){
+  const txt=((thread.subject||"")+" "+(thread.snippet||thread.bodySnippet||"")).toLowerCase();
+  if(/\b(urgent|asap|overdue|time\s*sensitive|escalat)/.test(txt))return{status:"escalate",reason:"urgency keyword"};
+  if(/\b(confirmed|approved|signed\s*off|all\s*set|locked\s*in|good\s*to\s*go)\b/.test(txt))return{status:"confirmed",reason:"confirmation keyword"};
+  if(/\b(received|got\s*it|thanks\s*for\s*sending|in\s*hand)\b/.test(txt))return{status:"received",reason:"receipt keyword"};
+  if(/\b(following\s*up|checking\s*in|bumping|any\s*update|just\s*a\s*reminder|awaiting)\b/.test(txt))return{status:"follow_up",reason:"follow-up keyword"};
+  if(/\b(please\s*(respond|reply|confirm|sign|complete|fill)|needs?\s*response|your\s*input)\b/.test(txt))return{status:"respond",reason:"response requested"};
+  if(currentStatus==="pending")return{status:"in_progress",reason:"thread matched"};
+  return null;
+}
 const FIELD_KEYS=[
   {field:"doors",keys:["doors","door"],label:"Doors"},
   {field:"curfew",keys:["curfew"],label:"Curfew"},
@@ -2241,18 +2252,25 @@ function AdvTab(){
       let best=null,bestScore=0;
       threads.forEach(t=>{const s=matchScore(getQ(item),t);if(s>bestScore){bestScore=s;best=t;}});
       const c=confOf(bestScore);
-      if(c&&best){const k=`${item.id}__${best.tid}`;if(!dismissed.has(k))out.push({itemId:item.id,threadTid:best.tid,subject:best.subject,from:best.from,confidence:c,key:k});}
+      if(c&&best){const k=`${item.id}__${best.tid}`;if(!dismissed.has(k)){
+        const sug=suggestStatusFromThread(best,getStatus(item.id));
+        out.push({itemId:item.id,threadTid:best.tid,subject:best.subject,from:best.from,snippet:best.snippet,confidence:c,key:k,suggested:sug?.status||"confirmed",reason:sug?.reason||null});
+      }}
     });
     return out;
   },[allItems,intel,sid,items,privList]);
   const matchFor=(id)=>matches.find(m=>m.itemId===id);
 
-  const confirmMatch=(m)=>{
-    const prev=getStatus(m.itemId);
-    setStatus(m.itemId,"confirmed");
+  const applyMatch=(m,targetStatus)=>{
+    const prev=getStatus(m.itemId);const st=targetStatus||m.suggested||"confirmed";
+    setStatus(m.itemId,st);
     setIntel(p=>({...p,[sid]:{...(p[sid]||{}),dismissedMatches:[...(p[sid]?.dismissedMatches||[]),m.key]}}));
-    pushUndo("Item confirmed.",()=>{setStatus(m.itemId,prev);setIntel(p=>({...p,[sid]:{...(p[sid]||{}),dismissedMatches:(p[sid]?.dismissedMatches||[]).filter(k=>k!==m.key)}}));});
+    logAudit({entityType:"advance",entityId:`${sel}:${m.itemId}`,action:"intel_sync",
+      before:{status:prev},after:{status:st},
+      meta:{source:"intel-suggest",threadTid:m.threadTid,confidence:m.confidence,reason:m.reason||null,subject:m.subject}});
+    pushUndo(`Marked ${SC[st]?.l||st}.`,()=>{setStatus(m.itemId,prev);setIntel(p=>({...p,[sid]:{...(p[sid]||{}),dismissedMatches:(p[sid]?.dismissedMatches||[]).filter(k=>k!==m.key)}}));});
   };
+  const confirmMatch=(m)=>applyMatch(m,"confirmed");
 
   const showDepts=activeDept==="all"?DEPTS.filter(d=>d.id!=="all"):DEPTS.filter(d=>d.id===activeDept);
   const totalPending=allItems.filter(t=>getStatus(t.id)==="pending").length;
@@ -2320,9 +2338,15 @@ function AdvTab(){
                 const emailMatch=(()=>{const m=matchFor(item.id);if(!m)return null;
                   const col=m.confidence==="high"?"var(--success-fg)":m.confidence==="medium"?"var(--warn-fg)":"var(--text-dim)";
                   const bg=m.confidence==="high"?"var(--success-bg)":m.confidence==="medium"?"var(--warn-bg)":"var(--card-2)";
+                  const sug=m.suggested||"confirmed";const sugMeta=SC[sug]||SC.confirmed;
+                  const tip=m.reason?`${m.subject} — ${m.from}\n→ suggests "${sugMeta.l}" (${m.reason})`:`${m.subject} — ${m.from}`;
                   return <div style={{display:"flex",alignItems:"center",gap:4}}>
-                    <a href={gmailUrl(m.threadTid)} target="_blank" rel="noopener noreferrer" title={`${m.subject} — ${m.from}`} style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:bg,color:col,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email · {m.confidence}</a>
-                    <button onClick={()=>confirmMatch(m)} style={{fontSize:8,padding:"2px 7px",borderRadius:4,border:"none",background:"var(--success-fg)",color:"#fff",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}>Confirm</button>
+                    <a href={gmailUrl(m.threadTid)} target="_blank" rel="noopener noreferrer" title={tip} style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:bg,color:col,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email · {m.confidence} →</a>
+                    <button onClick={()=>applyMatch(m,sug)} title={m.reason?`Auto-suggested: ${m.reason}`:"Apply suggested status"} style={{fontSize:8,padding:"2px 7px",borderRadius:4,border:"none",background:sugMeta.c,color:"#fff",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}>{sugMeta.l}</button>
+                    <select value="" onChange={e=>{if(e.target.value)applyMatch(m,e.target.value);}} title="Apply different status" style={{fontSize:8,padding:"2px 3px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-3)",color:"var(--text-2)",cursor:"pointer",fontWeight:600}}>
+                      <option value="">···</option>
+                      {SC_ORDER.filter(s=>s!==sug).map(s=><option key={s} value={s}>{SC[s]?.l||s}</option>)}
+                    </select>
                   </div>;
                 })();
                 return(
