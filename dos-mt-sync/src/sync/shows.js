@@ -17,7 +17,8 @@ function normShows(raw) {
 
 export async function syncShows(page, { dryRun = false, date = null } = {}) {
   const raw = await getShows();
-  let shows = normShows(raw);
+  // Filter to entries with a venue (travel days and off days have no venue)
+  let shows = normShows(raw).filter(s => s?.date && s?.venue);
 
   if (!shows.length) {
     log.warn('No shows found in DOS storage');

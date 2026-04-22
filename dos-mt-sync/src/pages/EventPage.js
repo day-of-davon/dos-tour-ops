@@ -2,6 +2,7 @@
 
 // Click a sub-tab within the event detail (OVERVIEW, PROMOTER, VENUE, etc.)
 export async function clickEventTab(page, tabName) {
+  if (!page) return;
   await page.locator(`text=${tabName}`).first().click();
   await page.waitForTimeout(300);
 }
@@ -10,6 +11,7 @@ export async function clickEventTab(page, tabName) {
 
 // Returns true if promoter is already set (panel has content beyond "No Company Selected").
 export async function promoterIsSet(page) {
+  if (!page) return false;
   const text = await page.locator('text=No Company Selected').count();
   return text === 0;
 }
@@ -45,6 +47,7 @@ export async function setPromoter(page, name, dryRun) {
 
 // Returns the names already present in Key Contacts (to avoid duplication).
 export async function existingContactNames(page) {
+  if (!page) return '';
   const section = page.locator('text=KEY CONTACTS').first();
   const container = section.locator('xpath=following-sibling::*[1]').or(section.locator('..'));
   const texts = await container.allInnerTexts().catch(() => ['']);

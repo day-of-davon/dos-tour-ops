@@ -350,7 +350,7 @@ const GL_DEFAULT_CATEGORIES=[
   {id:"hospo",name:"Hospo Guests",side:"venue",zones:["VIP"],qty:10,walkOnQty:0},
 ];
 const GL_STATUS=[
-  {id:"draft",label:"Draft",color:"#6B7280",bg:"#1e1e2e"},
+  {id:"draft",label:"Draft",color:"#6B7280",bg:"var(--card-2)"},
   {id:"pending_approval",label:"Pending Approval",color:"#D97706",bg:"#2a1f0f"},
   {id:"open",label:"Open",color:"#059669",bg:"#0f2a1f"},
   {id:"locked",label:"Locked",color:"#5B21B6",bg:"#1f0f2a"},
@@ -435,12 +435,12 @@ const AB=new Set(["bus_arrive","doors_early","doors_ga","clear","bus_depart"]);
 const UI={
   expandPanel:{background:"#161622",borderLeft:"3px solid #5B21B6",padding:"10px 14px 12px"},
   expandBtn:(open,accent="#5B21B6")=>({background:open?"#5B21B6":accent,border:"none",borderRadius:6,color:"#fff",fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700}),
-  sectionLabel:{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:6},
-  input:{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:5,fontSize:10,padding:"4px 6px",outline:"none",fontFamily:"'Outfit',system-ui"},
+  sectionLabel:{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:6},
+  input:{background:"var(--card)",border:"1px solid var(--border)",borderRadius:5,fontSize:10,padding:"4px 6px",outline:"none",fontFamily:"'Outfit',system-ui"},
 };
 
 const DEPTS=[
-  {id:"all",label:"All",color:"#b0b0c8",bg:"#1e1e2e"},
+  {id:"all",label:"All",color:"#b0b0c8",bg:"var(--card-2)"},
   {id:"artist_team",label:"Artist Team",color:"#5B21B6",bg:"#EDE9FE"},
   {id:"venue",label:"Venue / Promoter",color:"#065F46",bg:"#D1FAE5"},
   {id:"ar_hospo",label:"AR / Hospo",color:"#047857",bg:"#ECFDF5"},
@@ -448,7 +448,7 @@ const DEPTS=[
   {id:"production",label:"Production",color:"#B45309",bg:"#FEF3C7"},
   {id:"vendors",label:"Vendors",color:"#7C3AED",bg:"#F5F3FF"},
   {id:"site_ops",label:"Site Ops",color:"#0E7490",bg:"#ECFEFF"},
-  {id:"quartermaster",label:"Quartermaster",color:"#a0a0b8",bg:"#17171f"},
+  {id:"quartermaster",label:"Quartermaster",color:"var(--text-dim)",bg:"#17171f"},
 ];
 const DM=DEPTS.reduce((a,d)=>{a[d.id]=d;return a},{});
 
@@ -506,15 +506,15 @@ const AT=[
 ];
 
 const SC={
-  pending:{l:"Pending",c:"#a0a0b8",b:"#1e1e2e"},
-  sent:{l:"Sent",c:"#c0c0d0",b:"#2a2a3a"},
-  received:{l:"Received",c:"#c0c0d0",b:"#2a2a3a"},
+  pending:{l:"Pending",c:"var(--text-dim)",b:"var(--card-2)"},
+  sent:{l:"Sent",c:"#c0c0d0",b:"var(--border)"},
+  received:{l:"Received",c:"#c0c0d0",b:"var(--border)"},
   in_progress:{l:"In Progress",c:"#a78bfa",b:"#DBEAFE"},
   respond:{l:"Respond",c:"#92400E",b:"#FEF3C7"},
   follow_up:{l:"Follow Up",c:"#92400E",b:"#FEF3C7"},
   escalate:{l:"Escalate",c:"#B91C1C",b:"#FEE2E2"},
   confirmed:{l:"Confirmed",c:"#047857",b:"#D1FAE5"},
-  na:{l:"N/A",c:"#707088",b:"#1e1e2e"},
+  na:{l:"N/A",c:"var(--text-mute)",b:"var(--card-2)"},
   // Back-compat
   responded:{l:"In Progress",c:"#a78bfa",b:"#DBEAFE"},
 };
@@ -974,13 +974,13 @@ export default function App(){
 
   const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd}),[shows,ros,advances,finance,sel,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel]);// eslint-disable-line
 
-  if(!loaded||!shows)return(<div style={{background:"#0a0a0f",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#e4e4ef",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"#a0a0b8",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
+  if(!loaded||!shows)return(<div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"var(--text-dim)",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
   return(
     <Ctx.Provider value={ctxValue}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-      <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0;transition:background 0.13s ease}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:#0a0a0f}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#3b1868;border-radius:4px}::-webkit-scrollbar-thumb:hover{background:#6D28D9}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#15152a!important}.rh:hover{background:#15152a!important}button{transition:opacity 0.12s ease,background 0.12s ease,box-shadow 0.12s ease}input:focus,select:focus,textarea:focus{outline:none!important;box-shadow:0 0 0 2px rgba(109,40,217,0.45)!important;border-color:#6D28D9!important}details summary::-webkit-details-marker{display:none}::selection{background:rgba(91,33,182,0.35);color:#e4e4ef}`}</style>
-      <div style={{fontFamily:"'Outfit',system-ui",background:"#0a0a0f",color:"#e4e4ef",height:"100vh",width:"100%",maxWidth:"100vw",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+      <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0;transition:background 0.13s ease}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:var(--bg)}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:#3b1868;border-radius:4px}::-webkit-scrollbar-thumb:hover{background:#6D28D9}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:#15152a!important}.rh:hover{background:#15152a!important}button{transition:opacity 0.12s ease,background 0.12s ease,box-shadow 0.12s ease}input:focus,select:focus,textarea:focus{outline:none!important;box-shadow:0 0 0 2px rgba(109,40,217,0.45)!important;border-color:#6D28D9!important}details summary::-webkit-details-marker{display:none}::selection{background:rgba(91,33,182,0.35);color:var(--text)}`}</style>
+      <div style={{fontFamily:"'Outfit',system-ui",background:"var(--bg)",color:"var(--text)",height:"100vh",width:"100%",maxWidth:"100vw",overflow:"hidden",display:"flex",flexDirection:"column"}}>
         <TopBar ss={ss}/>
         <div style={{flex:1,display:"flex",flexDirection:"row",minWidth:0,minHeight:0,width:"100%",overflow:"hidden"}}>
           <NavSidebar/>
@@ -992,10 +992,10 @@ export default function App(){
         {exp&&<ExportModal onClose={()=>setExp(false)}/>}
         {dateMenu&&<DateDrawer onClose={()=>setDateMenu(false)}/>}
         {uploadOpen&&<FileUploadModal onClose={()=>setUploadOpen(false)}/>}
-        {undoToast&&<div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",background:"#2a2a3a",color:"#fff",borderRadius:8,padding:"8px 14px",display:"flex",alignItems:"center",gap:10,fontSize:11,boxShadow:"0 8px 24px rgba(0,0,0,.2)",zIndex:90}}>
+        {undoToast&&<div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",background:"var(--border)",color:"#fff",borderRadius:8,padding:"8px 14px",display:"flex",alignItems:"center",gap:10,fontSize:11,boxShadow:"0 8px 24px rgba(0,0,0,.2)",zIndex:90}}>
           <span>{undoToast.label}</span>
           <button onClick={()=>{undoToast.undo();setUndoToast(null);}} style={{background:"#5B21B6",border:"none",borderRadius:5,color:"#fff",fontSize:10,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>Undo</button>
-          <button onClick={()=>setUndoToast(null)} style={{background:"none",border:"none",color:"#707088",fontSize:14,cursor:"pointer"}}>×</button>
+          <button onClick={()=>setUndoToast(null)} style={{background:"none",border:"none",color:"var(--text-mute)",fontSize:14,cursor:"pointer"}}>×</button>
         </div>}
       </div>
     </Ctx.Provider>
@@ -1012,16 +1012,16 @@ function ExportModal({onClose}){
     setMsg("Imported. Reloading…");setTimeout(()=>window.location.reload(),600);
   }catch(e){setMsg("Error: "+e.message);}};
   return <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(0,0,0,.3)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:20}}>
-    <div onClick={e=>e.stopPropagation()} style={{width:520,maxWidth:"100%",background:"#12121a",borderRadius:12,border:"1px solid #2a2a3a",padding:18,fontFamily:"'Outfit',system-ui"}}>
+    <div onClick={e=>e.stopPropagation()} style={{width:520,maxWidth:"100%",background:"var(--card)",borderRadius:12,border:"1px solid var(--border)",padding:18,fontFamily:"'Outfit',system-ui"}}>
       <div style={{display:"flex",gap:4,marginBottom:10}}>
-        {["export","import"].map(m=><button key={m} onClick={()=>setMode(m)} style={{fontSize:10,fontWeight:700,padding:"4px 10px",borderRadius:6,border:"none",background:mode===m?"#5B21B6":"#17171f",color:mode===m?"#12121a":"#a0a0b8",cursor:"pointer"}}>{m.toUpperCase()}</button>)}
-        <button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",color:"#a0a0b8",fontSize:16}}>×</button>
+        {["export","import"].map(m=><button key={m} onClick={()=>setMode(m)} style={{fontSize:10,fontWeight:700,padding:"4px 10px",borderRadius:6,border:"none",background:mode===m?"#5B21B6":"#17171f",color:mode===m?"var(--card)":"var(--text-dim)",cursor:"pointer"}}>{m.toUpperCase()}</button>)}
+        <button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",color:"var(--text-dim)",fontSize:16}}>×</button>
       </div>
-      {mode==="export"?(<><div style={{fontSize:11,color:"#a0a0b8",marginBottom:6}}>Shared snapshot (shows, ROS, advances, finance, settings).</div>
+      {mode==="export"?(<><div style={{fontSize:11,color:"var(--text-dim)",marginBottom:6}}>Shared snapshot (shows, ROS, advances, finance, settings).</div>
         <pre style={{background:"#17171f",padding:10,borderRadius:6,fontSize:9,fontFamily:MN,maxHeight:300,overflow:"auto"}}>{JSON.stringify(snapshot,null,2).slice(0,4000)}{JSON.stringify(snapshot).length>4000&&"\n…"}</pre>
         <button onClick={dl} style={{marginTop:8,background:"#5B21B6",border:"none",borderRadius:6,color:"#fff",fontSize:11,padding:"6px 14px",cursor:"pointer",fontWeight:700}}>Download JSON</button></>):(
-        <><div style={{fontSize:11,color:"#a0a0b8",marginBottom:6}}>Paste JSON to restore shared state.</div>
-          <textarea value={txt} onChange={e=>setTxt(e.target.value)} placeholder="{...}" rows={10} style={{width:"100%",fontFamily:MN,fontSize:9,padding:8,border:"1px solid #2a2a3a",borderRadius:6,resize:"vertical"}}/>
+        <><div style={{fontSize:11,color:"var(--text-dim)",marginBottom:6}}>Paste JSON to restore shared state.</div>
+          <textarea value={txt} onChange={e=>setTxt(e.target.value)} placeholder="{...}" rows={10} style={{width:"100%",fontFamily:MN,fontSize:9,padding:8,border:"1px solid var(--border)",borderRadius:6,resize:"vertical"}}/>
           <div style={{display:"flex",gap:8,alignItems:"center",marginTop:8}}>
             <button onClick={imp} disabled={!txt.trim()} style={{background:"#5B21B6",border:"none",borderRadius:6,color:"#fff",fontSize:11,padding:"6px 14px",cursor:txt.trim()?"pointer":"default",fontWeight:700,opacity:txt.trim()?1:.5}}>Restore</button>
             {msg&&<span style={{fontSize:10,color:msg.startsWith("Error")?"#B91C1C":"#047857"}}>{msg}</span>}
@@ -1044,7 +1044,7 @@ function StatusBtn({status,setStatus,mobile}){
       style={{fontSize:mobile?10:9,padding:mobile?"5px 9px":"3px 8px",borderTopLeftRadius:5,borderBottomLeftRadius:5,borderTopRightRadius:0,borderBottomRightRadius:0,border:"none",borderRight:`1px solid ${s.c}26`,cursor:"pointer",fontWeight:700,background:s.b,color:s.c,minWidth:mobile?82:78,minHeight:mobile?28:undefined}}>{s.l}</button>
     <button title="Open all status options" aria-label="Open status menu" onClick={caretClick}
       style={{fontSize:mobile?10:9,padding:mobile?"5px 7px":"3px 6px",borderTopRightRadius:5,borderBottomRightRadius:5,borderTopLeftRadius:0,borderBottomLeftRadius:0,border:"none",cursor:"pointer",fontWeight:800,background:s.b,color:s.c,minHeight:mobile?28:undefined,opacity:.75}}>▾</button>
-    {open&&<div style={{position:"absolute",top:"100%",right:0,marginTop:3,background:"#12121a",border:"1px solid #2a2a3a",borderRadius:7,boxShadow:"0 6px 20px rgba(0,0,0,.1)",zIndex:50,padding:3,minWidth:130}}>
+    {open&&<div style={{position:"absolute",top:"100%",right:0,marginTop:3,background:"var(--card)",border:"1px solid var(--border)",borderRadius:7,boxShadow:"0 6px 20px rgba(0,0,0,.1)",zIndex:50,padding:3,minWidth:130}}>
       {SC_ORDER.map(k=>{const v=SC[k];return <button key={k} onClick={()=>{setStatus(k);setOpen(false);}} style={{display:"block",width:"100%",textAlign:"left",padding:mobile?"7px 10px":"4px 8px",fontSize:mobile?11:10,border:"none",background:status===k?v.b:"transparent",color:v.c,cursor:"pointer",borderRadius:4,fontWeight:600}}>{v.l}</button>;})}
     </div>}
   </div>;
@@ -1052,10 +1052,10 @@ function StatusBtn({status,setStatus,mobile}){
 
 function IntelSection({title,count,children,actions,defaultOpen=false}){
   return(
-    <details open={defaultOpen||undefined} style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,overflow:"hidden"}}>
-      <summary style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",cursor:"pointer",borderBottom:"1px solid #2a2a3a"}}>
-        <span style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.06em"}}>{title}</span>
-        {count!=null&&<span style={{fontSize:9,color:"#707088",fontFamily:MN}}>({count})</span>}
+    <details open={defaultOpen||undefined} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
+      <summary style={{display:"flex",alignItems:"center",gap:8,padding:"9px 12px",cursor:"pointer",borderBottom:"1px solid var(--border)"}}>
+        <span style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em"}}>{title}</span>
+        {count!=null&&<span style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN}}>({count})</span>}
         {actions&&<span style={{marginLeft:"auto",display:"flex",gap:6}} onClick={e=>e.stopPropagation()}>{actions}</span>}
       </summary>
       <div style={{padding:"8px 12px 10px"}}>{children}</div>
@@ -1066,10 +1066,10 @@ function IntelSection({title,count,children,actions,defaultOpen=false}){
 const STATUS_STYLE={
   Landed:{bg:"#D1FAE5",c:"#047857",label:"Landed"},
   Departed:{bg:"#DBEAFE",c:"#1D4ED8",label:"Departed"},
-  Scheduled:{bg:"#1e1e2e",c:"#b0b0c8",label:"Scheduled"},
+  Scheduled:{bg:"var(--card-2)",c:"#b0b0c8",label:"Scheduled"},
   Cancelled:{bg:"#FEE2E2",c:"#B91C1C",label:"Cancelled"},
   Delayed:{bg:"#FEF3C7",c:"#92400E",label:"Delayed"},
-  Unknown:{bg:"#1e1e2e",c:"#707088",label:"—"},
+  Unknown:{bg:"var(--card-2)",c:"var(--text-mute)",label:"—"},
 };
 function statusStyle(s){return STATUS_STYLE[s]||STATUS_STYLE.Unknown;}
 
@@ -1098,9 +1098,9 @@ function ReservationHeader({g}){
   return(
     <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 2px",flexWrap:"wrap"}}>
       <span style={{fontSize:8,fontWeight:800,color:"#5B21B6",letterSpacing:"0.06em",background:"#EDE9FE",padding:"2px 7px",borderRadius:10}}>RES · {g.segs.length} SEG</span>
-      {g.pnr&&<span style={{fontSize:10,fontFamily:MN,fontWeight:700,color:"#e4e4ef"}}>{g.pnr}</span>}
+      {g.pnr&&<span style={{fontSize:10,fontFamily:MN,fontWeight:700,color:"var(--text)"}}>{g.pnr}</span>}
       {g.carriers.length>0&&<span style={{fontSize:9,color:"#b0b0c8"}}>{g.carriers.join(", ")}</span>}
-      {g.paxUnion.length>0&&<span style={{fontSize:9,color:"#a0a0b8",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.paxUnion.join(", ")}</span>}
+      {g.paxUnion.length>0&&<span style={{fontSize:9,color:"var(--text-dim)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.paxUnion.join(", ")}</span>}
       {g.totalCost!=null&&<span style={{fontSize:9,fontFamily:MN,fontWeight:700,color:"#047857"}}>{g.currency||"$"}{g.totalCost.toFixed(2)}</span>}
       {g.tid&&<a href={gmailUrl(g.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none"}}>email ↗</a>}
     </div>
@@ -1112,18 +1112,18 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
   const delayed=liveStatus?.delayMinutes>0;
   const isFresh=!!f.fresh48h;
   return(
-    <div style={{background:"#12121a",border:`1px solid ${isFresh?"#5B21B6":st&&delayed?"#FCD34D":st?.c==="#B91C1C"?"#FCA5A5":"#2a2a3a"}`,borderRadius:9,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6,boxShadow:isFresh?"0 0 0 2px #EDE9FE":undefined}}>
+    <div style={{background:"var(--card)",border:`1px solid ${isFresh?"#5B21B6":st&&delayed?"#FCD34D":st?.c==="#B91C1C"?"#FCA5A5":"var(--border)"}`,borderRadius:9,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6,boxShadow:isFresh?"0 0 0 2px #EDE9FE":undefined}}>
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-        <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#a78bfa"}}>{f.from}<span style={{fontSize:10,color:"#707088",fontWeight:400,padding:"0 5px"}}>→</span>{f.to}</div>
-        <div style={{fontSize:10,fontWeight:700,color:"#e4e4ef"}}>{f.flightNo||f.carrier}</div>
-        {f.carrier&&f.flightNo&&<div style={{fontSize:9,color:"#a0a0b8"}}>{f.carrier}</div>}
+        <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#a78bfa"}}>{f.from}<span style={{fontSize:10,color:"var(--text-mute)",fontWeight:400,padding:"0 5px"}}>→</span>{f.to}</div>
+        <div style={{fontSize:10,fontWeight:700,color:"var(--text)"}}>{f.flightNo||f.carrier}</div>
+        {f.carrier&&f.flightNo&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{f.carrier}</div>}
         {isFresh&&<span title="Booked within the last 48 hours" style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#EDE9FE",color:"#5B21B6",fontWeight:800,letterSpacing:"0.06em"}}>NEW · 48H</span>}
         {f.parseVerified===true&&<span title="Data verified against source email" style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#D1FAE5",color:"#065F46",fontWeight:700}}>✓ verified</span>}
         {f.parseVerified===false&&<span title={f.parseNote||"Verification flagged a discrepancy — review before confirming"} style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#FEF3C7",color:"#92400E",fontWeight:700,cursor:"help"}}>⚠ check data</span>}
         {st&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:st.bg,color:st.c,fontWeight:700}}>{st.label}{delayed?` +${liveStatus.delayMinutes}m`:""}</span>}
         {f.suggestedShowDate&&<span title={`${f.suggestedRole==="outbound"?"Departs day after":"Arrives for"} ${f.suggestedVenue||f.suggestedShowDate}`} style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:f.suggestedRole==="outbound"?"#FEF3C7":"#D1FAE5",color:f.suggestedRole==="outbound"?"#92400E":"#065F46",fontWeight:700}}>{f.suggestedRole==="outbound"?"OUT":"IN"} · {f.suggestedShowDate}</span>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
-          {onRefreshStatus&&<button onClick={onRefreshStatus} disabled={refreshing} title="Refresh live status" style={{background:"none",border:"none",cursor:refreshing?"default":"pointer",fontSize:10,color:refreshing?"#707088":"#5B21B6",padding:0,lineHeight:1}}>{refreshing?"⟳":"⟳"}</button>}
+          {onRefreshStatus&&<button onClick={onRefreshStatus} disabled={refreshing} title="Refresh live status" style={{background:"none",border:"none",cursor:refreshing?"default":"pointer",fontSize:10,color:refreshing?"var(--text-mute)":"#5B21B6",padding:0,lineHeight:1}}>{refreshing?"⟳":"⟳"}</button>}
           <div style={{fontSize:9,fontFamily:MN,color:"#b0b0c8",fontWeight:600}}>{f.depDate}{f.dep?` · ${f.dep}`:""}{f.arr?`–${f.arr}`:""}</div>
         </div>
       </div>
@@ -1134,21 +1134,21 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
           {!liveStatus.depActual&&liveStatus.depScheduled&&<div><div style={{fontSize:7,color:st.c,fontWeight:700}}>SCH DEP</div><div style={{fontFamily:MN,fontSize:10,color:st.c}}>{liveStatus.depScheduled}{liveStatus.depGate?` · Gate ${liveStatus.depGate}`:""}</div></div>}
           {!liveStatus.arrActual&&liveStatus.arrScheduled&&<div><div style={{fontSize:7,color:st.c,fontWeight:700}}>SCH ARR</div><div style={{fontFamily:MN,fontSize:10,color:st.c}}>{liveStatus.arrScheduled}{liveStatus.arrGate?` · Gate ${liveStatus.arrGate}`:""}</div></div>}
           {liveStatus.aircraft&&<div><div style={{fontSize:7,color:st.c,fontWeight:700}}>AIRCRAFT</div><div style={{fontSize:9,color:st.c}}>{liveStatus.aircraft}</div></div>}
-          {liveStatus.fetchedAt&&<div style={{marginLeft:"auto"}}><div style={{fontSize:7,color:"#707088"}}>updated {new Date(liveStatus.fetchedAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div></div>}
+          {liveStatus.fetchedAt&&<div style={{marginLeft:"auto"}}><div style={{fontSize:7,color:"var(--text-mute)"}}>updated {new Date(liveStatus.fetchedAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div></div>}
         </div>
       )}
       <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"flex-start"}}>
-        {f.fromCity&&<div><div style={{fontSize:8,color:"#707088",fontWeight:600}}>FROM</div><div style={{fontSize:10,color:"#e4e4ef"}}>{f.fromCity}</div></div>}
-        {f.toCity&&<div><div style={{fontSize:8,color:"#707088",fontWeight:600}}>TO</div><div style={{fontSize:10,color:"#e4e4ef"}}>{f.toCity}</div></div>}
+        {f.fromCity&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>FROM</div><div style={{fontSize:10,color:"var(--text)"}}>{f.fromCity}</div></div>}
+        {f.toCity&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>TO</div><div style={{fontSize:10,color:"var(--text)"}}>{f.toCity}</div></div>}
         {onUpdatePax
           ?<PaxEditor pax={f.pax||[]} crew={crew} onSave={onUpdatePax}/>
-          :(f.pax?.length>0&&<div><div style={{fontSize:8,color:"#707088",fontWeight:600}}>PAX</div><div style={{fontSize:10,color:"#e4e4ef"}}>{f.pax.join(", ")}</div></div>)}
-        {f.confirmNo&&<div><div style={{fontSize:8,color:"#707088",fontWeight:600}}>CONF #</div><div style={{fontFamily:MN,fontSize:10,color:"#e4e4ef",fontWeight:700}}>{f.confirmNo}</div></div>}
-        {f.cost&&<div><div style={{fontSize:8,color:"#707088",fontWeight:600}}>COST</div><div style={{fontFamily:MN,fontSize:10,color:"#047857",fontWeight:700}}>{f.currency||"$"}{f.cost}</div></div>}
+          :(f.pax?.length>0&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>PAX</div><div style={{fontSize:10,color:"var(--text)"}}>{f.pax.join(", ")}</div></div>)}
+        {f.confirmNo&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>CONF #</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.confirmNo}</div></div>}
+        {f.cost&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>COST</div><div style={{fontFamily:MN,fontSize:10,color:"#047857",fontWeight:700}}>{f.currency||"$"}{f.cost}</div></div>}
       </div>
       {crew&&f.suggestedCrewIds?.length>0&&(
         <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
-          <span style={{fontSize:8,fontWeight:700,color:"#707088",letterSpacing:"0.06em"}}>CREW</span>
+          <span style={{fontSize:8,fontWeight:700,color:"var(--text-mute)",letterSpacing:"0.06em"}}>CREW</span>
           {f.suggestedCrewIds.map(id=>{const c=(crew||[]).find(x=>x.id===id);return c?(<span key={id} style={{fontSize:8,padding:"2px 7px",borderRadius:8,background:"#F0FDF4",color:"#065F46",fontWeight:700,border:"1px solid #BBF7D0"}} title={c.role}>{c.name.split(" ")[0]}</span>):null;})}
         </div>
       )}
@@ -1183,7 +1183,7 @@ function PaxEditor({pax,crew,onSave}){
   const[names,setNames]=useState(pax||[]);
   const[input,setInput]=useState("");
   const[open,setOpen]=useState(false);
-  const inp2={background:"#12121a",border:"1px solid #2a2a3a",borderRadius:5,fontSize:10,padding:"4px 8px",outline:"none",fontFamily:"'Outfit',system-ui",width:"100%",boxSizing:"border-box"};
+  const inp2={background:"var(--card)",border:"1px solid var(--border)",borderRadius:5,fontSize:10,padding:"4px 8px",outline:"none",fontFamily:"'Outfit',system-ui",width:"100%",boxSizing:"border-box"};
   const sugg=input.length>0?(crew||[]).filter(c=>c.name&&c.name.toLowerCase().includes(input.toLowerCase())).slice(0,5):[];
 
   const add=name=>{
@@ -1196,12 +1196,12 @@ function PaxEditor({pax,crew,onSave}){
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:4,minWidth:0,width:"100%"}}>
-      <div style={{fontSize:8,fontWeight:700,color:"#a0a0b8",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:2}}>Passengers</div>
+      <div style={{fontSize:8,fontWeight:700,color:"var(--text-dim)",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:2}}>Passengers</div>
       {names.length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:3}}>
         {names.map((n,i)=>{
           const matched=matchPaxToCrew([n],crew||[]).length>0;
-          return(<span key={i} style={{display:"flex",alignItems:"center",gap:2,fontSize:9,padding:"2px 6px",borderRadius:4,background:matched?"#D1FAE5":"#1e1e2e",color:matched?"#047857":"#b0b0c8",border:`1px solid ${matched?"#A7F3D0":"#2a2a3a"}`}}>
-            {n}<button onClick={()=>remove(i)} style={{background:"none",border:"none",cursor:"pointer",color:"#707088",fontSize:11,lineHeight:1,padding:"0 0 0 2px"}}>×</button>
+          return(<span key={i} style={{display:"flex",alignItems:"center",gap:2,fontSize:9,padding:"2px 6px",borderRadius:4,background:matched?"#D1FAE5":"var(--card-2)",color:matched?"#047857":"#b0b0c8",border:`1px solid ${matched?"#A7F3D0":"var(--border)"}`}}>
+            {n}<button onClick={()=>remove(i)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-mute)",fontSize:11,lineHeight:1,padding:"0 0 0 2px"}}>×</button>
           </span>);
         })}
       </div>}
@@ -1210,12 +1210,12 @@ function PaxEditor({pax,crew,onSave}){
           onKeyDown={e=>{if(e.key==="Enter"&&input.trim()){add(input);e.preventDefault();}}}
           placeholder="Add name or search crew…" style={inp2}/>
         {open&&sugg.length>0&&(
-          <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#12121a",border:"1px solid #2a2a3a",borderRadius:5,zIndex:20,maxHeight:130,overflowY:"auto",boxShadow:"0 4px 12px rgba(0,0,0,0.08)"}}>
+          <div style={{position:"absolute",top:"100%",left:0,right:0,background:"var(--card)",border:"1px solid var(--border)",borderRadius:5,zIndex:20,maxHeight:130,overflowY:"auto",boxShadow:"0 4px 12px rgba(0,0,0,0.08)"}}>
             {sugg.map(c=>(
               <div key={c.id} onMouseDown={()=>add(c.name)} style={{padding:"5px 9px",cursor:"pointer",fontSize:10,display:"flex",gap:6,alignItems:"center"}} className="rh">
                 <span style={{fontWeight:700}}>{c.name.split(" ")[0]}</span>
-                <span style={{color:"#a0a0b8",fontSize:9}}>{c.name.split(" ").slice(1).join(" ")}</span>
-                <span style={{marginLeft:"auto",fontSize:8,color:"#707088"}}>{c.role}</span>
+                <span style={{color:"var(--text-dim)",fontSize:9}}>{c.name.split(" ").slice(1).join(" ")}</span>
+                <span style={{marginLeft:"auto",fontSize:8,color:"var(--text-mute)"}}>{c.role}</span>
               </div>
             ))}
           </div>
@@ -1356,13 +1356,13 @@ function FlightsSection(){
 
   return(
     <div style={{display:"flex",flexDirection:"column",gap:8}}>
-      <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+      <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
         <span style={{fontSize:10,fontWeight:800,color:"#a78bfa",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
         <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"#DBEAFE",color:"#a78bfa",fontWeight:700}}>{confirmed.length} confirmed · {pending.length} pending</span>
-        {scanMsg&&<span style={{fontSize:9,color:scanning?"#5B21B6":"#a0a0b8",fontFamily:MN}}>{scanMsg}</span>}
+        {scanMsg&&<span style={{fontSize:9,color:scanning?"#5B21B6":"var(--text-dim)",fontFamily:MN}}>{scanMsg}</span>}
         <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-          <button onClick={()=>{if(confirm(`Clear all ${allFlights.length} flights and rescan Gmail?`))scanFlights({reset:true});}} disabled={scanning} style={{background:scanning?"#2a2a3a":"#B91C1C",color:scanning?"#a0a0b8":"#12121a",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>Reset & Rescan</button>
-          <button onClick={()=>scanFlights()} disabled={scanning} style={{background:scanning?"#2a2a3a":"#a78bfa",color:scanning?"#a0a0b8":"#12121a",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail"}</button>
+          <button onClick={()=>{if(confirm(`Clear all ${allFlights.length} flights and rescan Gmail?`))scanFlights({reset:true});}} disabled={scanning} style={{background:scanning?"var(--border)":"#B91C1C",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>Reset & Rescan</button>
+          <button onClick={()=>scanFlights()} disabled={scanning} style={{background:scanning?"var(--border)":"#a78bfa",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail"}</button>
         </div>
       </div>
 
@@ -1380,7 +1380,7 @@ function FlightsSection(){
                 {g.segs.map(f=>(
                   <FlightCard key={f.id} f={f} crew={crew} actions={<>
                     <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#a78bfa",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
-                    <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #2a2a3a",background:"transparent",color:"#a0a0b8",cursor:"pointer"}}>Skip</button>
+                    <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Skip</button>
                     {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
                   </>}/>
                 ))}
@@ -1403,7 +1403,7 @@ function FlightsSection(){
                   return(
                     <FlightCard key={f.id} f={f} actions={<>
                       <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"#a78bfa",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
-                      <button onClick={()=>dismissFlight(f.id)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #2a2a3a",background:"transparent",color:"#a0a0b8",cursor:"pointer"}}>Dismiss</button>
+                      <button onClick={()=>dismissFlight(f.id)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Dismiss</button>
                       {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
                     </>}/>
                   );
@@ -1429,10 +1429,10 @@ function FlightsSection(){
                   return(
                     <div key={f.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:7,flexWrap:"wrap"}}>
                       <span style={{fontSize:9,color:"#047857",fontWeight:800,fontFamily:MN,flexShrink:0}}>{f.depDate}</span>
-                      <span style={{fontSize:11,fontWeight:700,color:"#e4e4ef",fontFamily:MN,flexShrink:0}}>{f.from}→{f.to}</span>
+                      <span style={{fontSize:11,fontWeight:700,color:"var(--text)",fontFamily:MN,flexShrink:0}}>{f.from}→{f.to}</span>
                       <span style={{fontSize:10,color:"#b0b0c8",flexShrink:0}}>{f.flightNo||f.carrier}</span>
-                      {f.dep&&<span style={{fontSize:9,fontFamily:MN,color:"#a0a0b8"}}>{f.dep}</span>}
-                      <span style={{fontSize:9,color:"#a0a0b8",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(f.pax||[]).join(", ")}</span>
+                      {f.dep&&<span style={{fontSize:9,fontFamily:MN,color:"var(--text-dim)"}}>{f.dep}</span>}
+                      <span style={{fontSize:9,color:"var(--text-dim)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(f.pax||[]).join(", ")}</span>
                       {show&&<span style={{fontSize:8,padding:"1px 6px",borderRadius:4,background:inShow?"#D1FAE5":"#FEF3C7",color:inShow?"#047857":"#92400E",fontWeight:700,flexShrink:0}}>{show.city} {fD(show.date)}</span>}
                       <span style={{fontSize:9,color:"#047857",fontWeight:700,flexShrink:0}}>✓</span>
                       <button onClick={()=>dismissFlight(f.id)} title="Move to unresolved" style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12,flexShrink:0}}>×</button>
@@ -1452,9 +1452,9 @@ function FlightsSection(){
             {unresolved.map(f=>(
               <div key={f.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",background:"#FEF9F9",border:"1px solid #FECACA",borderRadius:7,flexWrap:"wrap"}}>
                 <span style={{fontSize:9,color:"#B91C1C",fontWeight:800,fontFamily:MN,flexShrink:0}}>{f.depDate}</span>
-                <span style={{fontSize:11,fontWeight:700,color:"#e4e4ef",fontFamily:MN,flexShrink:0}}>{f.from}→{f.to}</span>
+                <span style={{fontSize:11,fontWeight:700,color:"var(--text)",fontFamily:MN,flexShrink:0}}>{f.from}→{f.to}</span>
                 <span style={{fontSize:10,color:"#b0b0c8",flexShrink:0}}>{f.flightNo||f.carrier}</span>
-                <span style={{fontSize:9,color:"#a0a0b8",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(f.pax||[]).join(", ")}</span>
+                <span style={{fontSize:9,color:"var(--text-dim)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(f.pax||[]).join(", ")}</span>
                 <button onClick={()=>uFlight(f.id,{...f,status:"pending"})} style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#a78bfa",cursor:"pointer",fontWeight:700,flexShrink:0}}>↩ Restore</button>
                 <button onClick={()=>deleteFlight(f.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12,flexShrink:0}}>×</button>
               </div>
@@ -1464,7 +1464,7 @@ function FlightsSection(){
       )}
 
       {allFlights.length===0&&pendingImport.length===0&&(
-        <div style={{fontSize:10,color:"#707088",fontStyle:"italic",padding:"4px 0"}}>No flights yet. Click "Scan Gmail" to import from confirmation emails.</div>
+        <div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic",padding:"4px 0"}}>No flights yet. Click "Scan Gmail" to import from confirmation emails.</div>
       )}
     </div>
   );
@@ -1535,13 +1535,13 @@ function IntelPanel(){
   },[data,show]);
   if(!show)return null;const busy=refreshing===sid;const shared=data.isShared||false;
   return <div style={{display:"flex",flexDirection:"column",gap:8}}>
-    <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+    <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
       <span style={{fontSize:10,fontWeight:800,color:"#5B21B6",letterSpacing:"0.06em"}}>GMAIL INTEL</span>
-      <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"#1e1e2e",color:"#a0a0b8",fontWeight:600,letterSpacing:"0.04em"}}>PRIVATE</span>
-      {data.lastRefreshed&&<span style={{fontSize:9,color:"#707088",fontFamily:MN}}>last: {new Date(data.lastRefreshed).toLocaleString()}</span>}
-      <span style={{marginLeft:"auto",fontSize:9,color:"#a0a0b8"}}>{(data.threads||[]).length} threads · {(data.todos||[]).length} to-dos</span>
-      <button onClick={()=>toggleIntelShare(show,!shared)} style={{background:shared?"#D1FAE5":"#1e1e2e",color:shared?"#065F46":"#b0b0c8",border:`1px solid ${shared?"#6EE7B7":"#2a2a3a"}`,borderRadius:6,fontSize:9,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>{shared?"Shared with team":"Share with team"}</button>
-      <button onClick={()=>refreshIntel(show,true)} disabled={!!refreshing} style={{background:refreshing?"#2a2a3a":"#5B21B6",color:refreshing?"#a0a0b8":"#12121a",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:refreshing?"default":"pointer",fontWeight:700}}>{busy?"Scanning…":"Refresh Intel"}</button>
+      <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"var(--card-2)",color:"var(--text-dim)",fontWeight:600,letterSpacing:"0.04em"}}>PRIVATE</span>
+      {data.lastRefreshed&&<span style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN}}>last: {new Date(data.lastRefreshed).toLocaleString()}</span>}
+      <span style={{marginLeft:"auto",fontSize:9,color:"var(--text-dim)"}}>{(data.threads||[]).length} threads · {(data.todos||[]).length} to-dos</span>
+      <button onClick={()=>toggleIntelShare(show,!shared)} style={{background:shared?"#D1FAE5":"var(--card-2)",color:shared?"#065F46":"#b0b0c8",border:`1px solid ${shared?"#6EE7B7":"var(--border)"}`,borderRadius:6,fontSize:9,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>{shared?"Shared with team":"Share with team"}</button>
+      <button onClick={()=>refreshIntel(show,true)} disabled={!!refreshing} style={{background:refreshing?"var(--border)":"#5B21B6",color:refreshing?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:refreshing?"default":"pointer",fontWeight:700}}>{busy?"Scanning…":"Refresh Intel"}</button>
     </div>
     {refreshMsg&&<div style={{fontSize:10,color:"#5B21B6",fontFamily:MN}}>{refreshMsg}</div>}
     {labelIntel?.actionRequired?.length>0&&(
@@ -1559,7 +1559,7 @@ function IntelPanel(){
       </div>
     )}
     <IntelSection title="SCHEDULE INCONSISTENCIES" count={scheduleFlags.length+(data.manualFlags||[]).length} defaultOpen={true} actions={<button onClick={addManualFlag} style={{...UI.expandBtn(false,"#92400E"),fontSize:9}}>+ Add</button>}>
-      {scheduleFlags.length===0&&(data.manualFlags||[]).length===0?<div style={{fontSize:10,color:"#707088",fontStyle:"italic"}}>No inconsistencies.</div>:
+      {scheduleFlags.length===0&&(data.manualFlags||[]).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No inconsistencies.</div>:
       <div style={{display:"flex",flexDirection:"column",gap:6}}>
         {scheduleFlags.map(f=>{const isC=f.severity==="CONFLICT";const col=isC?"#B91C1C":"#92400E";const bg=isC?"#FEE2E2":"#FEF3C7";
           const confirmPlatform=()=>dismissFlag(f.key);
@@ -1568,21 +1568,21 @@ function IntelPanel(){
           return <div key={f.key} style={{border:`1px solid ${col}40`,background:bg,borderRadius:7,padding:"7px 9px",display:"flex",flexDirection:"column",gap:4}}>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
               <span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:col,color:"#fff",fontWeight:800}}>{f.severity}</span>
-              <span style={{fontSize:11,fontWeight:700,color:"#e4e4ef"}}>{f.label}</span>
+              <span style={{fontSize:11,fontWeight:700,color:"var(--text)"}}>{f.label}</span>
               <span style={{marginLeft:"auto",display:"flex",gap:5,alignItems:"center"}}>
                 {f.threadTid&&<a href={gmailUrl(f.threadTid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:col,textDecoration:"none",fontWeight:600}}>open ↗</a>}
               </span>
             </div>
-            <div style={{fontSize:10,fontFamily:MN,color:"#e4e4ef"}}>platform: <span style={{fontWeight:600}}>{f.platform}</span> · email: <span style={{fontWeight:600}}>{f.emailVal}</span></div>
-            <div style={{fontSize:9,color:"#a0a0b8",fontStyle:"italic"}}>{f.snippet}</div>
+            <div style={{fontSize:10,fontFamily:MN,color:"var(--text)"}}>platform: <span style={{fontWeight:600}}>{f.platform}</span> · email: <span style={{fontWeight:600}}>{f.emailVal}</span></div>
+            <div style={{fontSize:9,color:"var(--text-dim)",fontStyle:"italic"}}>{f.snippet}</div>
             <div style={{display:"flex",gap:5,marginTop:2}}>
-              <button onClick={confirmPlatform} title="Platform time is correct — dismiss flag" style={{fontSize:8,padding:"2px 8px",borderRadius:4,border:"1px solid #CBD5E1",background:"#1e1e2e",color:"#c0c0d0",cursor:"pointer",fontWeight:700}}>Platform correct</button>
+              <button onClick={confirmPlatform} title="Platform time is correct — dismiss flag" style={{fontSize:8,padding:"2px 8px",borderRadius:4,border:"1px solid #CBD5E1",background:"var(--card-2)",color:"#c0c0d0",cursor:"pointer",fontWeight:700}}>Platform correct</button>
               <button onClick={confirmEmail} title="Email time is correct — update show and dismiss" style={{fontSize:8,padding:"2px 8px",borderRadius:4,border:`1px solid ${col}60`,background:isC?"#FEE2E2":"#FEF3C7",color:col,cursor:"pointer",fontWeight:700}}>Use email time</button>
-              <button onClick={markBadMatch} title="Low confidence — comparison is improperly formed or imprecise" style={{fontSize:8,padding:"2px 8px",borderRadius:4,border:"1px solid #2a2a3a",background:"#17171f",color:"#707088",cursor:"pointer",fontWeight:600}}>Bad match</button>
+              <button onClick={markBadMatch} title="Low confidence — comparison is improperly formed or imprecise" style={{fontSize:8,padding:"2px 8px",borderRadius:4,border:"1px solid var(--border)",background:"#17171f",color:"var(--text-mute)",cursor:"pointer",fontWeight:600}}>Bad match</button>
             </div>
           </div>;
         })}
-        {(data.manualFlags||[]).map(f=><div key={f.key} style={{border:"1px solid #2a2a3a",background:"#161622",borderRadius:7,padding:"7px 9px",display:"grid",gridTemplateColumns:"1fr 1fr 1fr 28px",gap:6,alignItems:"center"}}>
+        {(data.manualFlags||[]).map(f=><div key={f.key} style={{border:"1px solid var(--border)",background:"#161622",borderRadius:7,padding:"7px 9px",display:"grid",gridTemplateColumns:"1fr 1fr 1fr 28px",gap:6,alignItems:"center"}}>
           <input value={f.label} onChange={e=>updManualFlag(f.key,{label:e.target.value})} placeholder="Label" style={UI.input}/>
           <input value={f.platform} onChange={e=>updManualFlag(f.key,{platform:e.target.value})} placeholder="Platform" style={UI.input}/>
           <input value={f.emailVal} onChange={e=>updManualFlag(f.key,{emailVal:e.target.value})} placeholder="Email value" style={UI.input}/>
@@ -1591,39 +1591,39 @@ function IntelPanel(){
       </div>}
     </IntelSection>
     <IntelSection title="TO-DOS (PRIVATE)" count={(data.todos||[]).length} defaultOpen={true} actions={<button onClick={addTodo} style={{...UI.expandBtn(false,"#5B21B6"),fontSize:9}}>+ Add</button>}>
-      {(data.todos||[]).length===0?<div style={{fontSize:10,color:"#707088",fontStyle:"italic"}}>No action items yet.</div>:
+      {(data.todos||[]).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No action items yet.</div>:
         (data.todos||[]).map(t=><div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid #17171f"}}>
           <input type="checkbox" checked={!!t.done} onChange={()=>toggleTodo(t.id)}/>
-          <span style={{fontSize:10,flex:1,color:t.done?"#707088":"#e4e4ef",textDecoration:t.done?"line-through":"none"}}>{t.text}</span>
-          {t.priority&&<span style={{fontSize:7,padding:"1px 5px",borderRadius:3,background:t.priority==="CRITICAL"?"#FEE2E2":t.priority==="HIGH"?"#FEF3C7":"#1e1e2e",color:t.priority==="CRITICAL"?"#B91C1C":t.priority==="HIGH"?"#92400E":"#a0a0b8",fontWeight:700}}>{t.priority}</span>}
+          <span style={{fontSize:10,flex:1,color:t.done?"var(--text-mute)":"var(--text)",textDecoration:t.done?"line-through":"none"}}>{t.text}</span>
+          {t.priority&&<span style={{fontSize:7,padding:"1px 5px",borderRadius:3,background:t.priority==="CRITICAL"?"#FEE2E2":t.priority==="HIGH"?"#FEF3C7":"var(--card-2)",color:t.priority==="CRITICAL"?"#B91C1C":t.priority==="HIGH"?"#92400E":"var(--text-dim)",fontWeight:700}}>{t.priority}</span>}
           {t.threadTid&&<a href={gmailUrl(t.threadTid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#5B21B6",textDecoration:"none"}}>↗</a>}
           <button onClick={()=>delTodo(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12}}>×</button>
         </div>)}
     </IntelSection>
     <IntelSection title="THREADS (PRIVATE)" count={(data.threads||[]).length} defaultOpen={true} actions={<button onClick={addThread} style={{...UI.expandBtn(false,"#5B21B6"),fontSize:9}}>+ Add</button>}>
-      {(data.threads||[]).length===0?<div style={{fontSize:10,color:"#707088",fontStyle:"italic"}}>No threads.</div>:
+      {(data.threads||[]).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No threads.</div>:
         data.threads.map(t=><div key={t.tid} style={{display:"grid",gridTemplateColumns:"1fr auto auto 28px",gap:8,padding:"5px 0",borderBottom:"1px solid #17171f",fontSize:10,alignItems:"center"}}>
           {t.manual?<input value={t.subject||""} onChange={e=>upd({threads:data.threads.map(x=>x.tid===t.tid?{...x,subject:e.target.value}:x)})} placeholder="Subject" style={UI.input}/>:
-            <a href={gmailUrl(t.tid)} target="_blank" rel="noopener noreferrer" style={{color:"#e4e4ef",textDecoration:"none",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{fontWeight:600}}>{t.subject||"(no subject)"}</span> <span style={{color:"#a0a0b8",fontSize:9}}>· {t.from}</span></a>}
+            <a href={gmailUrl(t.tid)} target="_blank" rel="noopener noreferrer" style={{color:"var(--text)",textDecoration:"none",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{fontWeight:600}}>{t.subject||"(no subject)"}</span> <span style={{color:"var(--text-dim)",fontSize:9}}>· {t.from}</span></a>}
           <span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>{t.intent||"?"}</span>
-          <span style={{fontSize:8,color:"#707088",fontFamily:MN}}>{t.date}</span>
+          <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN}}>{t.date}</span>
           <button onClick={()=>delThread(t.tid)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12}}>×</button>
         </div>)}
     </IntelSection>
     <IntelSection title="FOLLOW-UPS" count={(data.followUps||[]).length} defaultOpen={true} actions={<button onClick={addFollowUp} style={{...UI.expandBtn(false,"#5B21B6"),fontSize:9}}>+ Add</button>}>
-      {(data.followUps||[]).length===0?<div style={{fontSize:10,color:"#707088",fontStyle:"italic"}}>No follow-ups.</div>:
+      {(data.followUps||[]).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No follow-ups.</div>:
         data.followUps.map((f,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 100px 80px 100px 28px",gap:8,padding:"5px 0",borderBottom:"1px solid #17171f",fontSize:10,alignItems:"center"}}>
           {f.manual?<input value={f.action||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,action:e.target.value}:x)})} placeholder="Action" style={UI.input}/>:<span>{f.action}</span>}
-          {f.manual?<input value={f.owner||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,owner:e.target.value}:x)})} placeholder="Owner" style={UI.input}/>:<span style={{fontSize:8,color:"#a0a0b8"}}>{f.owner}</span>}
-          {f.manual?<select value={f.priority||"MED"} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,priority:e.target.value}:x)})} style={UI.input}><option>CRITICAL</option><option>HIGH</option><option>MED</option><option>LOW</option></select>:<span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:f.priority==="CRITICAL"?"#FEE2E2":"#1e1e2e",color:f.priority==="CRITICAL"?"#B91C1C":"#a0a0b8",fontWeight:700}}>{f.priority}</span>}
-          {f.manual?<input value={f.deadline||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,deadline:e.target.value}:x)})} placeholder="YYYY-MM-DD" style={UI.input}/>:<span style={{fontSize:8,color:"#707088",fontFamily:MN}}>{f.deadline}</span>}
+          {f.manual?<input value={f.owner||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,owner:e.target.value}:x)})} placeholder="Owner" style={UI.input}/>:<span style={{fontSize:8,color:"var(--text-dim)"}}>{f.owner}</span>}
+          {f.manual?<select value={f.priority||"MED"} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,priority:e.target.value}:x)})} style={UI.input}><option>CRITICAL</option><option>HIGH</option><option>MED</option><option>LOW</option></select>:<span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:f.priority==="CRITICAL"?"#FEE2E2":"var(--card-2)",color:f.priority==="CRITICAL"?"#B91C1C":"var(--text-dim)",fontWeight:700}}>{f.priority}</span>}
+          {f.manual?<input value={f.deadline||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,deadline:e.target.value}:x)})} placeholder="YYYY-MM-DD" style={UI.input}/>:<span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN}}>{f.deadline}</span>}
           <button onClick={()=>delFollowUp(i)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:12}}>×</button>
         </div>)}
     </IntelSection>
-    {(data.showContacts||[]).length>0&&<div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"10px 12px"}}>
-      <div style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.06em",marginBottom:6}}>CONTACTS</div>
+    {(data.showContacts||[]).length>0&&<div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px"}}>
+      <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em",marginBottom:6}}>CONTACTS</div>
       {data.showContacts.map((c,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 1fr auto",gap:8,padding:"4px 0",borderBottom:"1px solid #17171f",fontSize:10}}>
-        <span style={{fontWeight:600}}>{c.name}</span><span style={{color:"#a0a0b8"}}>{c.role}</span>
+        <span style={{fontWeight:600}}>{c.name}</span><span style={{color:"var(--text-dim)"}}>{c.role}</span>
         {c.email&&<a href={`mailto:${c.email}`} style={{color:"#5B21B6",fontSize:9,textDecoration:"none"}}>{c.email}</a>}
       </div>)}
     </div>}
@@ -1632,12 +1632,12 @@ function IntelPanel(){
       return <div key={i} style={{border:"1px solid #6EE7B7",borderRadius:10,padding:"10px 12px",background:"#F0FDF4"}}>
         <div style={{fontSize:9,fontWeight:800,color:"#065F46",letterSpacing:"0.06em",marginBottom:8}}>SHARED BY {label.toUpperCase()} · {new Date(s.cached_at).toLocaleDateString()}</div>
         {(d.followUps||[]).length>0&&<div>
-          <div style={{fontSize:8,fontWeight:700,color:"#a0a0b8",marginBottom:4}}>FOLLOW-UPS ({d.followUps.length})</div>
+          <div style={{fontSize:8,fontWeight:700,color:"var(--text-dim)",marginBottom:4}}>FOLLOW-UPS ({d.followUps.length})</div>
           {d.followUps.map((f,fi)=><div key={fi} style={{display:"grid",gridTemplateColumns:"1fr 80px 70px 80px",gap:8,padding:"4px 0",borderBottom:"1px solid #D1FAE5",fontSize:10,alignItems:"center"}}>
             <span>{f.action}</span>
-            <span style={{fontSize:8,color:"#a0a0b8"}}>{f.owner}</span>
-            <span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:f.priority==="CRITICAL"?"#FEE2E2":"#1e1e2e",color:f.priority==="CRITICAL"?"#B91C1C":"#a0a0b8",fontWeight:700}}>{f.priority}</span>
-            <span style={{fontSize:8,color:"#707088",fontFamily:MN}}>{f.deadline}</span>
+            <span style={{fontSize:8,color:"var(--text-dim)"}}>{f.owner}</span>
+            <span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:f.priority==="CRITICAL"?"#FEE2E2":"var(--card-2)",color:f.priority==="CRITICAL"?"#B91C1C":"var(--text-dim)",fontWeight:700}}>{f.priority}</span>
+            <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN}}>{f.deadline}</span>
           </div>)}
         </div>}
       </div>;
@@ -1655,27 +1655,33 @@ function NotesPanel(){
     if(tabN==="public")uAdv(sel,{sharedNotes:[...shared,n]});else uNotesPriv(sel,[...priv,n]);
     setTxt("");};
   const del=id=>{if(tabN==="public"){const prev=shared;uAdv(sel,{sharedNotes:shared.filter(n=>n.id!==id)});pushUndo("Note deleted.",()=>uAdv(sel,{sharedNotes:prev}));}else{const prev=priv;uNotesPriv(sel,priv.filter(n=>n.id!==id));pushUndo("Note deleted.",()=>uNotesPriv(sel,prev));}};
-  return <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"10px 12px"}}>
+  return <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px"}}>
     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:7}}>
-      <span style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.06em"}}>NOTES</span>
+      <span style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em"}}>NOTES</span>
       <div style={{display:"flex",gap:2,marginLeft:"auto",background:"#17171f",borderRadius:6,padding:2}}>
-        {["public","private"].map(m=><button key={m} onClick={()=>setTabN(m)} style={{fontSize:8,padding:"2px 8px",borderRadius:4,border:"none",cursor:"pointer",background:tabN===m?"#12121a":"transparent",color:tabN===m?"#e4e4ef":"#a0a0b8",fontWeight:700,textTransform:"uppercase"}}>{m}</button>)}
+        {["public","private"].map(m=><button key={m} onClick={()=>setTabN(m)} style={{fontSize:8,padding:"2px 8px",borderRadius:4,border:"none",cursor:"pointer",background:tabN===m?"var(--card)":"transparent",color:tabN===m?"var(--text)":"var(--text-dim)",fontWeight:700,textTransform:"uppercase"}}>{m}</button>)}
       </div>
     </div>
     <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:6}}>
-      {list.length===0&&<div style={{fontSize:10,color:"#707088",fontStyle:"italic"}}>No {tabN} notes yet.</div>}
+      {list.length===0&&<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No {tabN} notes yet.</div>}
       {list.map(n=><div key={n.id} style={{display:"flex",gap:6,padding:"5px 7px",background:"#17171f",borderRadius:5}}>
-        <span style={{fontSize:10,color:"#e4e4ef",flex:1,whiteSpace:"pre-wrap"}}>{n.text}</span>
-        <span style={{fontSize:8,color:"#707088",fontFamily:MN}}>{new Date(n.ts).toLocaleDateString()}</span>
+        <span style={{fontSize:10,color:"var(--text)",flex:1,whiteSpace:"pre-wrap"}}>{n.text}</span>
+        <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN}}>{new Date(n.ts).toLocaleDateString()}</span>
         <button onClick={()=>del(n.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:11}}>×</button>
       </div>)}
     </div>
     <div style={{display:"flex",gap:5}}>
       <input value={txt} onChange={e=>setTxt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&add()} placeholder={`Add ${tabN} note…`}
-        style={{flex:1,background:"#17171f",border:"1px solid #2a2a3a",borderRadius:5,fontSize:10,padding:"4px 7px",outline:"none"}}/>
+        style={{flex:1,background:"#17171f",border:"1px solid var(--border)",borderRadius:5,fontSize:10,padding:"4px 7px",outline:"none"}}/>
       <button onClick={add} style={{background:tabN==="public"?"#5B21B6":"#c0c0d0",border:"none",borderRadius:5,color:"#fff",fontSize:10,padding:"4px 12px",cursor:"pointer",fontWeight:700}}>Add</button>
     </div>
   </div>;
+}
+
+function ThemeToggle(){
+  const[theme,setTheme]=useState(()=>{try{return localStorage.getItem("dos-theme")||"dark";}catch{return "dark";}});
+  const toggle=()=>{const next=theme==="dark"?"light":"dark";setTheme(next);try{localStorage.setItem("dos-theme",next);}catch{}document.documentElement.setAttribute("data-theme",next);};
+  return <button onClick={toggle} title={`Switch to ${theme==="dark"?"light":"dark"} theme`} style={{background:"var(--border)",border:"1px solid var(--border)",borderRadius:5,color:"#b0b0c8",fontSize:11,padding:"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minWidth:28}}>{theme==="dark"?"☼":"☾"}</button>;
 }
 
 function SignOut(){
@@ -1716,7 +1722,7 @@ function NavSidebar(){
   const selRef=useRef(null);
   useEffect(()=>{if(selRef.current&&listRef.current){selRef.current.scrollIntoView({block:"start",behavior:"smooth"});};},[sel,sidebarOpen,tab]);
 
-  const typeColor=t=>t==="travel"?{bg:"#DBEAFE",c:"#a78bfa"}:t==="off"?{bg:"#1e1e2e",c:"#707088"}:t==="split"?{bg:"#FEF3C7",c:"#92400E"}:{bg:"#D1FAE5",c:"#047857"};
+  const typeColor=t=>t==="travel"?{bg:"#DBEAFE",c:"#a78bfa"}:t==="off"?{bg:"var(--card-2)",c:"var(--text-mute)"}:t==="split"?{bg:"#FEF3C7",c:"#92400E"}:{bg:"#D1FAE5",c:"#047857"};
 
   if(!sidebarOpen)return null;
 
@@ -1724,15 +1730,15 @@ function NavSidebar(){
     <div style={{width:200,flexShrink:0,background:"#0c0c18",borderRight:"1px solid #1a1a2e",display:"flex",flexDirection:"column",height:"100%",minHeight:0,overflow:"hidden"}}>
       {/* Mini stats */}
       {next&&(
-        <div style={{padding:"10px 12px 8px",borderBottom:"1px solid #2a2a3a"}}>
-          <div style={{fontSize:9,fontWeight:700,color:"#707088",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4}}>Next Show</div>
-          <div style={{fontSize:12,fontWeight:800,color:"#e4e4ef",lineHeight:1.2}}>{next.city}</div>
-          <div style={{fontSize:9,color:"#a0a0b8",marginTop:1}}>{fD(next.date)} · <span style={{color:"#5B21B6",fontWeight:700,fontFamily:MN}}>{dU(next.date)}d</span></div>
+        <div style={{padding:"10px 12px 8px",borderBottom:"1px solid var(--border)"}}>
+          <div style={{fontSize:9,fontWeight:700,color:"var(--text-mute)",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4}}>Next Show</div>
+          <div style={{fontSize:12,fontWeight:800,color:"var(--text)",lineHeight:1.2}}>{next.city}</div>
+          <div style={{fontSize:9,color:"var(--text-dim)",marginTop:1}}>{fD(next.date)} · <span style={{color:"#5B21B6",fontWeight:700,fontFamily:MN}}>{dU(next.date)}d</span></div>
         </div>
       )}
       {/* Flags */}
       {flags.length>0&&(
-        <div style={{padding:"6px 10px",borderBottom:"1px solid #2a2a3a",display:"flex",flexDirection:"column",gap:3}}>
+        <div style={{padding:"6px 10px",borderBottom:"1px solid var(--border)",display:"flex",flexDirection:"column",gap:3}}>
           {flags.map((f,i)=>(
             <div key={i} onClick={()=>{if(f.date)setSel(f.date);}} style={{display:"flex",alignItems:"center",gap:5,padding:"4px 6px",background:"#FEE2E2",borderRadius:5,cursor:f.date?"pointer":"default",borderLeft:"2px solid #B91C1C"}}>
               <span style={{fontSize:7,fontWeight:800,color:"#B91C1C",fontFamily:MN,flexShrink:0}}>!</span>
@@ -1742,8 +1748,8 @@ function NavSidebar(){
         </div>
       )}
       {/* Off/travel toggle */}
-      <div style={{padding:"7px 12px",borderBottom:"1px solid #2a2a3a",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-        <span style={{fontSize:9,fontWeight:600,color:"#a0a0b8"}}>Off / travel days</span>
+      <div style={{padding:"7px 12px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <span style={{fontSize:9,fontWeight:600,color:"var(--text-dim)"}}>Off / travel days</span>
         <button onClick={()=>setShowOffDays(v=>!v)} style={{position:"relative",width:28,height:16,borderRadius:99,border:"none",cursor:"pointer",background:showOffDays?"#6D28D9":"#1e1e32",padding:0,transition:"background 0.2s ease",flexShrink:0,boxShadow:"inset 0 1px 3px rgba(0,0,0,0.4)"}}>
           <span style={{position:"absolute",top:2,left:showOffDays?14:2,width:12,height:12,borderRadius:99,background:showOffDays?"#fff":"#9090b8",transition:"left 0.2s ease,background 0.2s ease",boxShadow:"0 1px 4px rgba(0,0,0,.4)"}}/>
         </button>
@@ -1756,7 +1762,7 @@ function NavSidebar(){
           const isOff=d.type==="off"||d.type==="travel";
           const pc=d.type==="show"?pendingCount(d.date):0;
           const days=dU(d.date);
-          const urgColor=days<=7?"#B91C1C":days<=14?"#92400E":days<=21?"#a78bfa":"#707088";
+          const urgColor=days<=7?"#B91C1C":days<=14?"#92400E":days<=21?"#a78bfa":"var(--text-mute)";
           const dateStr=new Date(d.date+"T12:00:00");
           const mo=dateStr.toLocaleString("en-US",{month:"short"});
           const dt=dateStr.getDate();
@@ -1764,19 +1770,19 @@ function NavSidebar(){
           return(
             <div key={d.date} ref={isSel?selRef:null} onClick={()=>setSel(d.date)} className="rh" style={{display:"flex",alignItems:"center",gap:0,padding:"6px 10px 6px 0",cursor:"pointer",background:isSel?"rgba(91,33,182,0.16)":"transparent",borderLeft:isSel?"3px solid #7C3AED":"3px solid transparent",opacity:isOff?0.65:1,boxShadow:isSel?"inset 0 0 0 1px rgba(124,58,237,0.18)":undefined}}>
               <div style={{width:46,flexShrink:0,textAlign:"center"}}>
-                <div style={{fontSize:8,fontWeight:700,color:isSel?"#a78bfa":"#707088",fontFamily:MN,letterSpacing:"0.04em"}}>{wd.toUpperCase()}</div>
-                <div style={{fontSize:14,fontWeight:800,color:isSel?"#c4b5fd":"#e4e4ef",lineHeight:1}}>{dt}</div>
-                <div style={{fontSize:8,color:isSel?"#9333ea":"#707088"}}>{mo}</div>
+                <div style={{fontSize:8,fontWeight:700,color:isSel?"#a78bfa":"var(--text-mute)",fontFamily:MN,letterSpacing:"0.04em"}}>{wd.toUpperCase()}</div>
+                <div style={{fontSize:14,fontWeight:800,color:isSel?"#c4b5fd":"var(--text)",lineHeight:1}}>{dt}</div>
+                <div style={{fontSize:8,color:isSel?"#9333ea":"var(--text-mute)"}}>{mo}</div>
               </div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:1}}>
-                  <span style={{fontSize:10,fontWeight:600,color:isSel?"#c4b5fd":"#e4e4ef",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.city||d.venue||"—"}</span>
+                  <span style={{fontSize:10,fontWeight:600,color:isSel?"#c4b5fd":"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.city||d.venue||"—"}</span>
                   {!isOff&&<span style={{fontSize:7,padding:"1px 4px",borderRadius:99,fontWeight:700,...tc,flexShrink:0}}>{d.type==="show"?"▶":"⇢"}</span>}
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:4}}>
                   {pc>0&&<span style={{fontSize:7,fontFamily:MN,color:"#92400E",fontWeight:700}}>{pc} open</span>}
                   {d.type==="show"&&days>=0&&<span style={{fontSize:7,fontFamily:MN,color:urgColor,fontWeight:700}}>{days}d</span>}
-                  {isOff&&<span style={{fontSize:7,color:"#707088",fontStyle:"italic"}}>{d.type}</span>}
+                  {isOff&&<span style={{fontSize:7,color:"var(--text-mute)",fontStyle:"italic"}}>{d.type}</span>}
                 </div>
               </div>
             </div>
@@ -1784,7 +1790,7 @@ function NavSidebar(){
         })}
       </div>
       {/* Add date */}
-      <div style={{padding:"8px 10px",borderTop:"1px solid #2a2a3a",display:"flex",flexDirection:"column",gap:5}}>
+      <div style={{padding:"8px 10px",borderTop:"1px solid var(--border)",display:"flex",flexDirection:"column",gap:5}}>
         <div style={{display:"flex",gap:4}}>
           <input type="date" value={newDate} onChange={e=>setNewDate(e.target.value)} style={{...UI.input,flex:1,fontFamily:MN,padding:"4px 5px",fontSize:10,minWidth:0}}/>
           <select value={newType} onChange={e=>setNewType(e.target.value)} style={{...UI.input,padding:"4px 5px",fontSize:10,width:64}}>
@@ -1807,7 +1813,7 @@ function TopBar({ss}){
   const canSeeFestivals=FESTIVAL_ACCESS_EMAILS.some(e=>e.toLowerCase()===userEmail);
   const activeClients=CLIENTS.filter(c=>c.status==="active"&&(c.type!=="festival"||canSeeFestivals));
   React.useEffect(()=>{if(!activeClients.find(c=>c.id===aC))setAC("bbn");},[canSeeFestivals]);
-  const stepBtn={background:"#17171f",border:"1px solid #2a2a3a",borderRadius:5,color:"#b0b0c8",fontSize:11,padding:mobile?"5px 8px":"3px 7px",cursor:"pointer",fontWeight:700,minHeight:mobile?30:undefined,lineHeight:1};
+  const stepBtn={background:"#17171f",border:"1px solid var(--border)",borderRadius:5,color:"#b0b0c8",fontSize:11,padding:mobile?"5px 8px":"3px 7px",cursor:"pointer",fontWeight:700,minHeight:mobile?30:undefined,lineHeight:1};
   const stepList=useMemo(()=>{
     const tourIds=new Set((tourDaysSorted||[]).map(d=>d.date));
     const extras=(sorted||[]).filter(s=>!tourIds.has(s.date)).map(s=>({date:s.date,type:s.type||"show"}));
@@ -1821,8 +1827,8 @@ function TopBar({ss}){
     <div style={{borderBottom:"1px solid #1a1a2e",background:"#0e0e1a",width:"100%",maxWidth:"100%",overflow:"visible",boxShadow:"0 1px 0 rgba(109,40,217,0.15),0 2px 12px rgba(0,0,0,0.45)"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px 5px",minWidth:0,gap:8,width:"100%"}}>
         <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flexShrink:1,overflow:"hidden"}}>
-          <span style={{fontSize:16,fontWeight:800,color:"#e4e4ef",letterSpacing:"-0.03em",flexShrink:0}}>DOS</span>
-          <span style={{fontSize:8,color:"#707088",fontWeight:600}}>v7.0</span>
+          <span style={{fontSize:16,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em",flexShrink:0}}>DOS</span>
+          <span style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>v7.0</span>
           <button onClick={()=>{
             if(!sidebarOpen){
               const today=new Date().toISOString().slice(0,10);
@@ -1831,41 +1837,42 @@ function TopBar({ss}){
               if(target)setSel(target);
             }
             setSidebarOpen(v=>!v);
-          }} title="Jump to today" style={{fontSize:12,padding:"3px 7px",borderRadius:5,border:"1px solid #2a2a3a",background:sidebarOpen?"#5B21B6":"#17171f",color:sidebarOpen?"#12121a":"#b0b0c8",cursor:"pointer",flexShrink:0}}>☰</button>
+          }} title="Jump to today" style={{fontSize:12,padding:"3px 7px",borderRadius:5,border:"1px solid var(--border)",background:sidebarOpen?"#5B21B6":"#17171f",color:sidebarOpen?"var(--card)":"#b0b0c8",cursor:"pointer",flexShrink:0}}>☰</button>
           <div style={{display:"flex",alignItems:"center",gap:0,flexShrink:0}}>
-            <button onClick={()=>stepDate(-1)} disabled={!canPrev} title="Previous date" style={{fontSize:11,padding:"2px 7px",borderRadius:"5px 0 0 5px",border:"1px solid #2a2a3a",borderRight:"none",background:canPrev?"#17171f":"#161622",color:canPrev?"#e4e4ef":"#707088",cursor:canPrev?"pointer":"default"}}>‹</button>
-            <button onClick={()=>stepDate(1)} disabled={!canNext} title="Next date" style={{fontSize:11,padding:"2px 7px",borderRadius:"0 5px 5px 0",border:"1px solid #2a2a3a",background:canNext?"#17171f":"#161622",color:canNext?"#e4e4ef":"#707088",cursor:canNext?"pointer":"default"}}>›</button>
+            <button onClick={()=>stepDate(-1)} disabled={!canPrev} title="Previous date" style={{fontSize:11,padding:"2px 7px",borderRadius:"5px 0 0 5px",border:"1px solid var(--border)",borderRight:"none",background:canPrev?"#17171f":"#161622",color:canPrev?"var(--text)":"var(--text-mute)",cursor:canPrev?"pointer":"default"}}>‹</button>
+            <button onClick={()=>stepDate(1)} disabled={!canNext} title="Next date" style={{fontSize:11,padding:"2px 7px",borderRadius:"0 5px 5px 0",border:"1px solid var(--border)",background:canNext?"#17171f":"#161622",color:canNext?"var(--text)":"var(--text-mute)",cursor:canNext?"pointer":"default"}}>›</button>
           </div>
           {next&&<span style={{fontSize:10,fontFamily:MN,color:"#5B21B6",fontWeight:600}}>{next.city} {fD(next.date)} · {dU(next.date)}d</span>}
         </div>
         {!mobile&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1,flexShrink:0}}>
-          <span style={{fontSize:7,color:"#707088",fontFamily:MN,fontWeight:700,letterSpacing:"0.08em"}}>DJ</span>
-          <div style={{display:"flex",gap:1,background:"#2a2a3a",borderRadius:7,padding:2}}>
-            {ROLES.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:9,fontWeight:role===r.id?700:500,padding:"3px 8px",borderRadius:5,border:"none",cursor:"pointer",background:role===r.id?"#12121a":"transparent",color:role===r.id?r.c:"#a0a0b8",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
+          <span style={{fontSize:7,color:"var(--text-mute)",fontFamily:MN,fontWeight:700,letterSpacing:"0.08em"}}>DJ</span>
+          <div style={{display:"flex",gap:1,background:"var(--border)",borderRadius:7,padding:2}}>
+            {ROLES.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:9,fontWeight:role===r.id?700:500,padding:"3px 8px",borderRadius:5,border:"none",cursor:"pointer",background:role===r.id?"var(--card)":"transparent",color:role===r.id?r.c:"var(--text-dim)",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
           </div>
         </div>}
         <div style={{display:"flex",alignItems:"center",gap:mobile?4:8,flexShrink:0,minWidth:0,maxWidth:"100%"}}>
-          {ss&&!mobile&&<span style={{fontSize:9,color:ss==="saved"?"#047857":"#707088",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
-          <button onClick={()=>setUploadOpen(true)} title="Upload document" style={{background:"#2a2a3a",border:"1px solid #2a2a3a",borderRadius:5,color:"#b0b0c8",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>{mobile?"↑":"↑ Upload"}</button>
-          <button onClick={()=>setExp(true)} title="Export / Import" style={{background:"#2a2a3a",border:"1px solid #2a2a3a",borderRadius:5,color:"#b0b0c8",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>⇅</button>
-          <button onClick={()=>setCmd(true)} title="Command palette (⌘K)" style={{background:"#2a2a3a",border:"1px solid #2a2a3a",borderRadius:5,color:"#b0b0c8",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>{mobile?"⌘":"⌘K"}</button>
+          {ss&&!mobile&&<span style={{fontSize:9,color:ss==="saved"?"#047857":"var(--text-mute)",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
+          <button onClick={()=>setUploadOpen(true)} title="Upload document" style={{background:"var(--border)",border:"1px solid var(--border)",borderRadius:5,color:"#b0b0c8",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>{mobile?"↑":"↑ Upload"}</button>
+          <button onClick={()=>setExp(true)} title="Export / Import" style={{background:"var(--border)",border:"1px solid var(--border)",borderRadius:5,color:"#b0b0c8",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>⇅</button>
+          <button onClick={()=>setCmd(true)} title="Command palette (⌘K)" style={{background:"var(--border)",border:"1px solid var(--border)",borderRadius:5,color:"#b0b0c8",fontSize:mobile?11:9,padding:mobile?"5px 9px":"3px 8px",cursor:"pointer",fontFamily:MN,fontWeight:600,minHeight:mobile?30:undefined}}>{mobile?"⌘":"⌘K"}</button>
+          <ThemeToggle/>
           <SignOut/>
         </div>
       </div>
       <div style={{padding:mobile?"3px 12px 5px":"3px 20px 5px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-        <select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:20,border:`1.5px solid ${curClient?.color||"#2a2a3a"}`,background:curClient?`${curClient.color}14`:"#12121a",color:curClient?.color||"#b0b0c8",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer",minHeight:mobile?30:undefined}}>
-          {activeClients.map(c=><option key={c.id} value={c.id} style={{color:"#e4e4ef",fontWeight:500}}>● {c.name} · {c.type==="festival"?"FEST":"ARTIST"}</option>)}
+        <select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:20,border:`1.5px solid ${curClient?.color||"var(--border)"}`,background:curClient?`${curClient.color}14`:"var(--card)",color:curClient?.color||"#b0b0c8",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer",minHeight:mobile?30:undefined}}>
+          {activeClients.map(c=><option key={c.id} value={c.id} style={{color:"var(--text)",fontWeight:500}}>● {c.name} · {c.type==="festival"?"FEST":"ARTIST"}</option>)}
         </select>
         {!mobile&&<div style={{display:"flex",alignItems:"center",gap:4,marginLeft:8}}>
-          <span style={{fontSize:8,color:"#707088",fontFamily:MN,fontWeight:700,letterSpacing:"0.06em",flexShrink:0}}>TOUR</span>
-          <input type="date" value={tourStart} onChange={e=>setTourStart(e.target.value)} style={{fontSize:9,padding:"2px 5px",borderRadius:5,border:"1px solid #2a2a3a",background:"#17171f",color:"#b0b0c8",fontFamily:MN,cursor:"pointer"}}/>
-          <span style={{fontSize:9,color:"#707088"}}>–</span>
-          <input type="date" value={tourEnd} onChange={e=>setTourEnd(e.target.value)} style={{fontSize:9,padding:"2px 5px",borderRadius:5,border:"1px solid #2a2a3a",background:"#17171f",color:"#b0b0c8",fontFamily:MN,cursor:"pointer"}}/>
+          <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN,fontWeight:700,letterSpacing:"0.06em",flexShrink:0}}>TOUR</span>
+          <input type="date" value={tourStart} onChange={e=>setTourStart(e.target.value)} style={{fontSize:9,padding:"2px 5px",borderRadius:5,border:"1px solid var(--border)",background:"#17171f",color:"#b0b0c8",fontFamily:MN,cursor:"pointer"}}/>
+          <span style={{fontSize:9,color:"var(--text-mute)"}}>–</span>
+          <input type="date" value={tourEnd} onChange={e=>setTourEnd(e.target.value)} style={{fontSize:9,padding:"2px 5px",borderRadius:5,border:"1px solid var(--border)",background:"#17171f",color:"#b0b0c8",fontFamily:MN,cursor:"pointer"}}/>
         </div>}
-        {mobile&&<div style={{display:"flex",gap:1,background:"#2a2a3a",borderRadius:7,padding:2,marginLeft:"auto"}}>
-          {ROLES.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:10,fontWeight:role===r.id?700:500,padding:"4px 8px",borderRadius:5,border:"none",cursor:"pointer",background:role===r.id?"#12121a":"transparent",color:role===r.id?r.c:"#a0a0b8",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
+        {mobile&&<div style={{display:"flex",gap:1,background:"var(--border)",borderRadius:7,padding:2,marginLeft:"auto"}}>
+          {ROLES.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:10,fontWeight:role===r.id?700:500,padding:"4px 8px",borderRadius:5,border:"none",cursor:"pointer",background:role===r.id?"var(--card)":"transparent",color:role===r.id?r.c:"var(--text-dim)",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
         </div>}
-        {mobile&&ss&&<span style={{fontSize:9,color:ss==="saved"?"#047857":"#707088",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
+        {mobile&&ss&&<span style={{fontSize:9,color:ss==="saved"?"#047857":"var(--text-mute)",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
       </div>
       <div style={{display:"flex",padding:mobile?"0 12px":"0 20px",width:"100%",overflowX:"auto",overflowY:"hidden",scrollbarWidth:"thin",WebkitOverflowScrolling:"touch"}}>
         {(orderedTabs||TABS).map(t=>{
@@ -1881,9 +1888,9 @@ function TopBar({ss}){
               onDrop={e=>{e.preventDefault();if(dragId&&dragId!==t.id&&reorderTabs)reorderTabs(dragId,t.id);setDragId(null);setOverId(null);}}
               onDragEnd={()=>{setDragId(null);setOverId(null);}}
               onClick={()=>!t.disabled&&setTab(t.id)}
-              style={{padding:mobile?"9px 13px":"6px 12px",fontSize:mobile?12:11,fontWeight:tab===t.id?700:500,color:t.disabled?"#707088":tab===t.id?"#e4e4ef":"#a0a0b8",background:isOver?"#EDE9FE":"none",border:"none",cursor:t.disabled?"default":mobile?"pointer":isDrag?"grabbing":"grab",borderBottom:tab===t.id?"2px solid #5B21B6":isOver?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:5,flexShrink:0,whiteSpace:"nowrap",opacity:isDrag?0.4:1,transition:"opacity .1s,background .1s",userSelect:"none",minHeight:mobile?40:undefined}}
+              style={{padding:mobile?"9px 13px":"6px 12px",fontSize:mobile?12:11,fontWeight:tab===t.id?700:500,color:t.disabled?"var(--text-mute)":tab===t.id?"var(--text)":"var(--text-dim)",background:isOver?"#EDE9FE":"none",border:"none",cursor:t.disabled?"default":mobile?"pointer":isDrag?"grabbing":"grab",borderBottom:tab===t.id?"2px solid #5B21B6":isOver?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:5,flexShrink:0,whiteSpace:"nowrap",opacity:isDrag?0.4:1,transition:"opacity .1s,background .1s",userSelect:"none",minHeight:mobile?40:undefined}}
             >
-              <span style={{fontSize:mobile?12:10}}>{t.icon}</span>{t.label}{t.soon&&<span style={{fontSize:7,color:"#707088"}}>soon</span>}
+              <span style={{fontSize:mobile?12:10}}>{t.icon}</span>{t.label}{t.soon&&<span style={{fontSize:7,color:"var(--text-mute)"}}>soon</span>}
             </button>
           );
         })}
@@ -1910,7 +1917,7 @@ function DateDrawer({onClose}){
     if(td){if(td.type==="travel"&&td.bus?.route)return td.bus.route;if(td.type==="split")return"Split Day";if(td.type==="off")return"Off";}
     return fD(sel);
   },[sel,tourDays,shows]);
-  const typeStyle=t=>t==="travel"?{bg:"#DBEAFE",c:"#a78bfa",l:"Travel"}:t==="off"?{bg:"#0a0a0f",c:"#707088",l:"Off"}:t==="split"?{bg:"#FEF3C7",c:"#92400E",l:"Split"}:t==="show"?{bg:"#D1FAE5",c:"#047857",l:"Show"}:null;
+  const typeStyle=t=>t==="travel"?{bg:"#DBEAFE",c:"#a78bfa",l:"Travel"}:t==="off"?{bg:"var(--bg)",c:"var(--text-mute)",l:"Off"}:t==="split"?{bg:"#FEF3C7",c:"#92400E",l:"Split"}:t==="show"?{bg:"#D1FAE5",c:"#047857",l:"Show"}:null;
   // Merge tour days with non-tour shows (post-EU shows, festivals). Use tourDays for Apr16-May31, fall back to sorted for everything else.
   const rows=useMemo(()=>{
     const tourIds=new Set((tourDaysSorted||[]).map(d=>d.date));
@@ -1921,12 +1928,12 @@ function DateDrawer({onClose}){
   },[tourDaysSorted,sorted,filter]);
   return(
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.3)",zIndex:80,display:"flex",justifyContent:"flex-end"}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:320,maxWidth:"90vw",height:"100%",background:"#12121a",boxShadow:"-4px 0 16px rgba(0,0,0,0.12)",display:"flex",flexDirection:"column",fontFamily:"'Outfit',system-ui"}}>
-        <div style={{padding:"12px 16px",borderBottom:"1px solid #2a2a3a",display:"flex",alignItems:"center",gap:8}}>
-          <span style={{fontSize:12,fontWeight:800,letterSpacing:"0.06em",color:"#e4e4ef"}}>{drawerLabel}</span>
-          <button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",fontSize:18,color:"#a0a0b8"}}>×</button>
+      <div onClick={e=>e.stopPropagation()} style={{width:320,maxWidth:"90vw",height:"100%",background:"var(--card)",boxShadow:"-4px 0 16px rgba(0,0,0,0.12)",display:"flex",flexDirection:"column",fontFamily:"'Outfit',system-ui"}}>
+        <div style={{padding:"12px 16px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:12,fontWeight:800,letterSpacing:"0.06em",color:"var(--text)"}}>{drawerLabel}</span>
+          <button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",fontSize:18,color:"var(--text-dim)"}}>×</button>
         </div>
-        <div style={{padding:"10px 16px",borderBottom:"1px solid #2a2a3a",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+        <div style={{padding:"10px 16px",borderBottom:"1px solid var(--border)",display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           <input type="date" value={newDate} onChange={e=>setNewDate(e.target.value)} style={{...UI.input,fontFamily:MN,padding:"5px 8px"}}/>
           <select value={newType} onChange={e=>setNewType(e.target.value)} style={{...UI.input,padding:"5px 8px"}}>
             <option value="off">Off Day</option>
@@ -1934,9 +1941,9 @@ function DateDrawer({onClose}){
           </select>
           <button onClick={add} disabled={!newDate||!!shows[newDate]} style={{...UI.expandBtn(false,"#047857"),opacity:(!newDate||shows[newDate])?0.4:1}}>+ Add</button>
         </div>
-        <div style={{padding:"6px 12px",borderBottom:"1px solid #2a2a3a",display:"flex",gap:4,flexWrap:"wrap"}}>
+        <div style={{padding:"6px 12px",borderBottom:"1px solid var(--border)",display:"flex",gap:4,flexWrap:"wrap"}}>
           {[["all","All"],["show","Show"],["travel","Travel"],["off","Off"],["split","Split"]].map(([v,l])=>(
-            <button key={v} onClick={()=>setFilter(v)} style={{padding:"2px 8px",fontSize:9,fontWeight:700,borderRadius:10,border:`1px solid ${filter===v?"#5B21B6":"#2a2a3a"}`,background:filter===v?"#EDE9FE":"#12121a",color:filter===v?"#5B21B6":"#a0a0b8",cursor:"pointer"}}>{l}</button>
+            <button key={v} onClick={()=>setFilter(v)} style={{padding:"2px 8px",fontSize:9,fontWeight:700,borderRadius:10,border:`1px solid ${filter===v?"#5B21B6":"var(--border)"}`,background:filter===v?"#EDE9FE":"var(--card)",color:filter===v?"#5B21B6":"var(--text-dim)",cursor:"pointer"}}>{l}</button>
           ))}
         </div>
         <div style={{flex:1,overflow:"auto",padding:"6px 8px"}}>
@@ -1944,8 +1951,8 @@ function DateDrawer({onClose}){
             <div key={d.date} onClick={()=>{setSel(d.date);onClose();}} className="rh" style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:7,cursor:"pointer",background:isSel?"#EDE9FE":"transparent",borderLeft:isSel?"3px solid #5B21B6":"3px solid transparent",opacity:isDim?0.65:1}}>
               <div style={{fontFamily:MN,fontSize:10,fontWeight:700,color:isSel?"#5B21B6":"#b0b0c8",width:48,flexShrink:0}}>{fD(d.date)}</div>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:11,fontWeight:600,color:"#e4e4ef",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.city||"—"}</div>
-                <div style={{fontSize:9,color:"#a0a0b8",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.venue}{d.bus?.note?` · ${d.bus.note}`:""}</div>
+                <div style={{fontSize:11,fontWeight:600,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.city||"—"}</div>
+                <div style={{fontSize:9,color:"var(--text-dim)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.venue}{d.bus?.note?` · ${d.bus.note}`:""}</div>
               </div>
               {ts?<span style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:ts.bg,color:ts.c,fontWeight:700,flexShrink:0}}>{ts.l}</span>:null}
             </div>);})}
@@ -1966,17 +1973,17 @@ function Dash(){
 
   return(
     <div className="fi" style={{padding:mobile?"10px 10px 24px":"14px 20px 30px",maxWidth:900}}>
-      {flags.slice(0,3).map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",background:f.type==="CRITICAL"?"#FEE2E2":"#FEF3C7",borderRadius:8,marginBottom:4,borderLeft:`3px solid ${f.type==="CRITICAL"?"#B91C1C":"#92400E"}`}}><span style={{fontSize:9,fontWeight:800,color:f.type==="CRITICAL"?"#B91C1C":"#92400E",fontFamily:MN}}>{f.type}</span><span style={{fontSize:11,color:"#e4e4ef",fontWeight:600}}>{f.msg}</span><span style={{fontSize:8,color:"#a0a0b8",fontFamily:MN,marginLeft:"auto"}}>{CM[f.cId]?.short}</span></div>)}
+      {flags.slice(0,3).map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",background:f.type==="CRITICAL"?"#FEE2E2":"#FEF3C7",borderRadius:8,marginBottom:4,borderLeft:`3px solid ${f.type==="CRITICAL"?"#B91C1C":"#92400E"}`}}><span style={{fontSize:9,fontWeight:800,color:f.type==="CRITICAL"?"#B91C1C":"#92400E",fontFamily:MN}}>{f.type}</span><span style={{fontSize:11,color:"var(--text)",fontWeight:600}}>{f.msg}</span><span style={{fontSize:8,color:"var(--text-dim)",fontFamily:MN,marginLeft:"auto"}}>{CM[f.cId]?.short}</span></div>)}
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:10,margin:"10px 0 14px"}}>
-        {[{l:"Next Show",v:next?.city||"--",s:next?`${dU(next.date)}d`:"",c:client.color},{l:`${client.name} Shows`,v:cShows.length,s:"total",c:"#e4e4ef"},{l:"Open Advances",v:upcoming.filter(s=>pendingCount(s.date)>0).length,s:"pending",c:"#92400E"}].map((s,i)=><div key={i} style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"12px 14px"}}><div style={{fontSize:9,color:"#a0a0b8",marginBottom:2,fontWeight:600}}>{s.l}</div><div style={{fontSize:20,fontWeight:800,color:s.c,fontFamily:MN}}>{s.v}</div><div style={{fontSize:9,color:"#707088",fontFamily:MN,marginTop:1}}>{s.s}</div></div>)}
+        {[{l:"Next Show",v:next?.city||"--",s:next?`${dU(next.date)}d`:"",c:client.color},{l:`${client.name} Shows`,v:cShows.length,s:"total",c:"var(--text)"},{l:"Open Advances",v:upcoming.filter(s=>pendingCount(s.date)>0).length,s:"pending",c:"#92400E"}].map((s,i)=><div key={i} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2,fontWeight:600}}>{s.l}</div><div style={{fontSize:20,fontWeight:800,color:s.c,fontFamily:MN}}>{s.v}</div><div style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN,marginTop:1}}>{s.s}</div></div>)}
       </div>
       <div style={{fontSize:9,fontWeight:800,color:client.color,letterSpacing:"0.1em",marginBottom:5}}>{client.name.toUpperCase()} — UPCOMING</div>
       <div style={{display:"flex",flexDirection:"column",gap:3}}>
-        {upcoming.map(show=>{const days=dU(show.date),uc=days<=7?"#B91C1C":days<=14?"#92400E":days<=21?"#a78bfa":"#707088";const pc=pendingCount(show.date);
-          return(<div key={show.date} onClick={()=>{setSel(show.date);setTab("ros");}} className="br rh" style={{display:"grid",gridTemplateColumns:"34px 58px 1fr auto 54px 30px",alignItems:"center",gap:6,padding:"9px 12px",background:"#12121a",border:"1px solid #2a2a3a",borderRadius:9,cursor:"pointer",borderLeft:`3px solid ${uc}`}}>
-            <div style={{fontFamily:MN,fontSize:9,color:"#a0a0b8"}}>{fW(show.date)}</div>
+        {upcoming.map(show=>{const days=dU(show.date),uc=days<=7?"#B91C1C":days<=14?"#92400E":days<=21?"#a78bfa":"var(--text-mute)";const pc=pendingCount(show.date);
+          return(<div key={show.date} onClick={()=>{setSel(show.date);setTab("ros");}} className="br rh" style={{display:"grid",gridTemplateColumns:"34px 58px 1fr auto 54px 30px",alignItems:"center",gap:6,padding:"9px 12px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:9,cursor:"pointer",borderLeft:`3px solid ${uc}`}}>
+            <div style={{fontFamily:MN,fontSize:9,color:"var(--text-dim)"}}>{fW(show.date)}</div>
             <div style={{fontFamily:MN,fontSize:10,color:"#5B21B6",fontWeight:700}}>{fD(show.date)}</div>
-            <div><div style={{fontSize:11,fontWeight:700}}>{show.city}</div><div style={{fontSize:9,color:"#a0a0b8"}}>{show.venue}</div></div>
+            <div><div style={{fontSize:11,fontWeight:700}}>{show.city}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{show.venue}</div></div>
             <div style={{display:"flex",gap:3}}>{pc>0&&<span style={{fontSize:8,padding:"2px 5px",borderRadius:3,background:"#FEF3C7",color:"#92400E",fontWeight:700,fontFamily:MN}}>{pc} open</span>}{show.notes?.includes("⚠")&&<span>⚠</span>}</div>
             <div style={{fontFamily:MN,fontSize:9,fontWeight:600,color:show.doorsConfirmed?"#047857":"#92400E",textAlign:"right"}}>{fmt(show.doors)}{show.doorsConfirmed?" ✓":" ?"}</div>
             <div style={{fontFamily:MN,fontSize:11,fontWeight:800,color:uc,textAlign:"right"}}>{days}d</div>
@@ -2074,26 +2081,26 @@ function AdvTab(){
     return b;
   };
 
-  if(!show)return<div style={{padding:40,textAlign:"center",color:"#a0a0b8"}}>Select a show.</div>;
+  if(!show)return<div style={{padding:40,textAlign:"center",color:"var(--text-dim)"}}>Select a show.</div>;
 
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)",position:"relative"}}>
-      <div style={{padding:"6px 20px",borderBottom:"1px solid #2a2a3a",background:"#12121a",display:"flex",gap:8,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
+      <div style={{padding:"6px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:8,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
         <span style={{fontWeight:700,fontSize:12}}>{show.venue}</span>
-        <span style={{fontSize:11,color:"#a0a0b8"}}>{show.city} · {fFull(sel)}</span>
+        <span style={{fontSize:11,color:"var(--text-dim)"}}>{show.city} · {fFull(sel)}</span>
         <span style={{fontSize:9,padding:"2px 7px",borderRadius:12,background:totalPending===0?"#D1FAE5":"#FEF3C7",color:totalPending===0?"#047857":"#92400E",fontWeight:700}}>{totalPending===0?"Complete":`${totalPending} pending`}</span>
         <div style={{marginLeft:"auto",display:"flex",gap:5,alignItems:"center"}}>
           {!showEmail?<>
-            <select value={emailDept} onChange={e=>setEmailDept(e.target.value)} style={{fontSize:9,padding:"3px 6px",borderRadius:5,border:"1px solid #2a2a3a",background:"#17171f",color:"#e4e4ef",cursor:"pointer"}}>
+            <select value={emailDept} onChange={e=>setEmailDept(e.target.value)} style={{fontSize:9,padding:"3px 6px",borderRadius:5,border:"1px solid var(--border)",background:"#17171f",color:"var(--text)",cursor:"pointer"}}>
               {DEPTS.map(d=><option key={d.id} value={d.id}>{d.label}</option>)}
             </select>
             <button onClick={()=>setShowEmail(true)} style={{background:"#5B21B6",border:"none",borderRadius:6,color:"#fff",fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700}}>Generate Email</button>
-          </>:<button onClick={()=>setShowEmail(false)} style={{background:"#17171f",border:"1px solid #2a2a3a",borderRadius:6,color:"#b0b0c8",fontSize:10,padding:"4px 10px",cursor:"pointer",fontWeight:600}}>← Checklist</button>}
+          </>:<button onClick={()=>setShowEmail(false)} style={{background:"#17171f",border:"1px solid var(--border)",borderRadius:6,color:"#b0b0c8",fontSize:10,padding:"4px 10px",cursor:"pointer",fontWeight:600}}>← Checklist</button>}
         </div>
       </div>
-      {!showEmail&&<div style={{padding:"4px 20px",borderBottom:"1px solid #2a2a3a",background:"#17171f",display:"flex",gap:2,overflowX:"auto",flexShrink:0,scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
+      {!showEmail&&<div style={{padding:"4px 20px",borderBottom:"1px solid var(--border)",background:"#17171f",display:"flex",gap:2,overflowX:"auto",flexShrink:0,scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
         {DEPTS.map(d=>{const isA=activeDept===d.id;const cnt=d.id==="all"?null:deptCounts[d.id];
-          return(<button key={d.id} onClick={()=>setActiveDept(d.id)} style={{flexShrink:0,padding:"3px 10px",borderRadius:20,border:isA?`1.5px solid ${d.color}`:"1px solid #2a2a3a",background:isA?d.bg:"transparent",color:isA?d.color:"#a0a0b8",fontSize:9,fontWeight:isA?700:500,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
+          return(<button key={d.id} onClick={()=>setActiveDept(d.id)} style={{flexShrink:0,padding:"3px 10px",borderRadius:20,border:isA?`1.5px solid ${d.color}`:"1px solid var(--border)",background:isA?d.bg:"transparent",color:isA?d.color:"var(--text-dim)",fontSize:9,fontWeight:isA?700:500,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
             {d.label}
             {cnt&&cnt.pending>0&&<span style={{fontSize:7,background:d.color,color:"#fff",borderRadius:10,padding:"1px 4px",fontWeight:700}}>{cnt.pending}</span>}
           </button>);
@@ -2102,9 +2109,9 @@ function AdvTab(){
       <div style={{flex:1,overflow:"auto",padding:"10px 20px 30px"}}>
         {showEmail?(
           <div>
-            <div style={{fontSize:10,color:"#a0a0b8",marginBottom:6,fontWeight:600}}>ADVANCE EMAIL — {DM[emailDept]?.label?.toUpperCase()||"ALL DEPTS"}</div>
-            <pre style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"14px",fontSize:9,fontFamily:MN,color:"#e4e4ef",lineHeight:1.7,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{genEmail()}</pre>
-            <button onClick={()=>navigator.clipboard.writeText(genEmail())} style={{marginTop:8,background:"#17171f",border:"1px solid #2a2a3a",borderRadius:5,color:"#e4e4ef",fontSize:10,padding:"5px 12px",cursor:"pointer",fontWeight:600}}>Copy</button>
+            <div style={{fontSize:10,color:"var(--text-dim)",marginBottom:6,fontWeight:600}}>ADVANCE EMAIL — {DM[emailDept]?.label?.toUpperCase()||"ALL DEPTS"}</div>
+            <pre style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"14px",fontSize:9,fontFamily:MN,color:"var(--text)",lineHeight:1.7,whiteSpace:"pre-wrap",wordBreak:"break-word"}}>{genEmail()}</pre>
+            <button onClick={()=>navigator.clipboard.writeText(genEmail())} style={{marginTop:8,background:"#17171f",border:"1px solid var(--border)",borderRadius:5,color:"var(--text)",fontSize:10,padding:"5px 12px",cursor:"pointer",fontWeight:600}}>Copy</button>
           </div>
         ):(
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
@@ -2120,8 +2127,8 @@ function AdvTab(){
                 const isEditing=editId===item.id;const canEdit=!item.locked;const isCustom=!!item.custom;
                 const meta=item.private?item:(items[item.id]||{});
                 const emailMatch=(()=>{const m=matchFor(item.id);if(!m)return null;
-                  const col=m.confidence==="high"?"#047857":m.confidence==="medium"?"#92400E":"#a0a0b8";
-                  const bg=m.confidence==="high"?"#D1FAE5":m.confidence==="medium"?"#FEF3C7":"#1e1e2e";
+                  const col=m.confidence==="high"?"#047857":m.confidence==="medium"?"#92400E":"var(--text-dim)";
+                  const bg=m.confidence==="high"?"#D1FAE5":m.confidence==="medium"?"#FEF3C7":"var(--card-2)";
                   return <div style={{display:"flex",alignItems:"center",gap:4}}>
                     <a href={gmailUrl(m.threadTid)} target="_blank" rel="noopener noreferrer" title={`${m.subject} — ${m.from}`} style={{fontSize:7,padding:"2px 5px",borderRadius:3,background:bg,color:col,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email · {m.confidence}</a>
                     <button onClick={()=>confirmMatch(m)} style={{fontSize:8,padding:"2px 7px",borderRadius:4,border:"none",background:"#047857",color:"#fff",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}>Confirm</button>
@@ -2129,31 +2136,31 @@ function AdvTab(){
                 })();
                 return(
                   <div key={item.id} style={{display:"grid",gridTemplateColumns:"18px 1fr auto auto",gap:"0 8px",padding:"8px 14px",borderBottom:idx<arr.length-1?"1px solid #17171f":"none",background:isEditing?"#FFFBEB":"transparent",opacity:muted?0.7:1,alignItems:"start"}}>
-                    <span style={{fontFamily:MN,fontSize:8,color:"#707088",paddingTop:3,textAlign:"right"}}>{idx+1}.</span>
+                    <span style={{fontFamily:MN,fontSize:8,color:"var(--text-mute)",paddingTop:3,textAlign:"right"}}>{idx+1}.</span>
                     <div style={{minWidth:0}}>
                       {isEditing?(
                         <input autoFocus value={editQ} onChange={e=>setEditQ(e.target.value)}
                           onBlur={()=>{setOverride(item.id,editQ);setEditId(null);}}
                           onKeyDown={e=>{if(e.key==="Enter"){setOverride(item.id,editQ);setEditId(null);}if(e.key==="Escape")setEditId(null);}}
-                          style={{width:"100%",background:"#12121a",border:`1.5px solid ${dept.color}`,borderRadius:4,color:"#e4e4ef",fontSize:10,padding:"3px 7px",outline:"none"}}/>
+                          style={{width:"100%",background:"var(--card)",border:`1.5px solid ${dept.color}`,borderRadius:4,color:"var(--text)",fontSize:10,padding:"3px 7px",outline:"none"}}/>
                       ):(
                         <div style={{display:"flex",alignItems:"flex-start",gap:4}}>
-                          <span style={{fontSize:10,color:status==="na"?"#707088":"#e4e4ef",fontWeight:500,lineHeight:1.5,flex:1,textDecoration:status==="na"?"line-through":"none"}}>{q}</span>
+                          <span style={{fontSize:10,color:status==="na"?"var(--text-mute)":"var(--text)",fontWeight:500,lineHeight:1.5,flex:1,textDecoration:status==="na"?"line-through":"none"}}>{q}</span>
                           {canEdit&&!isEditing&&<button onClick={()=>{setEditId(item.id);setEditQ(q);}} style={{flexShrink:0,background:"none",border:"none",cursor:"pointer",color:"#606080",fontSize:11,padding:"0 2px",lineHeight:1.5}} title="Edit item">✎</button>}
                           {isCustom&&<button onClick={()=>deleteCustom(item.id)} style={{flexShrink:0,background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:13,padding:"0 2px",lineHeight:1.5}} title="Delete">×</button>}
                         </div>
                       )}
-                      {status==="confirmed"&&meta.confirmedBy&&<div style={{fontSize:8,color:"#707088",marginTop:1,fontFamily:MN}}>✓ {meta.confirmedBy} · {fmtAudit(meta.confirmedAt)}</div>}
+                      {status==="confirmed"&&meta.confirmedBy&&<div style={{fontSize:8,color:"var(--text-mute)",marginTop:1,fontFamily:MN}}>✓ {meta.confirmedBy} · {fmtAudit(meta.confirmedAt)}</div>}
                       <div style={{display:"flex",alignItems:"center",gap:3,marginTop:4,flexWrap:"wrap"}}>
-                        <span style={{fontSize:7,padding:"1px 5px",borderRadius:3,background:item.dir==="we_provide"?"#EDE9FE":item.dir==="they_provide"?"#D1FAE5":"#1e1e2e",color:item.dir==="we_provide"?"#5B21B6":item.dir==="they_provide"?"#065F46":"#b0b0c8",fontWeight:600}}>{item.dir==="we_provide"?"We":"They"}</span>
-                        {item.locked&&<span style={{fontSize:7,color:"#707088",fontFamily:MN}}>🔒</span>}
+                        <span style={{fontSize:7,padding:"1px 5px",borderRadius:3,background:item.dir==="we_provide"?"#EDE9FE":item.dir==="they_provide"?"#D1FAE5":"var(--card-2)",color:item.dir==="we_provide"?"#5B21B6":item.dir==="they_provide"?"#065F46":"#b0b0c8",fontWeight:600}}>{item.dir==="we_provide"?"We":"They"}</span>
+                        {item.locked&&<span style={{fontSize:7,color:"var(--text-mute)",fontFamily:MN}}>🔒</span>}
                         {isCustom&&<span style={{fontSize:7,color:dept.color,fontWeight:700}}>custom</span>}
-                        {item.private&&<span style={{fontSize:7,color:"#c0c0d0",fontWeight:700,background:"#2a2a3a",padding:"1px 4px",borderRadius:3}}>private</span>}
-                        {!item.private&&<span style={{color:"#2a2a3a",fontSize:8,margin:"0 1px"}}>·</span>}
+                        {item.private&&<span style={{fontSize:7,color:"#c0c0d0",fontWeight:700,background:"var(--border)",padding:"1px 4px",borderRadius:3}}>private</span>}
+                        {!item.private&&<span style={{color:"var(--border)",fontSize:8,margin:"0 1px"}}>·</span>}
                         {!item.private&&TEAM_MEMBERS.map(m=>{const active=getDependents(item.id).includes(m.id);return(
                           <button key={m.id} onClick={()=>toggleDependent(item.id,m.id)} title={`${active?"Remove":"Mark"} ${m.label} as dependent`}
                             style={{fontSize:7,padding:"1px 5px",borderRadius:3,fontWeight:700,cursor:"pointer",border:"none",
-                              background:active?"#FEF3C7":"#1e1e2e",color:active?"#92400E":"#707088"}}>{m.initials}</button>
+                              background:active?"#FEF3C7":"var(--card-2)",color:active?"#92400E":"var(--text-mute)"}}>{m.initials}</button>
                         );})}
                       </div>
                     </div>
@@ -2163,33 +2170,33 @@ function AdvTab(){
                 );
               };
               return(
-                <div key={dept.id} style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,overflow:"hidden"}}>
-                  <div style={{padding:"8px 14px",background:dept.bg,display:"flex",alignItems:"center",gap:8,borderBottom:"1px solid #2a2a3a"}}>
+                <div key={dept.id} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
+                  <div style={{padding:"8px 14px",background:dept.bg,display:"flex",alignItems:"center",gap:8,borderBottom:"1px solid var(--border)"}}>
                     <span style={{fontSize:9,fontWeight:800,letterSpacing:"0.07em",color:dept.color}}>{dept.label.toUpperCase()}</span>
                     {pending>0&&<span style={{fontSize:8,color:dept.color,fontFamily:MN,fontWeight:700}}>{pending} pending</span>}
-                    <span style={{fontSize:8,color:"#707088",marginLeft:"auto"}}>{dPending.length} open · {dDone.length} done</span>
+                    <span style={{fontSize:8,color:"var(--text-mute)",marginLeft:"auto"}}>{dPending.length} open · {dDone.length} done</span>
                   </div>
                   <div>
                     {dPending.map((item,idx)=>renderRow(item,idx,dPending,false))}
                     {dDone.length>0&&<div style={{borderTop:"1px solid #17171f"}}>
                       <button onClick={()=>setOpenDone(p=>({...p,[dept.id]:!p[dept.id]}))} style={{width:"100%",textAlign:"left",padding:"6px 14px",background:"#17171f",border:"none",cursor:"pointer",fontSize:9,fontWeight:700,color:"#047857",letterSpacing:"0.06em",display:"flex",alignItems:"center",gap:6}}>
                         <span>✓ Confirmed ({dDone.length})</span>
-                        <span style={{marginLeft:"auto",color:"#707088"}}>{openDone[dept.id]?"▾":"▸"}</span>
+                        <span style={{marginLeft:"auto",color:"var(--text-mute)"}}>{openDone[dept.id]?"▾":"▸"}</span>
                       </button>
                       {openDone[dept.id]&&<div>{dDone.map((item,idx)=>renderRow(item,idx,dDone,true))}</div>}
                     </div>}
                     {addingDept===dept.id?(
                       <div style={{padding:"8px 14px",borderTop:"1px solid #17171f",background:"#17171f"}}>
-                        <input autoFocus placeholder="Describe the advance item..." value={newQ} onChange={e=>setNewQ(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addCustom(dept.id);if(e.key==="Escape")setAddingDept(null);}} style={{width:"100%",background:"#12121a",border:`1.5px solid ${dept.color}`,borderRadius:5,color:"#e4e4ef",fontSize:10,padding:"5px 8px",outline:"none",marginBottom:5}}/>
+                        <input autoFocus placeholder="Describe the advance item..." value={newQ} onChange={e=>setNewQ(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addCustom(dept.id);if(e.key==="Escape")setAddingDept(null);}} style={{width:"100%",background:"var(--card)",border:`1.5px solid ${dept.color}`,borderRadius:5,color:"var(--text)",fontSize:10,padding:"5px 8px",outline:"none",marginBottom:5}}/>
                         <div style={{display:"flex",gap:5,alignItems:"center"}}>
-                          <select value={newDir} onChange={e=>setNewDir(e.target.value)} style={{fontSize:9,padding:"3px 5px",borderRadius:4,border:"1px solid #2a2a3a",background:"#12121a"}}>
+                          <select value={newDir} onChange={e=>setNewDir(e.target.value)} style={{fontSize:9,padding:"3px 5px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card)"}}>
                             <option value="we_provide">We provide</option><option value="they_provide">They provide</option><option value="bilateral">Bilateral</option>
                           </select>
-                          <select value={newScope} onChange={e=>setNewScope(e.target.value)} style={{fontSize:9,padding:"3px 5px",borderRadius:4,border:"1px solid #2a2a3a",background:"#12121a"}}>
+                          <select value={newScope} onChange={e=>setNewScope(e.target.value)} style={{fontSize:9,padding:"3px 5px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card)"}}>
                             <option value="public">Public</option><option value="private">Private</option>
                           </select>
                           <button onClick={()=>addCustom(dept.id)} style={{background:dept.color,border:"none",borderRadius:4,color:"#fff",fontSize:9,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>Add</button>
-                          <button onClick={()=>{setAddingDept(null);setNewQ("");}} style={{background:"#17171f",border:"1px solid #2a2a3a",borderRadius:4,color:"#a0a0b8",fontSize:9,padding:"3px 8px",cursor:"pointer"}}>Cancel</button>
+                          <button onClick={()=>{setAddingDept(null);setNewQ("");}} style={{background:"#17171f",border:"1px solid var(--border)",borderRadius:4,color:"var(--text-dim)",fontSize:9,padding:"3px 8px",cursor:"pointer"}}>Cancel</button>
                         </div>
                       </div>
                     ):(
@@ -2202,11 +2209,11 @@ function AdvTab(){
               );
             })}
             <NotesPanel/>
-            <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"12px 14px"}}>
-              <div style={{fontSize:9,fontWeight:700,color:"#a0a0b8",marginBottom:6,letterSpacing:"0.06em"}}>THREAD & NOTES</div>
+            <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
+              <div style={{fontSize:9,fontWeight:700,color:"var(--text-dim)",marginBottom:6,letterSpacing:"0.06em"}}>THREAD & NOTES</div>
               <div style={{display:"flex",flexDirection:"column",gap:5}}>
-                <div><div style={{fontSize:9,color:"#a0a0b8",marginBottom:2}}>Gmail thread link</div><input defaultValue={adv.threadLink||""} onBlur={e=>uAdv(sel,{threadLink:e.target.value})} placeholder="https://mail.google.com/..." style={{width:"100%",background:"#17171f",border:"1px solid #2a2a3a",borderRadius:5,color:"#e4e4ef",fontSize:10,fontFamily:MN,padding:"4px 7px",outline:"none"}}/></div>
-                <div><div style={{fontSize:9,color:"#a0a0b8",marginBottom:2}}>Notes</div><textarea defaultValue={adv.notes||""} onBlur={e=>uAdv(sel,{notes:e.target.value})} placeholder="Open issues, follow-ups..." rows={2} style={{width:"100%",background:"#17171f",border:"1px solid #2a2a3a",borderRadius:5,color:"#e4e4ef",fontSize:10,padding:"4px 7px",outline:"none",resize:"vertical",fontFamily:"inherit"}}/></div>
+                <div><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>Gmail thread link</div><input defaultValue={adv.threadLink||""} onBlur={e=>uAdv(sel,{threadLink:e.target.value})} placeholder="https://mail.google.com/..." style={{width:"100%",background:"#17171f",border:"1px solid var(--border)",borderRadius:5,color:"var(--text)",fontSize:10,fontFamily:MN,padding:"4px 7px",outline:"none"}}/></div>
+                <div><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>Notes</div><textarea defaultValue={adv.notes||""} onBlur={e=>uAdv(sel,{notes:e.target.value})} placeholder="Open issues, follow-ups..." rows={2} style={{width:"100%",background:"#17171f",border:"1px solid var(--border)",borderRadius:5,color:"var(--text)",fontSize:10,padding:"4px 7px",outline:"none",resize:"vertical",fontFamily:"inherit"}}/></div>
               </div>
             </div>
           </div>
@@ -2220,11 +2227,11 @@ function AnchorTimes({b,setBF}){
   const toggle=(field,on)=>setBF(b.id,field,on?(b[field]??""):null);
   return(
     <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
-      <label style={{fontSize:9,fontWeight:700,color:"#a0a0b8",display:"flex",alignItems:"center",gap:4,cursor:"pointer"}}>
+      <label style={{fontSize:9,fontWeight:700,color:"var(--text-dim)",display:"flex",alignItems:"center",gap:4,cursor:"pointer"}}>
         <input type="checkbox" checked={b.anchorStartAt!=null} onChange={e=>toggle("anchorStartAt",e.target.checked)}/>Start
       </label>
       {b.anchorStartAt!=null&&<input type="text" placeholder="7:00p" defaultValue={typeof b.anchorStartAt==="number"?fmt(b.anchorStartAt):b.anchorStartAt} onBlur={e=>{const m=pM(e.target.value);if(m!=null)setBF(b.id,"anchorStartAt",m);}} style={{...UI.input,fontFamily:MN,width:70}}/>}
-      <label style={{fontSize:9,fontWeight:700,color:"#a0a0b8",display:"flex",alignItems:"center",gap:4,cursor:"pointer"}}>
+      <label style={{fontSize:9,fontWeight:700,color:"var(--text-dim)",display:"flex",alignItems:"center",gap:4,cursor:"pointer"}}>
         <input type="checkbox" checked={b.anchorEndAt!=null} onChange={e=>toggle("anchorEndAt",e.target.checked)}/>End
       </label>
       {b.anchorEndAt!=null&&<input type="text" placeholder="8:00p" defaultValue={typeof b.anchorEndAt==="number"?fmt(b.anchorEndAt):b.anchorEndAt} onBlur={e=>{const m=pM(e.target.value);if(m!=null)setBF(b.id,"anchorEndAt",m);}} style={{...UI.input,fontFamily:MN,width:70}}/>}
@@ -2295,10 +2302,10 @@ function FlightDayStrip({sel}){
         <span style={{fontSize:10,fontWeight:800,color:"#a78bfa",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
         {deps.length>0&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#DBEAFE",color:"#a78bfa",fontWeight:700}}>{deps.length} DEP</span>}
         {arrs.length>0&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"#D1FAE5",color:"#047857",fontWeight:700}}>{arrs.length} ARR</span>}
-        {stripMsg&&<span style={{fontSize:9,color:"#a0a0b8",fontFamily:MN,marginLeft:4}}>{stripMsg}</span>}
+        {stripMsg&&<span style={{fontSize:9,color:"var(--text-dim)",fontFamily:MN,marginLeft:4}}>{stripMsg}</span>}
         <div style={{marginLeft:"auto",display:"flex",gap:5,alignItems:"center"}} onClick={e=>e.stopPropagation()}>
-          {hasAny>0&&<button onClick={refreshTimes} disabled={refreshing} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"1px solid #93C5FD",background:refreshing?"#DBEAFE":"#12121a",color:"#a78bfa",cursor:refreshing?"default":"pointer",fontWeight:700,flexShrink:0}}>{refreshing?"…":"↻ Times"}</button>}
-          <button onClick={scanFlights} disabled={scanning} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"none",background:scanning?"#DBEAFE":"#a78bfa",color:scanning?"#a78bfa":"#12121a",cursor:scanning?"default":"pointer",fontWeight:700,flexShrink:0}}>{scanning?"Scanning…":"Scan Gmail"}</button>
+          {hasAny>0&&<button onClick={refreshTimes} disabled={refreshing} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"1px solid #93C5FD",background:refreshing?"#DBEAFE":"var(--card)",color:"#a78bfa",cursor:refreshing?"default":"pointer",fontWeight:700,flexShrink:0}}>{refreshing?"…":"↻ Times"}</button>}
+          <button onClick={scanFlights} disabled={scanning} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"none",background:scanning?"#DBEAFE":"#a78bfa",color:scanning?"#a78bfa":"var(--card)",cursor:scanning?"default":"pointer",fontWeight:700,flexShrink:0}}>{scanning?"Scanning…":"Scan Gmail"}</button>
         </div>
         <span style={{fontSize:10,color:"#93C5FD",flexShrink:0}}>{open?"▾":"▸"}</span>
       </div>
@@ -2307,7 +2314,7 @@ function FlightDayStrip({sel}){
         <div onClick={()=>setTab("lodging")} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 12px",borderTop:"1px solid #BBF7D0",background:"#F0FDF4",cursor:"pointer",flexWrap:"wrap"}}>
           <span style={{fontSize:9,fontWeight:800,color:"#047857",letterSpacing:"0.06em"}}>⌂ LODGING</span>
           {checkIns.map(h=><span key={h.id} style={{fontSize:9,padding:"1px 6px",borderRadius:8,background:"#047857",color:"#fff",fontWeight:700}}>↓ {h.name}{h.checkInTime?` ${h.checkInTime}`:""}</span>)}
-          {checkOuts.map(h=><span key={h.id} style={{fontSize:9,padding:"1px 6px",borderRadius:8,background:"#707088",color:"#fff",fontWeight:700}}>↑ {h.name}{h.checkOutTime?` ${h.checkOutTime}`:""}</span>)}
+          {checkOuts.map(h=><span key={h.id} style={{fontSize:9,padding:"1px 6px",borderRadius:8,background:"var(--text-mute)",color:"#fff",fontWeight:700}}>↑ {h.name}{h.checkOutTime?` ${h.checkOutTime}`:""}</span>)}
           {staying.map(h=><span key={h.id} style={{fontSize:9,padding:"1px 6px",borderRadius:8,background:"#D1FAE5",color:"#065F46",fontWeight:600,border:"1px solid #A7F3D0"}}>● {h.name}</span>)}
         </div>
       );})()}
@@ -2330,8 +2337,8 @@ function FlightDayStrip({sel}){
                   <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:3}}>
                     <span style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#a78bfa"}}>{f.from}<span style={{fontSize:10,color:"#93C5FD",fontWeight:400,padding:"0 4px"}}>→</span>{f.to}</span>
                     <span style={{fontSize:10,fontWeight:700,color:"#1D4ED8"}}>{f.flightNo||f.carrier}</span>
-                    {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:"#a0a0b8"}}>{f.carrier}</span>}
-                    {f.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"#707088"}}>#{f.confirmNo}</span>}
+                    {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{f.carrier}</span>}
+                    {f.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>#{f.confirmNo}</span>}
                   </div>
                   {f.pax?.length>0&&<div style={{fontSize:9,color:"#b0b0c8",marginBottom:live?3:0}}>{f.pax.join(", ")}</div>}
                   {live&&<div style={{display:"flex",gap:10,flexWrap:"wrap",fontSize:9,color:"#b0b0c8"}}>
@@ -2340,7 +2347,7 @@ function FlightDayStrip({sel}){
                     {live.depGate&&<span>Gate: <strong>{live.depGate}</strong></span>}
                     {live.depTerminal&&<span>T<strong>{live.depTerminal}</strong></span>}
                     {live.delayMinutes>0&&<span style={{color:"#B45309",fontWeight:700}}>+{live.delayMinutes}m delay</span>}
-                    {live.aircraft&&<span style={{color:"#707088"}}>{live.aircraft}</span>}
+                    {live.aircraft&&<span style={{color:"var(--text-mute)"}}>{live.aircraft}</span>}
                   </div>}
                 </div>
                 {/* Right: times */}
@@ -2349,12 +2356,12 @@ function FlightDayStrip({sel}){
                     {f.dep&&<div style={{display:"flex",alignItems:"center",gap:5}}>
                       <span style={{fontSize:8,color:"#a78bfa",fontWeight:700}}>DEP</span>
                       <span style={{fontFamily:MN,fontSize:12,fontWeight:800,color:live?.depActual&&live.depActual!==f.dep?"#B45309":"#a78bfa"}}>{live?.depActual||f.dep}</span>
-                      {live?.depActual&&live.depActual!==f.dep&&<span style={{fontFamily:MN,fontSize:9,color:"#707088",textDecoration:"line-through"}}>{f.dep}</span>}
+                      {live?.depActual&&live.depActual!==f.dep&&<span style={{fontFamily:MN,fontSize:9,color:"var(--text-mute)",textDecoration:"line-through"}}>{f.dep}</span>}
                     </div>}
                     {f.arr&&<div style={{display:"flex",alignItems:"center",gap:5}}>
                       <span style={{fontSize:8,color:"#047857",fontWeight:700}}>ARR{!sameDay?` ${f.arrDate?.slice(5)}`:""}</span>
                       <span style={{fontFamily:MN,fontSize:12,fontWeight:800,color:live?.arrActual&&live.arrActual!==f.arr?"#B45309":"#047857"}}>{live?.arrActual||f.arr}</span>
-                      {live?.arrActual&&live.arrActual!==f.arr&&<span style={{fontFamily:MN,fontSize:9,color:"#707088",textDecoration:"line-through"}}>{f.arr}</span>}
+                      {live?.arrActual&&live.arrActual!==f.arr&&<span style={{fontFamily:MN,fontSize:9,color:"var(--text-mute)",textDecoration:"line-through"}}>{f.arr}</span>}
                     </div>}
                   </div>
                 </div>
@@ -2448,33 +2455,33 @@ function DayScheduleView({show,bus,split,sel}){
       {/* Header */}
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:13,fontWeight:800,color:"#e4e4ef",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+          <div style={{fontSize:13,fontWeight:800,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
             {isTravel?(bus?.route||show.city||"Travel Day"):isSplit?"Split Day":(show.city||"Rest Day")}
           </div>
-          <div style={{fontSize:10,color:"#a0a0b8",fontFamily:MN}}>{fFull(sel)}</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:MN}}>{fFull(sel)}</div>
         </div>
-        <button onClick={()=>setEditDay(v=>!v)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:`1px solid ${editDay?"#5B21B6":"#2a2a3a"}`,background:editDay?"#EDE9FE":"#17171f",color:editDay?"#5B21B6":"#b0b0c8",cursor:"pointer",fontWeight:600,flexShrink:0}}>✏ Edit</button>
-        <div style={{fontSize:8,fontWeight:800,padding:"3px 9px",borderRadius:6,background:isTravel?"#DBEAFE":isSplit?"#FEF3C7":"#1e1e2e",color:isTravel?"#a78bfa":isSplit?"#92400E":"#a0a0b8",letterSpacing:"0.06em",flexShrink:0}}>
+        <button onClick={()=>setEditDay(v=>!v)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:`1px solid ${editDay?"#5B21B6":"var(--border)"}`,background:editDay?"#EDE9FE":"#17171f",color:editDay?"#5B21B6":"#b0b0c8",cursor:"pointer",fontWeight:600,flexShrink:0}}>✏ Edit</button>
+        <div style={{fontSize:8,fontWeight:800,padding:"3px 9px",borderRadius:6,background:isTravel?"#DBEAFE":isSplit?"#FEF3C7":"var(--card-2)",color:isTravel?"#a78bfa":isSplit?"#92400E":"var(--text-dim)",letterSpacing:"0.06em",flexShrink:0}}>
           {isTravel?"TRAVEL":isSplit?"SPLIT":"OFF"}
         </div>
       </div>
 
       {/* Edit panel */}
       {editDay&&(
-        <div style={{background:"#17171f",border:"1px solid #2a2a3a",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
-          <div style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em",marginBottom:10}}>EDIT DAY</div>
+        <div style={{background:"#17171f",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+          <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em",marginBottom:10}}>EDIT DAY</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:8}}>
             <div>
-              <div style={{fontSize:8,color:"#a0a0b8",fontWeight:600,marginBottom:3}}>CITY / LOCATION</div>
+              <div style={{fontSize:8,color:"var(--text-dim)",fontWeight:600,marginBottom:3}}>CITY / LOCATION</div>
               <input value={dayCity} onChange={e=>setDayCity(e.target.value)} placeholder="e.g. Amsterdam" style={{...UI.input,width:"100%"}}/>
             </div>
             <div>
-              <div style={{fontSize:8,color:"#a0a0b8",fontWeight:600,marginBottom:3}}>VENUE / NOTE</div>
+              <div style={{fontSize:8,color:"var(--text-dim)",fontWeight:600,marginBottom:3}}>VENUE / NOTE</div>
               <input value={dayVenue} onChange={e=>setDayVenue(e.target.value)} placeholder="e.g. Hotel Okura" style={{...UI.input,width:"100%"}}/>
             </div>
           </div>
           <div style={{marginBottom:8}}>
-            <div style={{fontSize:8,color:"#a0a0b8",fontWeight:600,marginBottom:3}}>TYPE</div>
+            <div style={{fontSize:8,color:"var(--text-dim)",fontWeight:600,marginBottom:3}}>TYPE</div>
             <select value={dayType} onChange={e=>setDayType(e.target.value)} style={{...UI.input}}>
               <option value="off">Off Day</option>
               <option value="travel">Travel Day</option>
@@ -2482,8 +2489,8 @@ function DayScheduleView({show,bus,split,sel}){
           </div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
             <button onClick={saveDayInfo} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"none",background:"#047857",color:"#fff",cursor:"pointer",fontWeight:700}}>Save</button>
-            <button onClick={convertToShow} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid #2a2a3a",background:"#17171f",color:"#e4e4ef",cursor:"pointer",fontWeight:600}}>↑ Convert to Show Day</button>
-            <button onClick={()=>setEditDay(false)} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid #2a2a3a",background:"transparent",color:"#a0a0b8",cursor:"pointer"}}>Cancel</button>
+            <button onClick={convertToShow} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid var(--border)",background:"#17171f",color:"var(--text)",cursor:"pointer",fontWeight:600}}>↑ Convert to Show Day</button>
+            <button onClick={()=>setEditDay(false)} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Cancel</button>
           </div>
         </div>
       )}
@@ -2494,12 +2501,12 @@ function DayScheduleView({show,bus,split,sel}){
           <div style={{fontSize:9,fontWeight:800,color:"#92400E",letterSpacing:"0.08em",marginBottom:8}}>SPLIT PARTY — {split.parties.length} GROUPS</div>
           {split.parties.map(p=>(
             <div key={p.id} style={{marginBottom:8,padding:"8px 10px",background:p.bg,borderRadius:7,border:`1px solid ${p.color}30`}}>
-              <div style={{fontSize:10,fontWeight:700,color:p.color,marginBottom:3}}>{p.label} <span style={{fontWeight:400,color:"#a0a0b8"}}>· {p.location}</span></div>
-              <div style={{fontSize:9,color:"#a0a0b8",marginBottom:6}}>{p.event}</div>
+              <div style={{fontSize:10,fontWeight:700,color:p.color,marginBottom:3}}>{p.label} <span style={{fontWeight:400,color:"var(--text-dim)"}}>· {p.location}</span></div>
+              <div style={{fontSize:9,color:"var(--text-dim)",marginBottom:6}}>{p.event}</div>
               <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                {p.crew.map(cid=>{const c=DEFAULT_CREW.find(x=>x.id===cid);return c?(<span key={cid} style={{fontSize:8,padding:"2px 8px",borderRadius:12,background:"#12121a",border:`1px solid ${p.color}40`,color:p.color,fontWeight:600}}>{c.name.split(" ")[0]} <span style={{fontWeight:400,opacity:0.7,fontSize:7}}>({c.role.split(" (")[0].split("/")[0].trim()})</span></span>):null;})}
+                {p.crew.map(cid=>{const c=DEFAULT_CREW.find(x=>x.id===cid);return c?(<span key={cid} style={{fontSize:8,padding:"2px 8px",borderRadius:12,background:"var(--card)",border:`1px solid ${p.color}40`,color:p.color,fontWeight:600}}>{c.name.split(" ")[0]} <span style={{fontWeight:400,opacity:0.7,fontSize:7}}>({c.role.split(" (")[0].split("/")[0].trim()})</span></span>):null;})}
               </div>
-              {p.note&&<div style={{fontSize:8,color:"#a0a0b8",marginTop:5,fontStyle:"italic"}}>{p.note}</div>}
+              {p.note&&<div style={{fontSize:8,color:"var(--text-dim)",marginTop:5,fontStyle:"italic"}}>{p.note}</div>}
             </div>
           ))}
         </div>
@@ -2508,11 +2515,11 @@ function DayScheduleView({show,bus,split,sel}){
       {/* Unified timeline: bus + flights + schedule items */}
       <div style={{marginBottom:14}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-          <div style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em"}}>TIMELINE{timeline.length>0?` · ${timeline.length}`:""}</div>
+          <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>TIMELINE{timeline.length>0?` · ${timeline.length}`:""}</div>
           <button onClick={()=>setAddingItem(true)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid #5B21B6",background:"#EDE9FE",color:"#5B21B6",cursor:"pointer",fontWeight:700}}>+ Add Item</button>
         </div>
         {addingItem&&(
-          <div style={{background:"#17171f",border:"1px solid #2a2a3a",borderRadius:8,padding:"10px 12px",marginBottom:8}}>
+          <div style={{background:"#17171f",border:"1px solid var(--border)",borderRadius:8,padding:"10px 12px",marginBottom:8}}>
             <div style={{display:"flex",gap:6,marginBottom:6,flexWrap:"wrap"}}>
               <input placeholder="Time (e.g. 2:00p)" value={newItem.time} onChange={e=>setNewItem(p=>({...p,time:e.target.value}))} style={{...UI.input,width:110,fontFamily:MN}}/>
               <input placeholder="Label" value={newItem.label} onChange={e=>setNewItem(p=>({...p,label:e.target.value}))} style={{...UI.input,flex:1,minWidth:140}}/>
@@ -2520,7 +2527,7 @@ function DayScheduleView({show,bus,split,sel}){
             <input placeholder="Notes (optional)" value={newItem.notes} onChange={e=>setNewItem(p=>({...p,notes:e.target.value}))} style={{...UI.input,width:"100%",marginBottom:6,boxSizing:"border-box"}}/>
             <div style={{display:"flex",gap:6}}>
               <button onClick={addItem} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Add</button>
-              <button onClick={()=>{setAddingItem(false);setNewItem({time:"",label:"",notes:""});}} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid #2a2a3a",background:"transparent",color:"#a0a0b8",cursor:"pointer"}}>Cancel</button>
+              <button onClick={()=>{setAddingItem(false);setNewItem({time:"",label:"",notes:""});}} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Cancel</button>
             </div>
           </div>
         )}
@@ -2529,25 +2536,25 @@ function DayScheduleView({show,bus,split,sel}){
             if(entry.type==="bus"){
               const{bus:b,depMin,arrMin}=entry;
               return(
-                <div key="bus" style={{display:"flex",alignItems:"flex-start",gap:8,padding:"10px 12px",background:"#12121a",border:"1px solid #2a2a3a",borderRadius:8}}>
+                <div key="bus" style={{display:"flex",alignItems:"flex-start",gap:8,padding:"10px 12px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:8}}>
                   <div style={{width:44,flexShrink:0,textAlign:"right"}}>
                     {depMin!=null&&<div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#a78bfa"}}>{fmt(depMin)}</div>}
-                    {arrMin!=null&&<div style={{fontFamily:MN,fontSize:9,color:"#a0a0b8"}}>{fmt(arrMin)}</div>}
+                    {arrMin!=null&&<div style={{fontFamily:MN,fontSize:9,color:"var(--text-dim)"}}>{fmt(arrMin)}</div>}
                   </div>
                   <div style={{width:3,alignSelf:"stretch",background:"#a78bfa",borderRadius:2,opacity:0.4,flexShrink:0}}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
                       <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:"#DBEAFE",color:"#a78bfa",letterSpacing:"0.04em"}}>BUS</span>
-                      <span style={{fontSize:11,fontWeight:700,color:"#e4e4ef"}}>{b.route}</span>
+                      <span style={{fontSize:11,fontWeight:700,color:"var(--text)"}}>{b.route}</span>
                       {b.flag==="⚠"&&<span style={{fontSize:9,color:"#DC2626"}}>⚠</span>}
                     </div>
                     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-                      {b.km&&<span style={{fontSize:9,color:"#a0a0b8"}}>{b.km} km</span>}
-                      {b.drive&&b.drive!=="—"&&<span style={{fontSize:9,color:"#a0a0b8"}}>{b.drive} drive</span>}
-                      {b.day&&<span style={{fontFamily:MN,fontSize:8,color:"#707088"}}>Day {b.day}/30</span>}
+                      {b.km&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{b.km} km</span>}
+                      {b.drive&&b.drive!=="—"&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{b.drive} drive</span>}
+                      {b.day&&<span style={{fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>Day {b.day}/30</span>}
                     </div>
                     {b.flag==="⚠"&&b.note&&<div style={{fontSize:9,color:"#DC2626",marginTop:3,fontWeight:600}}>{b.note}</div>}
-                    {b.note&&b.flag!=="⚠"&&<div style={{fontSize:9,color:"#707088",marginTop:2,fontStyle:"italic"}}>{b.note}</div>}
+                    {b.note&&b.flag!=="⚠"&&<div style={{fontSize:9,color:"var(--text-mute)",marginTop:2,fontStyle:"italic"}}>{b.note}</div>}
                   </div>
                 </div>
               );
@@ -2569,13 +2576,13 @@ function DayScheduleView({show,bus,split,sel}){
                       <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:f.type==="bus"?(isDep?"#5B21B6":"#065F46"):isDep?"#a78bfa":"#047857",color:"#fff",letterSpacing:"0.04em"}}>{f.type==="bus"?(isDep?"🚌 DEP":"🚌 ARR"):isDep?"✈ DEP":"✈ ARR"}</span>
                       <span style={{fontFamily:MN,fontSize:11,fontWeight:800,color:"#a78bfa"}}>{f.from}<span style={{fontWeight:400,color:"#93C5FD",padding:"0 3px"}}>→</span>{f.to}</span>
                       <span style={{fontSize:10,fontWeight:700,color:"#1D4ED8"}}>{f.flightNo||f.carrier}</span>
-                      {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:"#a0a0b8"}}>{f.carrier}</span>}
+                      {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{f.carrier}</span>}
                     </div>
                     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
                       {f.pax?.length>0&&<span style={{fontSize:9,color:"#b0b0c8"}}>{f.pax.join(", ")}</span>}
-                      {f.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"#707088"}}>#{f.confirmNo}</span>}
-                      {f.fromCity&&isDep&&<span style={{fontSize:9,color:"#a0a0b8"}}>{f.fromCity}</span>}
-                      {f.toCity&&<span style={{fontSize:9,color:"#a0a0b8"}}>{isDep?"→ ":""}{f.toCity}</span>}
+                      {f.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>#{f.confirmNo}</span>}
+                      {f.fromCity&&isDep&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{f.fromCity}</span>}
+                      {f.toCity&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{isDep?"→ ":""}{f.toCity}</span>}
                     </div>
                   </div>
                 </div>
@@ -2587,18 +2594,18 @@ function DayScheduleView({show,bus,split,sel}){
               return(
                 <div key={entry.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"9px 12px",background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:8,cursor:"pointer"}} onClick={()=>setTab("lodging")}>
                   <div style={{width:44,flexShrink:0,textAlign:"right"}}>
-                    <div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:isIn?"#047857":"#a0a0b8"}}>{t}</div>
+                    <div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:isIn?"#047857":"var(--text-dim)"}}>{t}</div>
                   </div>
-                  <div style={{width:3,alignSelf:"stretch",background:isIn?"#047857":"#707088",borderRadius:2,opacity:0.5,flexShrink:0}}/>
+                  <div style={{width:3,alignSelf:"stretch",background:isIn?"#047857":"var(--text-mute)",borderRadius:2,opacity:0.5,flexShrink:0}}/>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
-                      <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:isIn?"#047857":"#707088",color:"#fff",letterSpacing:"0.04em"}}>{isIn?"CHECK IN":"CHECK OUT"}</span>
-                      <span style={{fontSize:11,fontWeight:700,color:"#e4e4ef"}}>{h.name}</span>
-                      {h.city&&<span style={{fontSize:9,color:"#a0a0b8"}}>{h.city}</span>}
+                      <span style={{fontSize:8,fontWeight:800,padding:"1px 5px",borderRadius:3,background:isIn?"#047857":"var(--text-mute)",color:"#fff",letterSpacing:"0.04em"}}>{isIn?"CHECK IN":"CHECK OUT"}</span>
+                      <span style={{fontSize:11,fontWeight:700,color:"var(--text)"}}>{h.name}</span>
+                      {h.city&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{h.city}</span>}
                     </div>
                     <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
                       {rooms>0&&<span style={{fontSize:9,color:"#b0b0c8"}}>{rooms} room{rooms!==1?"s":""}</span>}
-                      {h.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"#707088"}}>#{h.confirmNo}</span>}
+                      {h.confirmNo&&<span style={{fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>#{h.confirmNo}</span>}
                     </div>
                   </div>
                 </div>
@@ -2607,7 +2614,7 @@ function DayScheduleView({show,bus,split,sel}){
             // type === "item"
             const item=entry.b;const isEditing=editItemId===item.id;
             return(
-              <div key={item.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"8px 10px",background:"#12121a",border:`1px solid ${isEditing?"#5B21B6":"#2a2a3a"}`,borderRadius:8}}>
+              <div key={item.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"8px 10px",background:"var(--card)",border:`1px solid ${isEditing?"#5B21B6":"var(--border)"}`,borderRadius:8}}>
                 {isEditing?(
                   <div style={{flex:1,display:"flex",flexDirection:"column",gap:5}}>
                     <div style={{display:"flex",gap:5}}>
@@ -2625,10 +2632,10 @@ function DayScheduleView({show,bus,split,sel}){
                     <div style={{fontFamily:MN,fontSize:11,fontWeight:700,color:"#5B21B6",width:44,flexShrink:0,paddingTop:1,textAlign:"right"}}>{item.startMin!=null?fmt(item.startMin):item.time||"—"}</div>
                     <div style={{width:3,height:32,background:"#5B21B6",borderRadius:2,flexShrink:0,opacity:0.5,alignSelf:"center"}}/>
                     <div style={{flex:1,minWidth:0,cursor:"pointer"}} onClick={()=>setEditItemId(item.id)}>
-                      <div style={{fontSize:11,fontWeight:600,color:"#e4e4ef"}}>{item.label}</div>
-                      {item.notes&&<div style={{fontSize:9,color:"#a0a0b8",marginTop:2}}>{item.notes}</div>}
+                      <div style={{fontSize:11,fontWeight:600,color:"var(--text)"}}>{item.label}</div>
+                      {item.notes&&<div style={{fontSize:9,color:"var(--text-dim)",marginTop:2}}>{item.notes}</div>}
                     </div>
-                    <button onClick={()=>setEditItemId(item.id)} style={{background:"none",border:"none",cursor:"pointer",color:"#707088",fontSize:11,padding:"0 2px",flexShrink:0}}>✏</button>
+                    <button onClick={()=>setEditItemId(item.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-mute)",fontSize:11,padding:"0 2px",flexShrink:0}}>✏</button>
                   </>
                 )}
               </div>
@@ -2636,8 +2643,8 @@ function DayScheduleView({show,bus,split,sel}){
           })}
         </div>
         {timeline.length===0&&!addingItem&&(
-          <div style={{padding:"18px 0",textAlign:"center",background:"#17171f",border:"1px dashed #2a2a3a",borderRadius:8}}>
-            <div style={{fontSize:10,color:"#707088"}}>No items. Add meals, check-ins, promo events, etc.</div>
+          <div style={{padding:"18px 0",textAlign:"center",background:"#17171f",border:"1px dashed var(--border)",borderRadius:8}}>
+            <div style={{fontSize:10,color:"var(--text-mute)"}}>No items. Add meals, check-ins, promo events, etc.</div>
           </div>
         )}
       </div>
@@ -2646,16 +2653,16 @@ function DayScheduleView({show,bus,split,sel}){
       {!isTravel&&!split&&timeline.length===0&&!addingItem&&(
         <div style={{padding:"24px 0",textAlign:"center"}}>
           <div style={{fontSize:20,marginBottom:6,opacity:0.25}}>◌</div>
-          <div style={{fontSize:11,fontWeight:600,color:"#e4e4ef",marginBottom:3}}>Rest Day</div>
-          <div style={{fontSize:9,color:"#707088"}}>Nothing scheduled. Add items above or convert to a show day.</div>
+          <div style={{fontSize:11,fontWeight:600,color:"var(--text)",marginBottom:3}}>Rest Day</div>
+          <div style={{fontSize:9,color:"var(--text-mute)"}}>Nothing scheduled. Add items above or convert to a show day.</div>
         </div>
       )}
 
       {/* Notes */}
       <div>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-          <div style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em"}}>NOTES</div>
-          <button onClick={()=>{if(editNotes)saveNotes();else{setNotesVal(show.notes||"");setEditNotes(true);}}} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:`1px solid ${editNotes?"#5B21B6":"#2a2a3a"}`,background:editNotes?"#EDE9FE":"#17171f",color:editNotes?"#5B21B6":"#b0b0c8",cursor:"pointer",fontWeight:600}}>
+          <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>NOTES</div>
+          <button onClick={()=>{if(editNotes)saveNotes();else{setNotesVal(show.notes||"");setEditNotes(true);}}} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:`1px solid ${editNotes?"#5B21B6":"var(--border)"}`,background:editNotes?"#EDE9FE":"#17171f",color:editNotes?"#5B21B6":"#b0b0c8",cursor:"pointer",fontWeight:600}}>
             {editNotes?"Save":"Edit"}
           </button>
         </div>
@@ -2664,7 +2671,7 @@ function DayScheduleView({show,bus,split,sel}){
         ):notesVal?(
           <div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:7,padding:"8px 12px",fontSize:9,color:"#92400E",fontWeight:500}}>{notesVal}</div>
         ):(
-          <div style={{fontSize:9,color:"#707088",fontStyle:"italic"}}>No notes.</div>
+          <div style={{fontSize:9,color:"var(--text-mute)",fontStyle:"italic"}}>No notes.</div>
         )}
       </div>
     </div>
@@ -2682,7 +2689,7 @@ function ScheduleTab(){
     const effShow=show||{type:td.type,notes:td.bus?.note};
     return <DayScheduleView show={effShow} bus={BUS_DATA_MAP[sel]||td?.bus||null} split={SPLIT_DAYS[sel]||td?.split||null} sel={sel}/>;
   }
-  if(!show)return <div style={{padding:40,textAlign:"center",color:"#a0a0b8",fontSize:11}}>No event scheduled for this date.</div>;
+  if(!show)return <div style={{padding:40,textAlign:"center",color:"var(--text-dim)",fontSize:11}}>No event scheduled for this date.</div>;
   return <ROSTab/>;
 }
 
@@ -2705,15 +2712,15 @@ function EventSwitcher({show,sel}){
     setDelId(null);
   };
   if(subEvents.length===0&&!adding)return(
-    <div style={{padding:"4px 20px",borderBottom:"1px solid #2a2a3a",background:"#12121a",display:"flex",alignItems:"center",gap:6}}>
-      <span style={{fontSize:9,color:"#707088",fontStyle:"italic"}}>Single event day</span>
-      <button onClick={()=>setAdding(true)} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"1px dashed #707088",background:"transparent",color:"#a0a0b8",cursor:"pointer",fontWeight:600,marginLeft:"auto"}}>+ Add Event</button>
+    <div style={{padding:"4px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",alignItems:"center",gap:6}}>
+      <span style={{fontSize:9,color:"var(--text-mute)",fontStyle:"italic"}}>Single event day</span>
+      <button onClick={()=>setAdding(true)} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"1px dashed var(--text-mute)",background:"transparent",color:"var(--text-dim)",cursor:"pointer",fontWeight:600,marginLeft:"auto"}}>+ Add Event</button>
     </div>
   );
   return(
-    <div style={{padding:"0 20px",borderBottom:"1px solid #2a2a3a",background:"#12121a",display:"flex",alignItems:"center",gap:2,overflowX:"auto",scrollbarWidth:"none"}}>
+    <div style={{padding:"0 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",alignItems:"center",gap:2,overflowX:"auto",scrollbarWidth:"none"}}>
       {/* Main event tab */}
-      <button onClick={()=>setSelEventId(null)} style={{padding:"6px 12px",fontSize:11,fontWeight:!selEventId?700:500,color:!selEventId?"#e4e4ef":"#a0a0b8",border:"none",borderBottom:!selEventId?"2px solid #e4e4ef":"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
+      <button onClick={()=>setSelEventId(null)} style={{padding:"6px 12px",fontSize:11,fontWeight:!selEventId?700:500,color:!selEventId?"var(--text)":"var(--text-dim)",border:"none",borderBottom:!selEventId?"2px solid var(--text)":"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
         {show.venue||"Main"}
       </button>
       {/* Sub-event tabs */}
@@ -2721,13 +2728,13 @@ function EventSwitcher({show,sel}){
         const isA=selEventId===ev.id;
         return(
           <div key={ev.id} style={{display:"flex",alignItems:"center",flexShrink:0}}>
-            <button onClick={()=>setSelEventId(ev.id)} style={{padding:"6px 10px",fontSize:11,fontWeight:isA?700:500,color:isA?"#5B21B6":"#a0a0b8",border:"none",borderBottom:isA?"2px solid #5B21B6":"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap"}}>
+            <button onClick={()=>setSelEventId(ev.id)} style={{padding:"6px 10px",fontSize:11,fontWeight:isA?700:500,color:isA?"#5B21B6":"var(--text-dim)",border:"none",borderBottom:isA?"2px solid #5B21B6":"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap"}}>
               {ev.name}
             </button>
             <button onClick={()=>setDelId(delId===ev.id?null:ev.id)} style={{background:"none",border:"none",color:"#606080",fontSize:12,cursor:"pointer",padding:"0 2px",lineHeight:1}}>×</button>
             {delId===ev.id&&<span style={{fontSize:9,display:"flex",alignItems:"center",gap:4}}>
               <button onClick={()=>removeEvent(ev.id)} style={{fontSize:9,padding:"2px 6px",borderRadius:4,border:"none",background:"#FEF2F2",color:"#DC2626",cursor:"pointer",fontWeight:700}}>Delete</button>
-              <button onClick={()=>setDelId(null)} style={{fontSize:9,padding:"2px 6px",borderRadius:4,border:"1px solid #2a2a3a",background:"transparent",color:"#a0a0b8",cursor:"pointer"}}>Cancel</button>
+              <button onClick={()=>setDelId(null)} style={{fontSize:9,padding:"2px 6px",borderRadius:4,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Cancel</button>
             </span>}
           </div>
         );
@@ -2737,10 +2744,10 @@ function EventSwitcher({show,sel}){
         <div style={{display:"flex",alignItems:"center",gap:5,marginLeft:4,flexShrink:0}}>
           <input autoFocus value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")addEvent();if(e.key==="Escape"){setAdding(false);setNewName("");}}} placeholder="Event name" style={{...UI.input,width:130,fontSize:10}}/>
           <button onClick={addEvent} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Add</button>
-          <button onClick={()=>{setAdding(false);setNewName("");}} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid #2a2a3a",background:"transparent",color:"#a0a0b8",cursor:"pointer"}}>✕</button>
+          <button onClick={()=>{setAdding(false);setNewName("");}} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>✕</button>
         </div>
       ):(
-        <button onClick={()=>setAdding(true)} style={{padding:"4px 10px",fontSize:9,fontWeight:700,color:"#a0a0b8",border:"none",borderBottom:"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,marginLeft:4}}>+ Event</button>
+        <button onClick={()=>setAdding(true)} style={{padding:"4px 10px",fontSize:9,fontWeight:700,color:"var(--text-dim)",border:"none",borderBottom:"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,marginLeft:4}}>+ Event</button>
       )}
     </div>
   );
@@ -2827,53 +2834,53 @@ function ROSTab(){
         onDrop={e=>{e.preventDefault();if(dId.current&&dId.current!==b.id)reorder(dId.current,b.id);dId.current=null;setDOver(null);}}
         onDragEnd={()=>{dId.current=null;setDOver(null);}}
         onClick={()=>canE&&setEditB(isE?null:b.id)} className="br"
-        style={{position:"relative",display:"flex",alignItems:"center",gap:8,padding:isA?"10px 14px":"7px 14px",background:isDT?"#ede9fe":"#12121a",border:isA?`2px solid ${b.color}50`:isE?`1px solid ${b.color}`:"1px solid #2a2a3a",borderRadius:isA?12:8,cursor:canD?"grab":canE?"pointer":"default",opacity:hi?1:0.22,transition:"border .12s ease,background .12s ease",boxShadow:isA?"0 2px 6px rgba(0,0,0,.06)":"none",minHeight:isA?undefined:Math.max(32,Math.min(180,b.duration*0.8))}}>
+        style={{position:"relative",display:"flex",alignItems:"center",gap:8,padding:isA?"10px 14px":"7px 14px",background:isDT?"#ede9fe":"var(--card)",border:isA?`2px solid ${b.color}50`:isE?`1px solid ${b.color}`:"1px solid var(--border)",borderRadius:isA?12:8,cursor:canD?"grab":canE?"pointer":"default",opacity:hi?1:0.22,transition:"border .12s ease,background .12s ease",boxShadow:isA?"0 2px 6px rgba(0,0,0,.06)":"none",minHeight:isA?undefined:Math.max(32,Math.min(180,b.duration*0.8))}}>
         {!isA&&b.duration>0&&<div onMouseDown={e=>startResize(b,"top",e)} title="Drag to shift start" style={{position:"absolute",top:-3,left:8,right:8,height:6,cursor:"ns-resize",zIndex:2}}/>}
         {!isA&&b.duration>0&&<div onMouseDown={e=>startResize(b,"bottom",e)} title="Drag to change duration" style={{position:"absolute",bottom:-3,left:8,right:8,height:6,cursor:"ns-resize",zIndex:2}}/>}
-        {canD?<div style={{color:"#707088",fontSize:14,cursor:"grab",userSelect:"none",width:16,flexShrink:0,textAlign:"center"}}>⋮⋮</div>:<div style={{width:16,flexShrink:0}}/>}
+        {canD?<div style={{color:"var(--text-mute)",fontSize:14,cursor:"grab",userSelect:"none",width:16,flexShrink:0,textAlign:"center"}}>⋮⋮</div>:<div style={{width:16,flexShrink:0}}/>}
         <div style={{width:54,fontFamily:MN,fontSize:12,color:isA?b.color:"#b0b0c8",fontWeight:isA?800:500,textAlign:"right",flexShrink:0}}>{fmt(t.s)}</div>
         <div style={{width:4,height:isA?28:20,background:b.color,borderRadius:2,flexShrink:0,opacity:isA?1:.5}}/>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontSize:isA?13:12,fontWeight:isA?800:600,color:isA?b.color:"#e4e4ef",display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
+          <div style={{fontSize:isA?13:12,fontWeight:isA?800:600,color:isA?b.color:"var(--text)",display:"flex",alignItems:"center",gap:5,flexWrap:"wrap"}}>
             {b.label}
             {isA&&cK&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,fontWeight:800,background:isC?"#d1fae5":"#fef3c7",color:isC?"#047857":"#92400E"}}>{isC?"CONFIRMED":"UNCONFIRMED"}</span>}
             {b.id==="curfew"&&sel==="2026-04-16"&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,fontWeight:800,background:"#fecaca",color:"#7F1D1D"}}>HARD</span>}
           </div>
-          {b.note&&<div style={{fontSize:9,color:"#a0a0b8",marginTop:1}}>{b.note}</div>}
+          {b.note&&<div style={{fontSize:9,color:"var(--text-dim)",marginTop:1}}>{b.note}</div>}
         </div>
-        {b.duration>0&&!isA&&b.id!=="mg_checkin"&&<div style={{fontFamily:MN,fontSize:10,color:"#b0b0c8",background:"#17171f",padding:"3px 7px",borderRadius:4,flexShrink:0,border:"1px solid #2a2a3a",fontWeight:600}}>{`${b.duration}m`}</div>}
-        {b.duration>0&&<div style={{width:46,fontFamily:MN,fontSize:9,color:"#707088",textAlign:"right",flexShrink:0}}>{fmt(t.e)}</div>}
+        {b.duration>0&&!isA&&b.id!=="mg_checkin"&&<div style={{fontFamily:MN,fontSize:10,color:"#b0b0c8",background:"#17171f",padding:"3px 7px",borderRadius:4,flexShrink:0,border:"1px solid var(--border)",fontWeight:600}}>{`${b.duration}m`}</div>}
+        {b.duration>0&&<div style={{width:46,fontFamily:MN,fontSize:9,color:"var(--text-mute)",textAlign:"right",flexShrink:0}}>{fmt(t.e)}</div>}
         {cK&&<button onClick={e=>{e.stopPropagation();uEffShow({[cK]:!isC});}} title={isC?"Confirmed":"Mark confirmed"} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:isC?"#047857":"#606080",padding:"2px 4px",flexShrink:0}}>{isC?"✓":"○"}</button>}
-        {canE&&<button onClick={e=>{e.stopPropagation();setEditB(isE?null:b.id);}} title="Edit" style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:isE?"#e4e4ef":"#707088",padding:"2px 6px",flexShrink:0,fontWeight:700,letterSpacing:1}}>{isE?"×":"⋯"}</button>}
+        {canE&&<button onClick={e=>{e.stopPropagation();setEditB(isE?null:b.id);}} title="Edit" style={{background:"none",border:"none",cursor:"pointer",fontSize:14,color:isE?"var(--text)":"var(--text-mute)",padding:"2px 6px",flexShrink:0,fontWeight:700,letterSpacing:1}}>{isE?"×":"⋯"}</button>}
       </div>
       {isE&&canE&&(
         <div style={{...UI.expandPanel,borderLeftColor:b.color,marginTop:-2,marginBottom:4,borderRadius:"0 0 8px 8px"}} onClick={e=>e.stopPropagation()}>
           {isA&&b.anchorKey?(
             <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-              <label style={{fontSize:9,fontWeight:700,color:"#a0a0b8"}}>{AMAP[b.anchorKey]} TIME</label>
+              <label style={{fontSize:9,fontWeight:700,color:"var(--text-dim)"}}>{AMAP[b.anchorKey]} TIME</label>
               <input type="text" placeholder="7:00p" defaultValue={fmt(effShow[b.anchorKey])} onKeyDown={e=>{if(e.key==="Enter"){setAnc(b.anchorKey,e.target.value);setEditB(null);}if(e.key==="Escape")setEditB(null);}} onBlur={e=>setAnc(b.anchorKey,e.target.value)} style={{...UI.input,fontFamily:MN,width:80,fontWeight:700}}/>
               <button onClick={()=>uEffShow({[b.anchorKey+"Confirmed"]:!isC})} style={UI.expandBtn(false,isC?"#047857":"#92400E")}>{isC?"✓ Confirmed":"Mark Confirmed"}</button>
-              <label style={{fontSize:9,fontWeight:700,color:"#a0a0b8",display:"flex",alignItems:"center",gap:4,cursor:"pointer"}}><input type="checkbox" checked={!!b.isAnchor} onChange={e=>setBF(b.id,"isAnchor",e.target.checked)}/>Anchor</label>
+              <label style={{fontSize:9,fontWeight:700,color:"var(--text-dim)",display:"flex",alignItems:"center",gap:4,cursor:"pointer"}}><input type="checkbox" checked={!!b.isAnchor} onChange={e=>setBF(b.id,"isAnchor",e.target.checked)}/>Anchor</label>
               <button onClick={()=>removeBlock(b.id)} style={{marginLeft:"auto",background:"none",border:"none",color:"#B91C1C",fontSize:10,cursor:"pointer",fontWeight:700}}>Remove block</button>
               {b.isAnchor&&<AnchorTimes b={b} setBF={setBF}/>}
-              <span style={{flexBasis:"100%",fontSize:9,color:"#707088"}}>Enter = save · Esc = close</span>
+              <span style={{flexBasis:"100%",fontSize:9,color:"var(--text-mute)"}}>Enter = save · Esc = close</span>
             </div>
           ):(
             <div style={{display:"grid",gridTemplateColumns:"80px 1fr 1fr",gap:8,alignItems:"center"}}>
               <div>
-                <div style={{fontSize:8,color:"#a0a0b8",fontWeight:700,marginBottom:2}}>DURATION</div>
+                <div style={{fontSize:8,color:"var(--text-dim)",fontWeight:700,marginBottom:2}}>DURATION</div>
                 <input type="number" min="0" max="480" step="5" value={b.duration} onChange={e=>setDur(b.id,parseInt(e.target.value)||0)} style={{...UI.input,fontFamily:MN,width:70,textAlign:"center"}}/>
               </div>
               <div>
-                <div style={{fontSize:8,color:"#a0a0b8",fontWeight:700,marginBottom:2}}>LABEL</div>
+                <div style={{fontSize:8,color:"var(--text-dim)",fontWeight:700,marginBottom:2}}>LABEL</div>
                 <input type="text" value={b.label} onChange={e=>setBF(b.id,"label",e.target.value)} style={{...UI.input,width:"100%"}}/>
               </div>
               <div>
-                <div style={{fontSize:8,color:"#a0a0b8",fontWeight:700,marginBottom:2}}>NOTE</div>
+                <div style={{fontSize:8,color:"var(--text-dim)",fontWeight:700,marginBottom:2}}>NOTE</div>
                 <input type="text" value={b.note||""} onChange={e=>setBF(b.id,"note",e.target.value)} placeholder="Optional note" style={{...UI.input,width:"100%"}}/>
               </div>
               <div style={{gridColumn:"1 / -1",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-                <label style={{fontSize:9,fontWeight:700,color:"#a0a0b8",display:"flex",alignItems:"center",gap:4,cursor:"pointer"}}><input type="checkbox" checked={!!b.isAnchor} onChange={e=>setBF(b.id,"isAnchor",e.target.checked)}/>Anchor</label>
+                <label style={{fontSize:9,fontWeight:700,color:"var(--text-dim)",display:"flex",alignItems:"center",gap:4,cursor:"pointer"}}><input type="checkbox" checked={!!b.isAnchor} onChange={e=>setBF(b.id,"isAnchor",e.target.checked)}/>Anchor</label>
                 {b.isAnchor&&<AnchorTimes b={b} setBF={setBF}/>}
                 <button onClick={()=>removeBlock(b.id)} style={{marginLeft:"auto",background:"none",border:"none",color:"#B91C1C",fontSize:10,cursor:"pointer",fontWeight:700}}>Remove block</button>
               </div>
@@ -2891,24 +2898,24 @@ function ROSTab(){
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
       {/* Event switcher — always visible on show days */}
       <EventSwitcher show={show} sel={sel}/>
-      <div style={{padding:"6px 20px",borderBottom:"1px solid #2a2a3a",background:"#12121a",display:"flex",gap:10,flexWrap:"wrap",fontSize:11,flexShrink:0,alignItems:"center"}}>
+      <div style={{padding:"6px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:10,flexWrap:"wrap",fontSize:11,flexShrink:0,alignItems:"center"}}>
         <span style={{fontWeight:700}}>{effShow.venue}</span><span style={{color:"#b0b0c8",fontSize:10}}>{effShow.promoter}</span>
         {isCustom&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"#ede9fe",color:"#5B21B6",fontWeight:700}}>Custom ROS</span>}
         {subEvent&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>{subEvent.name}</span>}
         {effShow.notes&&<span style={{color:"#92400E",fontWeight:600,fontSize:9}}>{effShow.notes}</span>}
         <div style={{marginLeft:"auto",display:"flex",gap:6}}>
-          <button onClick={()=>uEffShow({busSkip:!effShow.busSkip})} title="Toggle Bus Arrival" style={{background:effShow.busSkip?"#17171f":"#DBEAFE",border:`1px solid ${effShow.busSkip?"#2a2a3a":"#a78bfa"}`,borderRadius:5,color:effShow.busSkip?"#707088":"#a78bfa",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{effShow.busSkip?"+ Bus":"✓ Bus"}</button>
-          <button onClick={()=>uEffShow({mgSkip:!effShow.mgSkip})} title="Toggle Meet & Greet" style={{background:effShow.mgSkip?"#17171f":"#D1FAE5",border:`1px solid ${effShow.mgSkip?"#2a2a3a":"#065F46"}`,borderRadius:5,color:effShow.mgSkip?"#707088":"#065F46",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{effShow.mgSkip?"+ M&G":"✓ M&G"}</button>
-          <button onClick={()=>{uRos(rosKey,null);setEditB(null);}} style={{background:"#17171f",border:"1px solid #2a2a3a",borderRadius:5,color:"#a0a0b8",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:600}}>Reset</button>
+          <button onClick={()=>uEffShow({busSkip:!effShow.busSkip})} title="Toggle Bus Arrival" style={{background:effShow.busSkip?"#17171f":"#DBEAFE",border:`1px solid ${effShow.busSkip?"var(--border)":"#a78bfa"}`,borderRadius:5,color:effShow.busSkip?"var(--text-mute)":"#a78bfa",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{effShow.busSkip?"+ Bus":"✓ Bus"}</button>
+          <button onClick={()=>uEffShow({mgSkip:!effShow.mgSkip})} title="Toggle Meet & Greet" style={{background:effShow.mgSkip?"#17171f":"#D1FAE5",border:`1px solid ${effShow.mgSkip?"var(--border)":"#065F46"}`,borderRadius:5,color:effShow.mgSkip?"var(--text-mute)":"#065F46",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:700}}>{effShow.mgSkip?"+ M&G":"✓ M&G"}</button>
+          <button onClick={()=>{uRos(rosKey,null);setEditB(null);}} style={{background:"#17171f",border:"1px solid var(--border)",borderRadius:5,color:"var(--text-dim)",fontSize:9,padding:"3px 9px",cursor:"pointer",fontWeight:600}}>Reset</button>
         </div>
       </div>
-      <div style={{padding:"10px 20px 30px",background:"#0a0a0f",flex:1,overflowY:"auto"}}>
+      <div style={{padding:"10px 20px 30px",background:"var(--bg)",flex:1,overflowY:"auto"}}>
         <FlightDayStrip sel={sel}/>
         {phases.filter(ph=>!(ph.k==="mg"&&effShow.mgSkip)&&!(ph.k==="bus_in"&&effShow.busSkip)).map(ph=>{const pb=blocks.filter(b=>ph.k==="bus_in"?b.phase==="bus_in":ph.k==="curfew"?b.id==="curfew":ph.k==="doors"?b.phase==="doors":ph.k==="mg"?b.phase==="mg":b.phase===ph.k);const canAdd=!["bus_in","curfew","doors","mg"].includes(ph.k);
-          return(<div key={ph.k} style={{marginBottom:6}}><div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0 3px"}}><div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",color:"#a0a0b8"}}>{ph.l}</div><div style={{flex:1,height:1,background:"#2a2a3a"}}/><div style={{fontSize:8,color:"#707088",fontStyle:"italic"}}>{ph.s}</div>{canAdd&&<button onClick={()=>addBlock(ph.k)} title="Add block" style={{background:"none",border:"1px dashed #606080",borderRadius:5,color:"#a0a0b8",fontSize:9,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>+ Block</button>}</div><div style={{display:"flex",flexDirection:"column",gap:3}}>{pb.map(b=>renderB(b))}</div>{!pb.length&&canAdd&&<div style={{fontSize:9,color:"#707088",fontStyle:"italic",padding:"4px 0"}}>No blocks — click + Block to add.</div>}</div>);
+          return(<div key={ph.k} style={{marginBottom:6}}><div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0 3px"}}><div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",color:"var(--text-dim)"}}>{ph.l}</div><div style={{flex:1,height:1,background:"var(--border)"}}/><div style={{fontSize:8,color:"var(--text-mute)",fontStyle:"italic"}}>{ph.s}</div>{canAdd&&<button onClick={()=>addBlock(ph.k)} title="Add block" style={{background:"none",border:"1px dashed #606080",borderRadius:5,color:"var(--text-dim)",fontSize:9,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>+ Block</button>}</div><div style={{display:"flex",flexDirection:"column",gap:3}}>{pb.map(b=>renderB(b))}</div>{!pb.length&&canAdd&&<div style={{fontSize:9,color:"var(--text-mute)",fontStyle:"italic",padding:"4px 0"}}>No blocks — click + Block to add.</div>}</div>);
         })}
-        <div style={{marginTop:12,padding:"12px 14px",background:"#12121a",border:"1px solid #2a2a3a",borderRadius:12,display:"flex",gap:12,flexWrap:"wrap"}}>
-          {[{l:"Bus ETA",v:fmt(effShow.busArrive),c:"#a78bfa",hide:effShow.busSkip},{l:"Crew Call",v:fmt(effShow.crewCall),c:"#92400E"},{l:"M&G",v:fmt(effShow.mgTime),c:"#065F46",hide:effShow.mgSkip},{l:"Doors",v:fmt(effShow.doors),c:"#166534"},{l:"Headline",v:times.bbno_set?`${fmt(times.bbno_set.s)}–${fmt(times.bbno_set.e)}`:"--",c:"#B91C1C"},{l:"Settlement",v:times.settlement?fmt(times.settlement.s):"--",c:"#854D0E"},{l:"Curfew",v:fmt(effShow.curfew),c:"#7F1D1D"},{l:"Bus Out",v:times.bus_depart?fmt(times.bus_depart.s):"--",c:"#a78bfa",hide:effShow.busSkip}].filter(s=>!s.hide).map((s,i)=><div key={i}><div style={{fontSize:8,color:"#a0a0b8",marginBottom:1,fontWeight:600}}>{s.l}</div><div style={{fontFamily:MN,fontSize:12,color:s.c,fontWeight:800}}>{s.v}</div></div>)}
+        <div style={{marginTop:12,padding:"12px 14px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:12,display:"flex",gap:12,flexWrap:"wrap"}}>
+          {[{l:"Bus ETA",v:fmt(effShow.busArrive),c:"#a78bfa",hide:effShow.busSkip},{l:"Crew Call",v:fmt(effShow.crewCall),c:"#92400E"},{l:"M&G",v:fmt(effShow.mgTime),c:"#065F46",hide:effShow.mgSkip},{l:"Doors",v:fmt(effShow.doors),c:"#166534"},{l:"Headline",v:times.bbno_set?`${fmt(times.bbno_set.s)}–${fmt(times.bbno_set.e)}`:"--",c:"#B91C1C"},{l:"Settlement",v:times.settlement?fmt(times.settlement.s):"--",c:"#854D0E"},{l:"Curfew",v:fmt(effShow.curfew),c:"#7F1D1D"},{l:"Bus Out",v:times.bus_depart?fmt(times.bus_depart.s):"--",c:"#a78bfa",hide:effShow.busSkip}].filter(s=>!s.hide).map((s,i)=><div key={i}><div style={{fontSize:8,color:"var(--text-dim)",marginBottom:1,fontWeight:600}}>{s.l}</div><div style={{fontFamily:MN,fontSize:12,color:s.c,fontWeight:800}}>{s.v}</div></div>)}
         </div>
       </div>
     </div>
@@ -2965,7 +2972,7 @@ function TourCalendar(){
   const TS={
     show:{l:"SHOW",c:"#047857",b:"#D1FAE5"},
     travel:{l:"TRAVEL",c:"#a78bfa",b:"#DBEAFE"},
-    off:{l:"OFF",c:"#a0a0b8",b:"#1e1e2e"},
+    off:{l:"OFF",c:"var(--text-dim)",b:"var(--card-2)"},
     split:{l:"SPLIT",c:"#92400E",b:"#FEF3C7"},
   };
   return(
@@ -2974,7 +2981,7 @@ function TourCalendar(){
         {[
           {l:"Shows",v:days.filter(d=>d.type==="show").length,c:"#047857",b:"#D1FAE5"},
           {l:"Travel Days",v:days.filter(d=>d.type==="travel").length,c:"#a78bfa",b:"#DBEAFE"},
-          {l:"Off Days",v:days.filter(d=>d.type==="off").length,c:"#a0a0b8",b:"#1e1e2e"},
+          {l:"Off Days",v:days.filter(d=>d.type==="off").length,c:"var(--text-dim)",b:"var(--card-2)"},
           {l:"Split Days",v:days.filter(d=>d.type==="split").length,c:"#92400E",b:"#FEF3C7"},
         ].map((s,i)=>(
           <div key={i} style={{background:s.b,border:`1px solid ${s.c}30`,borderRadius:8,padding:"10px 12px"}}>
@@ -2983,17 +2990,17 @@ function TourCalendar(){
           </div>
         ))}
       </div>
-      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"#12121a",border:"1px solid #2a2a3a",borderRadius:8,flexWrap:"wrap"}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12,padding:"8px 12px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,flexWrap:"wrap"}}>
         {[{l:"Total KM",v:"8,970"},{l:"Drive Days",v:"13"},{l:"HOS Flags",v:"3",warn:true}].map((s,i)=>(
           <div key={i} style={{display:"flex",alignItems:"baseline",gap:4}}>
-            <span style={{fontFamily:MN,fontSize:13,fontWeight:800,color:s.warn?"#B91C1C":"#e4e4ef"}}>{s.v}</span>
-            <span style={{fontSize:9,color:"#a0a0b8"}}>{s.l}</span>
+            <span style={{fontFamily:MN,fontSize:13,fontWeight:800,color:s.warn?"#B91C1C":"var(--text)"}}>{s.v}</span>
+            <span style={{fontSize:9,color:"var(--text-dim)"}}>{s.l}</span>
           </div>
         ))}
-        <span style={{fontSize:9,color:"#707088",fontFamily:MN}}>Pieter Smit T26-021201</span>
+        <span style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN}}>Pieter Smit T26-021201</span>
         <button onClick={importBusLegs} style={{marginLeft:"auto",fontSize:9,padding:"3px 10px",borderRadius:5,border:"1px solid #5B21B6",background:"#f5f3ff",color:"#5B21B6",cursor:"pointer",fontWeight:700,fontFamily:MN}}>→ Import Legs to Travel Days</button>
       </div>
-      <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,overflow:"hidden"}}>
+      <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
         {days.map((d,i)=>{
           const ts=TS[d.type]||TS.off;
           const isOff=d.type==="off";
@@ -3006,33 +3013,33 @@ function TourCalendar(){
               <div
                 onClick={()=>openDay(d.iso)}
                 className="rh"
-                style={{display:"grid",gridTemplateColumns:"76px 58px 1fr auto",alignItems:"center",gap:8,padding:isOff?"5px 12px":"8px 12px",background:d.type==="show"?"#F9FAFB":d.type==="travel"?"#F8FAFF":d.type==="split"?"#FFFBEB":"#12121a",cursor:"pointer",opacity:isOff?0.65:1}}
+                style={{display:"grid",gridTemplateColumns:"76px 58px 1fr auto",alignItems:"center",gap:8,padding:isOff?"5px 12px":"8px 12px",background:d.type==="show"?"#F9FAFB":d.type==="travel"?"#F8FAFF":d.type==="split"?"#FFFBEB":"var(--card)",cursor:"pointer",opacity:isOff?0.65:1}}
               >
                 <div style={{display:"flex",alignItems:"baseline",gap:4}}>
                   <span style={{fontFamily:MN,fontSize:isOff?9:10,fontWeight:isOff?400:700,color:ts.c}}>{fD(d.iso)}</span>
-                  <span style={{fontSize:8,color:"#707088"}}>{fW(d.iso)}</span>
+                  <span style={{fontSize:8,color:"var(--text-mute)"}}>{fW(d.iso)}</span>
                 </div>
                 <div style={{background:ts.b,color:ts.c,fontSize:8,fontWeight:800,padding:"2px 6px",borderRadius:4,textAlign:"center",letterSpacing:"0.04em",whiteSpace:"nowrap"}}>{ts.l}</div>
                 <div style={{minWidth:0,overflow:"hidden"}}>
                   {d.type==="show"&&(
                     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                      <span style={{fontSize:10,fontWeight:600,color:"#e4e4ef"}}>{d.show?.venue||d.bus?.venue}</span>
-                      <span style={{fontSize:9,color:"#a0a0b8"}}>— {d.show?.city}</span>
+                      <span style={{fontSize:10,fontWeight:600,color:"var(--text)"}}>{d.show?.venue||d.bus?.venue}</span>
+                      <span style={{fontSize:9,color:"var(--text-dim)"}}>— {d.show?.city}</span>
                       {d.show?.notes&&<span style={{fontSize:9,color:"#92400E"}}>{d.show.notes}</span>}
-                      {d.show?.promoter&&<span style={{fontSize:8,color:"#707088",fontStyle:"italic"}}>{d.show.promoter}</span>}
+                      {d.show?.promoter&&<span style={{fontSize:8,color:"var(--text-mute)",fontStyle:"italic"}}>{d.show.promoter}</span>}
                     </div>
                   )}
                   {d.type==="travel"&&(
                     <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-                      <span style={{fontSize:10,color:"#e4e4ef",fontWeight:500}}>{d.bus?.route}</span>
-                      {d.bus?.km>0&&<span style={{fontFamily:MN,fontSize:9,color:"#a0a0b8"}}>{d.bus.km}km</span>}
-                      <span style={{fontFamily:MN,fontSize:9,color:"#a0a0b8"}}>{d.bus?.drive}</span>
+                      <span style={{fontSize:10,color:"var(--text)",fontWeight:500}}>{d.bus?.route}</span>
+                      {d.bus?.km>0&&<span style={{fontFamily:MN,fontSize:9,color:"var(--text-dim)"}}>{d.bus.km}km</span>}
+                      <span style={{fontFamily:MN,fontSize:9,color:"var(--text-dim)"}}>{d.bus?.drive}</span>
                       {d.bus?.dep!=="—"&&<span style={{fontFamily:MN,fontSize:9,color:"#b0b0c8"}}>↑{d.bus.dep}</span>}
                       {d.bus?.arr!=="—"&&<span style={{fontFamily:MN,fontSize:9,color:"#b0b0c8"}}>↓{d.bus.arr}</span>}
-                      {d.bus?.note&&<span style={{fontSize:9,color:"#707088"}}>{d.bus.note}</span>}
+                      {d.bus?.note&&<span style={{fontSize:9,color:"var(--text-mute)"}}>{d.bus.note}</span>}
                     </div>
                   )}
-                  {d.type==="off"&&<span style={{fontSize:9,color:"#707088"}}>—</span>}
+                  {d.type==="off"&&<span style={{fontSize:9,color:"var(--text-mute)"}}>—</span>}
                   {d.type==="split"&&(
                     <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
                       {d.split.parties.map(p=>(
@@ -3052,19 +3059,19 @@ function TourCalendar(){
                     <div key={p.id} style={{marginTop:8,padding:"8px 10px",background:p.bg,borderRadius:7,border:`1px solid ${p.color}30`}}>
                       <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6,flexWrap:"wrap"}}>
                         <span style={{fontSize:10,fontWeight:800,color:p.color}}>{p.label}</span>
-                        <span style={{fontSize:9,color:"#707088"}}>·</span>
-                        <span style={{fontSize:9,color:"#a0a0b8"}}>{p.location}</span>
-                        <span style={{fontSize:9,color:"#707088"}}>·</span>
-                        <span style={{fontSize:9,color:"#a0a0b8"}}>{p.event}</span>
+                        <span style={{fontSize:9,color:"var(--text-mute)"}}>·</span>
+                        <span style={{fontSize:9,color:"var(--text-dim)"}}>{p.location}</span>
+                        <span style={{fontSize:9,color:"var(--text-mute)"}}>·</span>
+                        <span style={{fontSize:9,color:"var(--text-dim)"}}>{p.event}</span>
                       </div>
                       <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:p.note?4:0}}>
                         {p.crew.map(cid=>{const c=crewById[cid];return c?(
-                          <span key={cid} style={{fontSize:8,padding:"2px 8px",borderRadius:12,background:"#12121a",border:`1px solid ${p.color}40`,color:p.color,fontWeight:600}}>
+                          <span key={cid} style={{fontSize:8,padding:"2px 8px",borderRadius:12,background:"var(--card)",border:`1px solid ${p.color}40`,color:p.color,fontWeight:600}}>
                             {c.name.split(" ")[0]} <span style={{fontWeight:400,opacity:0.7,fontSize:7}}>({c.role.split(" (")[0].split("/")[0].trim()})</span>
                           </span>
                         ):null;})}
                       </div>
-                      {p.note&&<div style={{fontSize:9,color:"#a0a0b8",fontStyle:"italic"}}>{p.note}</div>}
+                      {p.note&&<div style={{fontSize:9,color:"var(--text-dim)",fontStyle:"italic"}}>{p.note}</div>}
                     </div>
                   ))}
                 </div>
@@ -3307,15 +3314,15 @@ function FlightsListView(){
   return(
     <div style={{display:"flex",flexDirection:"column",gap:10}}>
       {/* Scan bar */}
-      <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"10px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+      <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 14px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
         <span style={{fontSize:10,fontWeight:800,color:"#a78bfa",letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
         <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"#DBEAFE",color:"#a78bfa",fontWeight:700}}>{confirmed.length} confirmed · {pending.length} pending</span>
-        {scanMsg&&<span style={{fontSize:9,color:scanning?"#5B21B6":"#a0a0b8",fontFamily:MN}}>{scanMsg}</span>}
+        {scanMsg&&<span style={{fontSize:9,color:scanning?"#5B21B6":"var(--text-dim)",fontFamily:MN}}>{scanMsg}</span>}
         {reassignMsg&&<span style={{fontSize:9,color:"#065F46",fontFamily:MN,fontWeight:600}}>{reassignMsg}</span>}
         <div style={{marginLeft:"auto",display:"flex",gap:6,flexWrap:"wrap"}}>
           {confirmed.length>0&&<button onClick={reassignAllFlights} title="Re-match all confirmed flights to tour shows by airport proximity + date window" style={{background:"#17171f",color:"#065F46",border:"1px solid #6EE7B7",borderRadius:6,fontSize:10,padding:"5px 12px",cursor:"pointer",fontWeight:700}}>⟲ Re-match to Shows</button>}
-          {confirmed.length>0&&<button onClick={refreshAllStatus} disabled={refreshingAll} style={{background:refreshingAll?"#2a2a3a":"#17171f",color:refreshingAll?"#707088":"#5B21B6",border:"1px solid #2a2a3a",borderRadius:6,fontSize:10,padding:"5px 12px",cursor:refreshingAll?"default":"pointer",fontWeight:700}}>{refreshingAll?"Refreshing…":"⟳ Refresh Status"}</button>}
-          <button onClick={scanFlights} disabled={scanning} style={{background:scanning?"#2a2a3a":"#a78bfa",color:scanning?"#a0a0b8":"#12121a",border:"none",borderRadius:6,fontSize:10,padding:"5px 14px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail for Flights"}</button>
+          {confirmed.length>0&&<button onClick={refreshAllStatus} disabled={refreshingAll} style={{background:refreshingAll?"var(--border)":"#17171f",color:refreshingAll?"var(--text-mute)":"#5B21B6",border:"1px solid var(--border)",borderRadius:6,fontSize:10,padding:"5px 12px",cursor:refreshingAll?"default":"pointer",fontWeight:700}}>{refreshingAll?"Refreshing…":"⟳ Refresh Status"}</button>}
+          <button onClick={scanFlights} disabled={scanning} style={{background:scanning?"var(--border)":"#a78bfa",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"5px 14px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail for Flights"}</button>
         </div>
       </div>
 
@@ -3333,7 +3340,7 @@ function FlightsListView(){
                 {g.segs.map(f=>(
                   <FlightCard key={f.id} f={f} crew={crew} actions={<>
                     <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#a78bfa",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
-                    <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #2a2a3a",background:"transparent",color:"#a0a0b8",cursor:"pointer"}}>Skip</button>
+                    <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Skip</button>
                     {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
                   </>}/>
                 ))}
@@ -3346,13 +3353,13 @@ function FlightsListView(){
 
       {/* Pending confirmation */}
       {pending.length>0&&(
-        <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"10px 12px"}}>
-          <div style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em",marginBottom:8}}>PENDING CONFIRMATION <span style={{background:"#FEF3C7",color:"#92400E",borderRadius:8,padding:"1px 6px",fontWeight:700,fontSize:8}}>{pending.length}</span></div>
+        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px"}}>
+          <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em",marginBottom:8}}>PENDING CONFIRMATION <span style={{background:"#FEF3C7",color:"#92400E",borderRadius:8,padding:"1px 6px",fontWeight:700,fontSize:8}}>{pending.length}</span></div>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {pending.map(f=>{const isConf=confirmingId===f.id;return(
               <FlightCard key={f.id} f={f} crew={crew} onUpdatePax={newPax=>updatePax(f,newPax)} actions={<>
                 <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:isConf?"#047857":"#a78bfa",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
-                <button onClick={()=>uFlight(f.id,{...f,status:"unresolved"})} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #2a2a3a",background:"transparent",color:"#a0a0b8",cursor:"pointer"}}>Dismiss</button>
+                <button onClick={()=>uFlight(f.id,{...f,status:"unresolved"})} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Dismiss</button>
                 {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
               </>}/>
             );})}
@@ -3365,9 +3372,9 @@ function FlightsListView(){
         <div style={{display:"flex",flexDirection:"column",gap:12}}>
           {dates.map(date=>(
             <div key={date}>
-              <div style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em",marginBottom:6,display:"flex",alignItems:"center",gap:8}}>
+              <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em",marginBottom:6,display:"flex",alignItems:"center",gap:8}}>
                 <button onClick={()=>goToSchedule(date)} style={{background:"none",border:"none",padding:0,cursor:"pointer",fontSize:9,fontWeight:800,color:"#5B21B6",letterSpacing:"0.08em",textDecoration:"underline",textDecorationStyle:"dotted",textUnderlineOffset:2}}>{fFull(date)}</button>
-                <div style={{flex:1,height:1,background:"#2a2a3a"}}/>
+                <div style={{flex:1,height:1,background:"var(--border)"}}/>
               </div>
               <div style={{display:"flex",flexDirection:"column",gap:6}}>
                 {byDate[date].map(f=>{
@@ -3386,10 +3393,10 @@ function FlightsListView(){
                       actions={<>
                         {matchBadge(outShow,"← OUT","#FEF3C7","#92400E")}
                         {matchBadge(inShow,"IN →","#D1FAE5","#047857")}
-                        {!inShow&&!outShow&&<span style={{fontSize:9,color:"#707088",fontStyle:"italic"}}>No show match — add city to airport table to match.</span>}
+                        {!inShow&&!outShow&&<span style={{fontSize:9,color:"var(--text-mute)",fontStyle:"italic"}}>No show match — add city to airport table to match.</span>}
                         <button onClick={()=>goToSchedule(f.depDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#a78bfa",cursor:"pointer",fontWeight:700}}>→ Schedule {f.depDate?.slice(5)}</button>
                         {f.arrDate&&f.arrDate!==f.depDate&&<button onClick={()=>goToSchedule(f.arrDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #BFDBFE",background:"#EFF6FF",color:"#a78bfa",cursor:"pointer",fontWeight:700}}>→ Arr {f.arrDate?.slice(5)}</button>}
-                        <button onClick={()=>uFlight(f.id,{...f,status:"unresolved"})} style={{marginLeft:"auto",fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #2a2a3a",background:"transparent",color:"#707088",cursor:"pointer"}}>Remove</button>
+                        <button onClick={()=>uFlight(f.id,{...f,status:"unresolved"})} style={{marginLeft:"auto",fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-mute)",cursor:"pointer"}}>Remove</button>
                       </>}
                     />
                   );
@@ -3399,7 +3406,7 @@ function FlightsListView(){
           ))}
         </div>
       ):(pendingImport.length===0&&pending.length===0&&unresolved.length===0&&(
-        <div style={{padding:"40px 0",textAlign:"center",color:"#707088"}}><div style={{fontSize:22,marginBottom:8,opacity:0.25}}>✈</div><div style={{fontSize:11}}>No flights yet.</div><div style={{fontSize:10,marginTop:4}}>Hit "Scan Gmail for Flights" above to import from email.</div></div>
+        <div style={{padding:"40px 0",textAlign:"center",color:"var(--text-mute)"}}><div style={{fontSize:22,marginBottom:8,opacity:0.25}}>✈</div><div style={{fontSize:11}}>No flights yet.</div><div style={{fontSize:10,marginTop:4}}>Hit "Scan Gmail for Flights" above to import from email.</div></div>
       ))}
 
       {/* Unresolved */}
@@ -3490,36 +3497,36 @@ function TravelDayView(){
           </div>
           {!busDay.show&&(
             <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
-              {busDay.dep!=="—"&&<div style={{background:"#12121a",border:"1px solid #BFDBFE",borderRadius:6,padding:"5px 10px",textAlign:"center"}}>
-                <div style={{fontSize:8,color:"#a0a0b8",fontWeight:700,letterSpacing:"0.06em"}}>DEP</div>
+              {busDay.dep!=="—"&&<div style={{background:"var(--card)",border:"1px solid #BFDBFE",borderRadius:6,padding:"5px 10px",textAlign:"center"}}>
+                <div style={{fontSize:8,color:"var(--text-dim)",fontWeight:700,letterSpacing:"0.06em"}}>DEP</div>
                 <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#1D4ED8"}}>{busDay.dep}</div>
               </div>}
-              {busDay.arr!=="—"&&<div style={{background:"#12121a",border:"1px solid #BFDBFE",borderRadius:6,padding:"5px 10px",textAlign:"center"}}>
-                <div style={{fontSize:8,color:"#a0a0b8",fontWeight:700,letterSpacing:"0.06em"}}>ARR</div>
+              {busDay.arr!=="—"&&<div style={{background:"var(--card)",border:"1px solid #BFDBFE",borderRadius:6,padding:"5px 10px",textAlign:"center"}}>
+                <div style={{fontSize:8,color:"var(--text-dim)",fontWeight:700,letterSpacing:"0.06em"}}>ARR</div>
                 <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"#1D4ED8"}}>{busDay.arr}</div>
               </div>}
               {busDay.km>0&&<div style={{textAlign:"center"}}>
-                <div style={{fontSize:8,color:"#a0a0b8",fontWeight:700,letterSpacing:"0.06em"}}>KM</div>
+                <div style={{fontSize:8,color:"var(--text-dim)",fontWeight:700,letterSpacing:"0.06em"}}>KM</div>
                 <div style={{fontFamily:MN,fontSize:12,fontWeight:700,color:"#1E3A8A"}}>{busDay.km}</div>
               </div>}
               {busDay.drive!=="—"&&<div style={{textAlign:"center"}}>
-                <div style={{fontSize:8,color:"#a0a0b8",fontWeight:700,letterSpacing:"0.06em"}}>DRIVE</div>
+                <div style={{fontSize:8,color:"var(--text-dim)",fontWeight:700,letterSpacing:"0.06em"}}>DRIVE</div>
                 <div style={{fontFamily:MN,fontSize:12,fontWeight:700,color:busDay.flag==="⚠"?"#B91C1C":"#1E3A8A"}}>{busDay.drive}{busDay.flag&&<span style={{marginLeft:4}}>{busDay.flag}</span>}</div>
               </div>}
             </div>
           )}
           {busDay.note&&<div style={{fontSize:9,color:"#b0b0c8",fontStyle:"italic",alignSelf:"center",maxWidth:240}}>{busDay.note}</div>}
-          <div style={{marginLeft:"auto",fontSize:8,color:"#707088",fontFamily:MN,alignSelf:"flex-end",flexShrink:0}}>Pieter Smit T26-021201</div>
+          <div style={{marginLeft:"auto",fontSize:8,color:"var(--text-mute)",fontFamily:MN,alignSelf:"flex-end",flexShrink:0}}>Pieter Smit T26-021201</div>
         </div>
       )}
 
       {/* Add bar */}
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-        <span style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.06em"}}>ADD SEGMENT</span>
+        <span style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em"}}>ADD SEGMENT</span>
         {[["air","✈ Flight"],["ground","🚗 Ground"],["bus","🚌 Bus"],["rail","🚆 Rail"],["hotel","🏨 Hotel"]].map(([k,l])=>(
           <button key={k} onClick={()=>handleAdd(k)} style={{fontSize:10,padding:"4px 11px",borderRadius:6,border:`1px solid ${SEG_META[k].border}`,background:SEG_META[k].bg,color:SEG_META[k].color,cursor:"pointer",fontWeight:700}}>{l}</button>
         ))}
-        <span style={{marginLeft:"auto",fontSize:9,color:"#707088",fontFamily:MN}}>{daySegs.length} segment{daySegs.length===1?"":"s"} on {fD(sel)}</span>
+        <span style={{marginLeft:"auto",fontSize:9,color:"var(--text-mute)",fontFamily:MN}}>{daySegs.length} segment{daySegs.length===1?"":"s"} on {fD(sel)}</span>
       </div>
 
       {/* Day list + drawer */}
@@ -3527,10 +3534,10 @@ function TravelDayView(){
         {/* Left: day list */}
         <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",gap:6}}>
           {daySegs.length===0&&(
-            <div style={{padding:"28px 0",textAlign:"center",background:"#12121a",border:"1px dashed #2a2a3a",borderRadius:10}}>
+            <div style={{padding:"28px 0",textAlign:"center",background:"var(--card)",border:"1px dashed var(--border)",borderRadius:10}}>
               <div style={{fontSize:22,marginBottom:6,opacity:0.25}}>◌</div>
-              <div style={{fontSize:11,fontWeight:600,color:"#e4e4ef",marginBottom:3}}>No travel on this day</div>
-              <div style={{fontSize:10,color:"#707088"}}>Use the buttons above to add a flight, ground transfer, or hotel check-in.</div>
+              <div style={{fontSize:11,fontWeight:600,color:"var(--text)",marginBottom:3}}>No travel on this day</div>
+              <div style={{fontSize:10,color:"var(--text-mute)"}}>Use the buttons above to add a flight, ground transfer, or hotel check-in.</div>
             </div>
           )}
           {daySegs.map(s=>{
@@ -3540,20 +3547,20 @@ function TravelDayView(){
             const detail=segType(s)==="air"?`${s.flightNo||""} ${s.carrier||""}`.trim():segType(s)==="ground"?`${s.mode||"drive"}${s.provider?` · ${s.provider}`:""}`:segType(s)==="hotel"?(s.hotelName||""):(s.carrier||s.mode||"");
             const paxList=pax(s);
             return(
-              <div key={s.id} onClick={()=>setActiveId(s.id)} className="rh" style={{display:"grid",gridTemplateColumns:"20px auto 1fr auto",gap:10,padding:"9px 12px",background:"#12121a",border:`1px solid ${isActive?m.border:"#2a2a3a"}`,borderLeft:`3px solid ${m.color}`,borderRadius:9,cursor:"pointer",boxShadow:isActive?"0 0 0 2px #EDE9FE":undefined}}>
+              <div key={s.id} onClick={()=>setActiveId(s.id)} className="rh" style={{display:"grid",gridTemplateColumns:"20px auto 1fr auto",gap:10,padding:"9px 12px",background:"var(--card)",border:`1px solid ${isActive?m.border:"var(--border)"}`,borderLeft:`3px solid ${m.color}`,borderRadius:9,cursor:"pointer",boxShadow:isActive?"0 0 0 2px #EDE9FE":undefined}}>
                 <div style={{fontSize:14,lineHeight:1,paddingTop:2}}>{m.icon}</div>
                 <div style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:2,flexShrink:0,minWidth:90}}>
                   {paxList.length>0&&<div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
                     {paxList.slice(0,3).map((n,i)=>{const mch=paxMatch(n);return(
-                      <span key={i} style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:mch?"#D1FAE5":"#1e1e2e",color:mch?"#047857":"#b0b0c8",fontWeight:700,letterSpacing:"0.02em"}}>{String(n).split(" ")[0].toUpperCase()}</span>
+                      <span key={i} style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:mch?"#D1FAE5":"var(--card-2)",color:mch?"#047857":"#b0b0c8",fontWeight:700,letterSpacing:"0.02em"}}>{String(n).split(" ")[0].toUpperCase()}</span>
                     );})}
-                    {paxList.length>3&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:"#1e1e2e",color:"#a0a0b8",fontWeight:700}}>+{paxList.length-3}</span>}
+                    {paxList.length>3&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:3,background:"var(--card-2)",color:"var(--text-dim)",fontWeight:700}}>+{paxList.length-3}</span>}
                   </div>}
                   <div style={{fontFamily:MN,fontSize:10,fontWeight:700,color:m.color}}>{timeLabel}</div>
                 </div>
                 <div style={{minWidth:0}}>
-                  <div style={{fontSize:11,fontWeight:700,color:"#e4e4ef",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{routeLabel}</div>
-                  {detail&&<div style={{fontSize:9,color:"#a0a0b8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{detail}</div>}
+                  <div style={{fontSize:11,fontWeight:700,color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{routeLabel}</div>
+                  {detail&&<div style={{fontSize:9,color:"var(--text-dim)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{detail}</div>}
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
                   {s._role==="arr"&&<span style={{fontSize:7,padding:"2px 5px",borderRadius:3,background:"#D1FAE5",color:"#047857",fontWeight:800,letterSpacing:"0.06em"}}>ARR</span>}
@@ -3597,20 +3604,20 @@ function SegmentDrawer({seg,crew,sorted,onChange,onClose}){
   },[t,seg.to,seg.depDate,seg.pax,hasBag,flights]);
 
   const setField=(k,v)=>onChange({[k]:v});
-  const inp={background:"#12121a",border:"1px solid #2a2a3a",borderRadius:5,fontSize:11,padding:"5px 8px",outline:"none",fontFamily:"'Outfit',system-ui",width:"100%",boxSizing:"border-box"};
-  const lab={fontSize:8,fontWeight:700,color:"#a0a0b8",letterSpacing:"0.06em",marginBottom:3,textTransform:"uppercase"};
+  const inp={background:"var(--card)",border:"1px solid var(--border)",borderRadius:5,fontSize:11,padding:"5px 8px",outline:"none",fontFamily:"'Outfit',system-ui",width:"100%",boxSizing:"border-box"};
+  const lab={fontSize:8,fontWeight:700,color:"var(--text-dim)",letterSpacing:"0.06em",marginBottom:3,textTransform:"uppercase"};
   const sub=(label,children)=>(<div style={{display:"flex",flexDirection:"column",gap:0,minWidth:0}}><div style={lab}>{label}</div>{children}</div>);
 
   return(
-    <div style={{width:380,maxWidth:"100%",flexShrink:0,background:"#12121a",border:`1px solid ${m.border}`,borderRadius:10,padding:12,display:"flex",flexDirection:"column",gap:10,alignSelf:"flex-start",position:"sticky",top:0}}>
+    <div style={{width:380,maxWidth:"100%",flexShrink:0,background:"var(--card)",border:`1px solid ${m.border}`,borderRadius:10,padding:12,display:"flex",flexDirection:"column",gap:10,alignSelf:"flex-start",position:"sticky",top:0}}>
       <div style={{display:"flex",alignItems:"center",gap:6}}>
         <span style={{fontSize:16}}>{m.icon}</span>
         <div style={{fontSize:13,fontWeight:800,color:m.color,letterSpacing:"-0.01em"}}>{m.label}</div>
         <div style={{marginLeft:"auto",display:"flex",gap:4}}>
           {[["confirmed","Confirmed","#047857","#D1FAE5"],["pending","Pending","#92400E","#FEF3C7"]].map(([v,l,c,bg])=>(
-            <button key={v} onClick={()=>setField("status",v)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",cursor:"pointer",fontWeight:700,background:seg.status===v?bg:"#17171f",color:seg.status===v?c:"#a0a0b8"}}>{l}</button>
+            <button key={v} onClick={()=>setField("status",v)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",cursor:"pointer",fontWeight:700,background:seg.status===v?bg:"#17171f",color:seg.status===v?c:"var(--text-dim)"}}>{l}</button>
           ))}
-          <button onClick={onClose} title="Close" style={{background:"none",border:"none",cursor:"pointer",color:"#a0a0b8",fontSize:16,lineHeight:1}}>×</button>
+          <button onClick={onClose} title="Close" style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-dim)",fontSize:16,lineHeight:1}}>×</button>
         </div>
       </div>
 
@@ -3664,9 +3671,9 @@ function SegmentDrawer({seg,crew,sorted,onChange,onClose}){
         <div style={{background:"#FEF3C7",border:"1px solid #FDE68A",borderRadius:7,padding:"8px 10px",fontSize:10}}>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4,flexWrap:"wrap"}}>
             <span style={{fontSize:9,fontWeight:800,color:"#92400E",letterSpacing:"0.06em"}}>AIRPORT PICKUP</span>
-            <span style={{marginLeft:"auto",display:"flex",gap:2,background:"#12121a",padding:2,borderRadius:5}}>
+            <span style={{marginLeft:"auto",display:"flex",gap:2,background:"var(--card)",padding:2,borderRadius:5}}>
               {[[true,"With bag"],[false,"Carry-on"]].map(([v,l])=>(
-                <button key={String(v)} onClick={()=>setHasBag(v)} style={{fontSize:8,padding:"2px 7px",borderRadius:3,border:"none",background:hasBag===v?"#92400E":"transparent",color:hasBag===v?"#12121a":"#92400E",cursor:"pointer",fontWeight:700}}>{l}</button>
+                <button key={String(v)} onClick={()=>setHasBag(v)} style={{fontSize:8,padding:"2px 7px",borderRadius:3,border:"none",background:hasBag===v?"#92400E":"transparent",color:hasBag===v?"var(--card)":"#92400E",cursor:"pointer",fontWeight:700}}>{l}</button>
               ))}
             </span>
           </div>
@@ -3677,7 +3684,7 @@ function SegmentDrawer({seg,crew,sorted,onChange,onClose}){
               </div>
               <div style={{display:"flex",gap:5,marginTop:6,flexWrap:"wrap"}}>
                 <button onClick={()=>{setField("arr",suggestion.arriveBy?.replace("*",""));if(!seg.arrDate)setField("arrDate",seg.depDate);}} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"none",background:"#92400E",color:"#fff",cursor:"pointer",fontWeight:700}}>Set arrival = {suggestion.arriveBy}</button>
-                {(seg.pax||[]).length===0&&suggestion.match.pax?.length>0&&<button onClick={()=>setField("pax",suggestion.match.pax)} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid #FDE68A",background:"#12121a",color:"#92400E",cursor:"pointer",fontWeight:700}}>Copy pax from flight ({suggestion.match.pax.length})</button>}
+                {(seg.pax||[]).length===0&&suggestion.match.pax?.length>0&&<button onClick={()=>setField("pax",suggestion.match.pax)} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"1px solid #FDE68A",background:"var(--card)",color:"#92400E",cursor:"pointer",fontWeight:700}}>Copy pax from flight ({suggestion.match.pax.length})</button>}
               </div>
             </>
           ):(
@@ -3715,11 +3722,11 @@ function TransTab(){
   const daySegCount=Object.values(flights).filter(s=>s.status!=="dismissed"&&(s.depDate===sel||s.arrDate===sel)).length;
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
-      <div style={{padding:"7px 20px",borderBottom:"1px solid #2a2a3a",background:"#12121a",display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"nowrap",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
+      <div style={{padding:"7px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"nowrap",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
         {[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["calendar","Tour Calendar"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`],...(canSeeFestivalDispatch?[["festival","Festival Dispatch"]]:[])].map(([v,l])=>(
-          <button key={v} onClick={()=>setView(v)} style={{padding:"4px 12px",borderRadius:6,border:"1px solid #2a2a3a",background:view===v?"#5B21B6":"#17171f",color:view===v?"#12121a":"#a0a0b8",fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
+          <button key={v} onClick={()=>setView(v)} style={{padding:"4px 12px",borderRadius:6,border:"1px solid var(--border)",background:view===v?"#5B21B6":"#17171f",color:view===v?"var(--card)":"var(--text-dim)",fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
         ))}
-        {view==="calendar"&&<div style={{marginLeft:"auto",fontFamily:MN,fontSize:8,color:"#707088"}}>Apr 16 – May 31 · Internet Explorer EU 2026</div>}
+        {view==="calendar"&&<div style={{marginLeft:"auto",fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>Apr 16 – May 31 · Internet Explorer EU 2026</div>}
       </div>
       <div style={{flex:1,overflow:"auto",padding:"12px 20px 30px"}}>
         {view==="travel"&&<TravelDayView/>}
@@ -3736,7 +3743,7 @@ function TransTab(){
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.subject}</div>
                     <div style={{fontSize:9,color:"#0369A1"}}>{f.from} · {f.date}</div>
-                    {f.showId&&<div style={{fontSize:8,color:"#a0a0b8",fontFamily:MN}}>{f.showId}</div>}
+                    {f.showId&&<div style={{fontSize:8,color:"var(--text-dim)",fontFamily:MN}}>{f.showId}</div>}
                   </div>
                   <a href={gmailUrl(f.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",flexShrink:0}}>email ↗</a>
                 </div>
@@ -3745,7 +3752,7 @@ function TransTab(){
           </div>
         )}<FlightsSection/></>}
         {view==="festival"&&(
-          <div style={{padding:"40px 0",textAlign:"center",color:"#a0a0b8"}}><div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Festival Dispatch</div><div style={{fontSize:11,color:"#707088"}}>Olivia manages driver pool for Beyond Wonderland and Wakaan.<br/>Payout log is in Finance → Payment Batch.</div></div>
+          <div style={{padding:"40px 0",textAlign:"center",color:"var(--text-dim)"}}><div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Festival Dispatch</div><div style={{fontSize:11,color:"var(--text-mute)"}}>Olivia manages driver pool for Beyond Wonderland and Wakaan.<br/>Payout log is in Finance → Payment Batch.</div></div>
         )}
       </div>
     </div>
@@ -3829,7 +3836,7 @@ function FinLedger(){
 
   const th=(label,col)=>{
     const active=sortCol===col;
-    return <th onClick={()=>{if(active)setSortDir(d=>-d);else{setSortCol(col);setSortDir(1);}}} style={{padding:"6px 8px",textAlign:"left",fontSize:8,fontWeight:700,color:active?"#5B21B6":"#a0a0b8",letterSpacing:"0.05em",borderBottom:"1px solid #2a2a3a",cursor:"pointer",whiteSpace:"nowrap",userSelect:"none",background:"#17171f"}}>
+    return <th onClick={()=>{if(active)setSortDir(d=>-d);else{setSortCol(col);setSortDir(1);}}} style={{padding:"6px 8px",textAlign:"left",fontSize:8,fontWeight:700,color:active?"#5B21B6":"var(--text-dim)",letterSpacing:"0.05em",borderBottom:"1px solid var(--border)",cursor:"pointer",whiteSpace:"nowrap",userSelect:"none",background:"#17171f"}}>
       {label}{active?sortDir===1?" ↑":" ↓":""}
     </th>;
   };
@@ -3840,49 +3847,49 @@ function FinLedger(){
     <div style={{flex:1,overflow:"auto",padding:"14px 20px 30px",display:"flex",flexDirection:"column",gap:12}}>
       {/* Filters + totals bar */}
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-        <span style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.06em"}}>CATEGORY</span>
-        {["all",...cats].map(c=><button key={c} onClick={()=>setFilterCat(c)} style={{fontSize:9,padding:"3px 9px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,background:filterCat===c?"#5B21B6":"#1e1e2e",color:filterCat===c?"#12121a":"#b0b0c8"}}>{c==="all"?"All":c}</button>)}
-        <span style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.06em",marginLeft:8}}>CURRENCY</span>
-        {["all",...curs].map(c=><button key={c} onClick={()=>setFilterCur(c)} style={{fontSize:9,padding:"3px 9px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,background:filterCur===c?"#5B21B6":"#1e1e2e",color:filterCur===c?"#12121a":"#b0b0c8"}}>{c==="all"?"All":c}</button>)}
+        <span style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em"}}>CATEGORY</span>
+        {["all",...cats].map(c=><button key={c} onClick={()=>setFilterCat(c)} style={{fontSize:9,padding:"3px 9px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,background:filterCat===c?"#5B21B6":"var(--card-2)",color:filterCat===c?"var(--card)":"#b0b0c8"}}>{c==="all"?"All":c}</button>)}
+        <span style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em",marginLeft:8}}>CURRENCY</span>
+        {["all",...curs].map(c=><button key={c} onClick={()=>setFilterCur(c)} style={{fontSize:9,padding:"3px 9px",borderRadius:10,border:"none",cursor:"pointer",fontWeight:700,background:filterCur===c?"#5B21B6":"var(--card-2)",color:filterCur===c?"var(--card)":"#b0b0c8"}}>{c==="all"?"All":c}</button>)}
         <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-          {Object.entries(totals).map(([cur,amt])=><span key={cur} style={{fontSize:11,fontWeight:800,fontFamily:MN,color:"#e4e4ef"}}>{cur} {amt.toFixed(2)}</span>)}
+          {Object.entries(totals).map(([cur,amt])=><span key={cur} style={{fontSize:11,fontWeight:800,fontFamily:MN,color:"var(--text)"}}>{cur} {amt.toFixed(2)}</span>)}
           <button onClick={()=>setUploadOpen(true)} style={{fontSize:9,padding:"3px 10px",borderRadius:6,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>↑ Upload</button>
         </div>
       </div>
       {sorted.length===0?(
-        <div style={{textAlign:"center",padding:"40px 0",color:"#707088",fontSize:11}}>No expenses logged.</div>
+        <div style={{textAlign:"center",padding:"40px 0",color:"var(--text-mute)",fontSize:11}}>No expenses logged.</div>
       ):(
-        <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,overflow:"hidden"}}>
+        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>{[["date","Date"],["show","Show"],["cat","Category"],["payee","Payee"],["desc","Description"],["amount","Amount"],["currency","Curr"],["status","Status"],["ref","Ref"]].map(([col,label])=>th(label,col))}</tr></thead>
             <tbody>
               {sorted.map((r,i)=>{
-                const cc=CAT_COLOR[r.cat]||{bg:"#1e1e2e",c:"#b0b0c8"};
+                const cc=CAT_COLOR[r.cat]||{bg:"var(--card-2)",c:"#b0b0c8"};
                 return(
-                  <tr key={r.id} style={{borderBottom:"1px solid #17171f",background:i%2===0?"#12121a":"#17171f"}}>
-                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:9,color:"#a0a0b8",whiteSpace:"nowrap"}}>{r.date}</td>
-                    <td style={{padding:"6px 8px",fontSize:10,color:"#e4e4ef",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.show}</td>
+                  <tr key={r.id} style={{borderBottom:"1px solid #17171f",background:i%2===0?"var(--card)":"#17171f"}}>
+                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:9,color:"var(--text-dim)",whiteSpace:"nowrap"}}>{r.date}</td>
+                    <td style={{padding:"6px 8px",fontSize:10,color:"var(--text)",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.show}</td>
                     <td style={{padding:"6px 8px"}}><span style={{fontSize:8,padding:"2px 6px",borderRadius:4,fontWeight:700,background:cc.bg,color:cc.c}}>{r.cat}</span></td>
-                    <td style={{padding:"6px 8px",fontSize:10,fontWeight:600,color:"#e4e4ef"}}>{r.payee}</td>
-                    <td style={{padding:"6px 8px",fontSize:9,color:"#a0a0b8",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.desc}</td>
-                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:11,fontWeight:700,color:r.amount!=null?"#e4e4ef":"#707088",textAlign:"right"}}>{r.amount!=null?r.amount.toFixed(2):"—"}</td>
-                    <td style={{padding:"6px 8px",fontSize:9,color:"#a0a0b8"}}>{r.currency}</td>
+                    <td style={{padding:"6px 8px",fontSize:10,fontWeight:600,color:"var(--text)"}}>{r.payee}</td>
+                    <td style={{padding:"6px 8px",fontSize:9,color:"var(--text-dim)",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.desc}</td>
+                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:11,fontWeight:700,color:r.amount!=null?"var(--text)":"var(--text-mute)",textAlign:"right"}}>{r.amount!=null?r.amount.toFixed(2):"—"}</td>
+                    <td style={{padding:"6px 8px",fontSize:9,color:"var(--text-dim)"}}>{r.currency}</td>
                     <td style={{padding:"6px 8px"}}><span style={{fontSize:8,padding:"2px 5px",borderRadius:3,fontWeight:700,background:r.status==="confirmed"?"#D1FAE5":"#FEF3C7",color:r.status==="confirmed"?"#047857":"#92400E"}}>{r.status}</span></td>
-                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:8,color:"#707088"}}>{r.ref||"—"}</td>
+                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>{r.ref||"—"}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          <div style={{padding:"8px 12px",background:"#17171f",borderTop:"1px solid #2a2a3a",display:"flex",gap:16,flexWrap:"wrap"}}>
+          <div style={{padding:"8px 12px",background:"#17171f",borderTop:"1px solid var(--border)",display:"flex",gap:16,flexWrap:"wrap"}}>
             {Object.entries(totals).map(([cur,amt])=>(
               <div key={cur} style={{fontSize:9}}>
-                <span style={{color:"#a0a0b8",fontWeight:700}}>{cur} total: </span>
-                <span style={{fontFamily:MN,fontWeight:800,color:"#e4e4ef"}}>{amt.toFixed(2)}</span>
-                <span style={{color:"#707088",marginLeft:5}}>({filtered.filter(r=>r.currency===cur).length} entries)</span>
+                <span style={{color:"var(--text-dim)",fontWeight:700}}>{cur} total: </span>
+                <span style={{fontFamily:MN,fontWeight:800,color:"var(--text)"}}>{amt.toFixed(2)}</span>
+                <span style={{color:"var(--text-mute)",marginLeft:5}}>({filtered.filter(r=>r.currency===cur).length} entries)</span>
               </div>
             ))}
-            <span style={{marginLeft:"auto",fontSize:9,color:"#707088"}}>{sorted.length} rows</span>
+            <span style={{marginLeft:"auto",fontSize:9,color:"var(--text-mute)"}}>{sorted.length} rows</span>
           </div>
         </div>
       )}
@@ -3912,32 +3919,32 @@ function FinTab(){
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
       {/* Sub-tab bar */}
-      <div style={{display:"flex",gap:0,borderBottom:"1px solid #2a2a3a",background:"#12121a",flexShrink:0,padding:"0 16px"}}>
+      <div style={{display:"flex",gap:0,borderBottom:"1px solid var(--border)",background:"var(--card)",flexShrink:0,padding:"0 16px"}}>
         {[["settlement","Settlement"],["ledger","Ledger"]].map(([v,l])=>(
-          <button key={v} onClick={()=>setFinView(v)} style={{padding:"8px 16px",fontSize:11,fontWeight:finView===v?700:500,color:finView===v?"#e4e4ef":"#a0a0b8",border:"none",borderBottom:finView===v?"2px solid #e4e4ef":"2px solid transparent",background:"none",cursor:"pointer",letterSpacing:"0.01em"}}>{l}</button>
+          <button key={v} onClick={()=>setFinView(v)} style={{padding:"8px 16px",fontSize:11,fontWeight:finView===v?700:500,color:finView===v?"var(--text)":"var(--text-dim)",border:"none",borderBottom:finView===v?"2px solid var(--text)":"2px solid transparent",background:"none",cursor:"pointer",letterSpacing:"0.01em"}}>{l}</button>
         ))}
       </div>
       {finView==="ledger"&&<FinLedger/>}
       {finView==="settlement"&&<div style={{display:"flex",flex:1,overflow:"hidden"}}>
-      <div style={{width:195,borderRight:"1px solid #2a2a3a",background:"#12121a",overflow:"auto",flexShrink:0}}>
-        <div style={{padding:"7px 12px",fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em",borderBottom:"1px solid #2a2a3a"}}>SHOWS</div>
+      <div style={{width:195,borderRight:"1px solid var(--border)",background:"var(--card)",overflow:"auto",flexShrink:0}}>
+        <div style={{padding:"7px 12px",fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em",borderBottom:"1px solid var(--border)"}}>SHOWS</div>
         {allS.map(s=>{const f=finance[s.date]||{};const st2=f.stages||{};const ok=["wire_ref_confirmed","signed_sheet","payment_initiated"].every(id=>st2[id]);const ip=st2["payment_initiated"];const past=s.date<today;const isSel=selS===s.date;
           return(<div key={s.date} onClick={()=>setSelS(s.date)} className="br rh" style={{padding:"7px 12px",cursor:"pointer",borderBottom:"1px solid #17171f",background:isSel?"#17171f":"transparent"}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:1}}>
-              <span style={{fontFamily:MN,fontSize:9,color:"#a0a0b8"}}>{fD(s.date)}</span>
+              <span style={{fontFamily:MN,fontSize:9,color:"var(--text-dim)"}}>{fD(s.date)}</span>
               <span style={{fontSize:7,padding:"1px 4px",borderRadius:3,background:ok?"#D1FAE5":ip?"#DBEAFE":"#FEF3C7",color:ok?"#047857":ip?"#a78bfa":"#92400E",fontWeight:700}}>{ok?"Done":ip?"Active":"Pending"}</span>
             </div>
-            <div style={{fontSize:10,fontWeight:600,color:past?"#707088":"#e4e4ef"}}>{s.city}</div>
-            <div style={{fontSize:9,color:"#707088"}}>{s.venue}</div>
+            <div style={{fontSize:10,fontWeight:600,color:past?"var(--text-mute)":"var(--text)"}}>{s.city}</div>
+            <div style={{fontSize:9,color:"var(--text-mute)"}}>{s.venue}</div>
           </div>);
         })}
       </div>
       <div style={{flex:1,overflow:"auto",padding:"14px 20px 30px"}}>
-        {!selS?(<div style={{textAlign:"center",padding:"40px 0",color:"#707088"}}><div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Finance</div><div style={{fontSize:11}}>Select a show.</div></div>):(
+        {!selS?(<div style={{textAlign:"center",padding:"40px 0",color:"var(--text-mute)"}}><div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Finance</div><div style={{fontSize:11}}>Select a show.</div></div>):(
           <div>
             <div style={{marginBottom:10}}>
               <div style={{fontSize:14,fontWeight:800}}>{show?.city} — {show?.venue}</div>
-              <div style={{fontSize:10,color:"#a0a0b8",fontFamily:MN,marginTop:1}}>{fFull(selS)}</div>
+              <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:MN,marginTop:1}}>{fFull(selS)}</div>
               {done&&<div style={{marginTop:6,display:"inline-flex",alignItems:"center",gap:5,padding:"4px 10px",background:"#D1FAE5",borderRadius:8,fontSize:10,fontWeight:800,color:"#047857"}}>SETTLEMENT DONE ✓</div>}
             </div>
             {(()=>{const ps=(labelIntel?.settlements||[]).filter(s=>s.showId===showIdFor(shows?.[selS]||{}));return ps.length>0?(
@@ -3947,31 +3954,31 @@ function FinTab(){
                   <div key={s.id} style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0",borderBottom:"1px solid #BFDBFE"}}>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.subject}</div>
-                      <div style={{fontSize:9,color:"#a0a0b8"}}>{s.from} · {s.date}</div>
+                      <div style={{fontSize:9,color:"var(--text-dim)"}}>{s.from} · {s.date}</div>
                     </div>
                     <a href={gmailUrl(s.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#a78bfa",textDecoration:"none",flexShrink:0}}>open ↗</a>
                   </div>
                 ))}
               </div>
             ):null;})()}
-            <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"14px",marginBottom:10}}>
-              <div style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em",marginBottom:10}}>SETTLEMENT PIPELINE</div>
+            <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"14px",marginBottom:10}}>
+              <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em",marginBottom:10}}>SETTLEMENT PIPELINE</div>
               <div style={{marginBottom:8}}>
-                <div style={{fontSize:8,fontWeight:700,color:"#a0a0b8",marginBottom:4,letterSpacing:"0.06em"}}>PRE-EVENT</div>
+                <div style={{fontSize:8,fontWeight:700,color:"var(--text-dim)",marginBottom:4,letterSpacing:"0.06em"}}>PRE-EVENT</div>
                 <div style={{display:"flex",flexDirection:"column",gap:3}}>
-                  {PRE_STAGES.map(s=><div key={s.id} onClick={()=>toggleStage(s.id)} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",borderRadius:7,border:"1px solid #2a2a3a",background:stages[s.id]?"#F0FDF4":"#12121a",cursor:"pointer"}}>
-                    <div style={{width:16,height:16,borderRadius:4,border:`2px solid ${stages[s.id]?"#047857":"#2a2a3a"}`,background:stages[s.id]?"#047857":"#12121a",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{stages[s.id]&&<span style={{color:"#fff",fontSize:11,lineHeight:1}}>✓</span>}</div>
-                    <span style={{fontSize:11,color:"#e4e4ef",fontWeight:stages[s.id]?600:400}}>{s.l}</span>
+                  {PRE_STAGES.map(s=><div key={s.id} onClick={()=>toggleStage(s.id)} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",borderRadius:7,border:"1px solid var(--border)",background:stages[s.id]?"#F0FDF4":"var(--card)",cursor:"pointer"}}>
+                    <div style={{width:16,height:16,borderRadius:4,border:`2px solid ${stages[s.id]?"#047857":"var(--border)"}`,background:stages[s.id]?"#047857":"var(--card)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{stages[s.id]&&<span style={{color:"#fff",fontSize:11,lineHeight:1}}>✓</span>}</div>
+                    <span style={{fontSize:11,color:"var(--text)",fontWeight:stages[s.id]?600:400}}>{s.l}</span>
                   </div>)}
                 </div>
               </div>
               <div>
-                <div style={{fontSize:8,fontWeight:700,color:"#a0a0b8",marginBottom:4,letterSpacing:"0.06em"}}>POST-EVENT</div>
+                <div style={{fontSize:8,fontWeight:700,color:"var(--text-dim)",marginBottom:4,letterSpacing:"0.06em"}}>POST-EVENT</div>
                 <div style={{display:"flex",flexDirection:"column",gap:3}}>
                   {POST_STAGES.map(s=>{const isDone=stages[s.id];return(
-                    <div key={s.id} onClick={()=>toggleStage(s.id)} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",borderRadius:7,border:`1px solid ${s.req?"#d97706":"#2a2a3a"}`,background:isDone?"#F0FDF4":"#12121a",cursor:"pointer"}}>
-                      <div style={{width:16,height:16,borderRadius:4,border:`2px solid ${isDone?"#047857":s.req?"#d97706":"#2a2a3a"}`,background:isDone?"#047857":"#12121a",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{isDone&&<span style={{color:"#fff",fontSize:11,lineHeight:1}}>✓</span>}</div>
-                      <span style={{fontSize:11,color:"#e4e4ef",fontWeight:isDone?600:400,flex:1}}>{s.l}</span>
+                    <div key={s.id} onClick={()=>toggleStage(s.id)} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",borderRadius:7,border:`1px solid ${s.req?"#d97706":"var(--border)"}`,background:isDone?"#F0FDF4":"var(--card)",cursor:"pointer"}}>
+                      <div style={{width:16,height:16,borderRadius:4,border:`2px solid ${isDone?"#047857":s.req?"#d97706":"var(--border)"}`,background:isDone?"#047857":"var(--card)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{isDone&&<span style={{color:"#fff",fontSize:11,lineHeight:1}}>✓</span>}</div>
+                      <span style={{fontSize:11,color:"var(--text)",fontWeight:isDone?600:400,flex:1}}>{s.l}</span>
                       {s.req&&!isDone&&<span style={{fontSize:8,color:"#d97706",fontWeight:700}}>required</span>}
                     </div>
                   );})}
@@ -3979,68 +3986,68 @@ function FinTab(){
               </div>
               {!done&&stages["payment_initiated"]&&<div style={{marginTop:8,padding:"7px 10px",background:"#FEF3C7",borderRadius:7,fontSize:10,color:"#92400E",fontWeight:600}}>Wire ref # and signed settlement sheet both required to mark as done.</div>}
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginTop:10}}>
-                {[{l:"Wire Ref #",k:"wireRef",ph:"REF-20260520"},{l:"Wire Date",k:"wireDate",ph:"2026-05-22"},{l:"Settlement Amount",k:"settlementAmount",ph:"0.00"}].map(f=><div key={f.k}><div style={{fontSize:9,color:"#a0a0b8",marginBottom:2}}>{f.l}</div><input defaultValue={fin[f.k]||""} onBlur={e=>{const v=e.target.value;const prev=fin[f.k]||"";if(v===prev)return;uFin(selS,{[f.k]:v});pushUndo(`${f.l} updated.`,()=>uFin(selS,{[f.k]:prev}));}} placeholder={f.ph} style={{width:"100%",background:"#17171f",border:"1px solid #2a2a3a",borderRadius:5,color:"#e4e4ef",fontSize:10,fontFamily:MN,padding:"4px 6px",outline:"none"}}/></div>)}
+                {[{l:"Wire Ref #",k:"wireRef",ph:"REF-20260520"},{l:"Wire Date",k:"wireDate",ph:"2026-05-22"},{l:"Settlement Amount",k:"settlementAmount",ph:"0.00"}].map(f=><div key={f.k}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>{f.l}</div><input defaultValue={fin[f.k]||""} onBlur={e=>{const v=e.target.value;const prev=fin[f.k]||"";if(v===prev)return;uFin(selS,{[f.k]:v});pushUndo(`${f.l} updated.`,()=>uFin(selS,{[f.k]:prev}));}} placeholder={f.ph} style={{width:"100%",background:"#17171f",border:"1px solid var(--border)",borderRadius:5,color:"var(--text)",fontSize:10,fontFamily:MN,padding:"4px 6px",outline:"none"}}/></div>)}
               </div>
-              <div style={{marginTop:7}}><div style={{fontSize:9,color:"#a0a0b8",marginBottom:2}}>Settlement Notes</div><textarea defaultValue={fin.notes||""} onBlur={e=>{const v=e.target.value;const prev=fin.notes||"";if(v===prev)return;uFin(selS,{notes:v});pushUndo("Settlement notes updated.",()=>uFin(selS,{notes:prev}));}} placeholder="Deductions, disputes, bonus splits..." rows={2} style={{width:"100%",background:"#17171f",border:"1px solid #2a2a3a",borderRadius:5,color:"#e4e4ef",fontSize:10,padding:"4px 6px",outline:"none",resize:"vertical",fontFamily:"inherit"}}/></div>
+              <div style={{marginTop:7}}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>Settlement Notes</div><textarea defaultValue={fin.notes||""} onBlur={e=>{const v=e.target.value;const prev=fin.notes||"";if(v===prev)return;uFin(selS,{notes:v});pushUndo("Settlement notes updated.",()=>uFin(selS,{notes:prev}));}} placeholder="Deductions, disputes, bonus splits..." rows={2} style={{width:"100%",background:"#17171f",border:"1px solid var(--border)",borderRadius:5,color:"var(--text)",fontSize:10,padding:"4px 6px",outline:"none",resize:"vertical",fontFamily:"inherit"}}/></div>
             </div>
-            {(fin.flightExpenses||[]).length>0&&<div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"14px",marginBottom:10}}>
-              <div style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em",marginBottom:8}}>FLIGHT EXPENSES</div>
+            {(fin.flightExpenses||[]).length>0&&<div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"14px",marginBottom:10}}>
+              <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em",marginBottom:8}}>FLIGHT EXPENSES</div>
               <table style={{width:"100%",borderCollapse:"collapse"}}>
-                <thead><tr style={{background:"#17171f"}}>{["Flight","Route","Carrier","Pax","Amount","Curr"].map(h=><th key={h} style={{padding:"5px 7px",textAlign:"left",fontSize:8,fontWeight:700,color:"#a0a0b8",letterSpacing:"0.05em",borderBottom:"1px solid #2a2a3a"}}>{h}</th>)}</tr></thead>
+                <thead><tr style={{background:"#17171f"}}>{["Flight","Route","Carrier","Pax","Amount","Curr"].map(h=><th key={h} style={{padding:"5px 7px",textAlign:"left",fontSize:8,fontWeight:700,color:"var(--text-dim)",letterSpacing:"0.05em",borderBottom:"1px solid var(--border)"}}>{h}</th>)}</tr></thead>
                 <tbody>{(fin.flightExpenses||[]).map((fe,i)=><tr key={fe.flightId||i} style={{borderBottom:"1px solid #17171f"}}>
                   <td style={{padding:"5px 7px",fontFamily:MN,fontSize:9,fontWeight:700}}>{fe.label?.split(" ")[0]||"—"}</td>
                   <td style={{padding:"5px 7px",fontSize:10}}>{fe.label?.split(" ").slice(1).join(" ")||"—"}</td>
                   <td style={{padding:"5px 7px",fontSize:9,color:"#b0b0c8"}}>{fe.carrier||"—"}</td>
-                  <td style={{padding:"5px 7px",fontSize:9,color:"#a0a0b8"}}>{(fe.pax||[]).join(", ")||"—"}</td>
-                  <td style={{padding:"5px 7px",fontFamily:MN,fontSize:10,fontWeight:700,color:fe.amount?"#e4e4ef":"#707088"}}>{fe.amount!=null?fe.amount:"—"}</td>
-                  <td style={{padding:"5px 7px",fontSize:9,color:"#a0a0b8"}}>{fe.currency||"—"}</td>
+                  <td style={{padding:"5px 7px",fontSize:9,color:"var(--text-dim)"}}>{(fe.pax||[]).join(", ")||"—"}</td>
+                  <td style={{padding:"5px 7px",fontFamily:MN,fontSize:10,fontWeight:700,color:fe.amount?"var(--text)":"var(--text-mute)"}}>{fe.amount!=null?fe.amount:"—"}</td>
+                  <td style={{padding:"5px 7px",fontSize:9,color:"var(--text-dim)"}}>{fe.currency||"—"}</td>
                 </tr>)}
                 </tbody>
               </table>
               {[...new Set((fin.flightExpenses||[]).map(fe=>fe.currency).filter(Boolean))].map(cur=>{const t=(fin.flightExpenses||[]).filter(fe=>fe.currency===cur&&fe.amount!=null).reduce((s,fe)=>s+parseFloat(fe.amount||0),0);return t>0?<div key={cur} style={{marginTop:6,padding:"5px 8px",background:"#EFF6FF",borderRadius:5,fontSize:9,color:"#a78bfa"}}><span style={{fontWeight:700}}>Flight total {cur}: </span><span style={{fontFamily:MN,fontWeight:700}}>{t.toFixed(2)}</span></div>:null;})}
             </div>}
-            <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"14px"}}>
+            <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"14px"}}>
               <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                 <div>
-                  <div style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em"}}>PAYMENT BATCH</div>
-                  <div style={{marginTop:2}}>{currencies.map(cur=><span key={cur} style={{fontSize:9,fontFamily:MN,fontWeight:700,color:"#e4e4ef",marginRight:10}}>{cur} {batchTotal(cur)}</span>)}</div>
+                  <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>PAYMENT BATCH</div>
+                  <div style={{marginTop:2}}>{currencies.map(cur=><span key={cur} style={{fontSize:9,fontFamily:MN,fontWeight:700,color:"var(--text)",marginRight:10}}>{cur} {batchTotal(cur)}</span>)}</div>
                 </div>
                 <button onClick={()=>setAddP(v=>!v)} style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:"none",cursor:"pointer",fontWeight:700,background:"#5B21B6",color:"#fff"}}>+ Add Payout</button>
               </div>
               {addP&&<div style={{background:"#17171f",borderRadius:8,padding:"10px",marginBottom:10}}>
                 <div style={{display:"grid",gridTemplateColumns:"1fr 70px 65px 70px 80px",gap:5,marginBottom:5}}>
-                  <input placeholder="Payee name" value={pForm.name} onChange={e=>setPForm(p=>({...p,name:e.target.value}))} style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none"}}/>
-                  <input placeholder="Amount" value={pForm.amount} onChange={e=>setPForm(p=>({...p,amount:e.target.value}))} style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none",fontFamily:MN}}/>
-                  <select value={pForm.currency} onChange={e=>setPForm(p=>({...p,currency:e.target.value}))} style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:4,fontSize:10,padding:"4px 5px",outline:"none"}}>
+                  <input placeholder="Payee name" value={pForm.name} onChange={e=>setPForm(p=>({...p,name:e.target.value}))} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none"}}/>
+                  <input placeholder="Amount" value={pForm.amount} onChange={e=>setPForm(p=>({...p,amount:e.target.value}))} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none",fontFamily:MN}}/>
+                  <select value={pForm.currency} onChange={e=>setPForm(p=>({...p,currency:e.target.value}))} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 5px",outline:"none"}}>
                     {["USD","CAD","GBP","EUR"].map(c=><option key={c}>{c}</option>)}
                   </select>
-                  <select value={pForm.method} onChange={e=>setPForm(p=>({...p,method:e.target.value}))} style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:4,fontSize:10,padding:"4px 5px",outline:"none"}}>
+                  <select value={pForm.method} onChange={e=>setPForm(p=>({...p,method:e.target.value}))} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 5px",outline:"none"}}>
                     {["Wire","ACH","Check"].map(m=><option key={m}>{m}</option>)}
                   </select>
-                  <select value={pForm.dept} onChange={e=>setPForm(p=>({...p,dept:e.target.value}))} style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:4,fontSize:10,padding:"4px 5px",outline:"none"}}>
+                  <select value={pForm.dept} onChange={e=>setPForm(p=>({...p,dept:e.target.value}))} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 5px",outline:"none"}}>
                     {["Drivers","AR Staff","Production","Vendors","Site Ops","Quartermaster","Other"].map(d=><option key={d}>{d}</option>)}
                   </select>
                 </div>
                 <div style={{display:"flex",gap:5}}>
-                  <input placeholder="Role / position" value={pForm.role} onChange={e=>setPForm(p=>({...p,role:e.target.value}))} style={{flex:1,background:"#12121a",border:"1px solid #2a2a3a",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none"}}/>
+                  <input placeholder="Role / position" value={pForm.role} onChange={e=>setPForm(p=>({...p,role:e.target.value}))} style={{flex:1,background:"var(--card)",border:"1px solid var(--border)",borderRadius:4,fontSize:10,padding:"4px 6px",outline:"none"}}/>
                   <button onClick={addPayout} style={{background:"#047857",border:"none",borderRadius:4,color:"#fff",fontSize:10,padding:"4px 12px",cursor:"pointer",fontWeight:700}}>Add</button>
-                  <button onClick={()=>setAddP(false)} style={{background:"#17171f",border:"1px solid #2a2a3a",borderRadius:4,color:"#a0a0b8",fontSize:10,padding:"4px 8px",cursor:"pointer"}}>Cancel</button>
+                  <button onClick={()=>setAddP(false)} style={{background:"#17171f",border:"1px solid var(--border)",borderRadius:4,color:"var(--text-dim)",fontSize:10,padding:"4px 8px",cursor:"pointer"}}>Cancel</button>
                 </div>
               </div>}
               {payouts.length>0?(<table style={{width:"100%",borderCollapse:"collapse"}}>
-                <thead><tr style={{background:"#17171f"}}>{["Name","Role","Dept","Amount","Curr","Method","Status","Date"].map(h=><th key={h} style={{padding:"5px 7px",textAlign:"left",fontSize:8,fontWeight:700,color:"#a0a0b8",letterSpacing:"0.05em",borderBottom:"1px solid #2a2a3a"}}>{h}</th>)}</tr></thead>
+                <thead><tr style={{background:"#17171f"}}>{["Name","Role","Dept","Amount","Curr","Method","Status","Date"].map(h=><th key={h} style={{padding:"5px 7px",textAlign:"left",fontSize:8,fontWeight:700,color:"var(--text-dim)",letterSpacing:"0.05em",borderBottom:"1px solid var(--border)"}}>{h}</th>)}</tr></thead>
                 <tbody>{payouts.map((p,i)=><tr key={p.id||i} style={{borderBottom:"1px solid #17171f"}}>
                   <td style={{padding:"5px 7px",fontSize:10,fontWeight:600}}>{p.name}</td>
                   <td style={{padding:"5px 7px",fontSize:9,color:"#b0b0c8"}}>{p.role}</td>
-                  <td style={{padding:"5px 7px",fontSize:8}}><span style={{background:"#1e1e2e",padding:"1px 5px",borderRadius:3,color:"#b0b0c8",fontWeight:600}}>{p.dept}</span></td>
+                  <td style={{padding:"5px 7px",fontSize:8}}><span style={{background:"var(--card-2)",padding:"1px 5px",borderRadius:3,color:"#b0b0c8",fontWeight:600}}>{p.dept}</span></td>
                   <td style={{padding:"5px 7px",fontFamily:MN,fontSize:10,fontWeight:700}}>{p.amount}</td>
-                  <td style={{padding:"5px 7px",fontSize:9,color:"#a0a0b8"}}>{p.currency}</td>
-                  <td style={{padding:"5px 7px",fontSize:9,color:"#a0a0b8"}}>{p.method}</td>
+                  <td style={{padding:"5px 7px",fontSize:9,color:"var(--text-dim)"}}>{p.currency}</td>
+                  <td style={{padding:"5px 7px",fontSize:9,color:"var(--text-dim)"}}>{p.method}</td>
                   <td style={{padding:"5px 7px"}}><span style={{fontSize:8,padding:"2px 5px",borderRadius:3,background:p.status==="confirmed"?"#D1FAE5":"#FEF3C7",color:p.status==="confirmed"?"#047857":"#92400E",fontWeight:700}}>{p.status}</span></td>
-                  <td style={{padding:"5px 7px",fontFamily:MN,fontSize:9,color:"#707088"}}>{p.date}</td>
+                  <td style={{padding:"5px 7px",fontFamily:MN,fontSize:9,color:"var(--text-mute)"}}>{p.date}</td>
                 </tr>)}</tbody>
-              </table>):<div style={{fontSize:11,color:"#707088",textAlign:"center",padding:"14px 0"}}>No payouts logged.</div>}
-              {payouts.length>0&&currencies.map(cur=><div key={cur} style={{marginTop:8,padding:"6px 10px",background:"#17171f",borderRadius:6,fontSize:9,color:"#b0b0c8"}}><span style={{fontWeight:700}}>Batch total {cur}: </span><span style={{fontFamily:MN,fontWeight:700,color:"#e4e4ef"}}>{batchTotal(cur)}</span><span style={{marginLeft:8,color:"#707088"}}>({payouts.filter(p=>p.currency===cur).length} payees)</span></div>)}
+              </table>):<div style={{fontSize:11,color:"var(--text-mute)",textAlign:"center",padding:"14px 0"}}>No payouts logged.</div>}
+              {payouts.length>0&&currencies.map(cur=><div key={cur} style={{marginTop:8,padding:"6px 10px",background:"#17171f",borderRadius:6,fontSize:9,color:"#b0b0c8"}}><span style={{fontWeight:700}}>Batch total {cur}: </span><span style={{fontFamily:MN,fontWeight:700,color:"var(--text)"}}>{batchTotal(cur)}</span><span style={{marginLeft:8,color:"var(--text-mute)"}}>({payouts.filter(p=>p.currency===cur).length} payees)</span></div>)}
             </div>
           </div>
         )}
@@ -4058,7 +4065,7 @@ const DOC_TYPE_META={
   SHOW_CONTRACT:{label:"Show Contract",bg:"#D1FAE5",c:"#047857",icon:"📄"},
   VENUE_TECH_PACK:{label:"Venue Tech Pack",bg:"#EDE9FE",c:"#5B21B6",icon:"🔧"},
   EXPENSE_REPORT:{label:"Expense Report",bg:"#FEF3C7",c:"#92400E",icon:"📊"},
-  UNKNOWN:{label:"Unknown",bg:"#1e1e2e",c:"#a0a0b8",icon:"?"},
+  UNKNOWN:{label:"Unknown",bg:"var(--card-2)",c:"var(--text-dim)",icon:"?"},
 };
 
 function FileUploadModal({onClose}){
@@ -4172,17 +4179,17 @@ function FileUploadModal({onClose}){
   const isExpense=dt==="EXPENSE_REPORT";
 
   const overlay={position:"fixed",inset:0,background:"rgba(15,23,42,.35)",backdropFilter:"blur(6px)",display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:60,zIndex:1000};
-  const box={width:520,maxWidth:"96vw",maxHeight:"80vh",overflow:"auto",background:"#12121a",border:"1px solid #2a2a3a",borderRadius:16,boxShadow:"0 25px 60px rgba(0,0,0,.18)",display:"flex",flexDirection:"column"};
-  const inp2={background:"#17171f",border:"1px solid #2a2a3a",borderRadius:5,fontSize:10,padding:"4px 6px",outline:"none",width:"100%",fontFamily:"'Outfit',system-ui"};
+  const box={width:520,maxWidth:"96vw",maxHeight:"80vh",overflow:"auto",background:"var(--card)",border:"1px solid var(--border)",borderRadius:16,boxShadow:"0 25px 60px rgba(0,0,0,.18)",display:"flex",flexDirection:"column"};
+  const inp2={background:"#17171f",border:"1px solid var(--border)",borderRadius:5,fontSize:10,padding:"4px 6px",outline:"none",width:"100%",fontFamily:"'Outfit',system-ui"};
 
   return(
     <div onClick={onClose} style={overlay}>
       <div onClick={e=>e.stopPropagation()} style={box}>
         {/* Header */}
-        <div style={{padding:"14px 18px 10px",borderBottom:"1px solid #2a2a3a",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-          <span style={{fontSize:12,fontWeight:800,color:"#e4e4ef"}}>↑ Upload Document</span>
-          <span style={{fontSize:9,color:"#707088",marginLeft:2}}>PDF · DOCX · XLSX</span>
-          <button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",color:"#707088",fontSize:18,lineHeight:1}}>×</button>
+        <div style={{padding:"14px 18px 10px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+          <span style={{fontSize:12,fontWeight:800,color:"var(--text)"}}>↑ Upload Document</span>
+          <span style={{fontSize:9,color:"var(--text-mute)",marginLeft:2}}>PDF · DOCX · XLSX</span>
+          <button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",color:"var(--text-mute)",fontSize:18,lineHeight:1}}>×</button>
         </div>
 
         {/* Drop zone */}
@@ -4192,11 +4199,11 @@ function FileUploadModal({onClose}){
             onDragLeave={()=>setDragging(false)}
             onDrop={onDrop}
             onClick={()=>fileRef.current?.click()}
-            style={{margin:"16px 18px",border:`2px dashed ${dragging?"#5B21B6":"#2a2a3a"}`,borderRadius:12,padding:"32px 20px",textAlign:"center",cursor:"pointer",background:dragging?"#F5F3FF":"#17171f",transition:"all .15s"}}
+            style={{margin:"16px 18px",border:`2px dashed ${dragging?"#5B21B6":"var(--border)"}`,borderRadius:12,padding:"32px 20px",textAlign:"center",cursor:"pointer",background:dragging?"#F5F3FF":"#17171f",transition:"all .15s"}}
           >
             <div style={{fontSize:28,marginBottom:8}}>📄</div>
-            <div style={{fontSize:12,fontWeight:700,color:"#e4e4ef",marginBottom:4}}>Drop a file or click to browse</div>
-            <div style={{fontSize:10,color:"#707088"}}>PDF, DOCX, or XLSX — receipts, contracts, tech packs, itineraries, expense reports</div>
+            <div style={{fontSize:12,fontWeight:700,color:"var(--text)",marginBottom:4}}>Drop a file or click to browse</div>
+            <div style={{fontSize:10,color:"var(--text-mute)"}}>PDF, DOCX, or XLSX — receipts, contracts, tech packs, itineraries, expense reports</div>
             <input ref={fileRef} type="file" accept={ACCEPT} style={{display:"none"}} onChange={e=>handleFile(e.target.files?.[0])}/>
           </div>
         )}
@@ -4205,8 +4212,8 @@ function FileUploadModal({onClose}){
         {parsing&&(
           <div style={{padding:"40px 18px",textAlign:"center"}}>
             <div style={{fontSize:24,marginBottom:10}}>⏳</div>
-            <div style={{fontSize:12,fontWeight:700,color:"#e4e4ef",marginBottom:4}}>Parsing {file?.name}…</div>
-            <div style={{fontSize:10,color:"#707088"}}>Claude is reading and classifying your document.</div>
+            <div style={{fontSize:12,fontWeight:700,color:"var(--text)",marginBottom:4}}>Parsing {file?.name}…</div>
+            <div style={{fontSize:10,color:"var(--text-mute)"}}>Claude is reading and classifying your document.</div>
           </div>
         )}
 
@@ -4224,11 +4231,11 @@ function FileUploadModal({onClose}){
               <div style={{flex:1}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
                   <span style={{fontSize:10,fontWeight:800,padding:"2px 9px",borderRadius:10,background:meta.bg,color:meta.c}}>{meta.label}</span>
-                  <span style={{fontSize:9,color:"#707088"}}>{Math.round((result.confidence||0)*100)}% confidence</span>
+                  <span style={{fontSize:9,color:"var(--text-mute)"}}>{Math.round((result.confidence||0)*100)}% confidence</span>
                   <button onClick={()=>{setResult(null);setFile(null);setError("");setApplied("");}} style={{marginLeft:"auto",fontSize:9,color:"#5B21B6",background:"none",border:"none",cursor:"pointer",fontWeight:700}}>↩ Re-upload</button>
                 </div>
-                <div style={{fontSize:11,color:"#e4e4ef",fontWeight:500}}>{result.summary}</div>
-                {file&&<div style={{fontSize:9,color:"#707088",marginTop:2}}>{file.name}</div>}
+                <div style={{fontSize:11,color:"var(--text)",fontWeight:500}}>{result.summary}</div>
+                {file&&<div style={{fontSize:9,color:"var(--text-mute)",marginTop:2}}>{file.name}</div>}
               </div>
             </div>
 
@@ -4236,10 +4243,10 @@ function FileUploadModal({onClose}){
             {isReceipt&&result.receipt&&(
               <div style={{background:"#17171f",borderRadius:8,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6}}>
                 {[["Vendor",result.receipt.vendor],["Date",result.receipt.date],["Amount",result.receipt.amount!=null?`${result.receipt.amount} ${result.receipt.currency||""}`:null],["Category",result.receipt.category],["Description",result.receipt.description],["Reference",result.receipt.referenceNo]].filter(([,v])=>v).map(([k,v])=>(
-                  <div key={k} style={{display:"flex",gap:10,fontSize:10}}><span style={{color:"#a0a0b8",minWidth:80,fontWeight:600}}>{k}</span><span style={{color:"#e4e4ef"}}>{v}</span></div>
+                  <div key={k} style={{display:"flex",gap:10,fontSize:10}}><span style={{color:"var(--text-dim)",minWidth:80,fontWeight:600}}>{k}</span><span style={{color:"var(--text)"}}>{v}</span></div>
                 ))}
                 <div style={{display:"flex",gap:8,alignItems:"center",marginTop:4}}>
-                  <span style={{fontSize:9,color:"#a0a0b8",fontWeight:600}}>Apply to date</span>
+                  <span style={{fontSize:9,color:"var(--text-dim)",fontWeight:600}}>Apply to date</span>
                   <input type="date" value={showDateOverride||result.receipt.date||sel} onChange={e=>setShowDateOverride(e.target.value)} style={{...inp2,width:130}}/>
                 </div>
               </div>
@@ -4251,9 +4258,9 @@ function FileUploadModal({onClose}){
                 {result.flights.map((f,i)=>(
                   <div key={i} style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:7,padding:"8px 10px",display:"flex",alignItems:"center",gap:10}}>
                     <span style={{fontSize:9,fontWeight:800,padding:"2px 5px",borderRadius:3,background:"#a78bfa",color:"#fff",flexShrink:0}}>{f.flightNo||f.carrier}</span>
-                    <span style={{fontSize:10,color:"#e4e4ef",flex:1}}>{f.fromCity||f.from} → {f.toCity||f.to}</span>
-                    <span style={{fontFamily:MN,fontSize:9,color:"#a0a0b8",whiteSpace:"nowrap"}}>{f.depDate} {f.dep}</span>
-                    {f.pax?.length>0&&<span style={{fontSize:9,color:"#707088"}}>{f.pax.join(", ")}</span>}
+                    <span style={{fontSize:10,color:"var(--text)",flex:1}}>{f.fromCity||f.from} → {f.toCity||f.to}</span>
+                    <span style={{fontFamily:MN,fontSize:9,color:"var(--text-dim)",whiteSpace:"nowrap"}}>{f.depDate} {f.dep}</span>
+                    {f.pax?.length>0&&<span style={{fontSize:9,color:"var(--text-mute)"}}>{f.pax.join(", ")}</span>}
                   </div>
                 ))}
               </div>
@@ -4263,7 +4270,7 @@ function FileUploadModal({onClose}){
             {isContract&&result.show&&(
               <div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:8,padding:"10px 12px",display:"flex",flexDirection:"column",gap:5}}>
                 {[["Date",result.show.date],["Venue",result.show.venue],["City",result.show.city],["Promoter",result.show.promoter],["Guarantee",result.show.guarantee],["Capacity",result.show.capacity],["Doors",result.show.doors],["Curfew",result.show.curfew]].filter(([,v])=>v).map(([k,v])=>(
-                  <div key={k} style={{display:"flex",gap:10,fontSize:10}}><span style={{color:"#064E3B",minWidth:80,fontWeight:600}}>{k}</span><span style={{color:"#e4e4ef"}}>{String(v)}</span></div>
+                  <div key={k} style={{display:"flex",gap:10,fontSize:10}}><span style={{color:"#064E3B",minWidth:80,fontWeight:600}}>{k}</span><span style={{color:"var(--text)"}}>{String(v)}</span></div>
                 ))}
                 {result.contacts?.length>0&&<div style={{marginTop:4,fontSize:9,color:"#047857",fontWeight:700}}>{result.contacts.length} contact{result.contacts.length>1?"s":""} found</div>}
               </div>
@@ -4273,9 +4280,9 @@ function FileUploadModal({onClose}){
             {isTechPack&&result.techPack&&(
               <div style={{background:"#F5F3FF",border:"1px solid #DDD6FE",borderRadius:8,padding:"10px 12px",display:"flex",flexDirection:"column",gap:5}}>
                 {[["Venue",result.techPack.venueName],["City",result.techPack.city],["Stage",result.techPack.stageDimensions],["Rigging",result.techPack.riggingPoints],["Power",result.techPack.powerSpec],["Load-in",result.techPack.loadIn],["Curfew",result.techPack.curfew]].filter(([,v])=>v).map(([k,v])=>(
-                  <div key={k} style={{display:"flex",gap:10,fontSize:10}}><span style={{color:"#5B21B6",minWidth:80,fontWeight:600}}>{k}</span><span style={{color:"#e4e4ef"}}>{v}</span></div>
+                  <div key={k} style={{display:"flex",gap:10,fontSize:10}}><span style={{color:"#5B21B6",minWidth:80,fontWeight:600}}>{k}</span><span style={{color:"var(--text)"}}>{v}</span></div>
                 ))}
-                {result.techPack.notes&&<div style={{fontSize:9,color:"#a0a0b8",marginTop:2}}>{result.techPack.notes}</div>}
+                {result.techPack.notes&&<div style={{fontSize:9,color:"var(--text-dim)",marginTop:2}}>{result.techPack.notes}</div>}
               </div>
             )}
 
@@ -4284,10 +4291,10 @@ function FileUploadModal({onClose}){
               <div style={{display:"flex",flexDirection:"column",gap:3,maxHeight:160,overflow:"auto"}}>
                 {result.expenses.map((e,i)=>(
                   <div key={i} style={{background:"#17171f",borderRadius:5,padding:"5px 8px",display:"flex",gap:8,alignItems:"center",fontSize:9}}>
-                    <span style={{fontFamily:MN,fontWeight:700,color:"#e4e4ef",minWidth:60}}>{e.amount} {e.currency}</span>
+                    <span style={{fontFamily:MN,fontWeight:700,color:"var(--text)",minWidth:60}}>{e.amount} {e.currency}</span>
                     <span style={{flex:1,color:"#b0b0c8"}}>{e.vendor}</span>
-                    <span style={{color:"#707088"}}>{e.date}</span>
-                    <span style={{color:"#a0a0b8"}}>{e.category}</span>
+                    <span style={{color:"var(--text-mute)"}}>{e.date}</span>
+                    <span style={{color:"var(--text-dim)"}}>{e.category}</span>
                   </div>
                 ))}
               </div>
@@ -4314,10 +4321,10 @@ function FileUploadModal({onClose}){
                 {isExpense&&result.expenses?.length>0&&(
                   <button onClick={applyExpenseReport} disabled={applying} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:"#92400E",color:"#fff",cursor:"pointer",fontWeight:700}}>Import {result.expenses.length} Expenses</button>
                 )}
-                <button onClick={onClose} style={{fontSize:10,padding:"5px 12px",borderRadius:6,border:"1px solid #2a2a3a",background:"transparent",color:"#a0a0b8",cursor:"pointer"}}>Close</button>
+                <button onClick={onClose} style={{fontSize:10,padding:"5px 12px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Close</button>
               </div>
             )}
-            {applied&&<button onClick={onClose} style={{fontSize:10,padding:"5px 12px",borderRadius:6,border:"1px solid #2a2a3a",background:"transparent",color:"#a0a0b8",cursor:"pointer",width:"fit-content"}}>Done</button>}
+            {applied&&<button onClick={onClose} style={{fontSize:10,padding:"5px 12px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer",width:"fit-content"}}>Done</button>}
           </div>
         )}
       </div>
@@ -4369,21 +4376,21 @@ function CmdP(){
   useEffect(()=>{if(!listRef.current)return;const el=listRef.current.querySelector(`[data-idx="${sel1}"]`);el?.scrollIntoView({block:"nearest"});},[sel1]);
   return(
     <div onClick={()=>setCmd(false)} style={{position:"fixed",inset:0,background:"rgba(15,23,42,.25)",backdropFilter:"blur(6px)",display:"flex",alignItems:"flex-start",justifyContent:"center",paddingTop:mobile?40:100,padding:mobile?"40px 12px":undefined,zIndex:1000}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:440,maxWidth:"100%",background:"#12121a",border:"1px solid #2a2a3a",borderRadius:16,boxShadow:"0 25px 60px rgba(0,0,0,.15)",overflow:"hidden"}}>
-        <input ref={ref} value={q} onChange={e=>setQ(e.target.value)} placeholder="Search shows, views, actions..." onKeyDown={onKey} style={{width:"100%",padding:mobile?"16px 18px":"14px 18px",background:"transparent",border:"none",borderBottom:"1px solid #2a2a3a",color:"#e4e4ef",fontSize:mobile?16:14,outline:"none",fontWeight:500}}/>
+      <div onClick={e=>e.stopPropagation()} style={{width:440,maxWidth:"100%",background:"var(--card)",border:"1px solid var(--border)",borderRadius:16,boxShadow:"0 25px 60px rgba(0,0,0,.15)",overflow:"hidden"}}>
+        <input ref={ref} value={q} onChange={e=>setQ(e.target.value)} placeholder="Search shows, views, actions..." onKeyDown={onKey} style={{width:"100%",padding:mobile?"16px 18px":"14px 18px",background:"transparent",border:"none",borderBottom:"1px solid var(--border)",color:"var(--text)",fontSize:mobile?16:14,outline:"none",fontWeight:500}}/>
         <div ref={listRef} style={{maxHeight:360,overflow:"auto"}}>
-          {res.length===0&&<div style={{padding:"22px 18px",textAlign:"center",fontSize:11,color:"#707088"}}>No matches. Press <kbd style={{fontFamily:MN,fontSize:10,padding:"1px 5px",background:"#1e1e2e",borderRadius:3}}>Esc</kbd> to close.</div>}
+          {res.length===0&&<div style={{padding:"22px 18px",textAlign:"center",fontSize:11,color:"var(--text-mute)"}}>No matches. Press <kbd style={{fontFamily:MN,fontSize:10,padding:"1px 5px",background:"var(--card-2)",borderRadius:3}}>Esc</kbd> to close.</div>}
           {res.map((r,i)=>{const active=i===sel1;return <div key={`${r.type}-${r.id}-${i}`} data-idx={i} onClick={()=>go(r)} onMouseEnter={()=>setSel1(i)} style={{padding:mobile?"12px 18px":"10px 18px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,background:active?"#EDE9FE":"transparent",borderBottom:"1px solid #17171f",borderLeft:active?"3px solid #5B21B6":"3px solid transparent"}}>
-            <span style={{fontSize:11,color:active?"#5B21B6":"#a0a0b8",width:16,fontFamily:MN,fontWeight:700}}>{r.type==="tab"||r.type==="action"?r.icon:r.type==="client"?CM[r.id]?.short||"●":fW(r.id)}</span>
-            <div style={{flex:1,minWidth:0}}><div style={{fontSize:mobile?13:12,color:"#e4e4ef",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.label}</div>{r.sub&&<div style={{fontSize:10,color:"#a0a0b8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.sub}</div>}</div>
-            {r.cId&&<div style={{width:7,height:7,borderRadius:"50%",background:CM[r.cId]?.color||"#707088"}}/>}
-            <span style={{fontSize:8,color:active?"#5B21B6":"#707088",fontFamily:MN,letterSpacing:"0.04em",textTransform:"uppercase"}}>{r.type}</span>
+            <span style={{fontSize:11,color:active?"#5B21B6":"var(--text-dim)",width:16,fontFamily:MN,fontWeight:700}}>{r.type==="tab"||r.type==="action"?r.icon:r.type==="client"?CM[r.id]?.short||"●":fW(r.id)}</span>
+            <div style={{flex:1,minWidth:0}}><div style={{fontSize:mobile?13:12,color:"var(--text)",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.label}</div>{r.sub&&<div style={{fontSize:10,color:"var(--text-dim)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.sub}</div>}</div>
+            {r.cId&&<div style={{width:7,height:7,borderRadius:"50%",background:CM[r.cId]?.color||"var(--text-mute)"}}/>}
+            <span style={{fontSize:8,color:active?"#5B21B6":"var(--text-mute)",fontFamily:MN,letterSpacing:"0.04em",textTransform:"uppercase"}}>{r.type}</span>
           </div>;})}
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:12,padding:"7px 14px",borderTop:"1px solid #2a2a3a",background:"#161622",fontSize:9,color:"#a0a0b8",fontFamily:MN}}>
-          <span><kbd style={{fontFamily:MN,padding:"1px 5px",background:"#12121a",border:"1px solid #2a2a3a",borderRadius:3}}>↑↓</kbd> navigate</span>
-          <span><kbd style={{fontFamily:MN,padding:"1px 5px",background:"#12121a",border:"1px solid #2a2a3a",borderRadius:3}}>↵</kbd> select</span>
-          <span><kbd style={{fontFamily:MN,padding:"1px 5px",background:"#12121a",border:"1px solid #2a2a3a",borderRadius:3}}>esc</kbd> close</span>
+        <div style={{display:"flex",alignItems:"center",gap:12,padding:"7px 14px",borderTop:"1px solid var(--border)",background:"#161622",fontSize:9,color:"var(--text-dim)",fontFamily:MN}}>
+          <span><kbd style={{fontFamily:MN,padding:"1px 5px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:3}}>↑↓</kbd> navigate</span>
+          <span><kbd style={{fontFamily:MN,padding:"1px 5px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:3}}>↵</kbd> select</span>
+          <span><kbd style={{fontFamily:MN,padding:"1px 5px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:3}}>esc</kbd> close</span>
           <span style={{marginLeft:"auto"}}>⌘K</span>
         </div>
       </div>
@@ -4400,9 +4407,9 @@ function LifecyclePills({crewId,date,state,slots,onJump,compact}){
   const color=s=>({
     ok:{bg:"#D1FAE5",c:"#047857",bd:"#6EE7B7"},
     missing:{bg:"#FEF3C7",c:"#92400E",bd:"#FDE68A"},
-    na:{bg:"#1e1e2e",c:"#707088",bd:"#2a2a3a"},
+    na:{bg:"var(--card-2)",c:"var(--text-mute)",bd:"var(--border)"},
     unknown:{bg:"#EDE9FE",c:"#5B21B6",bd:"#C4B5FD"},
-  }[s]||{bg:"#1e1e2e",c:"#707088",bd:"#2a2a3a"});
+  }[s]||{bg:"var(--card-2)",c:"var(--text-mute)",bd:"var(--border)"});
   const stateLabel={"bus-mid":"ON BUS","bus-join":"BUS JOIN","bus-leave":"BUS LEAVE","bus-solo":"BUS · SOLO","fly-one-off":"FLY · HOTEL"}[state]||"";
   const missing=slots.filter(s=>s.state==="missing").length;
   return(
@@ -4503,8 +4510,8 @@ function CrewTab(){
 
   const TRAVEL_MODES=["bus","fly","local","vendor","drive"];
   const LEG_STATUS=["pending","confirmed","cancelled"];
-  const inp={background:"#17171f",border:"1px solid #2a2a3a",borderRadius:5,fontSize:10,padding:"4px 6px",outline:"none",width:"100%",fontFamily:"'Outfit',system-ui"};
-  const btn=(bg="#5B21B6",col="#12121a")=>({background:bg,border:"none",borderRadius:6,color:col,fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700});
+  const inp={background:"#17171f",border:"1px solid var(--border)",borderRadius:5,fontSize:10,padding:"4px 6px",outline:"none",width:"100%",fontFamily:"'Outfit',system-ui"};
+  const btn=(bg="#5B21B6",col="var(--card)")=>({background:bg,border:"none",borderRadius:6,color:col,fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700});
 
   const dateLabel=(d)=>{const s=shows[d];const td=tourDaysSorted.find(x=>x.date===d);if(s)return s.city||s.venue||fD(d);if(td?.type==="travel"&&td?.bus?.route)return td.bus.route;return fD(d);};
   const dayType=(d)=>{const s=shows[d];if(s)return s.type||"show";const td=tourDaysSorted.find(x=>x.date===d);return td?.type||"off";};
@@ -4514,13 +4521,13 @@ function CrewTab(){
       {/* Main panel */}
       <div style={{flex:1,overflow:"auto",display:"flex",flexDirection:"column"}}>
       {/* Header */}
-      <div style={{padding:"6px 20px",borderBottom:"1px solid #2a2a3a",background:"#12121a",display:"flex",gap:8,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
+      <div style={{padding:"6px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:8,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
         <span style={{fontWeight:700,fontSize:12}}>{show?.venue||dateLabel(sel)}</span>
-        <span style={{fontSize:11,color:"#a0a0b8"}}>{show?.city||""}{show?.city?" · ":""}{fFull(sel)}</span>
+        <span style={{fontSize:11,color:"var(--text-dim)"}}>{show?.city||""}{show?.city?" · ":""}{fFull(sel)}</span>
         <span style={{fontSize:9,padding:"2px 7px",borderRadius:12,background:"#EDE9FE",color:"#5B21B6",fontWeight:700}}>{attending.length} attending</span>
         <div style={{marginLeft:"auto",display:"flex",gap:5}}>
           <button onClick={()=>setTab("transport")} title="Open per-date travel view for all crew" style={{...btn("#17171f","#5B21B6"),border:"1px solid #c4b5fd"}}>🧭 Travel Day →</button>
-          <button onClick={()=>setEditMode(v=>!v)} style={btn(editMode?"#5B21B6":"#17171f",editMode?"#12121a":"#b0b0c8")}>{editMode?"Done Editing":"Edit Roster"}</button>
+          <button onClick={()=>setEditMode(v=>!v)} style={btn(editMode?"#5B21B6":"#17171f",editMode?"var(--card)":"#b0b0c8")}>{editMode?"Done Editing":"Edit Roster"}</button>
           <button onClick={addMember} style={btn()}>+ Add</button>
         </div>
       </div>
@@ -4532,8 +4539,8 @@ function CrewTab(){
       )}
       <div style={{padding:"10px 20px 30px",display:"flex",flexDirection:"column",gap:10}}>
         {/* Roster */}
-        <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,overflow:"hidden"}}>
-          <div style={{display:"grid",gridTemplateColumns:mobile?"28px 1fr 54px 56px":"28px 1fr 170px 54px 56px",gap:8,padding:"6px 14px",borderBottom:"1px solid #2a2a3a",fontSize:9,fontWeight:700,color:"#a0a0b8",letterSpacing:"0.06em",textTransform:"uppercase"}}>
+        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
+          <div style={{display:"grid",gridTemplateColumns:mobile?"28px 1fr 54px 56px":"28px 1fr 170px 54px 56px",gap:8,padding:"6px 14px",borderBottom:"1px solid var(--border)",fontSize:9,fontWeight:700,color:"var(--text-dim)",letterSpacing:"0.06em",textTransform:"uppercase"}}>
             <div/><div>Name / Role</div>{!mobile&&<div>Travel</div>}<div>Park</div><div/>
           </div>
           {crew.map(c=>{
@@ -4542,14 +4549,14 @@ function CrewTab(){
             const MB=(mode,conf)=>{
               const isFly=mode==="fly";
               return <span style={{display:"inline-flex",alignItems:"center",gap:4}}>
-                <span style={{fontSize:7,padding:"1px 5px",borderRadius:3,fontWeight:700,background:isFly?"#EDE9FE":"#1e1e2e",color:isFly?"#5B21B6":"#b0b0c8",textTransform:"uppercase"}}>{mode.slice(0,3)}</span>
+                <span style={{fontSize:7,padding:"1px 5px",borderRadius:3,fontWeight:700,background:isFly?"#EDE9FE":"var(--card-2)",color:isFly?"#5B21B6":"#b0b0c8",textTransform:"uppercase"}}>{mode.slice(0,3)}</span>
                 <span style={{fontSize:7,padding:"1px 6px",borderRadius:3,fontWeight:700,background:conf?"#D1FAE5":"#FEE2E2",color:conf?"#047857":"#B91C1C"}}>{conf?"Confirmed":"Unconfirmed"}</span>
               </span>;
             };
             return(
             <React.Fragment key={c.id}>
               <div style={{display:"grid",gridTemplateColumns:mobile?"28px 1fr 54px 56px":"28px 1fr 170px 54px 56px",gap:8,padding:"8px 14px",borderBottom:isOpen?"none":"1px solid #17171f",alignItems:"center"}}>
-                <div onClick={()=>toggleAttending(c.id)} style={{width:20,height:20,borderRadius:4,border:`2px solid ${cd.attending?"#047857":"#2a2a3a"}`,background:cd.attending?"#047857":"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:11,fontWeight:700,flexShrink:0}}>{cd.attending?"✓":""}</div>
+                <div onClick={()=>toggleAttending(c.id)} style={{width:20,height:20,borderRadius:4,border:`2px solid ${cd.attending?"#047857":"var(--border)"}`,background:cd.attending?"#047857":"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:11,fontWeight:700,flexShrink:0}}>{cd.attending?"✓":""}</div>
                 {editMode?(
                   <div style={{display:"flex",gap:4,alignItems:"center"}}>
                     <input value={c.name} onChange={e=>updateMember(c.id,"name",e.target.value)} placeholder="Name" style={{...inp,flex:1}}/>
@@ -4559,8 +4566,8 @@ function CrewTab(){
                   </div>
                 ):(
                   <div style={{minWidth:0}}>
-                    <div style={{fontWeight:600,fontSize:12,color:cd.attending?"#e4e4ef":"#707088"}}>{c.name||<span style={{color:"#707088"}}>New member</span>}</div>
-                    <div style={{fontSize:10,color:"#a0a0b8"}}>{c.role}</div>
+                    <div style={{fontWeight:600,fontSize:12,color:cd.attending?"var(--text)":"var(--text-mute)"}}>{c.name||<span style={{color:"var(--text-mute)"}}>New member</span>}</div>
+                    <div style={{fontSize:10,color:"var(--text-dim)"}}>{c.role}</div>
                     {cd.attending&&(()=>{
                       const attDates=attendingDatesByCrew[c.id]||[sel];
                       const state=crewLifecycleState(c.id,sel,attDates,tourDays);
@@ -4580,15 +4587,15 @@ function CrewTab(){
                 )}
                 {!mobile&&<div>{cd.attending
                   ?<div style={{display:"flex",flexDirection:"column",gap:4}}>
-                      <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:8,color:"#707088",width:18}}>In</span>{MB(cd.inboundMode,cd.inboundConfirmed)}</div>
-                      <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:8,color:"#707088",width:18}}>Out</span>{MB(cd.outboundMode,cd.outboundConfirmed)}</div>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:8,color:"var(--text-mute)",width:18}}>In</span>{MB(cd.inboundMode,cd.inboundConfirmed)}</div>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:8,color:"var(--text-mute)",width:18}}>Out</span>{MB(cd.outboundMode,cd.outboundConfirmed)}</div>
                     </div>
-                  :<span style={{fontSize:9,color:"#2a2a3a"}}>—</span>}
+                  :<span style={{fontSize:9,color:"var(--border)"}}>—</span>}
                 </div>}
                 <div>{cd.attending
                   ?<button onClick={()=>cycleParkingReq(c.id)} style={{fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,
-                      background:cd.parkingReq==="confirmed"?"#D1FAE5":cd.parkingReq==="requested"?"#FEF3C7":"#1e1e2e",
-                      color:cd.parkingReq==="confirmed"?"#047857":cd.parkingReq==="requested"?"#92400E":"#707088"}}>
+                      background:cd.parkingReq==="confirmed"?"#D1FAE5":cd.parkingReq==="requested"?"#FEF3C7":"var(--card-2)",
+                      color:cd.parkingReq==="confirmed"?"#047857":cd.parkingReq==="requested"?"#92400E":"var(--text-mute)"}}>
                     {cd.parkingReq==="confirmed"?"✓ P":cd.parkingReq==="requested"?"Req":"—"}
                   </button>
                   :<span/>}
@@ -4600,7 +4607,7 @@ function CrewTab(){
                   {/* Lodging badge */}
                   {(()=>{const crewHotels=Object.values(lodging).filter(h=>h.checkIn<=sel&&h.checkOut>=sel&&(h.rooms||[]).some(r=>r.crewId===c.id));return crewHotels.length>0&&(<div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",padding:"5px 8px",background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:7}}>
                     <span style={{fontSize:9,fontWeight:700,color:"#a78bfa",letterSpacing:"0.04em"}}>LODGING</span>
-                    {crewHotels.map(h=>{const room=(h.rooms||[]).find(r=>r.crewId===c.id);return(<span key={h.id} style={{fontSize:11,color:"#e4e4ef",fontWeight:600}}>{h.name}{room?.roomNo&&<span style={{fontFamily:MN,color:"#a0a0b8",marginLeft:4}}>#{room.roomNo}</span>}{room?.type&&<span style={{color:"#707088",fontSize:9,marginLeft:4}}>{room.type}</span>}</span>);})}
+                    {crewHotels.map(h=>{const room=(h.rooms||[]).find(r=>r.crewId===c.id);return(<span key={h.id} style={{fontSize:11,color:"var(--text)",fontWeight:600}}>{h.name}{room?.roomNo&&<span style={{fontFamily:MN,color:"var(--text-dim)",marginLeft:4}}>#{room.roomNo}</span>}{room?.type&&<span style={{color:"var(--text-mute)",fontSize:9,marginLeft:4}}>{room.type}</span>}</span>);})}
                     <button onClick={()=>setTab("lodging")} style={{marginLeft:"auto",fontSize:9,padding:"2px 7px",borderRadius:5,border:"none",background:"#3B82F6",color:"#fff",cursor:"pointer",fontWeight:700}}>→ Lodging</button>
                   </div>);})()}
                   <div style={{display:"flex",flexDirection:mobile?"column":"row",gap:16}}>
@@ -4612,7 +4619,7 @@ function CrewTab(){
                     return(
                       <div key={dir} style={{flex:1,minWidth:0}}>
                         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-                          <span style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.06em"}}>{dirLabel.toUpperCase()}</span>
+                          <span style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em"}}>{dirLabel.toUpperCase()}</span>
                           <select value={mode} onChange={e=>dir==="inbound"?setInboundMode(c.id,e.target.value):setOutboundMode(c.id,e.target.value)} style={{...inp,width:"auto",padding:"2px 6px",fontSize:9}}>
                             {TRAVEL_MODES.map(m=><option key={m} value={m}>{m.charAt(0).toUpperCase()+m.slice(1)}</option>)}
                           </select>
@@ -4629,8 +4636,8 @@ function CrewTab(){
                                 <div key={leg.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"#EDE9FE",borderRadius:6,border:"1px solid #c4b5fd"}}>
                                   <span style={{fontSize:9,fontWeight:700,color:"#5B21B6",whiteSpace:"nowrap"}}>✈ {leg.flight||"—"}</span>
                                   <span style={{fontSize:9,color:"#b0b0c8",flex:1}}>{leg.fromCity||leg.from} → {leg.toCity||leg.to}</span>
-                                  {leg.depart&&<span style={{fontSize:9,fontFamily:MN,color:"#a0a0b8",whiteSpace:"nowrap"}}>{leg.depart}{leg.arrive?` → ${leg.arrive}`:""}</span>}
-                                  {leg.conf&&<span style={{fontSize:8,color:"#707088",fontFamily:MN,whiteSpace:"nowrap"}}>#{leg.conf}</span>}
+                                  {leg.depart&&<span style={{fontSize:9,fontFamily:MN,color:"var(--text-dim)",whiteSpace:"nowrap"}}>{leg.depart}{leg.arrive?` → ${leg.arrive}`:""}</span>}
+                                  {leg.conf&&<span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN,whiteSpace:"nowrap"}}>#{leg.conf}</span>}
                                   <button onClick={()=>unassignFlight(c.id,dir,leg.flightId)} style={{background:"none",border:"none",cursor:"pointer",color:"#fca5a5",fontSize:13,padding:0,flexShrink:0,lineHeight:1}}>×</button>
                                 </div>
                               ):(
@@ -4647,33 +4654,33 @@ function CrewTab(){
                             })}
                             {/* Flight picker dropdown */}
                             {flightPicker?.crewId===c.id&&flightPicker?.dir===dir?(
-                              <div style={{background:"#12121a",border:"1px solid #c4b5fd",borderRadius:8,overflow:"hidden",boxShadow:"0 4px 16px rgba(0,0,0,0.10)"}}>
-                                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 10px",borderBottom:"1px solid #2a2a3a",background:"#17171f"}}>
+                              <div style={{background:"var(--card)",border:"1px solid #c4b5fd",borderRadius:8,overflow:"hidden",boxShadow:"0 4px 16px rgba(0,0,0,0.10)"}}>
+                                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"6px 10px",borderBottom:"1px solid var(--border)",background:"#17171f"}}>
                                   <span style={{fontSize:9,fontWeight:800,color:"#5B21B6",letterSpacing:"0.06em"}}>ASSIGN FLIGHT — {dir==="inbound"?"ARRIVALS":"DEPARTURES"} {fD(sel)}</span>
-                                  <button onClick={()=>setFlightPicker(null)} style={{background:"none",border:"none",cursor:"pointer",color:"#707088",fontSize:14,padding:0,lineHeight:1}}>×</button>
+                                  <button onClick={()=>setFlightPicker(null)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-mute)",fontSize:14,padding:0,lineHeight:1}}>×</button>
                                 </div>
                                 {flightsForDir(dir).length===0?(
-                                  <div style={{padding:"12px 10px",fontSize:10,color:"#707088",textAlign:"center"}}>No confirmed {dir==="inbound"?"arrivals":"departures"} on {fD(sel)}.<br/><span style={{fontSize:9}}>Scan Gmail for flights in Transport tab.</span></div>
+                                  <div style={{padding:"12px 10px",fontSize:10,color:"var(--text-mute)",textAlign:"center"}}>No confirmed {dir==="inbound"?"arrivals":"departures"} on {fD(sel)}.<br/><span style={{fontSize:9}}>Scan Gmail for flights in Transport tab.</span></div>
                                 ):flightsForDir(dir).map(f=>{
                                   const alreadyAssigned=(cd[dir]||[]).some(l=>l.flightId===f.id);
                                   return(
-                                    <div key={f.id} onClick={()=>!alreadyAssigned&&assignFlight(c.id,dir,f)} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",borderBottom:"1px solid #17171f",cursor:alreadyAssigned?"default":"pointer",background:alreadyAssigned?"#17171f":"#12121a",opacity:alreadyAssigned?0.6:1}} className="rh">
+                                    <div key={f.id} onClick={()=>!alreadyAssigned&&assignFlight(c.id,dir,f)} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",borderBottom:"1px solid #17171f",cursor:alreadyAssigned?"default":"pointer",background:alreadyAssigned?"#17171f":"var(--card)",opacity:alreadyAssigned?0.6:1}} className="rh">
                                       <span style={{fontSize:10,fontWeight:700,color:"#5B21B6",minWidth:60}}>{f.flightNo||f.carrier}</span>
-                                      <span style={{fontSize:10,flex:1,color:"#e4e4ef"}}>{f.fromCity||f.from} → {f.toCity||f.to}</span>
-                                      <span style={{fontSize:9,fontFamily:MN,color:"#a0a0b8"}}>{f.dep} → {f.arr}</span>
-                                      {f.pax?.length>0&&<span style={{fontSize:8,color:"#707088"}}>{f.pax.join(", ")}</span>}
+                                      <span style={{fontSize:10,flex:1,color:"var(--text)"}}>{f.fromCity||f.from} → {f.toCity||f.to}</span>
+                                      <span style={{fontSize:9,fontFamily:MN,color:"var(--text-dim)"}}>{f.dep} → {f.arr}</span>
+                                      {f.pax?.length>0&&<span style={{fontSize:8,color:"var(--text-mute)"}}>{f.pax.join(", ")}</span>}
                                       {alreadyAssigned?<span style={{fontSize:8,color:"#047857",fontWeight:700}}>✓ Assigned</span>:<span style={{fontSize:9,color:"#5B21B6",fontWeight:700}}>Assign →</span>}
                                     </div>
                                   );
                                 })}
-                                <div style={{padding:"6px 10px",borderTop:"1px solid #2a2a3a",background:"#17171f"}}>
-                                  <button onClick={()=>addLeg(c.id,dir)} style={{...btn("#a0a0b8"),fontSize:8,padding:"2px 8px"}}>+ Enter manually</button>
+                                <div style={{padding:"6px 10px",borderTop:"1px solid var(--border)",background:"#17171f"}}>
+                                  <button onClick={()=>addLeg(c.id,dir)} style={{...btn("var(--text-dim)"),fontSize:8,padding:"2px 8px"}}>+ Enter manually</button>
                                 </div>
                               </div>
                             ):(
                               <div style={{display:"flex",gap:6}}>
                                 <button onClick={()=>setFlightPicker({crewId:c.id,dir})} style={{...btn("#5B21B6"),fontSize:9,padding:"3px 10px"}}>✈ Assign Flight</button>
-                                <button onClick={()=>addLeg(c.id,dir)} style={{...btn("#a0a0b8"),fontSize:9,padding:"3px 9px"}}>+ Manual</button>
+                                <button onClick={()=>addLeg(c.id,dir)} style={{...btn("var(--text-dim)"),fontSize:9,padding:"3px 9px"}}>+ Manual</button>
                               </div>
                             )}
                           </div>
@@ -4696,11 +4703,11 @@ function CrewTab(){
         </div>
         {/* Summary */}
         {attending.length>0&&(
-          <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"10px 12px"}}>
-            <div style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.06em",marginBottom:8}}>ATTENDING ({attending.length})</div>
+          <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px"}}>
+            <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em",marginBottom:8}}>ATTENDING ({attending.length})</div>
             <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
               {attending.map(c=>{const cd=getCD(c.id);const hasFly=cd.inboundMode==="fly"||cd.outboundMode==="fly";const sameMode=cd.inboundMode===cd.outboundMode;const bothConfirmed=cd.inboundConfirmed&&cd.outboundConfirmed;const noneConfirmed=!cd.inboundConfirmed&&!cd.outboundConfirmed;return(
-                <span key={c.id} style={{fontSize:10,padding:"3px 9px",borderRadius:20,background:hasFly?"#EDE9FE":"#1e1e2e",color:hasFly?"#5B21B6":"#b0b0c8",fontWeight:600,border:`1px solid ${bothConfirmed?"#6EE7B7":noneConfirmed?"#FDE68A":"#2a2a3a"}`}}>
+                <span key={c.id} style={{fontSize:10,padding:"3px 9px",borderRadius:20,background:hasFly?"#EDE9FE":"var(--card-2)",color:hasFly?"#5B21B6":"#b0b0c8",fontWeight:600,border:`1px solid ${bothConfirmed?"#6EE7B7":noneConfirmed?"#FDE68A":"var(--border)"}`}}>
                   {c.name} <span style={{opacity:0.6,fontSize:8,textTransform:"uppercase"}}>{sameMode?cd.inboundMode:`${cd.inboundMode}→${cd.outboundMode}`}</span>{bothConfirmed&&<span style={{fontSize:8,color:"#047857",marginLeft:3}}>✓</span>}
                 </span>);
               })}
@@ -4713,7 +4720,7 @@ function CrewTab(){
   );
 }
 
-function PH({label}){return<div className="fi" style={{padding:40,textAlign:"center",color:"#a0a0b8"}}><div style={{fontSize:14,fontWeight:700,marginBottom:6,color:"#b0b0c8"}}>{label}</div><div style={{fontSize:11}}>Coming in a future phase.</div></div>;}
+function PH({label}){return<div className="fi" style={{padding:40,textAlign:"center",color:"var(--text-dim)"}}><div style={{fontSize:14,fontWeight:700,marginBottom:6,color:"#b0b0c8"}}>{label}</div><div style={{fontSize:11}}>Coming in a future phase.</div></div>;}
 
 // ── Production Intelligence Engine (PIE) ────────────────────────────────────
 
@@ -4752,7 +4759,7 @@ const MANIFEST_SEED=[
 
 const PROD_DEPTS=["ALL","LIGHTING","VIDEO","AUDIO","LASERS","POWER_DISTRO","STAGING","SFX","TRANSPORT","OTHER"];
 const SEV_STYLES={CRITICAL:{bg:"#FEF2F2",c:"#DC2626",b:"#FECACA"},HIGH:{bg:"#FFF7ED",c:"#C2410C",b:"#FED7AA"},MEDIUM:{bg:"#FEFCE8",c:"#A16207",b:"#FEF08A"},LOW:{bg:"#F0FDF4",c:"#166534",b:"#BBF7D0"}};
-const POS_STYLES={fly:{bg:"#EDE9FE",c:"#5B21B6"},ground:{bg:"#DCFCE7",c:"#166534"},tower:{bg:"#FEF3C7",c:"#92400E"},touring_carry:{bg:"#DBEAFE",c:"#a78bfa"},TBD:{bg:"#1e1e2e",c:"#a0a0b8"}};
+const POS_STYLES={fly:{bg:"#EDE9FE",c:"#5B21B6"},ground:{bg:"#DCFCE7",c:"#166534"},tower:{bg:"#FEF3C7",c:"#92400E"},touring_carry:{bg:"#DBEAFE",c:"#a78bfa"},TBD:{bg:"var(--card-2)",c:"var(--text-dim)"}};
 
 // Venue Grid 4.21 — seeded from bbno$ EU Production Binder
 const VENUE_GRID={
@@ -5011,9 +5018,9 @@ function VBRow({label,value,warn}){
   if(!value||value==="TBC"&&!warn)return null;
   const isWarn=warn||(typeof value==="string"&&value.startsWith("⚠"));
   return(
-    <div style={{display:"grid",gridTemplateColumns:"120px 1fr",gap:6,padding:"4px 0",borderBottom:"1px solid #1e1e2e",alignItems:"flex-start"}}>
-      <span style={{fontSize:9,fontWeight:800,color:"#707088",textTransform:"uppercase",letterSpacing:"0.05em",paddingTop:1}}>{label}</span>
-      <span style={{fontSize:10,color:isWarn?"#C2410C":"#e4e4ef",lineHeight:1.4}}>{value}</span>
+    <div style={{display:"grid",gridTemplateColumns:"120px 1fr",gap:6,padding:"4px 0",borderBottom:"1px solid var(--card-2)",alignItems:"flex-start"}}>
+      <span style={{fontSize:9,fontWeight:800,color:"var(--text-mute)",textTransform:"uppercase",letterSpacing:"0.05em",paddingTop:1}}>{label}</span>
+      <span style={{fontSize:10,color:isWarn?"#C2410C":"var(--text)",lineHeight:1.4}}>{value}</span>
     </div>
   );
 }
@@ -5021,9 +5028,9 @@ function VBRow({label,value,warn}){
 function VBSection({title,children,accent}){
   const[open,setOpen]=useState(true);
   return(
-    <div style={{background:"#12121a",border:`1px solid ${accent||"#2a2a3a"}`,borderRadius:8,overflow:"hidden",marginBottom:8}}>
-      <div onClick={()=>setOpen(v=>!v)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 10px",cursor:"pointer",background:accent?`${accent}18`:"#17171f",borderBottom:open?"1px solid #2a2a3a":"none"}}>
-        <span style={{fontSize:9,color:"#a0a0b8"}}>{open?"▾":"▸"}</span>
+    <div style={{background:"var(--card)",border:`1px solid ${accent||"var(--border)"}`,borderRadius:8,overflow:"hidden",marginBottom:8}}>
+      <div onClick={()=>setOpen(v=>!v)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 10px",cursor:"pointer",background:accent?`${accent}18`:"#17171f",borderBottom:open?"1px solid var(--border)":"none"}}>
+        <span style={{fontSize:9,color:"var(--text-dim)"}}>{open?"▾":"▸"}</span>
         <span style={{fontSize:9,fontWeight:800,color:accent||"#b0b0c8",letterSpacing:"0.06em",textTransform:"uppercase"}}>{title}</span>
       </div>
       {open&&<div style={{padding:"6px 10px 8px"}}>{children}</div>}
@@ -5044,11 +5051,11 @@ function VenueBrief({vg,sel,data,upd}){
   const removeLink=id=>upd({venueLinks:links.filter(l=>l.id!==id)});
 
   if(!vg)return(
-    <div style={{padding:32,textAlign:"center",color:"#707088",fontSize:10}}>
+    <div style={{padding:32,textAlign:"center",color:"var(--text-mute)",fontSize:10}}>
       <div style={{fontSize:22,marginBottom:8}}>▤</div>
       <div style={{fontWeight:600,marginBottom:4}}>No venue brief on file</div>
       <div>This show date is not in the EU tour binder. Add document links below or upload vendor quotes.</div>
-      <div style={{marginTop:16,background:"#12121a",border:"1px solid #2a2a3a",borderRadius:8,padding:12,textAlign:"left"}}>
+      <div style={{marginTop:16,background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:12,textAlign:"left"}}>
         <div style={{...UI.sectionLabel,marginBottom:8}}>Document Links</div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
           <input value={newLinkLabel} onChange={e=>setNewLinkLabel(e.target.value)} placeholder="Label (e.g. Venue Tech Pack)" style={{...UI.input,flex:1,minWidth:120}}/>
@@ -5128,31 +5135,31 @@ function VenueBrief({vg,sel,data,upd}){
         const rigCritical=rigChecks.filter(i=>i.severity==="CRITICAL").length;
         const rigHigh=rigChecks.filter(i=>i.severity==="HIGH").length;
         return(
-          <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:12,marginBottom:8,marginTop:4}}>
+          <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:12,marginBottom:8,marginTop:4}}>
             <div style={{...UI.sectionLabel,marginBottom:4}}>Venue Compatibility — {vg.venue}</div>
-            <div style={{fontSize:9,color:"#a0a0b8",marginBottom:8}}>
+            <div style={{fontSize:9,color:"var(--text-dim)",marginBottom:8}}>
               {[vg.stageDims&&`Stage: ${vg.stageDims.slice(0,80)}`,vg.rigging&&`Rigging: ${vg.rigging.slice(0,60)}`].filter(Boolean).map((s,i)=><div key={i} style={{fontFamily:MN}}>{s}</div>)}
             </div>
             {rigChecks.length===0&&<div style={{padding:"16px 0",textAlign:"center"}}>
               <div style={{fontSize:22,marginBottom:4}}>✓</div>
               <div style={{fontSize:11,fontWeight:700,color:"#047857"}}>No compatibility issues detected</div>
-              <div style={{fontSize:9,color:"#707088",marginTop:4}}>Parameters on file are compatible with touring rig. Advance TBC items per fields above.</div>
+              <div style={{fontSize:9,color:"var(--text-mute)",marginTop:4}}>Parameters on file are compatible with touring rig. Advance TBC items per fields above.</div>
             </div>}
             {rigChecks.length>0&&<div style={{display:"flex",flexDirection:"column",gap:6}}>
               {[...rigChecks].sort((a,b)=>({CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3}[a.severity]-{CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3}[b.severity])).map(issue=>{
                 const sv=SEV_STYLES[issue.severity]||SEV_STYLES.LOW;
                 return(
-                  <div key={issue.id} style={{background:issue.severity==="CRITICAL"?"#FEF2F2":issue.severity==="HIGH"?"#FFF7ED":"#12121a",border:`1px solid ${sv.b}`,borderRadius:8,padding:"8px 10px"}}>
+                  <div key={issue.id} style={{background:issue.severity==="CRITICAL"?"#FEF2F2":issue.severity==="HIGH"?"#FFF7ED":"var(--card)",border:`1px solid ${sv.b}`,borderRadius:8,padding:"8px 10px"}}>
                     <div style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:3}}>
                       <span style={{fontSize:8,fontWeight:800,padding:"1px 6px",borderRadius:8,background:sv.bg,color:sv.c,flexShrink:0}}>{issue.severity}</span>
-                      <span style={{fontSize:8,fontWeight:700,color:"#a0a0b8",flexShrink:0}}>{issue.category}</span>
-                      <span style={{fontSize:9,fontWeight:600,color:"#e4e4ef",flex:1}}>{issue.finding}</span>
+                      <span style={{fontSize:8,fontWeight:700,color:"var(--text-dim)",flexShrink:0}}>{issue.category}</span>
+                      <span style={{fontSize:9,fontWeight:600,color:"var(--text)",flex:1}}>{issue.finding}</span>
                     </div>
                     <div style={{fontSize:8,color:"#b0b0c8"}}><span style={{fontWeight:600}}>Action:</span> {issue.action}</div>
                   </div>
                 );
               })}
-              <div style={{fontSize:8,color:"#707088",fontFamily:MN,marginTop:2}}>
+              <div style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN,marginTop:2}}>
                 {rigCritical>0&&<span style={{color:"#DC2626",fontWeight:700,marginRight:6}}>{rigCritical} CRITICAL</span>}
                 {rigHigh>0&&<span style={{color:"#C2410C",fontWeight:700,marginRight:6}}>{rigHigh} HIGH</span>}
                 Based on venue data on file. Some flags may resolve via advance.
@@ -5163,12 +5170,12 @@ function VenueBrief({vg,sel,data,upd}){
       })()}
 
       {/* Document links */}
-      <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:8,padding:12,marginTop:4}}>
+      <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:12,marginTop:4}}>
         <div style={{...UI.sectionLabel,marginBottom:8}}>Document Links</div>
         {links.length>0&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
           {links.map(lnk=><div key={lnk.id} style={{display:"flex",alignItems:"center",gap:4,background:"#EDE9FE",borderRadius:5,padding:"3px 8px"}}>
             <a href={lnk.url} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:"#5B21B6",textDecoration:"none",fontWeight:600}}>{lnk.label} ↗</a>
-            <button onClick={()=>removeLink(lnk.id)} style={{fontSize:11,color:"#707088",background:"none",border:"none",cursor:"pointer",padding:"0 2px",lineHeight:1}}>×</button>
+            <button onClick={()=>removeLink(lnk.id)} style={{fontSize:11,color:"var(--text-mute)",background:"none",border:"none",cursor:"pointer",padding:"0 2px",lineHeight:1}}>×</button>
           </div>)}
         </div>}
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
@@ -5191,14 +5198,14 @@ const HOTEL_STATUS_META={
   pending:{label:"Pending",bg:"#FEF3C7",c:"#92400E"},
   confirmed:{label:"Confirmed",bg:"#D1FAE5",c:"#047857"},
   checked_in:{label:"Checked In",bg:"#DBEAFE",c:"#a78bfa"},
-  checked_out:{label:"Checked Out",bg:"#1e1e2e",c:"#b0b0c8"},
+  checked_out:{label:"Checked Out",bg:"var(--card-2)",c:"#b0b0c8"},
   cancelled:{label:"Cancelled",bg:"#FEE2E2",c:"#991B1B"},
 };
 const ROOM_STATUS_META={
   pending:{label:"Pending",bg:"#FEF3C7",c:"#92400E"},
   confirmed:{label:"Confirmed",bg:"#D1FAE5",c:"#047857"},
   occupied:{label:"Occupied",bg:"#DBEAFE",c:"#a78bfa"},
-  released:{label:"Released",bg:"#1e1e2e",c:"#b0b0c8"},
+  released:{label:"Released",bg:"var(--card-2)",c:"#b0b0c8"},
 };
 const HOTEL_TODOS_DEFAULT=["Confirm room block","Collect confirmation #","Share room list with crew","Arrange early check-in (if needed)","Confirm late check-out","Collect receipt","Verify billing address"];
 
@@ -5257,23 +5264,23 @@ function LodgingTab(){
   const importAll=()=>{pendingImport.forEach(h=>importHotel(h));};
 
   return(
-    <div style={{display:"flex",flex:1,minHeight:0,height:"100%",background:"#0a0a0f"}}>
+    <div style={{display:"flex",flex:1,minHeight:0,height:"100%",background:"var(--bg)"}}>
       {/* Main content */}
       <div style={{flex:1,overflowY:"auto",padding:mobile?"10px 8px":"14px 16px",display:"flex",flexDirection:"column",gap:14,minWidth:0}}>
         {/* Header */}
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
           <div>
-            <div style={{fontSize:14,fontWeight:800,color:"#e4e4ef",letterSpacing:"-0.02em"}}>
+            <div style={{fontSize:14,fontWeight:800,color:"var(--text)",letterSpacing:"-0.02em"}}>
               {sel?new Date(sel+"T12:00:00").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"}):"Lodging"}
             </div>
-            <div style={{fontSize:10,color:"#a0a0b8",marginTop:1}}>{dayHotels.length} hotel{dayHotels.length!==1?"s":""} covering this date</div>
+            <div style={{fontSize:10,color:"var(--text-dim)",marginTop:1}}>{dayHotels.length} hotel{dayHotels.length!==1?"s":""} covering this date</div>
           </div>
           <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-            {scanMsg&&<span style={{fontSize:9,color:scanning?"#5B21B6":"#a0a0b8",fontFamily:MN,maxWidth:200}}>{scanMsg}</span>}
-            <button onClick={()=>scanLodging({sweepFrom:"2026-01-01"})} disabled={scanning} style={{background:scanning?"#2a2a3a":"#7C3AED",color:scanning?"#a0a0b8":"#12121a",border:"none",borderRadius:6,padding:"5px 10px",fontSize:10,fontWeight:700,cursor:scanning?"default":"pointer"}}>
+            {scanMsg&&<span style={{fontSize:9,color:scanning?"#5B21B6":"var(--text-dim)",fontFamily:MN,maxWidth:200}}>{scanMsg}</span>}
+            <button onClick={()=>scanLodging({sweepFrom:"2026-01-01"})} disabled={scanning} style={{background:scanning?"var(--border)":"#7C3AED",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,padding:"5px 10px",fontSize:10,fontWeight:700,cursor:scanning?"default":"pointer"}}>
               {scanning?"Scanning…":"Historical Sweep"}
             </button>
-            <button onClick={()=>scanLodging()} disabled={scanning} style={{background:scanning?"#2a2a3a":"#5B21B6",color:scanning?"#a0a0b8":"#12121a",border:"none",borderRadius:6,padding:"5px 10px",fontSize:10,fontWeight:700,cursor:scanning?"default":"pointer"}}>
+            <button onClick={()=>scanLodging()} disabled={scanning} style={{background:scanning?"var(--border)":"#5B21B6",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,padding:"5px 10px",fontSize:10,fontWeight:700,cursor:scanning?"default":"pointer"}}>
               {scanning?"Scanning…":"Scan Gmail"}
             </button>
             <button onClick={()=>setAddOpen(true)} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>
@@ -5291,15 +5298,15 @@ function LodgingTab(){
             </div>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               {pendingImport.map(h=>(
-                <div key={h.id} style={{background:"#12121a",borderRadius:8,padding:"10px 12px",border:"1px solid #DDD6FE",display:"flex",flexDirection:"column",gap:4}}>
+                <div key={h.id} style={{background:"var(--card)",borderRadius:8,padding:"10px 12px",border:"1px solid #DDD6FE",display:"flex",flexDirection:"column",gap:4}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
                     <div>
-                      <span style={{fontSize:12,fontWeight:700,color:"#e4e4ef"}}>{h.name}</span>
-                      {h.city&&<span style={{fontSize:10,color:"#a0a0b8",marginLeft:6}}>{h.city}</span>}
+                      <span style={{fontSize:12,fontWeight:700,color:"var(--text)"}}>{h.name}</span>
+                      {h.city&&<span style={{fontSize:10,color:"var(--text-dim)",marginLeft:6}}>{h.city}</span>}
                     </div>
                     <div style={{display:"flex",gap:5,alignItems:"center"}}>
                       {h.tid&&<a href={`https://mail.google.com/mail/u/0/#inbox/${h.tid}`} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"#5B21B6",textDecoration:"none"}}>open email ↗</a>}
-                      <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==h.id))} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"1px solid #2a2a3a",background:"transparent",color:"#a0a0b8",cursor:"pointer"}}>Skip</button>
+                      <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==h.id))} style={{fontSize:9,padding:"2px 8px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Skip</button>
                       <button onClick={()=>importHotel(h)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
                     </div>
                   </div>
@@ -5307,7 +5314,7 @@ function LodgingTab(){
                     {h.checkIn} → {h.checkOut}
                     {h.confirmNo&&<span style={{marginLeft:8,color:"#7C3AED"}}>#{h.confirmNo}</span>}
                     {h.cost&&<span style={{marginLeft:8}}>{h.currency||"USD"} {h.cost.toLocaleString()}</span>}
-                    {h.pax?.length>0&&<span style={{marginLeft:8,color:"#a0a0b8"}}>{h.pax.join(", ")}</span>}
+                    {h.pax?.length>0&&<span style={{marginLeft:8,color:"var(--text-dim)"}}>{h.pax.join(", ")}</span>}
                   </div>
                 </div>
               ))}
@@ -5316,7 +5323,7 @@ function LodgingTab(){
         )}
 
         {dayHotels.length===0&&(
-          <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"28px 20px",textAlign:"center",color:"#707088",fontSize:11}}>
+          <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"28px 20px",textAlign:"center",color:"var(--text-mute)",fontSize:11}}>
             No hotels assigned to this date.<br/>
             <span style={{color:"#5B21B6",cursor:"pointer",fontWeight:600}} onClick={()=>setAddOpen(true)}>+ Add a hotel</span>
           </div>
@@ -5379,21 +5386,21 @@ function HotelCard({hotel,date,onEdit,crew,uLodging,uFin,finance}){
   const doneTodos=todos.filter(t=>t.done).length;
 
   return(
-    <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,overflow:"hidden"}}>
+    <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
       {/* Card header */}
-      <div style={{padding:"10px 14px",display:"flex",alignItems:"center",gap:8,borderBottom:open?"1px solid #2a2a3a":"none",cursor:"pointer"}} onClick={()=>{setOpen(v=>!v);if(!hotel.todos)initTodos();}}>
+      <div style={{padding:"10px 14px",display:"flex",alignItems:"center",gap:8,borderBottom:open?"1px solid var(--border)":"none",cursor:"pointer"}} onClick={()=>{setOpen(v=>!v);if(!hotel.todos)initTodos();}}>
         <span style={{fontSize:13}}>{open?"▾":"▸"}</span>
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-            <span style={{fontWeight:800,fontSize:13,color:"#e4e4ef"}}>{hotel.name||"Unnamed Hotel"}</span>
+            <span style={{fontWeight:800,fontSize:13,color:"var(--text)"}}>{hotel.name||"Unnamed Hotel"}</span>
             <span style={{fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:99,...meta,display:"inline-block"}}>{meta.label}</span>
             {hotel.stars&&<span style={{fontSize:10,color:"#F59E0B"}}>{"★".repeat(hotel.stars)}</span>}
           </div>
-          <div style={{fontSize:10,color:"#a0a0b8",marginTop:1}}>{hotel.city&&`${hotel.city} · `}Check-in {hotel.checkIn} → Check-out {hotel.checkOut}</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",marginTop:1}}>{hotel.city&&`${hotel.city} · `}Check-in {hotel.checkIn} → Check-out {hotel.checkOut}</div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
           {totalCost>0&&<span style={{fontSize:10,fontWeight:700,color:"#047857",fontFamily:MN}}>${totalCost.toFixed(0)}</span>}
-          <button onClick={e=>{e.stopPropagation();onEdit();}} style={{background:"#1e1e2e",border:"none",borderRadius:5,padding:"4px 8px",fontSize:10,cursor:"pointer",color:"#b0b0c8"}}>Edit</button>
+          <button onClick={e=>{e.stopPropagation();onEdit();}} style={{background:"var(--card-2)",border:"none",borderRadius:5,padding:"4px 8px",fontSize:10,cursor:"pointer",color:"#b0b0c8"}}>Edit</button>
           <button onClick={e=>{e.stopPropagation();if(confirm(`Remove ${hotel.name}?`))uLodging(hotel.id,null);}} style={{background:"none",border:"none",cursor:"pointer",color:"#ef4444",fontSize:14,padding:"2px 4px"}}>×</button>
         </div>
       </div>
@@ -5413,42 +5420,42 @@ function HotelCard({hotel,date,onEdit,crew,uLodging,uFin,finance}){
           {/* Room assignments */}
           <div>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-              <div style={{fontSize:10,fontWeight:700,color:"#e4e4ef",letterSpacing:"0.04em",textTransform:"uppercase"}}>Rooms ({rooms.length})</div>
+              <div style={{fontSize:10,fontWeight:700,color:"var(--text)",letterSpacing:"0.04em",textTransform:"uppercase"}}>Rooms ({rooms.length})</div>
               <button onClick={()=>setAddRoomOpen(v=>!v)} style={{background:"#EDE9FE",color:"#5B21B6",border:"none",borderRadius:5,padding:"3px 8px",fontSize:10,fontWeight:700,cursor:"pointer"}}>+ Assign Room</button>
             </div>
-            {rooms.length===0&&<div style={{fontSize:10,color:"#707088",fontStyle:"italic"}}>No rooms assigned.</div>}
+            {rooms.length===0&&<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No rooms assigned.</div>}
             {rooms.map(r=>{
               const cm=crew.find(c=>c.id===r.crewId);
               const rMeta=ROOM_STATUS_META[r.status||"pending"]||ROOM_STATUS_META.pending;
               return(
                 <div key={r.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid #f1f0ee",fontSize:11}}>
                   <button onClick={()=>cycleRoomStatus(r.id)} style={{fontSize:9,fontWeight:700,padding:"2px 6px",borderRadius:99,...rMeta,border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>{rMeta.label}</button>
-                  <span style={{flex:1,fontWeight:600,color:"#e4e4ef"}}>{cm?.name||r.crewId}</span>
-                  {r.roomNo&&<span style={{fontFamily:MN,color:"#a0a0b8"}}>#{r.roomNo}</span>}
-                  <span style={{color:"#a0a0b8"}}>{r.type}</span>
+                  <span style={{flex:1,fontWeight:600,color:"var(--text)"}}>{cm?.name||r.crewId}</span>
+                  {r.roomNo&&<span style={{fontFamily:MN,color:"var(--text-dim)"}}>#{r.roomNo}</span>}
+                  <span style={{color:"var(--text-dim)"}}>{r.type}</span>
                   {r.cost>0&&<span style={{fontFamily:MN,color:"#047857",fontWeight:700}}>${r.cost}</span>}
-                  {r.notes&&<span style={{color:"#707088",fontSize:10}}>{r.notes}</span>}
+                  {r.notes&&<span style={{color:"var(--text-mute)",fontSize:10}}>{r.notes}</span>}
                   <button onClick={()=>removeRoom(r.id)} style={{background:"none",border:"none",color:"#ef4444",cursor:"pointer",fontSize:13,padding:"0 2px"}}>×</button>
                 </div>
               );
             })}
             {addRoomOpen&&(
-              <div style={{background:"#161622",border:"1px solid #2a2a3a",borderRadius:7,padding:"10px 10px",marginTop:6,display:"flex",flexDirection:"column",gap:7}}>
+              <div style={{background:"#161622",border:"1px solid var(--border)",borderRadius:7,padding:"10px 10px",marginTop:6,display:"flex",flexDirection:"column",gap:7}}>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                  <select value={newRoom.crewId} onChange={e=>setNewRoom(p=>({...p,crewId:e.target.value}))} style={{flex:2,padding:"4px 6px",borderRadius:5,border:"1px solid #2a2a3a",fontSize:11,minWidth:120}}>
+                  <select value={newRoom.crewId} onChange={e=>setNewRoom(p=>({...p,crewId:e.target.value}))} style={{flex:2,padding:"4px 6px",borderRadius:5,border:"1px solid var(--border)",fontSize:11,minWidth:120}}>
                     <option value="">Select crew member</option>
                     {crew.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
-                  <input placeholder="Room #" value={newRoom.roomNo} onChange={e=>setNewRoom(p=>({...p,roomNo:e.target.value}))} style={{width:70,padding:"4px 6px",borderRadius:5,border:"1px solid #2a2a3a",fontSize:11,fontFamily:MN}}/>
-                  <select value={newRoom.type} onChange={e=>setNewRoom(p=>({...p,type:e.target.value}))} style={{width:90,padding:"4px 6px",borderRadius:5,border:"1px solid #2a2a3a",fontSize:11}}>
+                  <input placeholder="Room #" value={newRoom.roomNo} onChange={e=>setNewRoom(p=>({...p,roomNo:e.target.value}))} style={{width:70,padding:"4px 6px",borderRadius:5,border:"1px solid var(--border)",fontSize:11,fontFamily:MN}}/>
+                  <select value={newRoom.type} onChange={e=>setNewRoom(p=>({...p,type:e.target.value}))} style={{width:90,padding:"4px 6px",borderRadius:5,border:"1px solid var(--border)",fontSize:11}}>
                     {["Single","Double","Twin","Suite","King","Shared"].map(t=><option key={t}>{t}</option>)}
                   </select>
-                  <input placeholder="Cost" type="number" value={newRoom.cost} onChange={e=>setNewRoom(p=>({...p,cost:e.target.value}))} style={{width:70,padding:"4px 6px",borderRadius:5,border:"1px solid #2a2a3a",fontSize:11,fontFamily:MN}}/>
+                  <input placeholder="Cost" type="number" value={newRoom.cost} onChange={e=>setNewRoom(p=>({...p,cost:e.target.value}))} style={{width:70,padding:"4px 6px",borderRadius:5,border:"1px solid var(--border)",fontSize:11,fontFamily:MN}}/>
                 </div>
-                <input placeholder="Notes (optional)" value={newRoom.notes} onChange={e=>setNewRoom(p=>({...p,notes:e.target.value}))} style={{padding:"4px 6px",borderRadius:5,border:"1px solid #2a2a3a",fontSize:11}}/>
+                <input placeholder="Notes (optional)" value={newRoom.notes} onChange={e=>setNewRoom(p=>({...p,notes:e.target.value}))} style={{padding:"4px 6px",borderRadius:5,border:"1px solid var(--border)",fontSize:11}}/>
                 <div style={{display:"flex",gap:6}}>
                   <button onClick={addRoom} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:5,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Add Room</button>
-                  <button onClick={()=>setAddRoomOpen(false)} style={{background:"#1e1e2e",color:"#b0b0c8",border:"none",borderRadius:5,padding:"5px 10px",fontSize:11,cursor:"pointer"}}>Cancel</button>
+                  <button onClick={()=>setAddRoomOpen(false)} style={{background:"var(--card-2)",color:"#b0b0c8",border:"none",borderRadius:5,padding:"5px 10px",fontSize:11,cursor:"pointer"}}>Cancel</button>
                 </div>
               </div>
             )}
@@ -5456,10 +5463,10 @@ function HotelCard({hotel,date,onEdit,crew,uLodging,uFin,finance}){
 
           {/* To-do checklist */}
           <div>
-            <div style={{fontSize:10,fontWeight:700,color:"#e4e4ef",letterSpacing:"0.04em",textTransform:"uppercase",marginBottom:5}}>Checklist ({doneTodos}/{todos.length})</div>
+            <div style={{fontSize:10,fontWeight:700,color:"var(--text)",letterSpacing:"0.04em",textTransform:"uppercase",marginBottom:5}}>Checklist ({doneTodos}/{todos.length})</div>
             <div style={{display:"flex",flexDirection:"column",gap:3}}>
               {todos.map((t,i)=>(
-                <label key={i} style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",fontSize:11,color:t.done?"#707088":"#e4e4ef",textDecoration:t.done?"line-through":"none"}}>
+                <label key={i} style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",fontSize:11,color:t.done?"var(--text-mute)":"var(--text)",textDecoration:t.done?"line-through":"none"}}>
                   <input type="checkbox" checked={!!t.done} onChange={()=>toggleTodo(i)} style={{accentColor:"#5B21B6",width:13,height:13,flexShrink:0}}/>
                   {t.text}
                 </label>
@@ -5469,17 +5476,17 @@ function HotelCard({hotel,date,onEdit,crew,uLodging,uFin,finance}){
 
           {/* Notes */}
           <div>
-            <div style={{fontSize:10,fontWeight:700,color:"#e4e4ef",letterSpacing:"0.04em",textTransform:"uppercase",marginBottom:4}}>Notes</div>
-            <textarea value={hotel.notes||""} onChange={e=>uLodging(hotel.id,{...hotel,notes:e.target.value})} placeholder="Parking, shuttle, special requests, room block contact…" rows={2} style={{width:"100%",padding:"6px 8px",borderRadius:6,border:"1px solid #2a2a3a",fontSize:11,resize:"vertical",background:"#161622",fontFamily:"'Outfit',system-ui"}}/>
+            <div style={{fontSize:10,fontWeight:700,color:"var(--text)",letterSpacing:"0.04em",textTransform:"uppercase",marginBottom:4}}>Notes</div>
+            <textarea value={hotel.notes||""} onChange={e=>uLodging(hotel.id,{...hotel,notes:e.target.value})} placeholder="Parking, shuttle, special requests, room block contact…" rows={2} style={{width:"100%",padding:"6px 8px",borderRadius:6,border:"1px solid var(--border)",fontSize:11,resize:"vertical",background:"#161622",fontFamily:"'Outfit',system-ui"}}/>
           </div>
 
           {/* Finance row */}
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:4,borderTop:"1px solid #f1f0ee"}}>
-            <div style={{fontSize:11,color:"#a0a0b8"}}>
+            <div style={{fontSize:11,color:"var(--text-dim)"}}>
               Total: <strong style={{color:"#047857",fontFamily:MN}}>{hotel.currency||"USD"} {totalCost.toFixed(2)}</strong>
-              {rooms.length>0&&<span style={{color:"#707088",marginLeft:6}}>({rooms.length} room{rooms.length!==1?"s":""})</span>}
+              {rooms.length>0&&<span style={{color:"var(--text-mute)",marginLeft:6}}>({rooms.length} room{rooms.length!==1?"s":""})</span>}
             </div>
-            <button onClick={pushToLedger} disabled={!totalCost} style={{background:totalCost?"#047857":"#2a2a3a",color:"#fff",border:"none",borderRadius:5,padding:"5px 10px",fontSize:10,fontWeight:700,cursor:totalCost?"pointer":"not-allowed"}}>↑ Add to Ledger</button>
+            <button onClick={pushToLedger} disabled={!totalCost} style={{background:totalCost?"#047857":"var(--border)",color:"#fff",border:"none",borderRadius:5,padding:"5px 10px",fontSize:10,fontWeight:700,cursor:totalCost?"pointer":"not-allowed"}}>↑ Add to Ledger</button>
           </div>
         </div>
       )}
@@ -5494,44 +5501,44 @@ function HotelFormModal({date,hotel,onClose,onSave,existingHotels}){
   const f=(k,v)=>setForm(p=>({...p,[k]:v}));
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.45)",zIndex:80,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={onClose}>
-      <div style={{background:"#12121a",borderRadius:12,padding:"20px 22px",width:"100%",maxWidth:460,boxShadow:"0 24px 64px rgba(0,0,0,.18)",display:"flex",flexDirection:"column",gap:12,maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+      <div style={{background:"var(--card)",borderRadius:12,padding:"20px 22px",width:"100%",maxWidth:460,boxShadow:"0 24px 64px rgba(0,0,0,.18)",display:"flex",flexDirection:"column",gap:12,maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div style={{fontWeight:800,fontSize:14,color:"#e4e4ef"}}>{isEdit?"Edit Hotel":"Add Hotel"}</div>
-          <button onClick={onClose} style={{background:"none",border:"none",fontSize:18,cursor:"pointer",color:"#707088"}}>×</button>
+          <div style={{fontWeight:800,fontSize:14,color:"var(--text)"}}>{isEdit?"Edit Hotel":"Add Hotel"}</div>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:18,cursor:"pointer",color:"var(--text-mute)"}}>×</button>
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px 10px"}}>
           {[["name","Hotel Name","full"],["address","Address","full"],["city","City","half"],["phone","Phone","half"],["confirmNo","Confirmation #","half"],["bookingRef","Booking Ref","half"],["checkIn","Check-in Date","half"],["checkOut","Check-out Date","half"],["checkInTime","Check-in Time","half"],["checkOutTime","Check-out Time","half"]].map(([k,lbl,span])=>(
             <div key={k} style={{gridColumn:span==="full"?"1/-1":"auto"}}>
-              <div style={{fontSize:9,fontWeight:700,color:"#a0a0b8",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.06em"}}>{lbl}</div>
-              <input value={form[k]||""} onChange={e=>f(k,e.target.value)} type={k.includes("Date")?"date":k.includes("Time")?"time":"text"} style={{width:"100%",padding:"5px 8px",borderRadius:6,border:"1px solid #2a2a3a",fontSize:11,fontFamily:k==="confirmNo"||k==="bookingRef"?MN:"inherit"}}/>
+              <div style={{fontSize:9,fontWeight:700,color:"var(--text-dim)",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.06em"}}>{lbl}</div>
+              <input value={form[k]||""} onChange={e=>f(k,e.target.value)} type={k.includes("Date")?"date":k.includes("Time")?"time":"text"} style={{width:"100%",padding:"5px 8px",borderRadius:6,border:"1px solid var(--border)",fontSize:11,fontFamily:k==="confirmNo"||k==="bookingRef"?MN:"inherit"}}/>
             </div>
           ))}
           <div>
-            <div style={{fontSize:9,fontWeight:700,color:"#a0a0b8",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.06em"}}>Stars</div>
-            <select value={form.stars||""} onChange={e=>f("stars",e.target.value?parseInt(e.target.value):"")} style={{width:"100%",padding:"5px 8px",borderRadius:6,border:"1px solid #2a2a3a",fontSize:11}}>
+            <div style={{fontSize:9,fontWeight:700,color:"var(--text-dim)",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.06em"}}>Stars</div>
+            <select value={form.stars||""} onChange={e=>f("stars",e.target.value?parseInt(e.target.value):"")} style={{width:"100%",padding:"5px 8px",borderRadius:6,border:"1px solid var(--border)",fontSize:11}}>
               <option value="">–</option>
               {[1,2,3,4,5].map(n=><option key={n} value={n}>{"★".repeat(n)}</option>)}
             </select>
           </div>
           <div>
-            <div style={{fontSize:9,fontWeight:700,color:"#a0a0b8",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.06em"}}>Status</div>
-            <select value={form.status||"pending"} onChange={e=>f("status",e.target.value)} style={{width:"100%",padding:"5px 8px",borderRadius:6,border:"1px solid #2a2a3a",fontSize:11}}>
+            <div style={{fontSize:9,fontWeight:700,color:"var(--text-dim)",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.06em"}}>Status</div>
+            <select value={form.status||"pending"} onChange={e=>f("status",e.target.value)} style={{width:"100%",padding:"5px 8px",borderRadius:6,border:"1px solid var(--border)",fontSize:11}}>
               {Object.entries(HOTEL_STATUS_META).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}
             </select>
           </div>
           <div>
-            <div style={{fontSize:9,fontWeight:700,color:"#a0a0b8",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.06em"}}>Currency</div>
-            <select value={form.currency||"USD"} onChange={e=>f("currency",e.target.value)} style={{width:"100%",padding:"5px 8px",borderRadius:6,border:"1px solid #2a2a3a",fontSize:11}}>
+            <div style={{fontSize:9,fontWeight:700,color:"var(--text-dim)",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.06em"}}>Currency</div>
+            <select value={form.currency||"USD"} onChange={e=>f("currency",e.target.value)} style={{width:"100%",padding:"5px 8px",borderRadius:6,border:"1px solid var(--border)",fontSize:11}}>
               {["USD","EUR","GBP","CAD","AUD","PLN","CZK","SEK","NOK","DKK"].map(c=><option key={c}>{c}</option>)}
             </select>
           </div>
         </div>
         <div>
-          <div style={{fontSize:9,fontWeight:700,color:"#a0a0b8",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.06em"}}>Notes</div>
-          <textarea value={form.notes||""} onChange={e=>f("notes",e.target.value)} rows={2} style={{width:"100%",padding:"6px 8px",borderRadius:6,border:"1px solid #2a2a3a",fontSize:11,resize:"vertical"}}/>
+          <div style={{fontSize:9,fontWeight:700,color:"var(--text-dim)",marginBottom:3,textTransform:"uppercase",letterSpacing:"0.06em"}}>Notes</div>
+          <textarea value={form.notes||""} onChange={e=>f("notes",e.target.value)} rows={2} style={{width:"100%",padding:"6px 8px",borderRadius:6,border:"1px solid var(--border)",fontSize:11,resize:"vertical"}}/>
         </div>
         <div style={{display:"flex",gap:8,justifyContent:"flex-end"}}>
-          <button onClick={onClose} style={{background:"#1e1e2e",border:"none",borderRadius:6,padding:"7px 14px",fontSize:11,cursor:"pointer",color:"#b0b0c8"}}>Cancel</button>
+          <button onClick={onClose} style={{background:"var(--card-2)",border:"none",borderRadius:6,padding:"7px 14px",fontSize:11,cursor:"pointer",color:"#b0b0c8"}}>Cancel</button>
           <button onClick={()=>onSave(form)} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"7px 16px",fontSize:11,fontWeight:700,cursor:"pointer"}}>{isEdit?"Save Changes":"Add Hotel"}</button>
         </div>
       </div>
@@ -5678,27 +5685,27 @@ function ProdTab(){
     {id:"issues",label:`Issues${openIssues>0?` (${openIssues})`:""}`,badge:openIssues>0?openIssues:null,badgeColor:"#DC2626"},
   ];
 
-  if(!show)return<div style={{padding:24,color:"#a0a0b8",fontSize:11}}>Select a show to view production data.</div>;
+  if(!show)return<div style={{padding:24,color:"var(--text-dim)",fontSize:11}}>Select a show to view production data.</div>;
 
   return(
     <div className="fi" style={{padding:"16px 20px",maxWidth:900,width:"100%",height:"calc(100vh - 115px)",overflowY:"auto"}}>
       {/* Header */}
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
         <div style={{flex:1}}>
-          <div style={{fontSize:13,fontWeight:800,color:"#e4e4ef"}}>{show.venue}</div>
-          <div style={{fontSize:10,color:"#a0a0b8",fontFamily:MN}}>{show.date} · {show.city}</div>
+          <div style={{fontSize:13,fontWeight:800,color:"var(--text)"}}>{show.venue}</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:MN}}>{show.date} · {show.city}</div>
         </div>
         <div style={{display:"flex",gap:6}}>
-          {data.items?.length>0&&<button onClick={runAnalysis} disabled={analyzing} style={{fontSize:10,fontWeight:700,padding:"5px 12px",borderRadius:6,border:"none",background:analyzing?"#2a2a3a":"#5B21B6",color:analyzing?"#707088":"#12121a",cursor:analyzing?"default":"pointer"}}>{analyzing?"Analyzing…":"Run Analysis"}</button>}
-          {data.items?.length>0&&<button onClick={exportJson} style={{fontSize:10,fontWeight:600,padding:"5px 10px",borderRadius:6,border:"1px solid #2a2a3a",background:"#17171f",color:"#b0b0c8",cursor:"pointer"}}>Export JSON</button>}
+          {data.items?.length>0&&<button onClick={runAnalysis} disabled={analyzing} style={{fontSize:10,fontWeight:700,padding:"5px 12px",borderRadius:6,border:"none",background:analyzing?"var(--border)":"#5B21B6",color:analyzing?"var(--text-mute)":"var(--card)",cursor:analyzing?"default":"pointer"}}>{analyzing?"Analyzing…":"Run Analysis"}</button>}
+          {data.items?.length>0&&<button onClick={exportJson} style={{fontSize:10,fontWeight:600,padding:"5px 10px",borderRadius:6,border:"1px solid var(--border)",background:"#17171f",color:"#b0b0c8",cursor:"pointer"}}>Export JSON</button>}
         </div>
       </div>
 
       {uploadMsg&&<div style={{fontSize:10,color:uploadMsg.startsWith("Error")||uploadMsg.startsWith("PDF")?"#DC2626":"#047857",background:uploadMsg.startsWith("Error")||uploadMsg.startsWith("PDF")?"#FEF2F2":"#F0FDF4",border:`1px solid ${uploadMsg.startsWith("Error")||uploadMsg.startsWith("PDF")?"#FECACA":"#BBF7D0"}`,borderRadius:6,padding:"6px 10px",marginBottom:10,fontFamily:MN}}>{uploadMsg}</div>}
 
       {/* Sub-tabs */}
-      <div style={{display:"flex",gap:1,borderBottom:"1px solid #2a2a3a",marginBottom:12,overflowX:"auto",overflowY:"hidden",scrollbarWidth:"thin",WebkitOverflowScrolling:"touch"}}>
-        {SUB_TABS.map(t=><button key={t.id} onClick={()=>setSubTab(t.id)} style={{padding:"5px 12px",fontSize:10,fontWeight:subTab===t.id?700:500,color:subTab===t.id?"#e4e4ef":"#a0a0b8",background:"none",border:"none",cursor:"pointer",borderBottom:subTab===t.id?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:4,flexShrink:0,whiteSpace:"nowrap"}}>
+      <div style={{display:"flex",gap:1,borderBottom:"1px solid var(--border)",marginBottom:12,overflowX:"auto",overflowY:"hidden",scrollbarWidth:"thin",WebkitOverflowScrolling:"touch"}}>
+        {SUB_TABS.map(t=><button key={t.id} onClick={()=>setSubTab(t.id)} style={{padding:"5px 12px",fontSize:10,fontWeight:subTab===t.id?700:500,color:subTab===t.id?"var(--text)":"var(--text-dim)",background:"none",border:"none",cursor:"pointer",borderBottom:subTab===t.id?"2px solid #5B21B6":"2px solid transparent",display:"flex",alignItems:"center",gap:4,flexShrink:0,whiteSpace:"nowrap"}}>
           {t.label}{t.badge!=null&&<span style={{fontSize:8,fontWeight:800,background:t.badgeColor||"#5B21B6",color:"#fff",borderRadius:10,padding:"1px 5px"}}>{t.badge}</span>}
         </button>)}
       </div>
@@ -5709,59 +5716,59 @@ function ProdTab(){
       {/* Rig Check tab */}
       {subTab==="rigcheck"&&<div style={{display:"flex",flexDirection:"column",gap:10}}>
         {/* Spec header */}
-        <div style={{background:"#2a2a3a",borderRadius:10,padding:"12px 16px",color:"#fff"}}>
+        <div style={{background:"var(--border)",borderRadius:10,padding:"12px 16px",color:"#fff"}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
             <div style={{flex:1}}>
-              <div style={{fontSize:11,fontWeight:800,fontFamily:MN,color:"#2a2a3a"}}>BBNO$ EU TOUR RIG — {DESIGN_RIG.version}</div>
-              <div style={{fontSize:9,color:"#a0a0b8",fontFamily:MN}}>Designer: {DESIGN_RIG.drawnBy} · {DESIGN_RIG.publishedAt} · {DESIGN_RIG.file}</div>
+              <div style={{fontSize:11,fontWeight:800,fontFamily:MN,color:"var(--border)"}}>BBNO$ EU TOUR RIG — {DESIGN_RIG.version}</div>
+              <div style={{fontSize:9,color:"var(--text-dim)",fontFamily:MN}}>Designer: {DESIGN_RIG.drawnBy} · {DESIGN_RIG.publishedAt} · {DESIGN_RIG.file}</div>
             </div>
-            <span style={{fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:6,background:"#1e293b",color:"#707088",fontFamily:MN}}>~{DESIGN_RIG.req.power_kw_est} kW est.</span>
+            <span style={{fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:6,background:"#1e293b",color:"var(--text-mute)",fontFamily:MN}}>~{DESIGN_RIG.req.power_kw_est} kW est.</span>
           </div>
           <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
             {[["Rig W",`${DESIGN_RIG.dims.rig_width_mm/1000}m`],["LED Tower H",`${DESIGN_RIG.dims.led_tower_h_mm/1000}m`],["Fly Trim",`${DESIGN_RIG.dims.fly_trim_mm/1000}m`],["Stage Depth",`${DESIGN_RIG.dims.stage_depth_mm/1000}m`],["Stage W total",`${DESIGN_RIG.dims.stage_w_total_mm/1000}m`],["Min Clear (GS)",`${DESIGN_RIG.req.min_clearance_gs_m}m`],["Min Clear (fly)",`${DESIGN_RIG.req.min_clearance_fly_m}m`],["Lasers",`${DESIGN_RIG.req.laser_count}× Class 4`]].map(([k,v])=><div key={k} style={{textAlign:"center"}}>
-              <div style={{fontSize:8,color:"#707088",textTransform:"uppercase",letterSpacing:"0.04em"}}>{k}</div>
+              <div style={{fontSize:8,color:"var(--text-mute)",textTransform:"uppercase",letterSpacing:"0.04em"}}>{k}</div>
               <div style={{fontSize:12,fontWeight:800,fontFamily:MN,color:"#17171f"}}>{v}</div>
             </div>)}
           </div>
         </div>
 
         {/* Fixture schedule */}
-        <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:12}}>
+        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:12}}>
           <div style={{...UI.sectionLabel,marginBottom:8}}>Fixture Schedule (Sht-1 Symbol Key + VWX)</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 40px 60px 60px 50px",gap:0,padding:"4px 8px",background:"#17171f",borderRadius:"6px 6px 0 0",borderBottom:"1px solid #2a2a3a"}}>
-            {["Fixture","Qty","W/unit","Binder","Δ"].map(h=><span key={h} style={{fontSize:8,fontWeight:800,color:"#707088",letterSpacing:"0.04em"}}>{h}</span>)}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 40px 60px 60px 50px",gap:0,padding:"4px 8px",background:"#17171f",borderRadius:"6px 6px 0 0",borderBottom:"1px solid var(--border)"}}>
+            {["Fixture","Qty","W/unit","Binder","Δ"].map(h=><span key={h} style={{fontSize:8,fontWeight:800,color:"var(--text-mute)",letterSpacing:"0.04em"}}>{h}</span>)}
           </div>
           {DESIGN_RIG.fixtures.map((f,i)=>{
             const hasDelta=f.delta!=null&&f.delta!==0;
             const deltaColor=f.delta>0?"#DC2626":f.delta<0?"#C2410C":"#047857";
             return(
-              <div key={f.name} style={{display:"grid",gridTemplateColumns:"1fr 40px 60px 60px 50px",gap:0,padding:"4px 8px",background:hasDelta?"#FEF2F2":i%2===0?"#12121a":"#17171f",borderBottom:"1px solid #1e1e2e",alignItems:"center"}}>
+              <div key={f.name} style={{display:"grid",gridTemplateColumns:"1fr 40px 60px 60px 50px",gap:0,padding:"4px 8px",background:hasDelta?"#FEF2F2":i%2===0?"var(--card)":"#17171f",borderBottom:"1px solid var(--card-2)",alignItems:"center"}}>
                 <div>
-                  <div style={{fontSize:9,fontWeight:600,color:"#e4e4ef"}}>{f.name}</div>
-                  {f.note&&<div style={{fontSize:7,color:"#707088",fontStyle:"italic"}}>{f.note}</div>}
+                  <div style={{fontSize:9,fontWeight:600,color:"var(--text)"}}>{f.name}</div>
+                  {f.note&&<div style={{fontSize:7,color:"var(--text-mute)",fontStyle:"italic"}}>{f.note}</div>}
                   <div style={{fontSize:7,color:"#606080"}}>{f.dept} · {f.position} · {f.source}</div>
                 </div>
-                <span style={{fontSize:10,fontWeight:700,fontFamily:MN,textAlign:"center",color:f.qty==null?"#707088":"#e4e4ef"}}>{f.qty??"-"}</span>
+                <span style={{fontSize:10,fontWeight:700,fontFamily:MN,textAlign:"center",color:f.qty==null?"var(--text-mute)":"var(--text)"}}>{f.qty??"-"}</span>
                 <span style={{fontSize:9,fontFamily:MN,color:"#b0b0c8",textAlign:"right"}}>{f.power_w?`${f.power_w}W`:"—"}</span>
-                <span style={{fontSize:9,fontFamily:MN,color:"#a0a0b8",textAlign:"center"}}>{f.binder_qty??"-"}</span>
+                <span style={{fontSize:9,fontFamily:MN,color:"var(--text-dim)",textAlign:"center"}}>{f.binder_qty??"-"}</span>
                 <span style={{fontSize:10,fontWeight:700,fontFamily:MN,textAlign:"center",color:hasDelta?deltaColor:"#047857"}}>{f.delta==null?"?":f.delta===0?"✓":f.delta>0?`+${f.delta}`:f.delta}</span>
               </div>
             );
           })}
-          <div style={{padding:"4px 8px",fontSize:8,color:"#707088"}}>Δ = design qty − binder qty · red = under-quoted · amber = over-quoted</div>
+          <div style={{padding:"4px 8px",fontSize:8,color:"var(--text-mute)"}}>Δ = design qty − binder qty · red = under-quoted · amber = over-quoted</div>
         </div>
 
         {/* Design vs quote discrepancies */}
-        <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:12}}>
+        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:12}}>
           <div style={{...UI.sectionLabel,marginBottom:8}}>Design vs Quote Discrepancies</div>
           {DESIGN_RIG.specDiscrepancies.map((disc,i)=>{
             const sv=SEV_STYLES[disc.severity]||SEV_STYLES.LOW;
             return(
-              <div key={i} style={{padding:"7px 10px",borderBottom:"1px solid #1e1e2e",background:i%2===0?"#12121a":"#17171f"}}>
+              <div key={i} style={{padding:"7px 10px",borderBottom:"1px solid var(--card-2)",background:i%2===0?"var(--card)":"#17171f"}}>
                 <div style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:3}}>
                   <span style={{fontSize:8,fontWeight:800,padding:"1px 6px",borderRadius:8,background:sv.bg,color:sv.c,flexShrink:0}}>{disc.severity}</span>
-                  <span style={{fontSize:8,fontWeight:700,color:"#a0a0b8",flexShrink:0}}>{disc.category}</span>
-                  <span style={{fontSize:9,color:"#e4e4ef",flex:1}}>{disc.finding}</span>
+                  <span style={{fontSize:8,fontWeight:700,color:"var(--text-dim)",flexShrink:0}}>{disc.category}</span>
+                  <span style={{fontSize:9,color:"var(--text)",flex:1}}>{disc.finding}</span>
                 </div>
                 <div style={{fontSize:8,color:"#b0b0c8",paddingLeft:2}}><span style={{fontWeight:600}}>Action:</span> {disc.action}</div>
               </div>
@@ -5773,40 +5780,40 @@ function ProdTab(){
 
       {/* Upload tab */}
       {subTab==="upload"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
-        <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:16}}>
+        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:16}}>
           <div style={{...UI.sectionLabel,marginBottom:10}}>Add Document</div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
-            {["vendor_quote","design_drawing"].map(dt=><button key={dt} onClick={()=>setDocType(dt)} style={{fontSize:10,fontWeight:700,padding:"4px 12px",borderRadius:6,border:`1.5px solid ${docType===dt?"#5B21B6":"#2a2a3a"}`,background:docType===dt?"#EDE9FE":"#12121a",color:docType===dt?"#5B21B6":"#b0b0c8",cursor:"pointer"}}>{dt==="vendor_quote"?"Vendor Quote":"Design Drawing"}</button>)}
+            {["vendor_quote","design_drawing"].map(dt=><button key={dt} onClick={()=>setDocType(dt)} style={{fontSize:10,fontWeight:700,padding:"4px 12px",borderRadius:6,border:`1.5px solid ${docType===dt?"#5B21B6":"var(--border)"}`,background:docType===dt?"#EDE9FE":"var(--card)",color:docType===dt?"#5B21B6":"#b0b0c8",cursor:"pointer"}}>{dt==="vendor_quote"?"Vendor Quote":"Design Drawing"}</button>)}
           </div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
             <input value={vendorName} onChange={e=>setVendorName(e.target.value)} placeholder="Vendor name (e.g. Neg Earth)" style={{...UI.input,flex:1,minWidth:140}} disabled={docType==="design_drawing"}/>
             <input value={quoteRef} onChange={e=>setQuoteRef(e.target.value)} placeholder="Quote ref (e.g. 26-1273)" style={{...UI.input,flex:1,minWidth:120}} disabled={docType==="design_drawing"}/>
           </div>
-          <label style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"24px 16px",border:"2px dashed #2a2a3a",borderRadius:8,cursor:"pointer",background:"#17171f",color:"#a0a0b8",fontSize:10,fontWeight:600}}>
+          <label style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"24px 16px",border:"2px dashed var(--border)",borderRadius:8,cursor:"pointer",background:"#17171f",color:"var(--text-dim)",fontSize:10,fontWeight:600}}>
             <span style={{fontSize:20}}>▤</span>
             {uploading?"Uploading…":"Click to upload PDF or drag and drop"}
             <input ref={fileRef} type="file" accept="application/pdf" onChange={handleFile} style={{display:"none"}} disabled={uploading}/>
           </label>
         </div>
 
-        {(data.docs||[]).length>0&&<div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:16}}>
+        {(data.docs||[]).length>0&&<div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:16}}>
           <div style={{...UI.sectionLabel,marginBottom:8}}>Uploaded Documents</div>
-          {(data.docs||[]).map(doc=><div key={doc.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #1e1e2e"}}>
+          {(data.docs||[]).map(doc=><div key={doc.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid var(--card-2)"}}>
             <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:10,background:doc.docType==="vendor_quote"?"#EDE9FE":"#DCFCE7",color:doc.docType==="vendor_quote"?"#5B21B6":"#166534"}}>{doc.docType==="vendor_quote"?"QUOTE":"DESIGN"}</span>
-            <span style={{fontSize:10,flex:1,color:"#e4e4ef"}}>{doc.fileName}</span>
-            {doc.vendorName&&<span style={{fontSize:9,color:"#a0a0b8"}}>{doc.vendorName}</span>}
-            {doc.quoteRef&&<span style={{fontSize:9,color:"#707088",fontFamily:MN}}>{doc.quoteRef}</span>}
+            <span style={{fontSize:10,flex:1,color:"var(--text)"}}>{doc.fileName}</span>
+            {doc.vendorName&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{doc.vendorName}</span>}
+            {doc.quoteRef&&<span style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN}}>{doc.quoteRef}</span>}
             <span style={{fontSize:9,color:"#047857",fontFamily:MN}}>{doc.itemCount} items</span>
-            <button onClick={()=>deleteDoc(doc.id)} style={{fontSize:10,color:"#707088",background:"none",border:"none",cursor:"pointer",padding:"0 4px"}} title="Remove document">×</button>
+            <button onClick={()=>deleteDoc(doc.id)} style={{fontSize:10,color:"var(--text-mute)",background:"none",border:"none",cursor:"pointer",padding:"0 4px"}} title="Remove document">×</button>
           </div>)}
           {data.items?.length>0&&<div style={{marginTop:12,padding:"8px 10px",background:"#17171f",borderRadius:6,display:"flex",alignItems:"center",gap:8}}>
             <span style={{fontSize:10,color:"#b0b0c8"}}>{data.items.length} total items across {data.docs.length} document(s)</span>
             {tbdCount>0&&<span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:10,background:"#FEF3C7",color:"#92400E"}}>{tbdCount} TBD positions</span>}
-            <button onClick={()=>setSubTab("manifest")} style={{marginLeft:"auto",fontSize:10,fontWeight:600,padding:"3px 10px",borderRadius:5,border:"1px solid #2a2a3a",background:"#17171f",color:"#b0b0c8",cursor:"pointer"}}>View Manifest →</button>
+            <button onClick={()=>setSubTab("manifest")} style={{marginLeft:"auto",fontSize:10,fontWeight:600,padding:"3px 10px",borderRadius:5,border:"1px solid var(--border)",background:"#17171f",color:"#b0b0c8",cursor:"pointer"}}>View Manifest →</button>
           </div>}
         </div>}
 
-        {!data.docs?.length&&<div style={{padding:32,textAlign:"center",color:"#707088",fontSize:10}}>
+        {!data.docs?.length&&<div style={{padding:32,textAlign:"center",color:"var(--text-mute)",fontSize:10}}>
           <div style={{fontSize:24,marginBottom:8}}>▤</div>
           <div style={{fontWeight:600,marginBottom:4}}>No documents uploaded</div>
           <div>Upload vendor quote PDFs or production design drawings to generate a manifest.</div>
@@ -5824,27 +5831,27 @@ function ProdTab(){
             {["ALL","fly","ground","tower","touring_carry","TBD"].map(p=><option key={p} value={p}>{p==="ALL"?"All positions":p.toUpperCase()}</option>)}
           </select>
           {tbdCount>0&&<button onClick={()=>setPosFilter("TBD")} style={{fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:5,border:"1.5px solid #C2410C",background:"#FFF7ED",color:"#C2410C",cursor:"pointer"}}>▲ {tbdCount} TBD</button>}
-          <button onClick={()=>setShowExcluded(v=>!v)} style={{fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:5,border:`1.5px solid ${showExcluded?"#5B21B6":"#2a2a3a"}`,background:showExcluded?"#EDE9FE":"#17171f",color:showExcluded?"#5B21B6":"#707088",cursor:"pointer"}}>{showExcluded?"Show all":"Excluded hidden"}</button>
-          <span style={{marginLeft:"auto",fontSize:9,color:"#707088"}}>{(data.items||[]).filter(i=>i.included!==false).length} of {(data.items||[]).length} included</span>
+          <button onClick={()=>setShowExcluded(v=>!v)} style={{fontSize:9,fontWeight:700,padding:"3px 9px",borderRadius:5,border:`1.5px solid ${showExcluded?"#5B21B6":"var(--border)"}`,background:showExcluded?"#EDE9FE":"#17171f",color:showExcluded?"#5B21B6":"var(--text-mute)",cursor:"pointer"}}>{showExcluded?"Show all":"Excluded hidden"}</button>
+          <span style={{marginLeft:"auto",fontSize:9,color:"var(--text-mute)"}}>{(data.items||[]).filter(i=>i.included!==false).length} of {(data.items||[]).length} included</span>
         </div>
 
         {(data.items||[]).length===0&&VENUE_GRID[sel]&&<div style={{padding:32,textAlign:"center"}}>
           <div style={{fontSize:24,marginBottom:8}}>▤</div>
-          <div style={{fontSize:11,fontWeight:600,color:"#e4e4ef",marginBottom:4}}>No manifest loaded</div>
-          <div style={{fontSize:10,color:"#a0a0b8",marginBottom:16}}>Seed from the EU Tour Binder or upload vendor quote PDFs in the Upload tab.</div>
+          <div style={{fontSize:11,fontWeight:600,color:"var(--text)",marginBottom:4}}>No manifest loaded</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",marginBottom:16}}>Seed from the EU Tour Binder or upload vendor quote PDFs in the Upload tab.</div>
           <button onClick={seedManifest} style={{fontSize:11,fontWeight:700,padding:"8px 20px",borderRadius:7,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer"}}>Load Tour Manifest</button>
         </div>}
 
-        {(data.items||[]).length===0&&!VENUE_GRID[sel]&&<div style={{padding:32,textAlign:"center",color:"#707088",fontSize:10}}>No items. Upload vendor quote PDFs in the Upload tab.</div>}
+        {(data.items||[]).length===0&&!VENUE_GRID[sel]&&<div style={{padding:32,textAlign:"center",color:"var(--text-mute)",fontSize:10}}>No items. Upload vendor quote PDFs in the Upload tab.</div>}
 
-        {(data.items||[]).length>0&&Object.entries(groupedItems).length===0&&<div style={{padding:32,textAlign:"center",color:"#707088",fontSize:10}}>No items match the current filters.</div>}
+        {(data.items||[]).length>0&&Object.entries(groupedItems).length===0&&<div style={{padding:32,textAlign:"center",color:"var(--text-mute)",fontSize:10}}>No items match the current filters.</div>}
 
         {Object.entries(groupedItems).map(([dept,items])=><div key={dept} style={{marginBottom:12}}>
-          <div style={{fontSize:9,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4}}>{dept} ({items.length})</div>
-          <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:8,overflow:"hidden"}}>
+          <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4}}>{dept} ({items.length})</div>
+          <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,overflow:"hidden"}}>
             {/* Table header */}
-            <div style={{display:"grid",gridTemplateColumns:"20px 1fr 60px 60px 60px 60px 60px 70px 70px",gap:0,borderBottom:"1px solid #2a2a3a",padding:"5px 8px",background:"#17171f"}}>
-              {["","Item","Qty","Position","Wt/u","Wt tot","Pwr/u","IP","Source"].map(h=><span key={h} style={{fontSize:8,fontWeight:800,color:"#707088",letterSpacing:"0.04em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h}</span>)}
+            <div style={{display:"grid",gridTemplateColumns:"20px 1fr 60px 60px 60px 60px 60px 70px 70px",gap:0,borderBottom:"1px solid var(--border)",padding:"5px 8px",background:"#17171f"}}>
+              {["","Item","Qty","Position","Wt/u","Wt tot","Pwr/u","IP","Source"].map(h=><span key={h} style={{fontSize:8,fontWeight:800,color:"var(--text-mute)",letterSpacing:"0.04em",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{h}</span>)}
             </div>
             {items.map(item=>{
               const pos=item.rig_position||"TBD";
@@ -5852,14 +5859,14 @@ function ProdTab(){
               const flagged=item.has_discrepancy;
               const excluded=item.included===false;
               return(
-                <div key={item.id} className="rh" style={{display:"grid",gridTemplateColumns:"20px 1fr 60px 60px 60px 60px 60px 70px 70px",gap:0,padding:"5px 8px",borderBottom:"1px solid #1e1e2e",background:flagged?"#FEF2F2":excluded?"#17171f":"#12121a",alignItems:"center",opacity:excluded?0.45:1}}>
+                <div key={item.id} className="rh" style={{display:"grid",gridTemplateColumns:"20px 1fr 60px 60px 60px 60px 60px 70px 70px",gap:0,padding:"5px 8px",borderBottom:"1px solid var(--card-2)",background:flagged?"#FEF2F2":excluded?"#17171f":"var(--card)",alignItems:"center",opacity:excluded?0.45:1}}>
                   <input type="checkbox" checked={!excluded} onChange={()=>toggleIncluded(item.id)} style={{width:13,height:13,cursor:"pointer",accentColor:"#5B21B6"}}/>
                   <div style={{minWidth:0}}>
-                    <div style={{fontSize:10,fontWeight:600,color:"#e4e4ef",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:excluded?"line-through":"none"}} title={item.item_name}>{item.item_name}</div>
-                    {item.model_ref&&item.model_ref!==item.item_name&&<div style={{fontSize:8,color:"#707088",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.model_ref}</div>}
-                    {item.vendor_name&&<div style={{fontSize:8,color:"#a0a0b8"}}>{item.vendor_name}{item.vendor_quote_ref&&` · ${item.vendor_quote_ref}`}</div>}
+                    <div style={{fontSize:10,fontWeight:600,color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:excluded?"line-through":"none"}} title={item.item_name}>{item.item_name}</div>
+                    {item.model_ref&&item.model_ref!==item.item_name&&<div style={{fontSize:8,color:"var(--text-mute)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.model_ref}</div>}
+                    {item.vendor_name&&<div style={{fontSize:8,color:"var(--text-dim)"}}>{item.vendor_name}{item.vendor_quote_ref&&` · ${item.vendor_quote_ref}`}</div>}
                   </div>
-                  <input type="number" min={0} value={item.qty||1} onChange={e=>updateQty(item.id,e.target.value)} style={{width:48,fontSize:10,fontFamily:MN,fontWeight:600,textAlign:"center",border:"1px solid #2a2a3a",borderRadius:4,padding:"2px 4px",background:"#17171f",color:"#e4e4ef",outline:"none"}}/>
+                  <input type="number" min={0} value={item.qty||1} onChange={e=>updateQty(item.id,e.target.value)} style={{width:48,fontSize:10,fontFamily:MN,fontWeight:600,textAlign:"center",border:"1px solid var(--border)",borderRadius:4,padding:"2px 4px",background:"#17171f",color:"var(--text)",outline:"none"}}/>
                   <div style={{display:"flex",alignItems:"center"}}>
                     <select value={pos} onChange={e=>overridePosition(item.id,e.target.value)} style={{fontSize:8,fontWeight:700,padding:"2px 4px",borderRadius:4,border:`1px solid ${ps.c}`,background:ps.bg,color:ps.c,cursor:"pointer",maxWidth:56}}>
                       {["fly","ground","tower","touring_carry","TBD"].map(p=><option key={p} value={p}>{p.toUpperCase()}</option>)}
@@ -5869,7 +5876,7 @@ function ProdTab(){
                   <span style={{fontSize:9,fontFamily:MN,color:"#b0b0c8",textAlign:"right"}}>{item.weight_kg&&item.qty?`${Math.round(item.weight_kg*item.qty*10)/10}kg`:"—"}</span>
                   <span style={{fontSize:9,fontFamily:MN,color:"#b0b0c8",textAlign:"right"}}>{item.power_w?`${item.power_w}W`:"—"}</span>
                   <span style={{fontSize:8,fontFamily:MN,color:"#b0b0c8"}}>{item.ip_rating||"—"}</span>
-                  <span style={{fontSize:8,color:item.spec_source==="fixture_specs"?"#047857":"#707088"}}>{item.source_type==="design_spec"?"design":"quote"}{item.spec_source==="fixture_specs"&&" ✓"}</span>
+                  <span style={{fontSize:8,color:item.spec_source==="fixture_specs"?"#047857":"var(--text-mute)"}}>{item.source_type==="design_spec"?"design":"quote"}{item.spec_source==="fixture_specs"&&" ✓"}</span>
                 </div>
               );
             })}
@@ -5880,27 +5887,27 @@ function ProdTab(){
       {/* Analysis tab */}
       {subTab==="analysis"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
         {!data.analysis?<div style={{padding:32,textAlign:"center"}}>
-          <div style={{fontSize:10,color:"#a0a0b8",marginBottom:12}}>Run analysis to see power budget, weight ledger, and issue detection.</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",marginBottom:12}}>Run analysis to see power budget, weight ledger, and issue detection.</div>
           {data.items?.length>0&&<button onClick={runAnalysis} disabled={analyzing} style={{fontSize:11,fontWeight:700,padding:"8px 20px",borderRadius:7,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer"}}>{analyzing?"Analyzing…":"Run Analysis"}</button>}
         </div>:<>
           {/* Power Budget */}
-          <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:14}}>
+          <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:14}}>
             <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:10}}>
               <div style={{...UI.sectionLabel,margin:0}}>Power Budget</div>
               <span style={{fontSize:18,fontWeight:800,fontFamily:MN,color:data.analysis.powerBudget.total_kw>100?"#DC2626":data.analysis.powerBudget.total_kw>80?"#C2410C":"#047857"}}>{data.analysis.powerBudget.total_kw} kW</span>
-              <span style={{fontSize:9,color:"#707088"}}>→ {data.analysis.powerBudget.recommended_minimum_kw} kW recommended minimum (30% headroom)</span>
+              <span style={{fontSize:9,color:"var(--text-mute)"}}>→ {data.analysis.powerBudget.recommended_minimum_kw} kW recommended minimum (30% headroom)</span>
             </div>
             <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
               {Object.entries(data.analysis.powerBudget.by_dept||{}).sort((a,b)=>b[1]-a[1]).map(([dept,w])=><div key={dept} style={{background:"#17171f",borderRadius:6,padding:"5px 10px"}}>
-                <div style={{fontSize:8,color:"#707088",textTransform:"uppercase"}}>{dept}</div>
-                <div style={{fontSize:11,fontWeight:700,fontFamily:MN,color:"#e4e4ef"}}>{Math.round(w/100)/10} kW</div>
+                <div style={{fontSize:8,color:"var(--text-mute)",textTransform:"uppercase"}}>{dept}</div>
+                <div style={{fontSize:11,fontWeight:700,fontFamily:MN,color:"var(--text)"}}>{Math.round(w/100)/10} kW</div>
               </div>)}
             </div>
             {data.analysis.powerBudget.missing_power_count>0&&<div style={{marginTop:8,fontSize:9,color:"#92400E",background:"#FEF3C7",borderRadius:5,padding:"4px 8px"}}>{data.analysis.powerBudget.missing_power_count} item(s) missing power data — total may be understated</div>}
           </div>
 
           {/* Weight Ledger */}
-          <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:14}}>
+          <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:14}}>
             <div style={{...UI.sectionLabel,marginBottom:10}}>Weight Ledger — Fly vs. Ground Split</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
               <div style={{background:"#EDE9FE",borderRadius:8,padding:"10px 14px",textAlign:"center"}}>
@@ -5922,31 +5929,31 @@ function ProdTab(){
             {data.analysis.weightLedger.tbd_count>0&&<div style={{marginTop:8,fontSize:9,color:"#92400E",background:"#FEF3C7",borderRadius:5,padding:"4px 8px"}}>Set positions in Manifest tab to complete weight split.</div>}
           </div>
 
-          <div style={{fontSize:9,color:"#707088",fontFamily:MN}}>Analyzed {new Date(data.analysis.analyzedAt).toLocaleString()} — re-run after position corrections</div>
+          <div style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN}}>Analyzed {new Date(data.analysis.analyzedAt).toLocaleString()} — re-run after position corrections</div>
         </>}
       </div>}
 
       {/* Issues tab */}
       {subTab==="issues"&&<div>
-        {!(data.issues?.length)&&<div style={{padding:32,textAlign:"center",color:"#707088",fontSize:10}}>
+        {!(data.issues?.length)&&<div style={{padding:32,textAlign:"center",color:"var(--text-mute)",fontSize:10}}>
           {data.items?.length?<><div style={{marginBottom:8}}>No issues detected yet.</div><button onClick={runAnalysis} disabled={analyzing} style={{fontSize:10,fontWeight:700,padding:"5px 14px",borderRadius:6,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer"}}>{analyzing?"Analyzing…":"Run Analysis"}</button></>:<div>Upload documents then run analysis to detect issues.</div>}
         </div>}
         {(data.issues||[]).map(issue=>{
           const sv=SEV_STYLES[issue.severity]||SEV_STYLES.LOW;
           return(
-            <div key={issue.id} style={{background:issue.resolved?"#17171f":"#12121a",border:`1px solid ${issue.resolved?"#2a2a3a":sv.b}`,borderRadius:8,padding:"10px 12px",marginBottom:8,opacity:issue.resolved?0.6:1}}>
+            <div key={issue.id} style={{background:issue.resolved?"#17171f":"var(--card)",border:`1px solid ${issue.resolved?"var(--border)":sv.b}`,borderRadius:8,padding:"10px 12px",marginBottom:8,opacity:issue.resolved?0.6:1}}>
               <div style={{display:"flex",alignItems:"flex-start",gap:8,marginBottom:4}}>
                 <span style={{fontSize:8,fontWeight:800,padding:"2px 7px",borderRadius:10,background:sv.bg,color:sv.c,flexShrink:0}}>{issue.severity}</span>
-                <span style={{fontSize:9,fontWeight:700,color:"#a0a0b8",flexShrink:0}}>{issue.category}</span>
-                <span style={{fontSize:9,fontWeight:700,color:"#e4e4ef",flex:1}}>{issue.finding}</span>
-                <button onClick={()=>resolveIssue(issue.id)} style={{fontSize:8,fontWeight:700,padding:"2px 8px",borderRadius:5,border:"1px solid #2a2a3a",background:issue.resolved?"#F0FDF4":"#12121a",color:issue.resolved?"#047857":"#b0b0c8",cursor:"pointer",flexShrink:0}}>{issue.resolved?"✓ Resolved":"Resolve"}</button>
+                <span style={{fontSize:9,fontWeight:700,color:"var(--text-dim)",flexShrink:0}}>{issue.category}</span>
+                <span style={{fontSize:9,fontWeight:700,color:"var(--text)",flex:1}}>{issue.finding}</span>
+                <button onClick={()=>resolveIssue(issue.id)} style={{fontSize:8,fontWeight:700,padding:"2px 8px",borderRadius:5,border:"1px solid var(--border)",background:issue.resolved?"#F0FDF4":"var(--card)",color:issue.resolved?"#047857":"#b0b0c8",cursor:"pointer",flexShrink:0}}>{issue.resolved?"✓ Resolved":"Resolve"}</button>
               </div>
-              {issue.impact&&<div style={{fontSize:9,color:"#a0a0b8",marginBottom:2}}><span style={{fontWeight:600}}>Impact:</span> {issue.impact}</div>}
+              {issue.impact&&<div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}><span style={{fontWeight:600}}>Impact:</span> {issue.impact}</div>}
               {issue.action&&<div style={{fontSize:9,color:"#b0b0c8"}}><span style={{fontWeight:600}}>Action:</span> {issue.action}</div>}
             </div>
           );
         })}
-        {data.issues?.length>0&&<div style={{marginTop:8,fontSize:9,color:"#707088",fontFamily:MN}}>{data.issues.filter(i=>!i.resolved).length} open · {data.issues.filter(i=>i.resolved).length} resolved</div>}
+        {data.issues?.length>0&&<div style={{marginTop:8,fontSize:9,color:"var(--text-mute)",fontFamily:MN}}>{data.issues.filter(i=>!i.resolved).length} open · {data.issues.filter(i=>i.resolved).length} resolved</div>}
       </div>}
     </div>
   );
@@ -6101,69 +6108,69 @@ function GuestListTab(){
   }
 
   if(!show){
-    return<div style={{flex:1,padding:mobile?"10px 8px":"14px 16px",color:"#a0a0b8",fontSize:11}}>
+    return<div style={{flex:1,padding:mobile?"10px 8px":"14px 16px",color:"var(--text-dim)",fontSize:11}}>
       Select a show date from the sidebar to manage its guest list.
       {showDates.length>0&&<div style={{marginTop:8}}><button onClick={()=>setSel(showDates[0])} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Go to {showDates[0]}</button></div>}
     </div>;
   }
 
   return(
-    <div style={{flex:1,overflowY:"auto",padding:mobile?"10px 8px":"14px 16px",display:"flex",flexDirection:"column",gap:14,minWidth:0,background:"#0a0a0f"}}>
+    <div style={{flex:1,overflowY:"auto",padding:mobile?"10px 8px":"14px 16px",display:"flex",flexDirection:"column",gap:14,minWidth:0,background:"var(--bg)"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
         <div>
-          <div style={{fontSize:14,fontWeight:800,color:"#e4e4ef",letterSpacing:"-0.02em"}}>{show.venue} · {show.city}</div>
-          <div style={{fontSize:10,color:"#a0a0b8",marginTop:1,fontFamily:MN}}>{new Date(date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</div>
+          <div style={{fontSize:14,fontWeight:800,color:"var(--text)",letterSpacing:"-0.02em"}}>{show.venue} · {show.city}</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",marginTop:1,fontFamily:MN}}>{new Date(date+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"})}</div>
         </div>
         <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
           {glExists&&<>
             <span style={{fontSize:9,fontWeight:700,color:statusMeta.color,background:statusMeta.bg,border:`1px solid ${statusMeta.color}`,borderRadius:5,padding:"3px 8px",letterSpacing:"0.05em"}}>{statusMeta.label.toUpperCase()}</span>
-            <select value={gl.status} onChange={e=>setStatus(e.target.value)} style={{background:"#12121a",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"4px 6px",fontSize:10}}>
+            <select value={gl.status} onChange={e=>setStatus(e.target.value)} style={{background:"var(--card)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:5,padding:"4px 6px",fontSize:10}}>
               {GL_STATUS.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
-            <button onClick={()=>setTplMenu(v=>!v)} style={{background:"transparent",color:"#b0b0c8",border:"1px solid #2a2a3a",borderRadius:6,padding:"6px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>Templates</button>
+            <button onClick={()=>setTplMenu(v=>!v)} style={{background:"transparent",color:"#b0b0c8",border:"1px solid var(--border)",borderRadius:6,padding:"6px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>Templates</button>
             <button onClick={exportDoorList} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Export Door List</button>
           </>}
         </div>
       </div>
 
-      {!glExists&&<div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"16px 16px",display:"flex",flexDirection:"column",gap:12}}>
+      {!glExists&&<div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"16px 16px",display:"flex",flexDirection:"column",gap:12}}>
         <div>
-          <div style={{fontSize:12,fontWeight:800,color:"#e4e4ef",letterSpacing:"-0.01em"}}>Configure Guest List</div>
-          <div style={{fontSize:10,color:"#a0a0b8",marginTop:3}}>Pick a starting template. Categories and caps can be edited after init.</div>
+          <div style={{fontSize:12,fontWeight:800,color:"var(--text)",letterSpacing:"-0.01em"}}>Configure Guest List</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",marginTop:3}}>Pick a starting template. Categories and caps can be edited after init.</div>
         </div>
         <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"1fr auto",gap:8,alignItems:"end"}}>
           <label style={{display:"flex",flexDirection:"column",gap:4}}>
-            <span style={{fontSize:9,color:"#a0a0b8",letterSpacing:"0.05em"}}>TEMPLATE</span>
-            <select value={configTplId} onChange={e=>setConfigTplId(e.target.value)} style={{background:"#0a0a0f",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:6,padding:"7px 9px",fontSize:11}}>
+            <span style={{fontSize:9,color:"var(--text-dim)",letterSpacing:"0.05em"}}>TEMPLATE</span>
+            <select value={configTplId} onChange={e=>setConfigTplId(e.target.value)} style={{background:"var(--bg)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:6,padding:"7px 9px",fontSize:11}}>
               {allTemplates.map(t=><option key={t.id} value={t.id}>{t.name}{t.builtin?" · built-in":""} · {(t.categories||[]).length} cats</option>)}
             </select>
           </label>
           <button onClick={initShow} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:6,padding:"8px 14px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Initialize Show</button>
         </div>
-        <div style={{display:"flex",flexWrap:"wrap",gap:4,fontSize:9,color:"#707088",fontFamily:MN}}>
-          {(allTemplates.find(t=>t.id===configTplId)?.categories||[]).map(c=><span key={c.id} style={{background:"#0a0a0f",border:"1px solid #2a2a3a",borderRadius:4,padding:"2px 6px"}}>{c.name} · {c.qty}</span>)}
+        <div style={{display:"flex",flexWrap:"wrap",gap:4,fontSize:9,color:"var(--text-mute)",fontFamily:MN}}>
+          {(allTemplates.find(t=>t.id===configTplId)?.categories||[]).map(c=><span key={c.id} style={{background:"var(--bg)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px"}}>{c.name} · {c.qty}</span>)}
         </div>
       </div>}
 
-      {glExists&&tplMenu&&<div style={{background:"#12121a",border:"1px solid #5B21B6",borderRadius:10,padding:"12px 14px",display:"flex",flexDirection:"column",gap:10}}>
-        <div style={{fontSize:10,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em"}}>TEMPLATES</div>
+      {glExists&&tplMenu&&<div style={{background:"var(--card)",border:"1px solid #5B21B6",borderRadius:10,padding:"12px 14px",display:"flex",flexDirection:"column",gap:10}}>
+        <div style={{fontSize:10,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>TEMPLATES</div>
         <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"2fr 1fr",gap:8,alignItems:"end"}}>
           <label style={{display:"flex",flexDirection:"column",gap:4}}>
-            <span style={{fontSize:9,color:"#a0a0b8",letterSpacing:"0.05em"}}>SAVE CURRENT CONFIG AS TEMPLATE</span>
-            <input value={tplSaveName} onChange={e=>setTplSaveName(e.target.value)} placeholder={`${show?.venue||"Show"} ${date}`} style={{background:"#0a0a0f",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"6px 8px",fontSize:11}}/>
+            <span style={{fontSize:9,color:"var(--text-dim)",letterSpacing:"0.05em"}}>SAVE CURRENT CONFIG AS TEMPLATE</span>
+            <input value={tplSaveName} onChange={e=>setTplSaveName(e.target.value)} placeholder={`${show?.venue||"Show"} ${date}`} style={{background:"var(--bg)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:5,padding:"6px 8px",fontSize:11}}/>
           </label>
           <button onClick={saveAsTemplate} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:5,padding:"7px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Save as Template</button>
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:4,maxHeight:200,overflowY:"auto"}}>
           {allTemplates.map(t=>{
             const active=gl.templateId===t.id;
-            return<div key={t.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:8,alignItems:"center",background:active?"#1f0f2a":"#0a0a0f",border:`1px solid ${active?"#5B21B6":"#2a2a3a"}`,borderRadius:5,padding:"6px 8px"}}>
+            return<div key={t.id} style={{display:"grid",gridTemplateColumns:"1fr auto auto",gap:8,alignItems:"center",background:active?"#1f0f2a":"var(--bg)",border:`1px solid ${active?"#5B21B6":"var(--border)"}`,borderRadius:5,padding:"6px 8px"}}>
               <div>
-                <div style={{fontSize:11,fontWeight:700,color:"#e4e4ef"}}>{t.name}{t.builtin&&<span style={{marginLeft:6,fontSize:8,color:"#a78bfa",fontFamily:MN}}>BUILT-IN</span>}{active&&<span style={{marginLeft:6,fontSize:8,color:"#34d399",fontFamily:MN}}>ACTIVE</span>}</div>
-                <div style={{fontSize:9,color:"#707088",fontFamily:MN,marginTop:1}}>{(t.categories||[]).length} categories · walk-on cap {t.walkOnCap??10}</div>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--text)"}}>{t.name}{t.builtin&&<span style={{marginLeft:6,fontSize:8,color:"#a78bfa",fontFamily:MN}}>BUILT-IN</span>}{active&&<span style={{marginLeft:6,fontSize:8,color:"#34d399",fontFamily:MN}}>ACTIVE</span>}</div>
+                <div style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN,marginTop:1}}>{(t.categories||[]).length} categories · walk-on cap {t.walkOnCap??10}</div>
               </div>
               <button onClick={()=>applyTemplate(t.id)} style={{background:"transparent",color:"#a78bfa",border:"1px solid #5B21B6",borderRadius:4,padding:"4px 10px",fontSize:10,fontWeight:700,cursor:"pointer"}}>Apply</button>
-              {!t.builtin?<button onClick={()=>deleteTemplate(t.id)} style={{background:"transparent",color:"#707088",border:"1px solid #2a2a3a",borderRadius:4,padding:"4px 8px",fontSize:10,cursor:"pointer"}}>Delete</button>:<span style={{width:38}}/>}
+              {!t.builtin?<button onClick={()=>deleteTemplate(t.id)} style={{background:"transparent",color:"var(--text-mute)",border:"1px solid var(--border)",borderRadius:4,padding:"4px 8px",fontSize:10,cursor:"pointer"}}>Delete</button>:<span style={{width:38}}/>}
             </div>;
           })}
         </div>
@@ -6177,101 +6184,101 @@ function GuestListTab(){
           <GLMetric label="Remaining" value={Math.max(0,totals.allot-totals.used)}/>
         </div>
 
-        <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"12px 14px"}}>
+        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap",marginBottom:10}}>
-            <span style={{fontSize:10,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em"}}>SHOW CONFIG</span>
+            <span style={{fontSize:10,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>SHOW CONFIG</span>
           </div>
           <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"repeat(3,1fr)",gap:10}}>
             <label style={{display:"flex",flexDirection:"column",gap:3}}>
-              <span style={{fontSize:9,color:"#a0a0b8",letterSpacing:"0.05em"}}>CUTOFF</span>
-              <input type="datetime-local" value={gl.cutoffAt||""} onChange={e=>setCutoff(e.target.value)} style={{background:"#0a0a0f",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"5px 7px",fontSize:11,fontFamily:MN}}/>
+              <span style={{fontSize:9,color:"var(--text-dim)",letterSpacing:"0.05em"}}>CUTOFF</span>
+              <input type="datetime-local" value={gl.cutoffAt||""} onChange={e=>setCutoff(e.target.value)} style={{background:"var(--bg)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:5,padding:"5px 7px",fontSize:11,fontFamily:MN}}/>
             </label>
             <label style={{display:"flex",flexDirection:"column",gap:3}}>
-              <span style={{fontSize:9,color:"#a0a0b8",letterSpacing:"0.05em"}}>WALK-ON CAP</span>
-              <input type="number" value={gl.walkOnCap??0} onChange={e=>setWalkOnCap(e.target.value)} style={{background:"#0a0a0f",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"5px 7px",fontSize:11,fontFamily:MN}}/>
+              <span style={{fontSize:9,color:"var(--text-dim)",letterSpacing:"0.05em"}}>WALK-ON CAP</span>
+              <input type="number" value={gl.walkOnCap??0} onChange={e=>setWalkOnCap(e.target.value)} style={{background:"var(--bg)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:5,padding:"5px 7px",fontSize:11,fontFamily:MN}}/>
             </label>
             <label style={{display:"flex",flexDirection:"column",gap:3}}>
-              <span style={{fontSize:9,color:"#a0a0b8",letterSpacing:"0.05em"}}>NOTES</span>
-              <input type="text" value={gl.notes||""} onChange={e=>setNotes(e.target.value)} placeholder="e.g. Venue hard cap 500" style={{background:"#0a0a0f",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"5px 7px",fontSize:11}}/>
+              <span style={{fontSize:9,color:"var(--text-dim)",letterSpacing:"0.05em"}}>NOTES</span>
+              <input type="text" value={gl.notes||""} onChange={e=>setNotes(e.target.value)} placeholder="e.g. Venue hard cap 500" style={{background:"var(--bg)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:5,padding:"5px 7px",fontSize:11}}/>
             </label>
           </div>
         </div>
 
-        <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"12px 14px"}}>
+        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
-            <span style={{fontSize:10,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em"}}>CATEGORIES · {gl.categories.length}</span>
-            <button onClick={addCategory} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid #2a2a3a",background:"transparent",color:"#b0b0c8",cursor:"pointer"}}>+ Category</button>
+            <span style={{fontSize:10,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>CATEGORIES · {gl.categories.length}</span>
+            <button onClick={addCategory} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:"#b0b0c8",cursor:"pointer"}}>+ Category</button>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {gl.categories.map(c=>{
               const u=categoryUsage[c.id]||{used:0,checkedIn:0};
               const over=u.used>c.qty;
-              return<div key={c.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr auto":"1.5fr 2fr 70px 70px 90px 24px",gap:6,alignItems:"center",background:"#0a0a0f",border:`1px solid ${over?"#991B1B":"#2a2a3a"}`,borderRadius:6,padding:"6px 8px"}}>
-                <input value={c.name} onChange={e=>updateCat(c.id,{name:e.target.value})} style={{background:"transparent",color:"#e4e4ef",border:"none",fontSize:11,fontWeight:600,padding:2}}/>
+              return<div key={c.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr auto":"1.5fr 2fr 70px 70px 90px 24px",gap:6,alignItems:"center",background:"var(--bg)",border:`1px solid ${over?"#991B1B":"var(--border)"}`,borderRadius:6,padding:"6px 8px"}}>
+                <input value={c.name} onChange={e=>updateCat(c.id,{name:e.target.value})} style={{background:"transparent",color:"var(--text)",border:"none",fontSize:11,fontWeight:600,padding:2}}/>
                 <input value={(c.zones||[]).join(", ")} onChange={e=>updateCat(c.id,{zones:e.target.value.split(",").map(x=>x.trim()).filter(Boolean)})} placeholder="FOH, BS" style={{background:"transparent",color:"#b0b0c8",border:"none",fontSize:10,fontFamily:MN,padding:2}}/>
-                <input type="number" value={c.qty} onChange={e=>updateCat(c.id,{qty:parseInt(e.target.value)||0})} style={{background:"#12121a",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:4,padding:"3px 5px",fontSize:10,fontFamily:MN,width:"100%"}}/>
-                <input type="number" value={c.walkOnQty||0} onChange={e=>updateCat(c.id,{walkOnQty:parseInt(e.target.value)||0})} placeholder="WO" style={{background:"#12121a",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:4,padding:"3px 5px",fontSize:10,fontFamily:MN,width:"100%"}}/>
-                <span style={{fontSize:10,fontFamily:MN,color:over?"#F87171":"#a0a0b8",textAlign:"right"}}>{u.used}/{c.qty} <span style={{color:"#707088"}}>· {u.checkedIn}✓</span></span>
-                <button onClick={()=>removeCategory(c.id)} style={{background:"transparent",color:"#707088",border:"none",fontSize:14,cursor:"pointer",padding:0}}>×</button>
+                <input type="number" value={c.qty} onChange={e=>updateCat(c.id,{qty:parseInt(e.target.value)||0})} style={{background:"var(--card)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:4,padding:"3px 5px",fontSize:10,fontFamily:MN,width:"100%"}}/>
+                <input type="number" value={c.walkOnQty||0} onChange={e=>updateCat(c.id,{walkOnQty:parseInt(e.target.value)||0})} placeholder="WO" style={{background:"var(--card)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:4,padding:"3px 5px",fontSize:10,fontFamily:MN,width:"100%"}}/>
+                <span style={{fontSize:10,fontFamily:MN,color:over?"#F87171":"var(--text-dim)",textAlign:"right"}}>{u.used}/{c.qty} <span style={{color:"var(--text-mute)"}}>· {u.checkedIn}✓</span></span>
+                <button onClick={()=>removeCategory(c.id)} style={{background:"transparent",color:"var(--text-mute)",border:"none",fontSize:14,cursor:"pointer",padding:0}}>×</button>
               </div>;
             })}
           </div>
         </div>
 
-        <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"12px 14px"}}>
+        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
-            <span style={{fontSize:10,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em"}}>PARTIES · {partyList.length}</span>
+            <span style={{fontSize:10,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>PARTIES · {partyList.length}</span>
             <button onClick={()=>setAddParty(v=>!v)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"#5B21B6",color:"#fff",cursor:"pointer",fontWeight:700}}>{addParty?"Cancel":"+ Party"}</button>
           </div>
-          {addParty&&<div style={{background:"#0a0a0f",border:"1px solid #5B21B6",borderRadius:6,padding:10,marginBottom:10,display:"grid",gridTemplateColumns:mobile?"1fr":"2fr 1.2fr 2fr auto",gap:6,alignItems:"center"}}>
-            <input autoFocus placeholder="Party name (e.g. Alex Gumuchian)" value={partyForm.name} onChange={e=>setPartyForm(f=>({...f,name:e.target.value}))} style={{background:"#12121a",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"5px 7px",fontSize:11}}/>
-            <select value={partyForm.role} onChange={e=>setPartyForm(f=>({...f,role:e.target.value}))} style={{background:"#12121a",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"5px 7px",fontSize:11}}>
+          {addParty&&<div style={{background:"var(--bg)",border:"1px solid #5B21B6",borderRadius:6,padding:10,marginBottom:10,display:"grid",gridTemplateColumns:mobile?"1fr":"2fr 1.2fr 2fr auto",gap:6,alignItems:"center"}}>
+            <input autoFocus placeholder="Party name (e.g. Alex Gumuchian)" value={partyForm.name} onChange={e=>setPartyForm(f=>({...f,name:e.target.value}))} style={{background:"var(--card)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:5,padding:"5px 7px",fontSize:11}}/>
+            <select value={partyForm.role} onChange={e=>setPartyForm(f=>({...f,role:e.target.value}))} style={{background:"var(--card)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:5,padding:"5px 7px",fontSize:11}}>
               {GL_PARTY_ROLES.map(r=><option key={r.id} value={r.id}>{r.label} ({r.side})</option>)}
             </select>
-            <input placeholder="Contact email" value={partyForm.contact} onChange={e=>setPartyForm(f=>({...f,contact:e.target.value}))} style={{background:"#12121a",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"5px 7px",fontSize:11,fontFamily:MN}}/>
+            <input placeholder="Contact email" value={partyForm.contact} onChange={e=>setPartyForm(f=>({...f,contact:e.target.value}))} style={{background:"var(--card)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:5,padding:"5px 7px",fontSize:11,fontFamily:MN}}/>
             <button onClick={createParty} style={{background:"#5B21B6",color:"#fff",border:"none",borderRadius:5,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Add</button>
           </div>}
-          {partyList.length===0&&<div style={{fontSize:10,color:"#707088",textAlign:"center",padding:"12px 8px"}}>No parties yet. Add a party to start collecting entries.</div>}
+          {partyList.length===0&&<div style={{fontSize:10,color:"var(--text-mute)",textAlign:"center",padding:"12px 8px"}}>No parties yet. Add a party to start collecting entries.</div>}
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {partyList.map(([pid,p])=>{
               const cat=gl.categories.find(c=>c.id===p.categoryId);
               const used=(p.entries||[]).reduce((s,e)=>s+1+(e.plusOne?1:0),0);
               const expanded=expandedParty===pid;
               const sideColor=p.side==="venue"?"#0891B2":"#7C3AED";
-              return<div key={pid} style={{background:"#0a0a0f",border:`1px solid ${expanded?sideColor:"#2a2a3a"}`,borderRadius:6,overflow:"hidden"}}>
+              return<div key={pid} style={{background:"var(--bg)",border:`1px solid ${expanded?sideColor:"var(--border)"}`,borderRadius:6,overflow:"hidden"}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",cursor:"pointer"}} onClick={()=>setExpandedParty(expanded?null:pid)}>
                   <span style={{fontSize:8,fontWeight:800,color:sideColor,background:p.side==="venue"?"#0a2a2e":"#1f0f2a",border:`1px solid ${sideColor}`,borderRadius:3,padding:"1px 5px",letterSpacing:"0.06em"}}>{p.side.toUpperCase()}</span>
-                  <span style={{fontSize:11,fontWeight:700,color:"#e4e4ef",flex:1}}>{p.name}</span>
-                  <span style={{fontSize:10,color:"#a0a0b8",fontFamily:MN}}>{cat?.name||"—"}</span>
-                  <span style={{fontSize:10,color:used>(cat?.qty||0)?"#F87171":"#a0a0b8",fontFamily:MN}}>{used}/{cat?.qty||0}</span>
-                  <span style={{fontSize:10,color:"#707088"}}>{expanded?"▾":"▸"}</span>
+                  <span style={{fontSize:11,fontWeight:700,color:"var(--text)",flex:1}}>{p.name}</span>
+                  <span style={{fontSize:10,color:"var(--text-dim)",fontFamily:MN}}>{cat?.name||"—"}</span>
+                  <span style={{fontSize:10,color:used>(cat?.qty||0)?"#F87171":"var(--text-dim)",fontFamily:MN}}>{used}/{cat?.qty||0}</span>
+                  <span style={{fontSize:10,color:"var(--text-mute)"}}>{expanded?"▾":"▸"}</span>
                 </div>
-                {expanded&&<div style={{padding:"0 10px 10px 10px",display:"flex",flexDirection:"column",gap:6,borderTop:"1px solid #2a2a3a"}}>
+                {expanded&&<div style={{padding:"0 10px 10px 10px",display:"flex",flexDirection:"column",gap:6,borderTop:"1px solid var(--border)"}}>
                   <div style={{display:"grid",gridTemplateColumns:mobile?"1fr":"1.5fr 2fr auto",gap:6,alignItems:"center",marginTop:8}}>
-                    <select value={p.categoryId||""} onChange={e=>updateParty(pid,{categoryId:e.target.value})} style={{background:"#12121a",color:"#e4e4ef",border:"1px solid #2a2a3a",borderRadius:5,padding:"4px 6px",fontSize:10}}>
+                    <select value={p.categoryId||""} onChange={e=>updateParty(pid,{categoryId:e.target.value})} style={{background:"var(--card)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:5,padding:"4px 6px",fontSize:10}}>
                       {gl.categories.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
-                    <input value={p.contact||""} onChange={e=>updateParty(pid,{contact:e.target.value})} placeholder="contact email" style={{background:"#12121a",color:"#b0b0c8",border:"1px solid #2a2a3a",borderRadius:5,padding:"4px 6px",fontSize:10,fontFamily:MN}}/>
-                    <button onClick={()=>{if(confirm(`Remove ${p.name}?`))removeParty(pid);}} style={{background:"transparent",color:"#F87171",border:"1px solid #2a2a3a",borderRadius:5,padding:"4px 10px",fontSize:10,cursor:"pointer"}}>Remove party</button>
+                    <input value={p.contact||""} onChange={e=>updateParty(pid,{contact:e.target.value})} placeholder="contact email" style={{background:"var(--card)",color:"#b0b0c8",border:"1px solid var(--border)",borderRadius:5,padding:"4px 6px",fontSize:10,fontFamily:MN}}/>
+                    <button onClick={()=>{if(confirm(`Remove ${p.name}?`))removeParty(pid);}} style={{background:"transparent",color:"#F87171",border:"1px solid var(--border)",borderRadius:5,padding:"4px 10px",fontSize:10,cursor:"pointer"}}>Remove party</button>
                   </div>
                   <div style={{display:"flex",flexDirection:"column",gap:4}}>
                     {(p.entries||[]).map(e=>{
                       const checked=e.status==="checked_in";
-                      return<div key={e.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr auto":"24px 2fr 60px 2fr 90px 24px",gap:6,alignItems:"center",background:checked?"#0f2a1f":"#12121a",border:`1px solid ${checked?"#059669":"#2a2a3a"}`,borderRadius:5,padding:"5px 7px"}}>
+                      return<div key={e.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr auto":"24px 2fr 60px 2fr 90px 24px",gap:6,alignItems:"center",background:checked?"#0f2a1f":"var(--card)",border:`1px solid ${checked?"#059669":"var(--border)"}`,borderRadius:5,padding:"5px 7px"}}>
                         <input type="checkbox" checked={checked} onChange={ev=>updateEntry(pid,e.id,{status:ev.target.checked?"checked_in":"pending",checkedInAt:ev.target.checked?new Date().toISOString():null})} style={{accentColor:"#059669",cursor:"pointer"}}/>
-                        <input value={e.name} onChange={ev=>updateEntry(pid,e.id,{name:ev.target.value})} placeholder="Guest name" style={{background:"transparent",color:"#e4e4ef",border:"none",fontSize:11,padding:2}}/>
-                        <label style={{fontSize:10,color:"#a0a0b8",display:"flex",alignItems:"center",gap:4,fontFamily:MN,cursor:"pointer"}}>
+                        <input value={e.name} onChange={ev=>updateEntry(pid,e.id,{name:ev.target.value})} placeholder="Guest name" style={{background:"transparent",color:"var(--text)",border:"none",fontSize:11,padding:2}}/>
+                        <label style={{fontSize:10,color:"var(--text-dim)",display:"flex",alignItems:"center",gap:4,fontFamily:MN,cursor:"pointer"}}>
                           <input type="checkbox" checked={!!e.plusOne} onChange={ev=>updateEntry(pid,e.id,{plusOne:ev.target.checked})} style={{accentColor:"#5B21B6",cursor:"pointer"}}/>+1
                         </label>
                         <input value={e.note||""} onChange={ev=>updateEntry(pid,e.id,{note:ev.target.value})} placeholder="note (dietary, access, …)" style={{background:"transparent",color:"#b0b0c8",border:"none",fontSize:10,padding:2}}/>
-                        <select value={e.status} onChange={ev=>updateEntry(pid,e.id,{status:ev.target.value})} style={{background:"#0a0a0f",color:"#b0b0c8",border:"1px solid #2a2a3a",borderRadius:4,padding:"2px 4px",fontSize:9}}>
+                        <select value={e.status} onChange={ev=>updateEntry(pid,e.id,{status:ev.target.value})} style={{background:"var(--bg)",color:"#b0b0c8",border:"1px solid var(--border)",borderRadius:4,padding:"2px 4px",fontSize:9}}>
                           <option value="pending">Pending</option>
                           <option value="approved">Approved</option>
                           <option value="checked_in">Checked In</option>
                           <option value="no_show">No Show</option>
                           <option value="denied">Denied</option>
                         </select>
-                        <button onClick={()=>removeEntry(pid,e.id)} style={{background:"transparent",color:"#707088",border:"none",fontSize:13,cursor:"pointer",padding:0}}>×</button>
+                        <button onClick={()=>removeEntry(pid,e.id)} style={{background:"transparent",color:"var(--text-mute)",border:"none",fontSize:13,cursor:"pointer",padding:0}}>×</button>
                       </div>;
                     })}
                   </div>
@@ -6282,22 +6289,22 @@ function GuestListTab(){
           </div>
         </div>
 
-        <div style={{background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"12px 14px"}}>
+        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,cursor:"pointer"}} onClick={()=>setActivityOpen(v=>!v)}>
-            <span style={{fontSize:10,fontWeight:800,color:"#a0a0b8",letterSpacing:"0.08em"}}>ACTIVITY · {(gl.activity||[]).length}</span>
-            <span style={{fontSize:10,color:"#707088"}}>{activityOpen?"▾":"▸"}</span>
+            <span style={{fontSize:10,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>ACTIVITY · {(gl.activity||[]).length}</span>
+            <span style={{fontSize:10,color:"var(--text-mute)"}}>{activityOpen?"▾":"▸"}</span>
           </div>
           {activityOpen&&<div style={{marginTop:10,display:"flex",flexDirection:"column",gap:4,maxHeight:320,overflowY:"auto"}}>
-            {(gl.activity||[]).length===0&&<div style={{fontSize:10,color:"#707088",padding:"6px 2px"}}>No activity yet.</div>}
+            {(gl.activity||[]).length===0&&<div style={{fontSize:10,color:"var(--text-mute)",padding:"6px 2px"}}>No activity yet.</div>}
             {[...(gl.activity||[])].reverse().map(ev=>{
               const when=new Date(ev.at);
               const whenLabel=`${when.toLocaleDateString(undefined,{month:"short",day:"numeric"})} ${when.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"})}`;
-              const kindColor=ev.kind?.startsWith("entry.checkin")?"#34d399":ev.kind?.startsWith("entry.remove")||ev.kind?.startsWith("party.remove")||ev.kind?.startsWith("category.remove")?"#F87171":ev.kind?.startsWith("template")?"#a78bfa":ev.kind?.startsWith("show.status")?"#D97706":"#a0a0b8";
-              return<div key={ev.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr":"90px 110px 1fr 110px",gap:8,alignItems:"center",background:"#0a0a0f",border:"1px solid #1f1f2e",borderRadius:5,padding:"5px 8px",fontSize:10,fontFamily:MN}}>
-                <span style={{color:"#707088"}}>{whenLabel}</span>
+              const kindColor=ev.kind?.startsWith("entry.checkin")?"#34d399":ev.kind?.startsWith("entry.remove")||ev.kind?.startsWith("party.remove")||ev.kind?.startsWith("category.remove")?"#F87171":ev.kind?.startsWith("template")?"#a78bfa":ev.kind?.startsWith("show.status")?"#D97706":"var(--text-dim)";
+              return<div key={ev.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr":"90px 110px 1fr 110px",gap:8,alignItems:"center",background:"var(--bg)",border:"1px solid #1f1f2e",borderRadius:5,padding:"5px 8px",fontSize:10,fontFamily:MN}}>
+                <span style={{color:"var(--text-mute)"}}>{whenLabel}</span>
                 <span style={{color:kindColor,fontWeight:700,fontSize:9,letterSpacing:"0.04em"}}>{ev.kind}</span>
                 <span style={{color:"#c0c0d0",fontFamily:"'Outfit',system-ui",fontSize:10}}>{ev.label}</span>
-                <span style={{color:"#707088",textAlign:"right",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.by}{ev.role?` · ${ev.role}`:""}</span>
+                <span style={{color:"var(--text-mute)",textAlign:"right",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ev.by}{ev.role?` · ${ev.role}`:""}</span>
               </div>;
             })}
           </div>}
@@ -6308,8 +6315,8 @@ function GuestListTab(){
 }
 
 function GLMetric({label,value,sub}){
-  return<div style={{flex:"1 1 120px",background:"#12121a",border:"1px solid #2a2a3a",borderRadius:10,padding:"10px 12px",minWidth:110}}>
-    <div style={{fontSize:9,fontWeight:700,color:"#a0a0b8",letterSpacing:"0.08em"}}>{label.toUpperCase()}</div>
-    <div style={{fontSize:20,fontWeight:800,color:"#e4e4ef",fontFamily:MN,lineHeight:1.1,marginTop:2}}>{value}{sub&&<span style={{fontSize:10,color:"#707088",marginLeft:6}}>{sub}</span>}</div>
+  return<div style={{flex:"1 1 120px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px",minWidth:110}}>
+    <div style={{fontSize:9,fontWeight:700,color:"var(--text-dim)",letterSpacing:"0.08em"}}>{label.toUpperCase()}</div>
+    <div style={{fontSize:20,fontWeight:800,color:"var(--text)",fontFamily:MN,lineHeight:1.1,marginTop:2}}>{value}{sub&&<span style={{fontSize:10,color:"var(--text-mute)",marginLeft:6}}>{sub}</span>}</div>
   </div>;
 }

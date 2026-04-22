@@ -4,12 +4,44 @@ import { program } from 'commander';
 import { syncShows } from './src/sync/shows.js';
 import { syncFlights } from './src/sync/flights.js';
 import { launchMT, closeMT } from './src/app.js';
+import { getShows, getFlights } from './src/dos.js';
 import { log } from './src/log.js';
 
 program
   .name('dos-mt')
   .description('Sync DOS Tour Ops → Master Tour')
   .version('1.0.0');
+
+program
+  .command('list')
+  .description('List DOS shows and flights without touching Master Tour')
+  .action(async () => {
+    try {
+      const [showsRaw, flightsRaw] = await Promise.all([getShows(), getFlights()]);
+      const shows = (Array.isArray(showsRaw) ? showsRaw : Object.values(showsRaw))
+        .filter(s => s?.date && s?.venue)
+        .sort((a, b) => a.date.localeCompare(b.date));
+      const flights = Object.values(flightsRaw ?? {}).sort((a, b) =>
+        (a.depDate ?? '').localeCompare(b.depDate ?? ''));
+
+      log.section(`DOS Shows (${shows.length})`);
+      for (const s of shows) {
+        const cx = (s.advance || []).map(c => c.name).join(', ') || '—';
+        console.log(`  ${s.date}  ${(s.city || '').padEnd(14)} ${s.venue}`);
+        console.log(`             promoter: ${s.promoter || '—'}`);
+        console.log(`             contacts: ${cx}`);
+      }
+
+      log.section(`DOS Flights (${flights.length})`);
+      for (const f of flights) {
+        const pax = (f.pax || []).join(', ') || '—';
+        console.log(`  ${f.depDate ?? '?'}  ${(f.carrier ?? '').padEnd(8)} ${f.flightNo ?? '?'}  ${f.from ?? '?'}→${f.to ?? '?'}  pax: ${pax}`);
+      }
+    } catch (err) {
+      log.error(err.message);
+      process.exit(1);
+    }
+  });
 
 program
   .command('sync <target>')
@@ -21,7 +53,7 @@ program
 
     let page;
     try {
-      page = await launchMT();
+      if (!dryRun) page = await launchMT();
 
       if (target === 'all' || target === 'shows') {
         log.section('Shows');

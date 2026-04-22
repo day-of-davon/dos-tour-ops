@@ -1,6 +1,8 @@
 // Sidebar navigation and date-panel selection helpers.
+// All functions no-op silently when page is null (dry-run mode).
 
 export async function clickNavSection(page, section) {
+  if (!page) return;
   await page.getByRole('button', { name: section, exact: false })
     .or(page.locator(`text="${section}"`).first())
     .click();
@@ -10,6 +12,7 @@ export async function clickNavSection(page, section) {
 // Select a show by date (YYYY-MM-DD) in the right-side date panel.
 // MT displays dates like "05/04" with venue below; we match on month/day.
 export async function selectDate(page, dateStr) {
+  if (!page) return;
   const [, mm, dd] = dateStr.split('-');
   const label = `${mm}/${dd}`;
 
@@ -31,5 +34,6 @@ export async function selectDate(page, dateStr) {
 
 // Wait for the center panel to show content for the given venue.
 export async function waitForEvent(page, venue) {
+  if (!page) return;
   await page.waitForSelector(`text=${venue}`, { timeout: 5_000 }).catch(() => {});
 }

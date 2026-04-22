@@ -2,6 +2,7 @@
 
 // Returns all text content of existing travel items (used for dedup).
 export async function existingTravelText(page) {
+  if (!page) return '';
   const items = page.locator('[class*="travel"], [class*="item"]');
   const texts = await items.allInnerTexts().catch(() => []);
   return texts.join('\n').toLowerCase();

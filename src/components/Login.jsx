@@ -2,8 +2,8 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 
 const C = {
-  bg: "#0a0a0f", card: "#12121a", border: "#1e1e2e",
-  accent: "#c9f", text: "#e4e4ef", textDim: "#8888a0", green: "#4ade80",
+  bg: "var(--bg)", card: "var(--card)", border: "var(--card-2)",
+  accent: "#c9f", text: "var(--text)", textDim: "var(--text-dim)", green: "#4ade80",
 };
 
 export default function Login() {

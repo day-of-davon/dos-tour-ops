@@ -1,7 +1,6 @@
 import { getFlights } from '../dos.js';
 import { log } from '../log.js';
 import { clickNavSection, selectDate } from '../pages/Nav.js';
-import { clickEventTab } from '../pages/EventPage.js';
 import { existingTravelText, addFlight, addGroundTransport } from '../pages/TravelPage.js';
 
 // Group flights by the date they should appear in MT (depDate for air, depDate for ground).
@@ -33,7 +32,7 @@ export async function syncFlights(page, { dryRun = false, date = null } = {}) {
   const byDate = groupByDate(all);
   const dates = Object.keys(byDate).sort();
 
-  await clickNavSection(page, 'Events');
+  await clickNavSection(page, 'Travel');
 
   for (const depDate of dates) {
     if (date && depDate !== date) continue;
@@ -42,7 +41,6 @@ export async function syncFlights(page, { dryRun = false, date = null } = {}) {
 
     try {
       await selectDate(page, depDate);
-      await clickEventTab(page, 'TRAVEL');
       const existing = await existingTravelText(page);
 
       for (const seg of segments) {
