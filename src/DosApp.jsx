@@ -934,8 +934,10 @@ export default function App(){
         const seenE=new Set();
         const contacts=[...(ni.showContacts||[]),...(existing.showContacts||[])].filter(c=>{const k=(c.email||c.name||"").toLowerCase();if(seenE.has(k))return false;seenE.add(k);return true;});
         const newTodos=(ni.followUps||[]).map(f=>({id:`t${Date.now()}_${Math.random().toString(36).slice(2,7)}`,text:f.action,owner:f.owner,priority:f.priority,deadline:f.deadline,threadTid:f.tid||null,done:false,ts:Date.now()}));
-        const existingTexts=new Set((existing.todos||[]).map(t=>t.text));
-        const todos=[...(existing.todos||[]),...newTodos.filter(t=>!existingTexts.has(t.text))];
+        const newTidByText=new Map(newTodos.filter(t=>t.threadTid).map(t=>[t.text,t.threadTid]));
+        const merged=(existing.todos||[]).map(t=>(!t.threadTid&&newTidByText.has(t.text))?{...t,threadTid:newTidByText.get(t.text)}:t);
+        const mergedTexts=new Set(merged.map(t=>t.text));
+        const todos=[...merged,...newTodos.filter(t=>!mergedTexts.has(t.text))];
         return{...p,[sid]:{threads,followUps:ni.followUps||[],showContacts:contacts,schedule:ni.schedule||existing.schedule||[],todos,matches:existing.matches||[],dismissedFlags:existing.dismissedFlags||[],lastRefreshed:new Date().toISOString(),isShared:data.isShared||false,sharedByOthers:data.sharedByOthers||[]}};
       });
       setRefreshMsg(`${show.venue}: ${data.gmailThreadsFound||0} threads`);
