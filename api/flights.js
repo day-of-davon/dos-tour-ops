@@ -1,6 +1,6 @@
 // api/flights.js — Gmail flight confirmation scraper + Claude parser
 const { createClient } = require("@supabase/supabase-js");
-const { gmailSearch, fetchBatched, extractBody, extractHtmlRaw, extractJsonLdReservations, extractJson } = require("./lib/gmail");
+const { gmailSearch, fetchBatched, extractBody, stripMarketingFooter, extractHtmlRaw, extractJsonLdReservations, extractJson } = require("./lib/gmail");
 const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
@@ -28,11 +28,12 @@ function extractHeaders(thread) {
   const first = thread.messages?.[0];
   const headers = first?.payload?.headers || [];
   const get = name => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || "";
-  const body = (thread.messages || [])
-    .map(m => extractBody(m.payload))
-    .filter(Boolean)
-    .join("\n---\n")
-    .slice(0, 6000);
+  const rawParts = (thread.messages || []).map(m => extractBody(m.payload)).filter(Boolean);
+  const strippedParts = rawParts.map(stripMarketingFooter);
+  const rawLen = rawParts.join("").length;
+  const strippedLen = strippedParts.join("").length;
+  if (rawLen > strippedLen) console.log(`[flights] footer-strip tid=${thread.id}: saved ${rawLen - strippedLen} chars`);
+  const body = strippedParts.join("\n---\n").slice(0, 6000);
   const lastMsg = thread.messages?.[thread.messages.length - 1];
   const lastMsgMs = lastMsg?.internalDate ? Number(lastMsg.internalDate) : null;
   // Raw HTML (pre-strip) from all messages — needed for JSON-LD FlightReservation scanning.

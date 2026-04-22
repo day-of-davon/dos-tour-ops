@@ -1,6 +1,6 @@
 // api/intel.js — Vercel serverless function
 const { createClient } = require("@supabase/supabase-js");
-const { gmailSearch, gmailGetThread, decodeB64, extractBody, extractJson } = require("./lib/gmail");
+const { gmailSearch, gmailGetThread, decodeB64, extractBody, stripMarketingFooter, extractJson } = require("./lib/gmail");
 const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
 
 const CACHE_TTL_MINUTES = 60;
@@ -46,11 +46,12 @@ function extractHeaders(thread) {
   const firstMsg = thread.messages?.[0];
   const headers = firstMsg?.payload?.headers || [];
   const get = (name) => headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value || "";
-  const body = (thread.messages || [])
-    .map((m) => extractBody(m.payload))
-    .filter(Boolean)
-    .join("\n---\n")
-    .slice(0, 5000); // was 1800 — too short for flight receipts and multi-message threads
+  const rawParts = (thread.messages || []).map((m) => extractBody(m.payload)).filter(Boolean);
+  const strippedParts = rawParts.map(stripMarketingFooter);
+  const rawLen = rawParts.join("").length;
+  const strippedLen = strippedParts.join("").length;
+  if (rawLen > strippedLen) console.log(`[intel] footer-strip tid=${thread.id}: saved ${rawLen - strippedLen} chars`);
+  const body = strippedParts.join("\n---\n").slice(0, 5000); // was 1800 — too short for flight receipts and multi-message threads
   return {
     id: thread.id,
     subject: get("Subject"),

@@ -61,6 +61,41 @@ function extractBody(payload) {
   return out.replace(/\s+/g, " ").trim();
 }
 
+// Trim marketing footers from already-stripped body text. Two phases:
+//  A) truncate at the first strong footer anchor, but only if the anchor
+//     appears in the second half of the body (avoids chopping legit content
+//     that happens to mention "unsubscribe" in a signature).
+//  B) line-level scrub: drop tracking URLs, social rows, visual dividers.
+// Safe default: if nothing matches, body passes through unchanged.
+function stripMarketingFooter(body) {
+  if (!body || typeof body !== "string") return body || "";
+  const anchors = [
+    /\bunsubscribe\b/i,
+    /manage\s+(your\s+)?(email\s+)?preferences/i,
+    /you\s+(are\s+)?receiv(ed|ing)\s+this\s+(email\s+)?because/i,
+    /this\s+email\s+was\s+sent\s+to/i,
+    /view\s+(this\s+email\s+)?in\s+(your\s+)?browser/i,
+    /©\s*(\d{4})?\s+[A-Z]/,
+    /privacy\s+policy\s*[|·•]\s*terms/i,
+    /follow\s+us\s+on\s+(facebook|instagram|twitter|x|tiktok|linkedin)/i,
+    /download\s+(our|the)\s+app/i,
+  ];
+  const half = Math.floor(body.length / 2);
+  let cutAt = body.length;
+  for (const re of anchors) {
+    const m = re.exec(body);
+    if (m && m.index >= half && m.index < cutAt) cutAt = m.index;
+  }
+  let out = body.slice(0, cutAt);
+
+  // Phase B: split on whitespace-run into pseudo-lines (body is already collapsed).
+  // Since extractBody collapses whitespace, split on sentence-ish boundaries + drop junk tokens.
+  out = out.replace(/https?:\/\/\S*(?:utm_|\/track\/|\/click\?|\/c\/|mkt\.|email\.)[^\s]*/gi, "");
+  out = out.replace(/\b(facebook|instagram|twitter|tiktok|linkedin|youtube)\s*[|·•]\s*(facebook|instagram|twitter|tiktok|linkedin|youtube)(\s*[|·•]\s*\w+)*/gi, "");
+  out = out.replace(/\s[|·•—]{2,}\s/g, " ");
+  return out.replace(/\s+/g, " ").trim();
+}
+
 // Returns raw HTML body parts concatenated (pre-strip). Used by JSON-LD scanners
 // that need to see <script type="application/ld+json"> blocks intact.
 function extractHtmlRaw(payload) {
@@ -124,4 +159,4 @@ function extractJson(text) {
   return null;
 }
 
-module.exports = { gmailSearch, gmailGetThread, fetchBatched, decodeB64, extractBody, extractHtmlRaw, extractJsonLdReservations, extractJson };
+module.exports = { gmailSearch, gmailGetThread, fetchBatched, decodeB64, extractBody, stripMarketingFooter, extractHtmlRaw, extractJsonLdReservations, extractJson };

@@ -1,17 +1,18 @@
 // api/lodging-scan.js — Gmail hotel confirmation scraper + Claude parser
 const { createClient } = require("@supabase/supabase-js");
-const { gmailSearch, fetchBatched, extractBody, extractJson } = require("./lib/gmail");
+const { gmailSearch, fetchBatched, extractBody, stripMarketingFooter, extractJson } = require("./lib/gmail");
 const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
 
 function extractHeaders(thread) {
   const last = thread.messages?.[thread.messages.length - 1];
   const headers = last?.payload?.headers || [];
   const get = name => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || "";
-  const body = (thread.messages || [])
-    .map(m => extractBody(m.payload))
-    .filter(Boolean)
-    .join("\n---\n")
-    .slice(0, 1400);
+  const rawParts = (thread.messages || []).map(m => extractBody(m.payload)).filter(Boolean);
+  const strippedParts = rawParts.map(stripMarketingFooter);
+  const rawLen = rawParts.join("").length;
+  const strippedLen = strippedParts.join("").length;
+  if (rawLen > strippedLen) console.log(`[lodging] footer-strip tid=${thread.id}: saved ${rawLen - strippedLen} chars`);
+  const body = strippedParts.join("\n---\n").slice(0, 1400);
   return { id: thread.id, subject: get("Subject"), from: get("From"), date: get("Date"), body };
 }
 
