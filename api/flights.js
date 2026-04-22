@@ -468,7 +468,10 @@ Return this exact JSON:
       }
       const detail = await resp.text();
       lastErr = Object.assign(new Error(`Anthropic ${resp.status}`), { detail, status: resp.status });
-      if (!RETRYABLE.has(resp.status)) throw lastErr;
+      if (!RETRYABLE.has(resp.status)) {
+        console.error(`[flights] anthropic ${resp.status} non-retryable:`, detail);
+        throw lastErr;
+      }
       console.warn(`[flights] anthropic ${resp.status} attempt ${attempt + 1}, retrying`);
     }
     throw lastErr;
@@ -550,8 +553,11 @@ Return this exact JSON:
       );
       claudeFlights = results.flat().map(f => ({ ...f, source: f.source || "claude" }));
     } catch (e) {
-      console.error("[flights] anthropic error:", e.message);
-      return res.status(502).json({ error: `Anthropic request failed: ${e.message}`, detail: e.detail });
+      console.error("[flights] anthropic error:", e.message, e.detail);
+      let anthropic = null;
+      try { anthropic = JSON.parse(e.detail || "")?.error || null; } catch {}
+      const summary = anthropic?.message ? `${anthropic.type || "error"}: ${anthropic.message}` : e.message;
+      return res.status(502).json({ error: `Anthropic request failed: ${summary}`, anthropic, detail: e.detail });
     }
   }
 

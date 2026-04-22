@@ -17,6 +17,17 @@ const flightDedupKey=f=>{
   if(fn&&fr&&to&&dd)return`${fn}__${fr}__${to}__${dd}`;
   return f.pnr||f.confirmNo||f.bookingRef||f.tid||f.id;
 };
+// Extract a human-readable message from a scan-api error body.
+// Server returns {error, anthropic:{type,message}, detail} JSON on 502; fall back to raw text.
+const describeScanError=body=>{
+  if(!body)return "";
+  try{
+    const p=JSON.parse(body);
+    if(p?.anthropic?.message)return`${p.anthropic.type||"error"}: ${p.anthropic.message}`.slice(0,400);
+    if(p?.error)return String(p.error).slice(0,400);
+  }catch{}
+  return String(body).slice(0,400);
+};
 // Merge fresh scan data into an existing flight, filling empty fields and unioning pax.
 // Preserves user-set status/confirmedAt and non-empty suggestedCrewIds.
 const FLIGHT_ENRICH_FIELDS=["flightNo","carrier","from","fromCity","to","toCity","depDate","dep","arrDate","arr","cost","currency","pnr","confirmNo","ticketNo","bookingStatus"];
@@ -773,6 +784,12 @@ export default function App(){
   const[dateMenu,setDateMenu]=useState(false);
   const[showOffDays,setShowOffDays]=useState(true);
   const[sidebarOpen,setSidebarOpen]=useState(true);
+  // Per-date active split-party id. Absent entries fall back to the first party.
+  const[splitParty,setSplitPartyState]=useState({});
+  const setSplitParty=useCallback((date,partyId)=>setSplitPartyState(p=>({...p,[date]:partyId})),[]);
+  const currentSplit=SPLIT_DAYS[sel]||null;
+  const activeSplitPartyId=currentSplit?(splitParty[sel]||currentSplit.parties[0].id):null;
+  const activeSplitParty=currentSplit?currentSplit.parties.find(p=>p.id===activeSplitPartyId):null;
   const[tourStart,setTourStart]=useState("2026-04-01");
   const[tourEnd,setTourEnd]=useState("2026-06-30");
   const mobile=useMobile();
@@ -977,7 +994,7 @@ export default function App(){
     setTabOrder(next);
   },[orderedTabs]);
 
-  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd}),[shows,ros,advances,finance,sel,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel]);// eslint-disable-line
+  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty}),[shows,ros,advances,finance,sel,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"var(--text-dim)",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
@@ -990,6 +1007,7 @@ export default function App(){
         <div style={{flex:1,display:"flex",flexDirection:"row",minWidth:0,minHeight:0,width:"100%",overflow:"hidden"}}>
           <NavSidebar/>
           <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,minHeight:0,overflow:"hidden"}}>
+            <SplitPartyTabs/>
             {tab==="advance"&&<AdvTab/>}{tab==="guestlist"&&<GuestListTab/>}{tab==="ros"&&<ScheduleTab/>}{tab==="transport"&&<TransTab/>}{tab==="finance"&&<FinTab/>}{tab==="crew"&&<CrewTab/>}{tab==="lodging"&&<LodgingTab/>}{tab==="production"&&<ProdTab/>}
           </div>
         </div>
@@ -1265,7 +1283,7 @@ function FlightsSection(){
         resp=await fetch("/api/flights",flightOpts);
       }
       if(resp.status===402){setScanMsg("Gmail session expired — please re-login.");setScanning(false);return;}
-      if(!resp.ok){const body=await resp.text().catch(()=>"");console.error("[flights-scan]",resp.status,body);setScanMsg(`Scan error ${resp.status} — ${body.slice(0,120)||"try again."}`);setScanning(false);return;}
+      if(!resp.ok){const body=await resp.text().catch(()=>"");console.error("[flights-scan]",resp.status,body);setScanMsg(`Scan error ${resp.status} — ${describeScanError(body)||"try again."}`);setScanning(false);return;}
       const data=await resp.json();
       if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
       const newFlights=data.flights||[];
@@ -1784,10 +1802,13 @@ function NavSidebar(){
                   <span style={{fontSize:10,fontWeight:600,color:isSel?"var(--accent-pill-border)":"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.city||d.venue||"—"}</span>
                   {!isOff&&<span style={{fontSize:8,padding:"1px 4px",borderRadius:99,fontWeight:700,...tc,flexShrink:0}}>{d.type==="show"?"▶":"⇢"}</span>}
                 </div>
-                <div style={{display:"flex",alignItems:"center",gap:4}}>
+                <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
                   {pc>0&&<span style={{fontSize:8,fontFamily:MN,color:"var(--warn-fg)",fontWeight:700}}>{pc} open</span>}
                   {d.type==="show"&&days>=0&&<span style={{fontSize:8,fontFamily:MN,color:urgColor,fontWeight:700}}>{days}d</span>}
                   {isOff&&<span style={{fontSize:8,color:"var(--text-mute)",fontStyle:"italic"}}>{d.type}</span>}
+                  {d.type==="split"&&d.split?.parties?.map(p=>(
+                    <span key={p.id} style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:p.bg,color:p.color,fontWeight:700,fontFamily:MN,whiteSpace:"nowrap"}}>{p.label}</span>
+                  ))}
                 </div>
               </div>
             </div>
@@ -1996,6 +2017,28 @@ function Dash(){
         })}
       </div>
       <button onClick={()=>setTab("advance")} style={{marginTop:10,background:client.color,border:"none",borderRadius:6,color:"#fff",fontSize:11,padding:"8px 16px",cursor:"pointer",fontWeight:700}}>Open Advance Tracker →</button>
+    </div>
+  );
+}
+
+function SplitPartyTabs(){
+  const{currentSplit,activeSplitPartyId,setSplitParty,sel}=useContext(Ctx);
+  if(!currentSplit)return null;
+  return(
+    <div style={{display:"flex",gap:0,padding:"0 16px",background:"var(--card)",borderBottom:"1px solid var(--border)",flexShrink:0}}>
+      {currentSplit.parties.map(p=>{
+        const active=p.id===activeSplitPartyId;
+        return(
+          <button key={p.id} onClick={()=>setSplitParty(sel,p.id)}
+            style={{background:"transparent",border:"none",borderBottom:active?`2px solid ${p.color}`:"2px solid transparent",padding:"8px 14px",cursor:"pointer",textAlign:"left",marginBottom:-1,transition:"border-color 120ms ease"}}>
+            <div style={{display:"flex",alignItems:"center",gap:6}}>
+              <span style={{display:"inline-block",width:8,height:8,borderRadius:99,background:p.color}}/>
+              <span style={{fontSize:11,fontWeight:700,color:active?"var(--text)":"var(--text-2)",fontFamily:MN,letterSpacing:"0.02em"}}>{p.label}</span>
+            </div>
+            <div style={{fontSize:9,color:"var(--text-mute)",marginTop:2,fontFamily:MN}}>{p.location} · {p.crew.length} crew</div>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -5981,6 +6024,7 @@ function GuestListTab(){
   const[tplMenu,setTplMenu]=useState(false);
   const[tplSaveName,setTplSaveName]=useState("");
   const[activityOpen,setActivityOpen]=useState(false);
+  const[categoriesOpen,setCategoriesOpen]=useState(false);
   const showDates=useMemo(()=>(sorted||[]).filter(s=>s.type!=="off"&&s.type!=="travel"&&s.type!=="split").map(s=>s.date),[sorted]);
   const date=sel&&shows?.[sel]?sel:(showDates[0]||sel);
   const show=shows?.[date];
@@ -6219,27 +6263,6 @@ function GuestListTab(){
 
         <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
           <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
-            <span style={{fontSize:10,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>CATEGORIES · {gl.categories.length}</span>
-            <button onClick={addCategory} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-2)",cursor:"pointer"}}>+ Category</button>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {gl.categories.map(c=>{
-              const u=categoryUsage[c.id]||{used:0,checkedIn:0};
-              const over=u.used>c.qty;
-              return<div key={c.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr auto":"1.5fr 2fr 70px 70px 90px 24px",gap:6,alignItems:"center",background:"var(--bg)",border:`1px solid ${over?"var(--danger-fg)":"var(--border)"}`,borderRadius:6,padding:"6px 8px"}}>
-                <input value={c.name} onChange={e=>updateCat(c.id,{name:e.target.value})} style={{background:"transparent",color:"var(--text)",border:"none",fontSize:11,fontWeight:600,padding:2}}/>
-                <input value={(c.zones||[]).join(", ")} onChange={e=>updateCat(c.id,{zones:e.target.value.split(",").map(x=>x.trim()).filter(Boolean)})} placeholder="FOH, BS" style={{background:"transparent",color:"var(--text-2)",border:"none",fontSize:10,fontFamily:MN,padding:2}}/>
-                <input type="number" value={c.qty} onChange={e=>updateCat(c.id,{qty:parseInt(e.target.value)||0})} style={{background:"var(--card)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:4,padding:"3px 5px",fontSize:10,fontFamily:MN,width:"100%"}}/>
-                <input type="number" value={c.walkOnQty||0} onChange={e=>updateCat(c.id,{walkOnQty:parseInt(e.target.value)||0})} placeholder="WO" style={{background:"var(--card)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:4,padding:"3px 5px",fontSize:10,fontFamily:MN,width:"100%"}}/>
-                <span style={{fontSize:10,fontFamily:MN,color:over?"var(--danger-fg)":"var(--text-dim)",textAlign:"right"}}>{u.used}/{c.qty} <span style={{color:"var(--text-mute)"}}>· {u.checkedIn}✓</span></span>
-                <button onClick={()=>removeCategory(c.id)} style={{background:"transparent",color:"var(--text-mute)",border:"none",fontSize:13,cursor:"pointer",padding:0}}>×</button>
-              </div>;
-            })}
-          </div>
-        </div>
-
-        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:10}}>
             <span style={{fontSize:10,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>PARTIES · {partyList.length}</span>
             <button onClick={()=>setAddParty(v=>!v)} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>{addParty?"Cancel":"+ Party"}</button>
           </div>
@@ -6300,6 +6323,30 @@ function GuestListTab(){
               </div>;
             })}
           </div>
+        </div>
+
+        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,cursor:"pointer"}} onClick={()=>setCategoriesOpen(v=>!v)}>
+            <span style={{fontSize:10,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em"}}>CATEGORIES · {gl.categories.length}</span>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <button onClick={e=>{e.stopPropagation();setCategoriesOpen(true);addCategory();}} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-2)",cursor:"pointer"}}>+ Category</button>
+              <span style={{fontSize:10,color:"var(--text-mute)"}}>{categoriesOpen?"▾":"▸"}</span>
+            </div>
+          </div>
+          {categoriesOpen&&<div style={{marginTop:10,display:"flex",flexDirection:"column",gap:6}}>
+            {gl.categories.map(c=>{
+              const u=categoryUsage[c.id]||{used:0,checkedIn:0};
+              const over=u.used>c.qty;
+              return<div key={c.id} style={{display:"grid",gridTemplateColumns:mobile?"1fr auto":"1.5fr 2fr 70px 70px 90px 24px",gap:6,alignItems:"center",background:"var(--bg)",border:`1px solid ${over?"var(--danger-fg)":"var(--border)"}`,borderRadius:6,padding:"6px 8px"}}>
+                <input value={c.name} onChange={e=>updateCat(c.id,{name:e.target.value})} style={{background:"transparent",color:"var(--text)",border:"none",fontSize:11,fontWeight:600,padding:2}}/>
+                <input value={(c.zones||[]).join(", ")} onChange={e=>updateCat(c.id,{zones:e.target.value.split(",").map(x=>x.trim()).filter(Boolean)})} placeholder="FOH, BS" style={{background:"transparent",color:"var(--text-2)",border:"none",fontSize:10,fontFamily:MN,padding:2}}/>
+                <input type="number" value={c.qty} onChange={e=>updateCat(c.id,{qty:parseInt(e.target.value)||0})} style={{background:"var(--card)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:4,padding:"3px 5px",fontSize:10,fontFamily:MN,width:"100%"}}/>
+                <input type="number" value={c.walkOnQty||0} onChange={e=>updateCat(c.id,{walkOnQty:parseInt(e.target.value)||0})} placeholder="WO" style={{background:"var(--card)",color:"var(--text)",border:"1px solid var(--border)",borderRadius:4,padding:"3px 5px",fontSize:10,fontFamily:MN,width:"100%"}}/>
+                <span style={{fontSize:10,fontFamily:MN,color:over?"var(--danger-fg)":"var(--text-dim)",textAlign:"right"}}>{u.used}/{c.qty} <span style={{color:"var(--text-mute)"}}>· {u.checkedIn}✓</span></span>
+                <button onClick={()=>removeCategory(c.id)} style={{background:"transparent",color:"var(--text-mute)",border:"none",fontSize:13,cursor:"pointer",padding:0}}>×</button>
+              </div>;
+            })}
+          </div>}
         </div>
 
         <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>

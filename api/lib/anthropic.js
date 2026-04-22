@@ -6,6 +6,6 @@ const ANTHROPIC_HEADERS = {
   "x-api-key": process.env.ANTHROPIC_API_KEY,
   "anthropic-version": "2023-06-01",
 };
-const DEFAULT_MODEL = "claude-sonnet-4-6";
+const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 
 module.exports = { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL };
