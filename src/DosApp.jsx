@@ -1802,10 +1802,8 @@ function NavSidebar(){
     setSel(newDate);setNewDate("");
   };
 
-  // Scroll selected date into view
   const listRef=useRef(null);
   const selRef=useRef(null);
-  useEffect(()=>{if(selRef.current&&listRef.current){selRef.current.scrollIntoView({block:"start",behavior:"smooth"});};},[sel,sidebarOpen,tab]);
 
   const typeColor=t=>t==="travel"?{bg:"var(--info-bg)",c:"var(--link)"}:t==="off"?{bg:"var(--card-2)",c:"var(--text-mute)"}:t==="split"?{bg:"var(--warn-bg)",c:"var(--warn-fg)"}:{bg:"var(--success-bg)",c:"var(--success-fg)"};
 
