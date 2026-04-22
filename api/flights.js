@@ -825,6 +825,75 @@ Return this exact JSON:
     }
   }
 
+  // ── Missed-leg retry ──────────────────────────────────────────────────────
+  // Claude batches sometimes drop legs on multi-leg confirmations (JetBlue
+  // "CODGXZ"-type round-trips, connections packed into one email). For each
+  // text-only Claude thread, compare expectedLegCount(body) against how many
+  // flights came back tagged with that tid. If short, re-parse that thread
+  // ALONE with an explicit leg-count hint. Single-thread isolation removes
+  // attention pressure from sibling threads; explicit hint makes the gap
+  // unambiguous. Adds at most N extra calls where N = threads Claude
+  // under-counted — typically 0-2 per scan.
+  const byTidCount = {};
+  for (const f of claudeFlights) byTidCount[f.tid] = (byTidCount[f.tid] || 0) + 1;
+  const missedThreads = textOnlyThreads.filter(t => {
+    const got = byTidCount[t.id] || 0;
+    const expected = expectedLegCount(t.body);
+    return expected >= 2 && got < expected;
+  });
+  if (missedThreads.length) {
+    console.log(`[flights] missed-leg retry: ${missedThreads.length} threads`);
+    for (const t of missedThreads) {
+      const expected = expectedLegCount(t.body);
+      const got = byTidCount[t.id] || 0;
+      const hintedPrompt = `Extract all flight segments from this single email thread. Tour date range: ${tourStart} to ${tourEnd}.
+
+IMPORTANT: This email describes approximately ${expected} flight legs (round-trip, connection, or multi-city). You previously returned only ${got}. Re-read the body carefully and enumerate EVERY leg. Look for BOTH "Outbound/Departing" AND "Return/Returning/Inbound" blocks. Look for multiple flight-number rows. Each leg = one object in flights[].
+
+[0] tid:${t.id}
+Subject: ${t.subject}
+From: ${t.from}${t.forwardedSender ? `\nOriginal sender: ${t.forwardedSender.name}${t.forwardedSender.email ? ` <${t.forwardedSender.email}>` : ""}` : ""}
+Date: ${t.date}
+Body: ${t.body}
+
+Return this exact JSON:
+{
+  "flights": [
+    {
+      "flightNo": "B6123",
+      "carrier": "JetBlue",
+      "from": "BOS", "fromCity": "Boston",
+      "to": "DUB", "toCity": "Dublin",
+      "depDate": "2026-05-02", "dep": "21:55",
+      "arrDate": "2026-05-03", "arr": "09:30",
+      "pax": ["Grace Offerdahl"],
+      "pnr": "CODGXZ", "confirmNo": null, "ticketNo": null,
+      "cost": null, "currency": "USD",
+      "tid": "${t.id}"
+    }
+  ]
+}`;
+      try {
+        const parsed = await callClaude(hintedPrompt);
+        const rows = Array.isArray(parsed?.flights) ? parsed.flights : [];
+        // Dedup by (flightNo|depDate|from|to) against already-collected records for this tid.
+        const existingKeys = new Set(claudeFlights.filter(f => f.tid === t.id)
+          .map(f => `${f.flightNo || ""}|${f.depDate || ""}|${f.from || ""}|${f.to || ""}`));
+        let added = 0;
+        for (const f of rows) {
+          const k = `${f.flightNo || ""}|${f.depDate || ""}|${f.from || ""}|${f.to || ""}`;
+          if (existingKeys.has(k)) continue;
+          claudeFlights.push({ ...f, tid: f.tid || t.id, source: "claude_retry", parseVerified: null });
+          existingKeys.add(k);
+          added++;
+        }
+        console.log(`[flights] retry tid=${t.id} expected=${expected} got_before=${got} added=${added}`);
+      } catch (e) {
+        runErrors.push({ kind: "anthropic_error", phase: "missed_leg_retry", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+      }
+    }
+  }
+
   // ── Per-thread PDF calls (sequential, bounded by scan cap) ────────────────
   let attachmentsScanned = 0;
   for (const t of withPdfThreads) {
