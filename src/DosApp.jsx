@@ -930,9 +930,14 @@ export default function App(){
       const{data:{session}}=await supabase.auth.getSession();
       if(!session?.provider_token)return;
       const showsArr=Object.values(shows||{}).filter(s=>s.clientId===aC);
-      const resp=await fetch("/api/intel",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({action:"labelScan",shows:showsArr,googleToken:session.provider_token,forceRefresh:force,userEmail:session.user?.email})});
-      if(!resp.ok)return;
-      const data=await resp.json();
+      const authHeaders={"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`};
+      const commonBody={shows:showsArr,googleToken:session.provider_token,forceRefresh:force,userEmail:session.user?.email};
+      const[labelRes]=await Promise.allSettled([
+        fetch("/api/intel",{method:"POST",headers:authHeaders,body:JSON.stringify({action:"labelScan",...commonBody})}),
+        fetch("/api/intel",{method:"POST",headers:authHeaders,body:JSON.stringify({action:"bulkFetch",...commonBody})}),
+      ]);
+      if(labelRes.status!=="fulfilled"||!labelRes.value.ok)return;
+      const data=await labelRes.value.json();
       setLabelIntel(data);
       if(data.byShow){
         setIntel(prev=>{
