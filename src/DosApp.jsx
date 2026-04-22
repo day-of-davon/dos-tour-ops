@@ -4073,7 +4073,7 @@ function TransTab(){
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
       <div style={{padding:"7px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"nowrap",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
-        {[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["calendar","Tour Calendar"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`],...(canSeeFestivalDispatch?[["festival","Festival Dispatch"]]:[])].map(([v,l])=>(
+        {[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["calendar","Tour Calendar"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`]].map(([v,l])=>(
           <button key={v} onClick={()=>setView(v)} style={{padding:"4px 12px",borderRadius:6,border:"1px solid var(--border)",background:view===v?"var(--accent)":"var(--card-3)",color:view===v?"var(--card)":"var(--text-dim)",fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
         ))}
         {view==="calendar"&&<div style={{marginLeft:"auto",fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>Apr 16 – May 31 · Internet Explorer EU 2026</div>}
