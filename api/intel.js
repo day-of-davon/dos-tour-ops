@@ -387,10 +387,15 @@ async function handleLabelScan(req, res, user, supabase) {
     return res.status(502).json({ error: e.message });
   }
 
-  const rawThreads = (await Promise.all(threadIds.map(id => gmailGetThread(googleToken, id)))).filter(Boolean).map(t => {
-    const h = extractHeaders(t);
-    return { ...h, bodySnippet: (h.bodySnippet || "").slice(0, 800) }; // was 400
-  });
+  let rawThreads;
+  try {
+    rawThreads = (await Promise.all(threadIds.map(id => gmailGetThread(googleToken, id).catch(() => null)))).filter(Boolean).map(t => {
+      const h = extractHeaders(t);
+      return { ...h, bodySnippet: (h.bodySnippet || "").slice(0, 800) };
+    });
+  } catch (e) {
+    return res.status(502).json({ error: `Gmail thread fetch failed: ${e.message}` });
+  }
 
   const shows = Array.isArray(showsArr) ? showsArr : [];
   const classified = rawThreads.map(t => ({ ...t, category: classifyThread(t.subject, t.from), _show: matchShow(t, shows) }));
@@ -566,10 +571,14 @@ module.exports = async function handler(req, res) {
     }
 
     const ids = [...seenIds].slice(0, 20);
-    threads = (await Promise.all(ids.map((id) => gmailGetThread(googleToken, id))))
-      .filter(Boolean)
-      .map(extractHeaders)
-      .map((t) => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 1200) }));
+    try {
+      threads = (await Promise.all(ids.map((id) => gmailGetThread(googleToken, id).catch(() => null))))
+        .filter(Boolean)
+        .map(extractHeaders)
+        .map((t) => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 1200) }));
+    } catch (e) {
+      return res.status(502).json({ error: `Gmail thread fetch failed: ${e.message}` });
+    }
   }
 
   // ── Claude system prompt (tour-context-aware) ─────────────────────────────
@@ -626,16 +635,21 @@ Return this exact JSON:
   "lastRefreshed": "${new Date().toISOString()}"
 }`;
 
-  const anthropicResp = await fetch(ANTHROPIC_URL, {
-    method: "POST",
-    headers: ANTHROPIC_HEADERS,
-    body: JSON.stringify({
-      model: DEFAULT_MODEL,
-      max_tokens: 4096,
-      system: [{ type: "text", text: sysPrompt, cache_control: { type: "ephemeral" } }],
-      messages: [{ role: "user", content: userPrompt }],
-    }),
-  });
+  let anthropicResp;
+  try {
+    anthropicResp = await fetch(ANTHROPIC_URL, {
+      method: "POST",
+      headers: ANTHROPIC_HEADERS,
+      body: JSON.stringify({
+        model: DEFAULT_MODEL,
+        max_tokens: 8192,
+        system: [{ type: "text", text: sysPrompt, cache_control: { type: "ephemeral" } }],
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    });
+  } catch (e) {
+    return res.status(502).json({ error: `Anthropic fetch failed: ${e.message}` });
+  }
 
   if (!anthropicResp.ok) {
     const err = await anthropicResp.text();
@@ -643,8 +657,10 @@ Return this exact JSON:
   }
 
   const anthropicData = await anthropicResp.json();
-  const inputTokens  = anthropicData.usage?.input_tokens  || 0;
-  const outputTokens = anthropicData.usage?.output_tokens || 0;
+  const inputTokens         = anthropicData.usage?.input_tokens                || 0;
+  const outputTokens        = anthropicData.usage?.output_tokens               || 0;
+  const cacheReadTokens     = anthropicData.usage?.cache_read_input_tokens     || 0;
+  const cacheCreationTokens = anthropicData.usage?.cache_creation_input_tokens || 0;
   bumpStopReason(stopReasons, anthropicData.stop_reason);
 
   const textContent = (anthropicData.content || [])
@@ -701,7 +717,7 @@ Return this exact JSON:
 
   if (!intel) {
     console.error("[intel] parse failed. stop_reason:", anthropicData.stop_reason, "| raw:", textContent.slice(0, 1000));
-    await finishScanRun(runId, { threadsFound: threads.length, threadsParsed: threads.length, inputTokens, outputTokens, stopReasons, errors: [{ kind: "parse_failed", stop_reason: anthropicData.stop_reason }], startedAt });
+    await finishScanRun(runId, { threadsFound: threads.length, threadsParsed: threads.length, inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens, stopReasons, errors: [{ kind: "parse_failed", stop_reason: anthropicData.stop_reason }], startedAt });
     return res.json({
       intel: null,
       gmailThreadsFound: threads.length,
@@ -739,7 +755,7 @@ Return this exact JSON:
     .eq("is_shared", true)
     .neq("user_id", user.id);
 
-  await finishScanRun(runId, { threadsFound: threads.length, threadsParsed: threads.length, inputTokens, outputTokens, stopReasons, startedAt });
+  await finishScanRun(runId, { threadsFound: threads.length, threadsParsed: threads.length, inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens, stopReasons, startedAt });
 
   return res.json({
     intel,
