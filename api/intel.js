@@ -2,6 +2,7 @@
 const { createClient } = require("@supabase/supabase-js");
 const { gmailSearch, gmailGetThread, decodeB64, extractBody, stripMarketingFooter, extractJson } = require("./lib/gmail");
 const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
+const { startScanRun, finishScanRun, bumpStopReason } = require("./lib/scanMemory");
 
 const CACHE_TTL_MINUTES = 60;
 
@@ -225,12 +226,16 @@ async function handleLabelScan(req, res, user, supabase) {
   const { googleToken, forceRefresh, shows: showsArr, userEmail } = req.body || {};
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
   const LABEL_SCAN_ID = "__label_scan";
+  const { runId, startedAt } = await startScanRun({ scanner: "intel", userId: user.id, params: { mode: "labelScan", forceRefresh: !!forceRefresh } });
 
   if (!forceRefresh) {
     const { data: cached } = await supabase.from("intel_cache").select("intel, cached_at").eq("user_id", user.id).eq("show_id", LABEL_SCAN_ID).single();
     if (cached) {
       const ageMin = (Date.now() - new Date(cached.cached_at).getTime()) / 60000;
-      if (ageMin < CACHE_TTL_MINUTES) return res.json({ ...cached.intel, fromCache: true });
+      if (ageMin < CACHE_TTL_MINUTES) {
+        await finishScanRun(runId, { threadsFound: 0, threadsCached: cached.intel?.labelThreadsFound || 0, startedAt });
+        return res.json({ ...cached.intel, fromCache: true });
+      }
     }
   }
 
@@ -311,7 +316,8 @@ async function handleLabelScan(req, res, user, supabase) {
     { onConflict: "user_id,show_id" }
   );
 
-  return res.json({ ...payload, fromCache: false });
+  await finishScanRun(runId, { threadsFound: threadIds.length, threadsParsed: classified.length, startedAt });
+  return res.json({ ...payload, fromCache: false, scanRunId: runId });
 }
 
 // ── Main handler ─────────────────────────────────────────────────────────────
@@ -348,6 +354,12 @@ module.exports = async function handler(req, res) {
 
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
 
+  const { runId, startedAt } = await startScanRun({
+    scanner: "intel", userId: user.id,
+    params: { mode: "perShow", showId, showVenue: show.venue, showDate: show.date, forceRefresh: !!forceRefresh },
+  });
+  const stopReasons = {};
+
   // ── Fetch user's own cache ───────────────────────────────────────────────────
   if (!forceRefresh) {
     const { data: cached } = await supabase
@@ -366,6 +378,7 @@ module.exports = async function handler(req, res) {
           .eq("show_id", showId)
           .eq("is_shared", true)
           .neq("user_id", user.id);
+        await finishScanRun(runId, { threadsFound: cached.gmail_threads_found || 0, threadsCached: cached.gmail_threads_found || 0, startedAt });
         return res.json({
           intel: cached.intel,
           gmailThreadsFound: cached.gmail_threads_found,
@@ -373,6 +386,7 @@ module.exports = async function handler(req, res) {
           sharedByOthers: sharedByOthers || [],
           fromCache: true,
           cachedAt: cached.cached_at,
+          scanRunId: runId,
         });
       }
     }
@@ -485,6 +499,9 @@ Return this exact JSON:
   }
 
   const anthropicData = await anthropicResp.json();
+  const inputTokens  = anthropicData.usage?.input_tokens  || 0;
+  const outputTokens = anthropicData.usage?.output_tokens || 0;
+  bumpStopReason(stopReasons, anthropicData.stop_reason);
 
   const textContent = (anthropicData.content || [])
     .filter((b) => b.type === "text")
@@ -540,11 +557,13 @@ Return this exact JSON:
 
   if (!intel) {
     console.error("[intel] parse failed. stop_reason:", anthropicData.stop_reason, "| raw:", textContent.slice(0, 1000));
+    await finishScanRun(runId, { threadsFound: threads.length, threadsParsed: threads.length, inputTokens, outputTokens, stopReasons, errors: [{ kind: "parse_failed", stop_reason: anthropicData.stop_reason }], startedAt });
     return res.json({
       intel: null,
       gmailThreadsFound: threads.length,
       fromCache: false,
       debug: { stopReason: anthropicData.stop_reason, rawText: textContent.slice(0, 800) },
+      scanRunId: runId,
     });
   }
 
@@ -576,11 +595,15 @@ Return this exact JSON:
     .eq("is_shared", true)
     .neq("user_id", user.id);
 
+  await finishScanRun(runId, { threadsFound: threads.length, threadsParsed: threads.length, inputTokens, outputTokens, stopReasons, startedAt });
+
   return res.json({
     intel,
     gmailThreadsFound: threads.length,
     isShared: existing?.is_shared ?? false,
     sharedByOthers: sharedByOthers || [],
     fromCache: false,
+    scanRunId: runId,
+    tokensUsed: inputTokens + outputTokens,
   });
 };

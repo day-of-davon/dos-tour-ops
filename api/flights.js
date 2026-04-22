@@ -2,6 +2,12 @@
 const { createClient } = require("@supabase/supabase-js");
 const { gmailSearch, fetchBatched, extractBody, stripMarketingFooter, extractHtmlRaw, extractJsonLdReservations, extractJson } = require("./lib/gmail");
 const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
+const {
+  hashBody, shouldUseCached,
+  startScanRun, finishScanRun,
+  getCachedThread, putCachedThread,
+  logEnhancement, bumpStopReason,
+} = require("./lib/scanMemory");
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
 function toGmailDate(d) { return d.replace(/-/g, "/"); }
@@ -345,6 +351,13 @@ module.exports = async function handler(req, res) {
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
 
   const after = sweepFrom ? toGmailDate(sweepFrom) : nDaysAgo(90);
+  const { runId, startedAt } = await startScanRun({
+    scanner: "flights", userId: user.id,
+    params: { sweepFrom, tourStart, tourEnd, after, showsCount: shows.length },
+  });
+  const stopReasons = {};
+  const runErrors = [];
+  let inputTokensTotal = 0, outputTokensTotal = 0;
   const { high, low } = buildFlightQueryGroups(after);
   const seen = new Set();
   const CAP = 100;
@@ -372,7 +385,10 @@ module.exports = async function handler(req, res) {
   }
 
   const ids = [...seen].slice(0, CAP);
-  if (!ids.length) return res.json({ flights: [], threadsFound: 0 });
+  if (!ids.length) {
+    await finishScanRun(runId, { threadsFound: 0, startedAt, errors: runErrors });
+    return res.json({ flights: [], threadsFound: 0, scanRunId: runId, threadsCached: 0, threadsParsed: 0 });
+  }
 
   let threads, freshIds;
   try {
@@ -388,8 +404,25 @@ module.exports = async function handler(req, res) {
     );
   } catch (e) {
     console.error("[flights] thread fetch error:", e.message);
+    await finishScanRun(runId, { threadsFound: 0, startedAt, errors: [...runErrors, { kind: "thread_fetch", message: e.message }] });
     return res.status(500).json({ error: `Thread fetch failed: ${e.message}` });
   }
+
+  // ── Cache check: split threads into hit (use cached flights) vs fresh (parse). ──
+  const cachedFlights = [];
+  const freshThreads = [];
+  for (const t of threads) {
+    const bodyHash = hashBody(t.subject, t.from, t.body);
+    const cached = await getCachedThread("flights", t.id);
+    t.bodyHash = bodyHash;
+    t.prevResult = cached?.result || null;
+    if (shouldUseCached(cached, t.lastMsgMs, bodyHash, [])) {
+      if (Array.isArray(cached.result)) cachedFlights.push(...cached.result);
+    } else {
+      freshThreads.push(t);
+    }
+  }
+  console.log(`[flights] cache: hit=${threads.length - freshThreads.length} fresh=${freshThreads.length} runId=${runId}`);
 
   // ── JSON-LD fast path ───────────────────────────────────────────────────────
   // Major carriers (UA, AA, DL, LH, BA, AF, KLM, Iberia) emit schema.org
@@ -398,7 +431,7 @@ module.exports = async function handler(req, res) {
   const jsonLdFlights = [];
   const jsonLdTids = new Set();   // JSON-LD covered the thread fully; skip Claude
   let jsonLdPartialTids = 0;
-  for (const t of threads) {
+  for (const t of freshThreads) {
     if (!t.htmlRaw) continue;
     const reservations = extractJsonLdReservations(t.htmlRaw);
     if (!reservations.length) continue;
@@ -413,7 +446,7 @@ module.exports = async function handler(req, res) {
       console.log(`[flights] jsonld partial: tid=${t.id} got=${mapped.length} expected=${expected} — falling through to Claude`);
     }
   }
-  const claudeThreads = threads.filter(t => !jsonLdTids.has(t.id));
+  const claudeThreads = freshThreads.filter(t => !jsonLdTids.has(t.id));
   console.log(`[flights] jsonld-shortcircuit: ${jsonLdTids.size} threads / ${jsonLdFlights.length} flights | partial: ${jsonLdPartialTids} | claude: ${claudeThreads.length} threads`);
 
   // Known crew for this tour — used to disambiguate pax names extracted in airline format.
@@ -515,6 +548,9 @@ Return this exact JSON:
       if (resp.ok) {
         const data = await resp.json();
         const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+        inputTokensTotal  += data.usage?.input_tokens  || 0;
+        outputTokensTotal += data.usage?.output_tokens || 0;
+        bumpStopReason(stopReasons, data.stop_reason);
         console.log("[flights] stop_reason:", data.stop_reason, "| model:", data.model, "| attempt:", attempt + 1);
         return extractJson(text);
       }
@@ -615,7 +651,32 @@ Return this exact JSON:
 
   // Dedup BEFORE validation — a JSON-LD leg and a Claude leg for the same
   // segment should merge (JSON-LD wins for structure, Claude may carry extra pax).
-  const merged = dedupFlights([...jsonLdFlights, ...claudeFlights]);
+  const freshMerged = dedupFlights([...jsonLdFlights, ...claudeFlights]);
+
+  // Cache fresh results per-thread + log enhancements vs previous.
+  const freshByTid = {};
+  for (const f of freshMerged) (freshByTid[f.tid] ||= []).push(f);
+  for (const t of freshThreads) {
+    const result = freshByTid[t.id] || [];
+    await putCachedThread("flights", t.id, {
+      lastMsgMs: t.lastMsgMs,
+      bodyHash: t.bodyHash,
+      result,
+      stopReason: null, // per-thread stop_reason not tracked in flights batch mode
+      footerStripSaved: null,
+      attachmentFingerprints: [],
+    });
+    if (Array.isArray(t.prevResult) && t.prevResult.length) {
+      const prevByKey = Object.fromEntries(t.prevResult.map(r => [`${r.flightNo}|${r.depDate}|${r.from}|${r.to}`, r]));
+      for (const f of result) {
+        const key = `${f.flightNo}|${f.depDate}|${f.from}|${f.to}`;
+        const prev = prevByKey[key];
+        if (prev) await logEnhancement("flight", `${t.id}:${key}`, prev, f, { scanRunId: runId, source: "flights", scanner: "flights", userId: user.id, userEmail: user.email });
+      }
+    }
+  }
+
+  const merged = dedupFlights([...cachedFlights, ...freshMerged]);
 
   // Validation: drop flights lacking both a usable PNR and the core identifier
   // quartet (flightNo + depDate + from + to). Catches Claude hallucinations and
@@ -638,6 +699,18 @@ Return this exact JSON:
     };
   });
 
+  await finishScanRun(runId, {
+    threadsFound: threads.length,
+    threadsCached: threads.length - freshThreads.length,
+    threadsParsed: freshThreads.length,
+    attachmentsScanned: 0,
+    inputTokens: inputTokensTotal,
+    outputTokens: outputTokensTotal,
+    stopReasons,
+    errors: [...runErrors, ...queryErrors.map(q => ({ kind: "gmail_query_failed", ...q }))],
+    startedAt,
+  });
+
   return res.json({
     flights,
     threadsFound: threads.length,
@@ -646,5 +719,9 @@ Return this exact JSON:
     claudeThreads: claudeThreads.length,
     dropped: droppedCount,
     queryErrors: queryErrors.length ? queryErrors : undefined,
+    scanRunId: runId,
+    threadsCached: threads.length - freshThreads.length,
+    threadsParsed: freshThreads.length,
+    tokensUsed: inputTokensTotal + outputTokensTotal,
   });
 };
