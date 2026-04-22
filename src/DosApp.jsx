@@ -3000,11 +3000,9 @@ function ScheduleTab(){
   const{shows,sel,tourDays}=useContext(Ctx);
   const show=shows[sel];
   const td=tourDays?.[sel];
-  const isNonShow=(show&&(show.type==="off"||show.type==="travel"))||(td&&(td.type==="off"||td.type==="travel"||td.type==="split"));
-  if(isNonShow){
-    const effShow=show||{type:td.type,notes:td.bus?.note};
-    return <DayScheduleView show={effShow} bus={BUS_DATA_MAP[sel]||td?.bus||null} split={SPLIT_DAYS[sel]||td?.split||null} sel={sel}/>;
-  }
+  // Synthetic tour days (no show entry) → DayScheduleView only
+  const isSynthetic=!show&&td&&(td.type==="off"||td.type==="travel"||td.type==="split");
+  if(isSynthetic) return <DayScheduleView show={{type:td.type,notes:td.bus?.note}} bus={BUS_DATA_MAP[sel]||td?.bus||null} split={SPLIT_DAYS[sel]||td?.split||null} sel={sel}/>;
   if(!show)return <div style={{padding:40,textAlign:"center",color:"var(--text-dim)",fontSize:11}}>No event scheduled for this date.</div>;
   return <ROSTab/>;
 }
@@ -3140,9 +3138,7 @@ function ROSTab(){
   const AMAP={busArrive:"Bus Arrival",busDepart:"Bus Depart",venueAccess:"Venue Access",crewCall:"Crew Call",mgTime:"M&G",doors:"Doors",curfew:"Curfew"};
   const isCustom=!subEvent&&!!CUSTOM_ROS_MAP[sel];
 
-  if(show.type==="off"||show.type==="travel"){
-    return <DayScheduleView show={show} bus={BUS_DATA_MAP[sel]||null} split={SPLIT_DAYS[sel]||null} sel={sel}/>;
-  }
+  const isNonShowDay=(show.type==="off"||show.type==="travel")&&!subEvent;
 
   const renderB=b=>{
     let t=times[b.id];if(!t)return null;
@@ -3225,9 +3221,10 @@ function ROSTab(){
 
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
-      {/* Event switcher — always visible on show days */}
+      {/* Event switcher — visible on all day types */}
       <EventSwitcher show={show} sel={sel}/>
-      <div style={{padding:"6px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:10,flexWrap:"wrap",fontSize:11,flexShrink:0,alignItems:"center"}}>
+      {isNonShowDay&&<DayScheduleView show={show} bus={BUS_DATA_MAP[sel]||null} split={SPLIT_DAYS[sel]||null} sel={sel}/>}
+      {!isNonShowDay&&<><div style={{padding:"6px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:10,flexWrap:"wrap",fontSize:11,flexShrink:0,alignItems:"center"}}>
         <span style={{fontWeight:700}}>{effShow.venue}</span><span style={{color:"var(--text-2)",fontSize:10}}>{effShow.promoter}</span>
         {isCustom&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:700}}>Custom ROS</span>}
         {subEvent&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:700}}>{subEvent.name}</span>}
@@ -3248,6 +3245,7 @@ function ROSTab(){
           {[...(effShow.busSkip?[]:[{l:effShow.busPre?"Bus":"Bus ETA",v:effShow.busPre?"On-site (prev)":fmt(effShow.busArrive),c:"var(--link)"}]),{l:"Crew Call",v:fmt(effShow.crewCall),c:"var(--warn-fg)"},{l:"M&G",v:fmt(effShow.mgTime),c:"var(--success-fg)",hide:effShow.mgSkip},{l:"Doors",v:fmt(effShow.doors),c:"var(--success-fg)"},{l:"Headline",v:times.bbno_set?`${fmt(times.bbno_set.s)}–${fmt(times.bbno_set.e)}`:"--",c:"var(--danger-fg)"},{l:"Settlement",v:times.settlement?fmt(times.settlement.s):"--",c:"var(--warn-fg)"},{l:"Curfew",v:fmt(effShow.curfew),c:"var(--danger-fg)"},{l:"Bus Out",v:times.bus_depart?fmt(times.bus_depart.s):"--",c:"var(--link)",hide:effShow.busSkip}].filter(s=>!s.hide).map((s,i)=><div key={i}><div style={{fontSize:8,color:"var(--text-dim)",marginBottom:1,fontWeight:600}}>{s.l}</div><div style={{fontFamily:MN,fontSize:11,color:s.c,fontWeight:800}}>{s.v}</div></div>)}
         </div>
       </div>
+      </>}
     </div>
   );
 }
