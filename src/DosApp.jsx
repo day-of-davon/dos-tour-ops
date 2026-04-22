@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo, createContext
 import { useAuth } from "./components/AuthGate.jsx";
 import { Button, Pill } from "./components/ui.jsx";
 import { supabase } from "./lib/supabase";
+import { logAudit } from "./lib/audit";
 
 // DOS TOUR OPS v7.0 — Day of Show, LLC
 // Client-first · All dept advance lanes · Custom + editable items · Full settlement
@@ -2072,8 +2073,15 @@ function AdvTab(){
   const getStatus=id=>{const it=allItems.find(x=>x.id===id);if(it?.private)return it.status||"pending";return items[id]?.status||"pending";};
   const setStatus=(id,status)=>{const it=allItems.find(x=>x.id===id);
     const meta=status==="confirmed"?{confirmedBy:meEmail,confirmedAt:new Date().toISOString()}:{confirmedBy:null,confirmedAt:null};
+    const prevStatus=it?.private?(privList.find(p=>p.id===id)?.status||"pending"):(items[id]?.status||"pending");
     if(it?.private)uCheckPriv(sel,privList.map(p=>p.id===id?{...p,status,...meta}:p));
-    else uAdv(sel,{items:{...items,[id]:{...items[id],status,...meta}}});};
+    else uAdv(sel,{items:{...items,[id]:{...items[id],status,...meta}}});
+    if(prevStatus!==status){
+      logAudit({entityType:"advance",entityId:`${sel}:${id}`,action:"status_change",
+        before:{status:prevStatus},after:{status},
+        meta:{private:!!it?.private,question:it?.q||null},
+        teamScoped:!it?.private});
+    }};
   const setOverride=(id,q)=>uAdv(sel,{itemOverrides:{...overrides,[id]:{...overrides[id],q}}});
   const deleteCustom=id=>{const it=allItems.find(x=>x.id===id);if(!it)return;
     if(it.private){const prev=privList;uCheckPriv(sel,privList.filter(c=>c.id!==id));pushUndo(`Deleted "${(it.q||"").slice(0,40)}"`,()=>uCheckPriv(sel,prev));}
@@ -3965,7 +3973,12 @@ function FinTab(){
   const fin=selS?finance[selS]||{}:{};
   const stages=fin.stages||{};
   const payouts=fin.payouts||[];
-  const toggleStage=id=>uFin(selS,{stages:{...stages,[id]:!stages[id]}});
+  const toggleStage=id=>{
+    const prev=!!stages[id];const next=!prev;
+    uFin(selS,{stages:{...stages,[id]:next}});
+    logAudit({entityType:"finance",entityId:`${selS}:${id}`,action:"stage_toggle",
+      before:{done:prev},after:{done:next},meta:{stage:id}});
+  };
   const done=["wire_ref_confirmed","signed_sheet","payment_initiated"].every(id=>stages[id]);
   const addPayout=()=>{if(!selS||!pForm.name||!pForm.amount)return;uFin(selS,{payouts:[...payouts,{...pForm,id:`p${Date.now()}`,date:today}]});setPForm({name:"",role:"",dept:"Drivers",amount:"",currency:"USD",method:"Wire",status:"pending"});setAddP(false);};
   const currencies=[...new Set(payouts.map(p=>p.currency))];
