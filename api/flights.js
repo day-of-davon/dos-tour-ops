@@ -664,11 +664,11 @@ Skip hotel, train, rental car confirmations — flights and private charters onl
   const withPdfThreads = SCAN_PDFS ? claudeThreads.filter(t => t.attachments?.length) : [];
   const textOnlyThreads = claudeThreads.filter(t => !withPdfThreads.includes(t));
 
-  // BATCH was 8; dropped to 5 so multi-leg round-trip confirmations (JetBlue
-  // "CODGXZ"-type) don't hit the 4096 output cap and truncate the 2nd leg.
-  // Combined with max_tokens bump below, Claude has room to enumerate every
-  // segment of a connecting itinerary per batch.
-  const BATCH = 5;
+  // BATCH was 8. Dropped to 6 so multi-leg round-trip confirmations (JetBlue
+  // "CODGXZ"-type) have less thread pressure per prompt, while keeping the
+  // parallel Claude fan-out bounded enough to stay under the 60s Vercel
+  // function budget (at CAP=100 this yields ~17 batches × parse+verify).
+  const BATCH = 6;
   const threadBatches = [];
   for (let i = 0; i < textOnlyThreads.length; i += BATCH) threadBatches.push(textOnlyThreads.slice(i, i + BATCH));
 
@@ -708,7 +708,7 @@ Return this exact JSON:
 
   const RETRYABLE = new Set([408, 409, 425, 429, 500, 502, 503, 504, 529]);
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const callClaude = async (prompt, sys = sysPrompt, maxTokens = 8192, model = DEFAULT_MODEL) => {
+  const callClaude = async (prompt, sys = sysPrompt, maxTokens = 4096, model = DEFAULT_MODEL) => {
     let lastErr;
     for (let attempt = 0; attempt < 3; attempt++) {
       if (attempt > 0) await sleep(500 * 2 ** (attempt - 1));
