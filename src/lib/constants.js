@@ -25,6 +25,7 @@ export const PK = Object.freeze({
   NOTES_PRIV:     "dos-v7-notes-private",
   CHECKLIST_PRIV: "dos-v7-checklist-private",
   INTEL:          "dos-v7-intel",
+  ACTLOG:         "dos-v7-actlog",
 });
 
 export const SHARED_KEYS = new Set(Object.values(SK));

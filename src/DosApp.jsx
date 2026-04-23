@@ -504,6 +504,7 @@ const isClientOwner=(me,clientId)=>!!(me?.primary||[]).includes(clientId);
 const ROLES=[{id:"tm_td",label:"TM/TD",c:"var(--accent)"},{id:"transport_coord",label:"Transport",c:"var(--warn-fg)"}];
 const TABS=[{id:"dash",label:"Dashboard",icon:"⊞"},{id:"advance",label:"Advance",icon:"◎"},{id:"guestlist",label:"Guest List",icon:"◉"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"},{id:"access",label:"Access",icon:"⊙"}];
 const ADMIN_EMAIL="d.johnson@dayofshow.net";
+const SESSION_ID=Math.random().toString(36).slice(2,9);
 const PERM_ROLES=[
   {id:"tm_td",label:"TM/TD"},
   {id:"transport_coord",label:"Transport"},
@@ -1117,6 +1118,8 @@ export default function App(){
   const[lastFlightScanAt,setLastFlightScanAt]=useState(null);
   const[perms,setPerms]=useState(DEFAULT_PERMS);
   const uPerms=useCallback((permId,roleId,val)=>setPerms(p=>({...p,[permId]:{...p[permId],[roleId]:val}})),[]);
+  const[actLog,setActLog]=useState([]);
+  const addActLog=useCallback((event)=>setActLog(p=>{const next=[...p,{...event,ts:new Date().toISOString(),session:SESSION_ID}];return next.length>2000?next.slice(-2000):next;}),[]);
   const mobile=useMobile();
   const st=useRef(null);const stp=useRef(null);
 
@@ -1133,12 +1136,12 @@ export default function App(){
     if(se?.lastFlightScanAt)setLastFlightScanAt(se.lastFlightScanAt);
     if(cr?.crew)setCrew(cr.crew);if(cr?.showCrew)setShowCrew(cr.showCrew);
     setProduction(pr||{});setFlights(fl||{});setLodging(lo||{});setGuestlists(gl||{});setGlTemplates(glt||{});setImmigration(im||{});if(pe)setPerms(p=>({...DEFAULT_PERMS,...pe,...Object.fromEntries(Object.entries(DEFAULT_PERMS).map(([k,v])=>([k,{...v,...(pe[k]||{})}])))}));
-    const[np,cp,it]=await Promise.all([sGP(PK.NOTES_PRIV),sGP(PK.CHECKLIST_PRIV),sGP(PK.INTEL)]);
-    setNotesPriv(np||{});setCheckPriv(cp||{});setIntel(it||{});
+    const[np,cp,it,al]=await Promise.all([sGP(PK.NOTES_PRIV),sGP(PK.CHECKLIST_PRIV),sGP(PK.INTEL),sGP(PK.ACTLOG)]);
+    setNotesPriv(np||{});setCheckPriv(cp||{});setIntel(it||{});if(Array.isArray(al))setActLog(al);
     setLoaded(true);
   })()},[]);
 
-  useEffect(()=>{if(!loaded)return;if(stp.current)clearTimeout(stp.current);stp.current=setTimeout(()=>{sSP(PK.NOTES_PRIV,notesPriv);sSP(PK.CHECKLIST_PRIV,checkPriv);sSP(PK.INTEL,intel);},600);},[notesPriv,checkPriv,intel,loaded]);
+  useEffect(()=>{if(!loaded)return;if(stp.current)clearTimeout(stp.current);stp.current=setTimeout(()=>{sSP(PK.NOTES_PRIV,notesPriv);sSP(PK.CHECKLIST_PRIV,checkPriv);sSP(PK.INTEL,intel);sSP(PK.ACTLOG,actLog);},600);},[notesPriv,checkPriv,intel,actLog,loaded]);
   const uNotesPriv=useCallback((d,arr)=>setNotesPriv(p=>({...p,[d]:arr})),[]);
   const uCheckPriv=useCallback((d,arr)=>setCheckPriv(p=>({...p,[d]:arr})),[]);
 
@@ -1197,6 +1200,8 @@ export default function App(){
   const refreshIntel=useCallback(async(show,force=false)=>{
     if(refreshing)return;
     const sid=showIdFor(show);
+    const t0=Date.now();
+    addActLog({module:"intel",action:"intel.scan.start",target:{type:"show",id:sid,label:show.venue},payload:{trigger:force?"manual":"background"},context:{date:show.date,showId:sid,eventKey:sid}});
     setRefreshing(sid);setRefreshMsg(`Scanning Gmail for ${show.venue}…`);
     try{
       const{data:{session}}=await supabase.auth.getSession();
@@ -1205,10 +1210,11 @@ export default function App(){
       if(!googleToken){setRefreshMsg("Gmail token missing — sign out and back in");return;}
       const ac1=new AbortController();const t1=setTimeout(()=>ac1.abort(),30000);
       let resp;try{resp=await fetch("/api/intel",{method:"POST",signal:ac1.signal,headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({show,googleToken,forceRefresh:force,userEmail:session.user?.email})});}finally{clearTimeout(t1);}
-      if(!resp.ok){const err=await resp.json().catch(()=>({}));setRefreshMsg(err.error==="gmail_token_expired"?"Gmail token expired — re-sign in":`Error: ${resp.status}`);return;}
+      if(!resp.ok){const err=await resp.json().catch(()=>({}));const msg=err.error==="gmail_token_expired"?"gmail_token_expired":`http_${resp.status}`;addActLog({module:"intel",action:"intel.scan.error",target:{type:"show",id:sid,label:show.venue},payload:{status:resp.status,message:msg},context:{date:show.date,showId:sid,eventKey:sid}});setRefreshMsg(err.error==="gmail_token_expired"?"Gmail token expired — re-sign in":`Error: ${resp.status}`);return;}
       const data=await resp.json();const ni=data.intel;
       if(!ni||!ni.threads){
         const hint=data.debug?.stopReason==="max_tokens"?" (response truncated — too many threads)":data.debug?.rawText?` — raw: ${data.debug.rawText.slice(0,120)}`:"";
+        addActLog({module:"intel",action:"intel.scan.error",target:{type:"show",id:sid,label:show.venue},payload:{status:0,message:"no_structured_intel"},context:{date:show.date,showId:sid,eventKey:sid}});
         setRefreshMsg(`No structured intel returned${hint}`);
         console.error("[intel] debug:",data.debug);
         return;
@@ -1235,11 +1241,12 @@ export default function App(){
         const merged2=deduplicateIntel({threads,followUps:ni.followUps||[],showContacts:contacts,schedule:ni.schedule||existing.schedule||[],todos,matches:existing.matches||[],dismissedFlags:existing.dismissedFlags||[],arStatus:existing.arStatus||{},lastRefreshed:new Date().toISOString(),isShared:data.isShared||false,sharedByOthers:data.sharedByOthers||[],_partial:!!ni._partial});
         return{...p,__changelog:changelog,[sid]:merged2};
       });
+      addActLog({module:"intel",action:"intel.scan.complete",target:{type:"show",id:sid,label:show.venue},payload:{threads:(ni.threads||[]).length,todos:(ni.followUps||[]).length,followUps:(ni.followUps||[]).length,actionRequired:0,durationMs:Date.now()-t0},context:{date:show.date,showId:sid,eventKey:sid}});
       setRefreshMsg(`${show.venue}: ${data.gmailThreadsFound||0} threads`);
       setTimeout(()=>setRefreshMsg(""),3500);
-    }catch(e){setRefreshMsg(`Refresh failed: ${e.message}`);}
+    }catch(e){addActLog({module:"intel",action:"intel.scan.error",target:{type:"show",id:sid,label:show.venue},payload:{status:0,message:e.message},context:{date:show.date,showId:sid,eventKey:sid}});setRefreshMsg(`Refresh failed: ${e.message}`);}
     finally{setRefreshing(null);}
-  },[refreshing]);
+  },[refreshing,addActLog]);
 
   const toggleIntelShare=useCallback(async(show,share)=>{
     const sid=showIdFor(show);
@@ -1251,6 +1258,8 @@ export default function App(){
   },[]);
 
   const refreshLabelIntel=useCallback(async(force=false)=>{
+    const t0l=Date.now();
+    addActLog({module:"intel",action:"intel.scan.start",target:{type:"label",id:"bulk",label:"label scan"},payload:{trigger:force?"manual":"background"},context:{date:null,showId:null,eventKey:null}});
     try{
       const{data:{session}}=await supabase.auth.getSession();
       if(!session?.provider_token)return;
@@ -1291,8 +1300,9 @@ export default function App(){
           return next;
         });
       }
-    }catch(e){console.error("[labelScan]",e.message);}
-  },[shows,aC]);
+      addActLog({module:"intel",action:"intel.scan.complete",target:{type:"label",id:"bulk",label:"label scan"},payload:{actionRequired:(data.actionRequired||[]).length,durationMs:Date.now()-t0l},context:{date:null,showId:null,eventKey:null}});
+    }catch(e){addActLog({module:"intel",action:"intel.scan.error",target:{type:"label",id:"bulk",label:"label scan"},payload:{status:0,message:e.message},context:{date:null,showId:null,eventKey:null}});console.error("[labelScan]",e.message);}
+  },[shows,aC,addActLog]);
 
   const addLog=useCallback((entry)=>{
     setIntel(p=>({...p,__changelog:[...(p.__changelog||[]).slice(-499),{ts:new Date().toISOString(),...entry}]}));
@@ -1423,7 +1433,7 @@ export default function App(){
     if(currentSplit&&activeSplitPartyId)return `${sel}#${activeSplitPartyId}`;
     return sel;
   },[selEventId,sel,currentSplit,activeSplitPartyId]);
-  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,setTransView,perms,uPerms}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,perms]);// eslint-disable-line
+  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,setTransView,perms,uPerms,actLog,addActLog}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,perms,actLog,addActLog]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"var(--text-dim)",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
@@ -2141,7 +2151,7 @@ function FlightsSection(){
 }
 
 function IntelPanel(){
-  const{sel,shows,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,uShow,labelIntel}=useContext(Ctx);
+  const{sel,shows,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,uShow,labelIntel,addActLog}=useContext(Ctx);
   const show=shows[sel];const sid=show?showIdFor(show):"";const data=intel[sid]||{};
   const upd=patch=>setIntel(p=>({...p,[sid]:{...(p[sid]||{}),...patch}}));
   const primaryTid=(data.threads||[]).find(t=>t.tid)?.tid||null;
@@ -2151,6 +2161,7 @@ function IntelPanel(){
   const markArIntel=(id,state,label)=>{
     setIntel(p=>{const prev=p.__arState||{};const next=state==="undone"?{...prev,done:(prev.done||[]).filter(x=>x!==id)}:{...prev,[state]:[...new Set([...(prev[state]||[]),id])]};return{...p,__arState:next};});
     addLog({type:"user",section:"ar",showId:sid,action:state,label,from:"intel_panel"});
+    addActLog({module:"intel",action:`intel.ar.${state}`,target:{type:"ar_item",id,label:label||id},payload:{showId:sid},context:{date:sel,showId:sid,eventKey:sid}});
   };
   const toggleTodo=(id,currentDone,label)=>{upd({todos:(data.todos||[]).map(t=>t.id===id?{...t,done:!t.done}:t)});addLog({type:"user",section:"todo",showId:sid,action:currentDone?"undone":"done",label,from:"intel_panel"});};
   const delTodo=id=>upd({todos:(data.todos||[]).filter(t=>t.id!==id)});
@@ -2793,9 +2804,9 @@ function Dash(){
   const urgentItems=useMemo(()=>arItems.filter(i=>i.bucket==="urgent"||i.category==="LEGAL"),[arItems]);
   const logisticsItems=useMemo(()=>(labelIntel?.advanceItems||[]).filter(i=>!arHidden.has(i.id)&&(i.category==="LOGISTICS"||i.category==="ADVANCE")).slice(0,20),[labelIntel,arHidden]);
 
-  const markTodo=(t,state)=>{const sid=showIdFor(t.show);setIntel(p=>({...p,[sid]:{...(p[sid]||{}),todos:(p[sid]?.todos||[]).map(x=>x.id===t.id?{...x,[state]:true}:x)}}));addLog({type:"user",section:"todo",showId:showIdFor(t.show),action:state,label:t.text||t.subject,from:"dashboard"});};
-  const markFollowUp=(f,state)=>{const sid=showIdFor(f.show);setIntel(p=>{const fu=p[sid]?.followUps||[];const idx=fu.findIndex(x=>x.action===f.action&&(x.tid===f.tid||x.owner===f.owner||x.priority===f.priority));if(idx<0)return p;return{...p,[sid]:{...(p[sid]||{}),followUps:fu.map((x,j)=>j===idx?{...x,[state]:true}:x)}};});addLog({type:"user",section:"followup",showId:showIdFor(f.show),action:state,label:f.action,from:"dashboard"});};
-  const markAr=(id,state,label)=>{setIntel(p=>{const prev=p.__arState||{};const next=state==="undone"?{...prev,done:(prev.done||[]).filter(x=>x!==id)}:{...prev,[state]:[...new Set([...(prev[state]||[]),id])]};return{...p,__arState:next};});addLog({type:"user",section:"ar",showId:null,action:state,label:label||id,from:"dashboard"});};
+  const markTodo=(t,state)=>{const sid=showIdFor(t.show);setIntel(p=>({...p,[sid]:{...(p[sid]||{}),todos:(p[sid]?.todos||[]).map(x=>x.id===t.id?{...x,[state]:true}:x)}}));addLog({type:"user",section:"todo",showId:sid,action:state,label:t.text||t.subject,from:"dashboard"});addActLog({module:"intel",action:`intel.todo.${state}`,target:{type:"todo",id:t.id,label:t.text||t.subject},payload:{priority:t.priority,showId:sid},context:{date:t.show?.date||null,showId:sid,eventKey:sid}});};
+  const markFollowUp=(f,state)=>{const sid=showIdFor(f.show);setIntel(p=>{const fu=p[sid]?.followUps||[];const idx=fu.findIndex(x=>x.action===f.action&&(x.tid===f.tid||x.owner===f.owner||x.priority===f.priority));if(idx<0)return p;return{...p,[sid]:{...(p[sid]||{}),followUps:fu.map((x,j)=>j===idx?{...x,[state]:true}:x)}};});addLog({type:"user",section:"followup",showId:sid,action:state,label:f.action,from:"dashboard"});addActLog({module:"intel",action:`intel.followup.${state}`,target:{type:"followup",id:f.tid||null,label:f.action},payload:{priority:f.priority,owner:f.owner||null,showId:sid},context:{date:f.show?.date||null,showId:sid,eventKey:sid}});};
+  const markAr=(id,state,label)=>{setIntel(p=>{const prev=p.__arState||{};const next=state==="undone"?{...prev,done:(prev.done||[]).filter(x=>x!==id)}:{...prev,[state]:[...new Set([...(prev[state]||[]),id])]};return{...p,__arState:next};});addLog({type:"user",section:"ar",showId:null,action:state,label:label||id,from:"dashboard"});addActLog({module:"intel",action:`intel.ar.${state}`,target:{type:"ar_item",id,label:label||id},payload:{},context:{date:null,showId:null,eventKey:null}});};
 
   const BTN_DONE={fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--success-bg)",color:"var(--success-fg)"};
   const BTN_IGN={fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--card-2)",color:"var(--text-mute)"};
@@ -3069,7 +3080,7 @@ function ImmigrationPanel(){
 }
 
 function AdvTab(){
-  const{shows,cShows,advances,uAdv,sel,setSel,eventKey,aC,mobile,checkPriv,uCheckPriv,intel,setIntel,addLog,pushUndo}=useContext(Ctx);
+  const{shows,cShows,advances,uAdv,sel,setSel,eventKey,aC,mobile,checkPriv,uCheckPriv,intel,setIntel,addLog,pushUndo,addActLog}=useContext(Ctx);
   const a=useAuth();const meEmail=a?.user?.email||"unknown";
   const[openDone,setOpenDone]=useState({});
   useEffect(()=>setOpenDone({}),[sel]);
@@ -3145,6 +3156,8 @@ function AdvTab(){
     const prev=getStatus(m.itemId);const st=targetStatus||m.suggested||"confirmed";
     setStatus(m.itemId,st);
     setIntel(p=>({...p,[sid]:{...(p[sid]||{}),dismissedMatches:[...(p[sid]?.dismissedMatches||[]),m.key]}}));
+    addActLog({module:"intel",action:"intel.match.accept",target:{type:"thread",id:m.threadTid,label:m.subject},payload:{itemId:m.itemId,confidence:m.confidence,suggestedStatus:m.suggested},context:{date:sel,showId:sid,eventKey:sid}});
+    addActLog({module:"intel",action:"intel.status.apply",target:{type:"item",id:m.itemId,label:null},payload:{status:st,source:"suggested"},context:{date:sel,showId:sid,eventKey:sid}});
     logAudit({entityType:"advance",entityId:`${sel}:${m.itemId}`,action:"intel_sync",
       before:{status:prev},after:{status:st},
       meta:{source:"intel-suggest",threadTid:m.threadTid,confidence:m.confidence,reason:m.reason||null,subject:m.subject}});
