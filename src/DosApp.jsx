@@ -5851,19 +5851,24 @@ function CrewTab(){
                     <div style={{fontWeight:600,fontSize:11,color:cd.attending?"var(--text)":"var(--text-mute)"}}>{c.name||<span style={{color:"var(--text-mute)"}}>New member</span>}</div>
                     <div style={{fontSize:10,color:"var(--text-dim)"}}>{c.role}</div>
                     {cd.attending&&(()=>{
-                      const attDates=attendingDatesByCrew[c.id]||[sel];
-                      const state=crewLifecycleState(c.id,sel,attDates,tourDays);
-                      const slots=crewLifecycleSlots({state,crewId:c.id,crew,date:sel,showCrew:currentSplit?{...showCrew,[sel]:showCrew[scKey]||{}}:showCrew,flights,lodging});
-                      const jump=slot=>{
-                        setSel(sel);
-                        if(slot?.key==="hotel")setTab("lodging");
-                        else setTab("transport");
-                      };
-                      return(
-                        <div style={{marginTop:5}}>
-                          <LifecyclePills crewId={c.id} date={sel} state={state} slots={slots} compact={mobile} onJump={jump}/>
-                        </div>
-                      );
+                      try{
+                        const attDates=attendingDatesByCrew[c.id]||[sel];
+                        const state=crewLifecycleState(c.id,sel,attDates,tourDays);
+                        const slots=crewLifecycleSlots({state,crewId:c.id,crew,date:sel,showCrew:currentSplit?{...showCrew,[sel]:showCrew[scKey]||{}}:showCrew,flights,lodging});
+                        const jump=slot=>{
+                          setSel(sel);
+                          if(slot?.key==="hotel")setTab("lodging");
+                          else setTab("transport");
+                        };
+                        return(
+                          <div style={{marginTop:5}}>
+                            <LifecyclePills crewId={c.id} date={sel} state={state} slots={slots} compact={mobile} onJump={jump}/>
+                          </div>
+                        );
+                      }catch(e){
+                        console.error("[lifecycle]",c.name,e);
+                        return null;
+                      }
                     })()}
                   </div>
                 )}
