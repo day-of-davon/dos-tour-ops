@@ -1,16 +1,33 @@
 #!/usr/bin/env node
 import 'dotenv/config';
 import { program } from 'commander';
+import { writeFileSync } from 'node:fs';
 import { syncShows } from './src/sync/shows.js';
 import { syncFlights } from './src/sync/flights.js';
 import { launchMT, closeMT } from './src/app.js';
 import { getShows, getFlights } from './src/dos.js';
+import { buildMTExport } from './src/export.js';
 import { log } from './src/log.js';
 
 program
   .name('dos-mt')
   .description('Sync DOS Tour Ops → Master Tour')
   .version('1.0.0');
+
+program
+  .command('export [output]')
+  .description('Export DOS data as MT-native JSON (default: mt-export.json)')
+  .action(async (output = 'mt-export.json') => {
+    try {
+      const [showsRaw, flightsRaw] = await Promise.all([getShows(), getFlights()]);
+      const payload = buildMTExport(showsRaw, flightsRaw);
+      writeFileSync(output, JSON.stringify(payload, null, 2));
+      log.ok(`Exported ${payload.counts.events} events · ${payload.counts.air} air · ${payload.counts.ground} ground → ${output}`);
+    } catch (err) {
+      log.error(err.message);
+      process.exit(1);
+    }
+  });
 
 program
   .command('list')

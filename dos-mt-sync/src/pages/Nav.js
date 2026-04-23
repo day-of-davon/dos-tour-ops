@@ -1,10 +1,22 @@
 // Sidebar navigation and date-panel selection helpers.
 // All functions no-op silently when page is null (dry-run mode).
 
+// MT nav labels are untranslated i18n keys: "Events" → "Event_plural",
+// "Hotels" → "Hotel_plural", etc. Try the human label first, then the i18n key.
+const MT_NAV_ALIASES = {
+  Events:      'Event_plural',
+  Hotels:      'Hotel_plural',
+  Attachments: 'Attachment_plural',
+  Tasks:       'TasksNotes',
+};
+
 export async function clickNavSection(page, section) {
   if (!page) return;
+  const alias = MT_NAV_ALIASES[section] || section;
   await page.getByRole('button', { name: section, exact: false })
+    .or(page.getByRole('button', { name: alias, exact: false }))
     .or(page.locator(`text="${section}"`).first())
+    .or(page.locator(`text="${alias}"`).first())
     .click();
   await page.waitForTimeout(400);
 }
