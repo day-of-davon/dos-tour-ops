@@ -1060,6 +1060,7 @@ export default function App(){
   const[dateMenu,setDateMenu]=useState(false);
   const[showOffDays,setShowOffDays]=useState(true);
   const[sidebarOpen,setSidebarOpen]=useState(true);
+  const[transView,setTransView]=useState("flights");
   // Per-date active split-party id. Absent entries fall back to the first party.
   const[splitParty,setSplitPartyState]=useState({});
   const setSplitParty=useCallback((date,partyId)=>setSplitPartyState(p=>({...p,[date]:partyId})),[]);
@@ -1382,7 +1383,7 @@ export default function App(){
     if(currentSplit&&activeSplitPartyId)return `${sel}#${activeSplitPartyId}`;
     return sel;
   },[selEventId,sel,currentSplit,activeSplitPartyId]);
-  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me]);// eslint-disable-line
+  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,setTransView}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"var(--text-dim)",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
@@ -1721,8 +1722,10 @@ function FlightsSection(){
   const a=useAuth();
   const[scanning,setScanning]=useState(false);
   const[scanMsg,setScanMsg]=useState("");
-  const[pendingImport,setPendingImport]=useState([]); // scanned but not yet in state
+  const[pendingImport,setPendingImport]=useState([]);
   const[confirmingId,setConfirmingId]=useState(null);
+  const flightsRef=useRef(flights);
+  useEffect(()=>{flightsRef.current=flights;},[flights]);
 
   // Split-party filter — on a split day, show only flights for the active party.
   const partyMatch=useMemo(()=>{
@@ -1779,7 +1782,7 @@ function FlightsSection(){
       const data=await resp.json();
       if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
       const newFlights=data.flights||[];
-      const cur=opts.reset?{}:flights;
+      const cur=opts.reset?{}:flightsRef.current;
       const novel=[];const enriched=[];
       const working={...cur};
       newFlights.forEach(f=>{
@@ -4890,8 +4893,7 @@ function SegmentDrawer({seg,crew,sorted,onChange,onClose}){
 }
 
 function TransTab(){
-  const{flights,uFlight,sel,labelIntel}=useContext(Ctx);
-  const[view,setView]=useState("travel");
+  const{flights,uFlight,sel,labelIntel,transView:view,setTransView:setView}=useContext(Ctx);
   const[crewFlightsOpen,setCrewFlightsOpen]=useState(false);
   const confirmedCount=Object.values(flights).filter(f=>f.status==="confirmed").length;
   const daySegCount=Object.values(flights).filter(s=>s.status!=="dismissed"&&(s.depDate===sel||s.arrDate===sel)).length;
