@@ -5988,7 +5988,7 @@ function CrewTab(){
         </div>
       )}
       {addPickerOpen&&(()=>{
-        const notAttending=rosterCrew.filter(c=>!getCD(c.id).attending);
+        const notAttending=crew.filter(c=>!getCD(c.id).attending);
         const confirmAdd=()=>{
           addPickerSel.forEach(id=>updateSC(id,{attending:true}));
           setAddPickerOpen(false);setAddPickerSel([]);
