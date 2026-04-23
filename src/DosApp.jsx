@@ -1490,6 +1490,28 @@ function statusStyle(s){return STATUS_STYLE[s]||STATUS_STYLE.Unknown;}
 
 const FOCUS_CARRIERS=["delta","american","united","air canada"];
 const resKey=f=>(f.pnr||f.bookingRef||f.confirmNo||f.tid||`solo_${f.id}`).toString().trim().toUpperCase();
+
+function computeLayoverMins(prev,next){
+  if(!prev?.arr||!next?.dep)return null;
+  const d1=new Date(`${prev.arrDate||prev.depDate||"2000-01-01"}T${prev.arr}`);
+  const d2=new Date(`${next.depDate||"2000-01-01"}T${next.dep}`);
+  if(isNaN(d1)||isNaN(d2))return null;
+  const diff=Math.round((d2-d1)/60000);
+  return diff>0&&diff<1440?diff:null;
+}
+function fmtMins(m){if(!m)return"";return`${Math.floor(m/60)}h${String(m%60).padStart(2,"0")}m`;}
+function getJourneyType(segs){
+  if(segs.length===1)return"ONE_WAY";
+  const last=segs[segs.length-1],first=segs[0];
+  if(segs.length===2&&(last.returnOfId||(last.to&&last.to===first.from)))return"ROUND_TRIP";
+  return"MULTI_LEG";
+}
+function getLegLabel(segs,i,jType){
+  if(segs.length<2)return null;
+  if(jType==="ROUND_TRIP")return i===0?"OUTBOUND":"RETURN";
+  return`LEG ${i+1} / ${segs.length}`;
+}
+
 const groupByReservation=list=>{
   const m=new Map();
   list.forEach(f=>{const k=resKey(f);if(!m.has(k))m.set(k,[]);m.get(k).push(f);});
@@ -1504,32 +1526,77 @@ const groupByReservation=list=>{
     const pnr=pnrSeg?.pnr||pnrSeg?.bookingRef||pnrSeg?.confirmNo||"";
     const ticketNo=sorted.find(s=>s.ticketNo)?.ticketNo||"";
     const tid=sorted.find(s=>s.tid)?.tid||null;
-    return{key:k,segs:sorted,paxUnion,totalCost,currency,carriers,pnr,ticketNo,firstDate:sorted[0]?.depDate||"",tid,isSolo:k.startsWith("SOLO_")};
+    const isSolo=k.startsWith("SOLO_");
+    const journeyType=getJourneyType(sorted);
+    const routeChain=[...new Set([sorted[0]?.from,...sorted.map(s=>s.to)])].filter(Boolean).join("→");
+    return{key:k,segs:sorted,paxUnion,totalCost,currency,carriers,pnr,ticketNo,firstDate:sorted[0]?.depDate||"",tid,isSolo,journeyType,routeChain};
   });
   return groups.sort((a,b)=>a.firstDate.localeCompare(b.firstDate));
 };
 
-function ReservationHeader({g}){
+const JOURNEY_BADGE={
+  ONE_WAY:{label:"ONE-WAY",bg:"var(--card-2)",c:"var(--text-dim)"},
+  ROUND_TRIP:{label:"ROUND TRIP",bg:"var(--info-bg)",c:"var(--info-fg,var(--link))"},
+  MULTI_LEG:{label:"MULTI-LEG",bg:"var(--accent-pill-bg)",c:"var(--accent)"},
+};
+function ReservationHeader({g,collapsed,onToggle}){
   if(g.isSolo)return null;
+  const jb=JOURNEY_BADGE[g.journeyType]||JOURNEY_BADGE.MULTI_LEG;
   return(
-    <div style={{display:"flex",alignItems:"center",gap:8,padding:"4px 2px",flexWrap:"wrap"}}>
-      <span style={{fontSize:8,fontWeight:800,color:"var(--accent)",letterSpacing:"0.06em",background:"var(--accent-pill-bg)",padding:"2px 7px",borderRadius:10}}>RES · {g.segs.length} SEG</span>
-      {g.pnr&&<span style={{fontSize:10,fontFamily:MN,fontWeight:700,color:"var(--text)"}}>{g.pnr}</span>}
-      {g.ticketNo&&<span style={{fontSize:9,fontFamily:MN,color:"var(--text-mute)"}}>tkt {g.ticketNo}</span>}
-      {g.carriers.length>0&&<span style={{fontSize:9,color:"var(--text-2)"}}>{g.carriers.join(", ")}</span>}
-      {g.paxUnion.length>0&&<span style={{fontSize:9,color:"var(--text-dim)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.paxUnion.join(", ")}</span>}
-      {g.totalCost!=null&&<span style={{fontSize:9,fontFamily:MN,fontWeight:700,color:"var(--success-fg)"}}>{g.currency||"$"}{g.totalCost.toFixed(2)}</span>}
-      {g.tid&&<a href={gmailUrl(g.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none"}}>email ↗</a>}
+    <div style={{display:"flex",alignItems:"center",gap:8,padding:"5px 4px",flexWrap:"wrap",cursor:onToggle?"pointer":undefined}} onClick={onToggle}>
+      <span style={{fontSize:8,fontWeight:800,letterSpacing:"0.06em",padding:"2px 7px",borderRadius:10,background:jb.bg,color:jb.c,flexShrink:0}}>{jb.label}</span>
+      {g.routeChain&&<span style={{fontFamily:MN,fontSize:10,fontWeight:800,color:"var(--text)",flexShrink:0}}>{g.routeChain}</span>}
+      {g.segs.length>1&&<span style={{fontSize:8,color:"var(--text-mute)",flexShrink:0}}>{g.segs.length} seg</span>}
+      {g.pnr&&<span style={{fontSize:9,fontFamily:MN,fontWeight:700,color:"var(--text-2)",flexShrink:0}}>{g.pnr}</span>}
+      {g.carriers.length>0&&<span style={{fontSize:9,color:"var(--text-dim)",flexShrink:0}}>{g.carriers.join(" · ")}</span>}
+      {g.paxUnion.length>0&&<span style={{fontSize:9,color:"var(--text-mute)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{g.paxUnion.join(", ")}</span>}
+      {g.totalCost!=null&&<span style={{fontSize:9,fontFamily:MN,fontWeight:700,color:"var(--success-fg)",flexShrink:0}}>{g.currency||"$"}{g.totalCost.toFixed(2)}</span>}
+      {g.tid&&<a href={gmailUrl(g.tid)} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{fontSize:9,color:"var(--link)",textDecoration:"none",flexShrink:0}}>email ↗</a>}
+      {onToggle&&<span style={{fontSize:10,color:"var(--text-mute)",marginLeft:"auto",flexShrink:0}}>{collapsed?"▼":"▲"}</span>}
     </div>
   );
 }
 
-function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax,onUpdate,crew}){
+function ConnectionPill({prev,next}){
+  const m=computeLayoverMins(prev,next);
+  if(!m)return null;
+  const tight=m<60,missed=m<0;
+  const col=missed?"var(--danger-fg)":tight?"var(--warn-fg)":"var(--text-mute)";
+  const bg=missed?"var(--danger-bg)":tight?"var(--warn-bg)":"transparent";
+  return(
+    <div style={{display:"flex",alignItems:"center",gap:6,padding:"0 4px",margin:"1px 0"}}>
+      <div style={{flex:1,height:1,background:"var(--card-3)"}}/>
+      <span style={{fontSize:8,fontFamily:MN,fontWeight:700,color:col,background:bg,padding:"1px 7px",borderRadius:8,whiteSpace:"nowrap"}}>
+        {missed?`✗ missed by ${Math.abs(m)}m`:tight?`⚠ ${fmtMins(m)} layover · ${next.from||""}`:`${fmtMins(m)} · ${next.from||""}`}
+      </span>
+      <div style={{flex:1,height:1,background:"var(--card-3)"}}/>
+    </div>
+  );
+}
+
+function ReservationGroup({g,defaultCollapsed=false,borderColor,renderSegment}){
+  const[collapsed,setCollapsed]=useState(defaultCollapsed);
+  const border=borderColor||(g.journeyType==="ROUND_TRIP"?"var(--info-bg)":"var(--accent-pill-border)");
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:collapsed?0:4,...(g.isSolo?{}:{borderLeft:`2px solid ${border}`,paddingLeft:8})}}>
+      {!g.isSolo&&<ReservationHeader g={g} collapsed={collapsed} onToggle={()=>setCollapsed(c=>!c)}/>}
+      {!collapsed&&g.segs.map((f,i)=>(
+        <React.Fragment key={f.id}>
+          {i>0&&<ConnectionPill prev={g.segs[i-1]} next={f}/>}
+          {renderSegment(f,getLegLabel(g.segs,i,g.journeyType))}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax,onUpdate,crew,defaultCollapsed=false,legLabel}){
   const st=liveStatus?statusStyle(liveStatus.status):null;
   const delayed=liveStatus?.delayMinutes>0;
   const isFresh=!!f.fresh48h;
   const[editing,setEditing]=useState(false);
   const[draft,setDraft]=useState({});
+  const[collapsed,setCollapsed]=useState(defaultCollapsed);
   const startEdit=()=>{
     setDraft({flightNo:f.flightNo||"",carrier:f.carrier||"",from:f.from||"",to:f.to||"",fromCity:f.fromCity||"",toCity:f.toCity||"",depDate:f.depDate||"",dep:f.dep||"",arrDate:f.arrDate||"",arr:f.arr||"",pnr:f.pnr||"",confirmNo:f.confirmNo||"",ticketNo:f.ticketNo||"",cost:f.cost!=null?String(f.cost):"",currency:f.currency||""});
     setEditing(true);
@@ -1551,6 +1618,7 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
   return(
     <div style={{background:"var(--card)",border:`1px solid ${editing?"var(--accent)":isFresh?"var(--accent)":st&&delayed?"var(--warn-fg)":st?.c==="var(--danger-fg)"?"var(--danger-fg)":"var(--border)"}`,borderRadius:10,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6,boxShadow:isFresh&&!editing?"0 0 0 2px var(--accent-pill-bg)":undefined}}>
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+        {legLabel&&<span style={{fontSize:7,fontWeight:800,letterSpacing:"0.08em",padding:"1px 6px",borderRadius:6,background:"var(--card-3)",color:"var(--text-mute)",flexShrink:0}}>{legLabel}</span>}
         <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"var(--link)"}}>{f.from}<span style={{fontSize:10,color:"var(--text-mute)",fontWeight:400,padding:"0 5px"}}>→</span>{f.to}</div>
         <div style={{fontSize:10,fontWeight:700,color:"var(--text)"}}>{f.flightNo||f.carrier}</div>
         {f.carrier&&f.flightNo&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{f.carrier}</div>}
@@ -1564,11 +1632,21 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
         {f.suggestedShowDate&&<span title={`${f.suggestedRole==="outbound"?"Departs day after":"Arrives for"} ${f.suggestedVenue||f.suggestedShowDate}`} style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:f.suggestedRole==="outbound"?"var(--warn-bg)":"var(--success-bg)",color:f.suggestedRole==="outbound"?"var(--warn-fg)":"var(--success-fg)",fontWeight:700}}>{f.suggestedRole==="outbound"?"OUT":"IN"} · {f.suggestedShowDate}</span>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
           {onRefreshStatus&&<button onClick={onRefreshStatus} disabled={refreshing} title="Refresh live status" style={{background:"none",border:"none",cursor:refreshing?"default":"pointer",fontSize:10,color:refreshing?"var(--text-mute)":"var(--accent)",padding:0,lineHeight:1}}>{refreshing?"⟳":"⟳"}</button>}
-          {onUpdate&&!editing&&<button onClick={startEdit} title="Edit flight data" style={{fontSize:9,padding:"1px 7px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:"var(--text-dim)",cursor:"pointer",fontWeight:600}}>Edit</button>}
+          {onUpdate&&!editing&&!collapsed&&<button onClick={startEdit} title="Edit flight data" style={{fontSize:9,padding:"1px 7px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:"var(--text-dim)",cursor:"pointer",fontWeight:600}}>Edit</button>}
           <div style={{fontSize:9,fontFamily:MN,color:"var(--text-2)",fontWeight:600}}>{f.depDate}</div>
+          <button onClick={()=>setCollapsed(c=>!c)} title={collapsed?"Expand":"Collapse"} style={{background:"none",border:"none",cursor:"pointer",fontSize:9,color:"var(--text-mute)",padding:"0 2px",lineHeight:1,flexShrink:0}}>{collapsed?"▼":"▲"}</button>
         </div>
       </div>
-      {liveStatus&&(
+      {collapsed&&<div style={{display:"flex",gap:12,flexWrap:"wrap",fontSize:9,color:"var(--text-dim)",paddingTop:2}}>
+        {f.dep&&<span style={{fontFamily:MN,color:"var(--text)"}}>{f.dep}{f.arr?`–${f.arr}`:""}</span>}
+        {f.fromCity&&<span>{f.fromCity}</span>}
+        {f.toCity&&<span style={{color:"var(--text-mute)"}}>→ {f.toCity}</span>}
+        {f.pnr&&<span style={{fontFamily:MN,color:"var(--text-2)",fontWeight:700}}>{f.pnr}</span>}
+        {f.fareClass&&<span style={{textTransform:"capitalize"}}>{f.fareClass}</span>}
+        {f.pax?.length>0&&<span style={{color:"var(--text-mute)"}}>{f.pax.length} pax</span>}
+        {actions&&<div style={{marginLeft:"auto",display:"flex",gap:5}}>{actions}</div>}
+      </div>}
+      {!collapsed&&liveStatus&&(
         <div style={{display:"flex",gap:12,padding:"5px 8px",background:st.bg,borderRadius:6,flexWrap:"wrap"}}>
           {liveStatus.depActual&&<div><div style={{fontSize:8,color:st.c,fontWeight:700}}>ACT DEP</div><div style={{fontFamily:MN,fontSize:10,fontWeight:800,color:st.c}}>{liveStatus.depActual}{liveStatus.depGate?` · Gate ${liveStatus.depGate}`:""}</div></div>}
           {liveStatus.arrActual&&<div><div style={{fontSize:8,color:st.c,fontWeight:700}}>ACT ARR</div><div style={{fontFamily:MN,fontSize:10,fontWeight:800,color:st.c}}>{liveStatus.arrActual}{liveStatus.arrGate?` · Gate ${liveStatus.arrGate}`:""}</div></div>}
@@ -1578,7 +1656,7 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
           {liveStatus.fetchedAt&&<div style={{marginLeft:"auto"}}><div style={{fontSize:8,color:"var(--text-mute)"}}>updated {new Date(liveStatus.fetchedAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div></div>}
         </div>
       )}
-      {!editing&&<div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {!editing&&!collapsed&&<div style={{display:"flex",flexDirection:"column",gap:8}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:8,alignItems:"center"}}>
           <div>
             <div style={{fontFamily:MN,fontSize:17,fontWeight:800,color:"var(--text)",lineHeight:1}}>{f.from||"—"}</div>
@@ -1611,7 +1689,7 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
           {f.cost&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>COST</div><div style={{fontFamily:MN,fontSize:10,color:"var(--success-fg)",fontWeight:700}}>{f.currency||"$"}{f.cost}</div></div>}
         </div>
       </div>}
-      {editing&&<div style={{display:"flex",flexDirection:"column",gap:6,padding:"8px 10px",background:"var(--card-2)",borderRadius:6,border:"1px solid var(--border)"}}>
+      {editing&&!collapsed&&<div style={{display:"flex",flexDirection:"column",gap:6,padding:"8px 10px",background:"var(--card-2)",borderRadius:6,border:"1px solid var(--border)"}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6}}>
           {fld("flightNo","FLIGHT NO")}
           {fld("carrier","CARRIER")}
@@ -1641,14 +1719,14 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
           <button onClick={()=>setEditing(false)} style={{fontSize:9,padding:"3px 10px",borderRadius:4,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Cancel</button>
         </div>
       </div>}
-      {crew&&f.suggestedCrewIds?.length>0&&(
+      {!collapsed&&crew&&f.suggestedCrewIds?.length>0&&(
         <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
           <span style={{fontSize:8,fontWeight:700,color:"var(--text-mute)",letterSpacing:"0.06em"}}>CREW</span>
           {f.suggestedCrewIds.map(id=>{const c=(crew||[]).find(x=>x.id===id);return c?(<span key={id} style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"var(--success-bg)",color:"var(--success-fg)",fontWeight:700,border:"1px solid var(--success-bg)"}} title={c.role}>{c.name.split(" ")[0]}</span>):null;})}
         </div>
       )}
-      {f.parseVerified===false&&f.parseNote&&<div style={{fontSize:9,color:"var(--warn-fg)",background:"var(--warn-bg)",border:"1px solid var(--warn-bg)",borderRadius:6,padding:"4px 8px"}}>{f.parseNote}</div>}
-      {actions&&<div style={{display:"flex",gap:5,paddingTop:4,borderTop:"1px solid var(--card-3)"}}>{actions}</div>}
+      {!collapsed&&f.parseVerified===false&&f.parseNote&&<div style={{fontSize:9,color:"var(--warn-fg)",background:"var(--warn-bg)",border:"1px solid var(--warn-bg)",borderRadius:6,padding:"4px 8px"}}>{f.parseNote}</div>}
+      {!collapsed&&actions&&<div style={{display:"flex",gap:5,paddingTop:4,borderTop:"1px solid var(--card-3)"}}>{actions}</div>}
     </div>
   );
 }
@@ -1914,17 +1992,16 @@ function FlightsSection(){
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {groupByReservation(pendingImport).map(g=>(
-              <div key={g.key} style={{display:"flex",flexDirection:"column",gap:4,...(g.isSolo?{}:{borderLeft:"2px solid var(--accent-pill-border)",paddingLeft:8})}}>
-                <ReservationHeader g={g}/>
-                {g.segs.map(f=>(
-                  <FlightCard key={f.id} f={f} crew={crew} actions={<>
-                    <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"none",background:"var(--link)",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
-                    <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Skip</button>
-                    {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
-                  </>}/>
-                ))}
-                {!g.isSolo&&g.segs.length>1&&<button onClick={()=>g.segs.forEach(f=>importFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px dashed var(--accent-pill-border)",background:"var(--accent-pill-bg)",color:"var(--accent)",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Import All {g.segs.length} Segments</button>}
-              </div>
+              <ReservationGroup key={g.key} g={g} defaultCollapsed={false} renderSegment={(f,ll)=>(
+                <FlightCard f={f} crew={crew} legLabel={ll} actions={<>
+                  <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"none",background:"var(--link)",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
+                  <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Skip</button>
+                  {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
+                </>}/>
+              )}/>
+            ))}
+            {groupByReservation(pendingImport).filter(g=>!g.isSolo&&g.segs.length>1).map(g=>(
+              <button key={`ia_${g.key}`} onClick={()=>g.segs.forEach(f=>importFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px dashed var(--accent-pill-border)",background:"var(--accent-pill-bg)",color:"var(--accent)",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Import All {g.segs.length} Segments · {g.routeChain}</button>
             ))}
           </div>
         </div>
@@ -1935,23 +2012,22 @@ function FlightsSection(){
         <IntelSection title="PENDING CONFIRMATION" count={pending.length}>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {groupByReservation(pending).map(g=>(
-              <div key={g.key} style={{display:"flex",flexDirection:"column",gap:4,...(g.isSolo?{}:{borderLeft:"2px solid var(--accent-pill-border)",paddingLeft:8})}}>
-                <ReservationHeader g={g}/>
-                {g.segs.map(f=>{
-                  const isConf=confirmingId===f.id;
-                  return(
-                    <FlightCard key={f.id} f={f} crew={crew}
-                      onUpdatePax={newPax=>uFlight(f.id,{...f,pax:newPax,suggestedCrewIds:matchPaxToCrew(newPax,crew)})}
-                      onUpdate={patch=>uFlight(f.id,{...flights[f.id],...patch,locked:true,editedAt:Date.now()})}
-                      actions={<>
-                        <button onClick={()=>confirmFlight(flights[f.id]||f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"none",background:isConf?"var(--success-fg)":"var(--link)",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
-                        <button onClick={()=>dismissFlight(f.id)} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Dismiss</button>
-                        {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
-                      </>}/>
-                  );
-                })}
-                {!g.isSolo&&g.segs.length>1&&<button onClick={()=>g.segs.forEach(f=>confirmFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px dashed var(--accent-pill-border)",background:"var(--accent-pill-bg)",color:"var(--accent)",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Confirm All {g.segs.length} Segments</button>}
-              </div>
+              <ReservationGroup key={g.key} g={g} defaultCollapsed={false} renderSegment={(f,ll)=>{
+                const isConf=confirmingId===f.id;
+                return(
+                  <FlightCard f={f} crew={crew} legLabel={ll}
+                    onUpdatePax={newPax=>uFlight(f.id,{...f,pax:newPax,suggestedCrewIds:matchPaxToCrew(newPax,crew)})}
+                    onUpdate={patch=>uFlight(f.id,{...flights[f.id],...patch,locked:true,editedAt:Date.now()})}
+                    actions={<>
+                      <button onClick={()=>confirmFlight(flights[f.id]||f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"none",background:isConf?"var(--success-fg)":"var(--link)",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
+                      <button onClick={()=>dismissFlight(f.id)} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Dismiss</button>
+                      {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
+                    </>}/>
+                );
+              }}/>
+            ))}
+            {groupByReservation(pending).filter(g=>!g.isSolo&&g.segs.length>1).map(g=>(
+              <button key={`ca_${g.key}`} onClick={()=>g.segs.forEach(f=>confirmFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px dashed var(--accent-pill-border)",background:"var(--accent-pill-bg)",color:"var(--accent)",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Confirm All {g.segs.length} Segments · {g.routeChain}</button>
             ))}
           </div>
         </IntelSection>
@@ -1960,28 +2036,21 @@ function FlightsSection(){
       {/* Confirmed */}
       {confirmed.length>0&&(
         <IntelSection title="CONFIRMED" count={confirmed.length} defaultOpen={true}>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
             {groupByReservation(confirmed).map(g=>(
-              <div key={g.key} style={{display:"flex",flexDirection:"column",gap:3,...(g.isSolo?{}:{borderLeft:"2px solid var(--success-bg)",paddingLeft:8})}}>
-                <ReservationHeader g={g}/>
-                {g.segs.map(f=>{
-                  const inShow=matchShowByAirport(f.to,f.toCity,f.arrDate||f.depDate,sorted||[],"inbound");
-                  const outShow=matchShowByAirport(f.from,f.fromCity,f.depDate,sorted||[],"outbound");
-                  const show=inShow||outShow;
-                  return(
-                    <div key={f.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",background:"var(--success-bg)",border:"1px solid var(--success-bg)",borderRadius:6,flexWrap:"wrap"}}>
-                      <span style={{fontSize:9,color:"var(--success-fg)",fontWeight:800,fontFamily:MN,flexShrink:0}}>{f.depDate}</span>
-                      <span style={{fontSize:11,fontWeight:700,color:"var(--text)",fontFamily:MN,flexShrink:0}}>{f.from}→{f.to}</span>
-                      <span style={{fontSize:10,color:"var(--text-2)",flexShrink:0}}>{f.flightNo||f.carrier}</span>
-                      {f.dep&&<span style={{fontSize:9,fontFamily:MN,color:"var(--text-dim)"}}>{f.dep}</span>}
-                      <span style={{fontSize:9,color:"var(--text-dim)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(f.pax||[]).join(", ")}</span>
-                      {show&&<span style={{fontSize:8,padding:"1px 6px",borderRadius:4,background:inShow?"var(--success-bg)":"var(--warn-bg)",color:inShow?"var(--success-fg)":"var(--warn-fg)",fontWeight:700,flexShrink:0}}>{show.city} {fD(show.date)}</span>}
-                      <span style={{fontSize:9,color:"var(--success-fg)",fontWeight:700,flexShrink:0}}>✓</span>
-                      <button onClick={()=>dismissFlight(f.id)} title="Move to unresolved" style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:11,flexShrink:0}}>×</button>
-                    </div>
-                  );
-                })}
-              </div>
+              <ReservationGroup key={g.key} g={g} defaultCollapsed={true} borderColor="var(--success-bg)" renderSegment={(f,ll)=>{
+                const inShow=matchShowByAirport(f.to,f.toCity,f.arrDate||f.depDate,sorted||[],"inbound");
+                const outShow=matchShowByAirport(f.from,f.fromCity,f.depDate,sorted||[],"outbound");
+                const show=inShow||outShow;
+                return(
+                  <FlightCard f={f} crew={crew} legLabel={ll} defaultCollapsed={true}
+                    actions={<>
+                      {show&&<span style={{fontSize:8,padding:"1px 6px",borderRadius:4,background:inShow?"var(--success-bg)":"var(--warn-bg)",color:inShow?"var(--success-fg)":"var(--warn-fg)",fontWeight:700}}>{show.city} {fD(show.date)}</span>}
+                      <span style={{fontSize:9,color:"var(--success-fg)",fontWeight:700}}>✓</span>
+                      <button onClick={()=>dismissFlight(f.id)} title="Move to unresolved" style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:11}}>×</button>
+                    </>}/>
+                );
+              }}/>
             ))}
           </div>
         </IntelSection>
@@ -4365,17 +4434,13 @@ function FlightsListView(){
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
             {groupByReservation(pendingImport).map(g=>(
-              <div key={g.key} style={{display:"flex",flexDirection:"column",gap:4,...(g.isSolo?{}:{borderLeft:"2px solid var(--accent-pill-border)",paddingLeft:8})}}>
-                <ReservationHeader g={g}/>
-                {g.segs.map(f=>(
-                  <FlightCard key={f.id} f={f} crew={crew} actions={<>
-                    <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"none",background:"var(--link)",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
-                    <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Skip</button>
-                    {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
-                  </>}/>
-                ))}
-                {!g.isSolo&&g.segs.length>1&&<button onClick={()=>g.segs.forEach(f=>importFlight(f))} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px dashed var(--accent-pill-border)",background:"var(--accent-pill-bg)",color:"var(--accent)",cursor:"pointer",fontWeight:700,alignSelf:"flex-start"}}>Import All {g.segs.length} Segments</button>}
-              </div>
+              <ReservationGroup key={g.key} g={g} defaultCollapsed={false} renderSegment={(f,ll)=>(
+                <FlightCard f={f} crew={crew} legLabel={ll} actions={<>
+                  <button onClick={()=>importFlight(f)} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"none",background:"var(--link)",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
+                  <button onClick={()=>setPendingImport(p=>p.filter(x=>x.id!==f.id))} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Skip</button>
+                  {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",marginLeft:"auto"}}>open email ↗</a>}
+                </>}/>
+              )}/>
             ))}
           </div>
         </div>
@@ -4385,14 +4450,16 @@ function FlightsListView(){
       {pending.length>0&&(
         <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px"}}>
           <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em",marginBottom:8}}>PENDING CONFIRMATION <span style={{background:"var(--warn-bg)",color:"var(--warn-fg)",borderRadius:10,padding:"1px 6px",fontWeight:700,fontSize:8}}>{pending.length}</span></div>
-          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            {pending.map(f=>{const isConf=confirmingId===f.id;return(
-              <FlightCard key={f.id} f={f} crew={crew} onUpdatePax={newPax=>updatePax(f,newPax)} actions={<>
-                <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"none",background:isConf?"var(--success-fg)":"var(--link)",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
-                <button onClick={()=>uFlight(f.id,{...f,status:"unresolved"})} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Dismiss</button>
-                {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
-              </>}/>
-            );})}
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {groupByReservation(pending).map(g=>(
+              <ReservationGroup key={g.key} g={g} defaultCollapsed={false} renderSegment={(f,ll)=>{const isConf=confirmingId===f.id;return(
+                <FlightCard f={f} crew={crew} legLabel={ll} onUpdatePax={newPax=>updatePax(f,newPax)} actions={<>
+                  <button onClick={()=>confirmFlight(f)} disabled={isConf} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"none",background:isConf?"var(--success-fg)":"var(--link)",color:"#fff",cursor:isConf?"default":"pointer",fontWeight:700}}>{isConf?"✓ Synced!":"Confirm + Sync"}</button>
+                  <button onClick={()=>uFlight(f.id,{...f,status:"unresolved"})} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer"}}>Dismiss</button>
+                  {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",marginLeft:"auto"}}>email ↗</a>}
+                </>}/>
+              );}}/>
+            ))}
           </div>
         </div>
       )}
@@ -4432,6 +4499,7 @@ function FlightsListView(){
                   return(
                     <FlightCard key={f.id} f={f}
                       crew={crew}
+                      defaultCollapsed={true}
                       onUpdatePax={newPax=>updatePax(f,newPax)}
                       liveStatus={liveStatuses[f.id]||null}
                       refreshing={refreshingId===f.id}
