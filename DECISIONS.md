@@ -16,6 +16,7 @@
 | 10 | 2026-04-13 | Master Tour positioned as $74.99/mo single-user (not $59.99) | $59.99 estimate | Verified pricing | N/A |
 | 11 | 2026-04-22 | team_id rescoped tour-level (`dos-bbno-2026`); leg derived from show date | `dos-bbno-eu-2026` | Tour is one unit; leg is a view | Multi-tour customers arrive → re-scope per-tour ID |
 | 12 | 2026-04-23 | Adopt LOW-tier operating system (manual docs, $0 API overhead) | No ops doc system | Pre-revenue, solo, EU-tour mode; HIGH tier premature | Skip Sunday review 3x → system is wrong, rebuild |
+| 13 | 2026-04-23 | Defer Rowboat IDE + Ruflo integration | N/A | Rowboat targets CX/enterprise (OpenAI); not relevant until Platform Phase 8+. Ruflo (Claude multi-agent, 60+ agents, 75% cost reduction) is strong fit for v7 ROADMAP blockers (ESLint, Playwright, DosApp.jsx refactor) but not worth setup cost during EU tour ops crunch. | v7 ROADMAP blockers still open after tour → evaluate Ruflo first |
 
 ---
 
