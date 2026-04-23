@@ -501,7 +501,7 @@ const CLIENTS=[
 ];
 const CM=CLIENTS.reduce((a,c)=>{a[c.id]=c;return a},{});
 const isClientOwner=(me,clientId)=>!!(me?.primary||[]).includes(clientId);
-const ROLES=[{id:"tm_td",label:"TM/TD",c:"var(--accent)"},{id:"transport_coord",label:"Transport",c:"var(--warn-fg)"}];
+const ROLES=[{id:"tm_td",label:"TM/TD",c:"var(--accent)"},{id:"transport_coord",label:"Transport",c:"var(--warn-fg)"},{id:"viewer",label:"Viewer",c:"var(--text-dim)"}];
 const TABS=[{id:"dash",label:"Dashboard",icon:"⊞"},{id:"advance",label:"Advance",icon:"◎"},{id:"guestlist",label:"Guest List",icon:"◉"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"},{id:"access",label:"Access",icon:"⊙"}];
 const ADMIN_EMAIL="d.johnson@dayofshow.net";
 const SESSION_ID=Math.random().toString(36).slice(2,9);
@@ -1692,7 +1692,7 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
         {f.toCity&&<span style={{color:"var(--text-mute)"}}>→ {f.toCity}</span>}
         {f.pnr&&<span style={{fontFamily:MN,color:"var(--text-2)",fontWeight:700}}>{f.pnr}</span>}
         {f.fareClass&&<span style={{textTransform:"capitalize"}}>{f.fareClass}</span>}
-        {f.pax?.length>0&&<span style={{color:"var(--text-mute)"}}>{f.pax.length} pax</span>}
+        {f.pax?.length>0&&<span style={{color:"var(--text-mute)"}}>{f.pax.length} pax: {f.pax.map(p=>String(p).trim().split(/\s+/)[0]).filter(Boolean).join(", ")}</span>}
         {actions&&<div style={{marginLeft:"auto",display:"flex",gap:5}}>{actions}</div>}
       </div>}
       {!collapsed&&liveStatus&&(
@@ -2647,7 +2647,7 @@ function TopBar({ss}){
   const canAccessTab=(id)=>{if(id==="access")return isAdmin;const rule=perms?.[`tab.${id}`];if(!rule)return true;return rule[me?.role]??true;};
   useEffect(()=>{if(!hasEvent&&(tab==="advance"||tab==="production"))setTab("ros");},[hasEvent,tab,setTab]);
   const _auth=useAuth();const _email=_auth?.user?.email||"";
-  const visibleRoles=ROLES.filter(r=>r.id!=="tm_td"||TM_EMAILS.has(_email));
+  const visibleRoles=ROLES.filter(r=>{if(r.id==="viewer"||r.id==="tm_td")return TM_EMAILS.has(_email);return true;});
   const curClient=CM[aC];
   const activeClients=CLIENTS.filter(c=>c.status==="active"&&me.clients.includes(c.id));
   React.useEffect(()=>{if(!activeClients.find(c=>c.id===aC))setAC(me.clients[0]||"bbn");},[me.clients.join(",")]);
@@ -2691,10 +2691,10 @@ function TopBar({ss}){
           </div>
           {next&&<span style={{fontSize:10,fontFamily:MN,color:"var(--accent)",fontWeight:600}}>{next.city} {fD(next.date)} · {dU(next.date)}d</span>}
         </div>
-        {!mobile&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1,flexShrink:0}}>
-          <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN,fontWeight:700,letterSpacing:"0.08em"}}>DJ</span>
-          <div style={{display:"flex",gap:1,background:"var(--border)",borderRadius:6,padding:2}}>
-            {visibleRoles.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:9,fontWeight:role===r.id?700:500,padding:"3px 8px",borderRadius:6,border:"none",cursor:"pointer",background:role===r.id?"var(--card)":"transparent",color:role===r.id?r.c:"var(--text-dim)",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
+        {!mobile&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0}}>
+          <span style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN,fontWeight:700,letterSpacing:"0.08em"}}>ROLE</span>
+          <div style={{display:"flex",gap:2,background:"var(--border)",borderRadius:6,padding:2}}>
+            {visibleRoles.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:10,fontWeight:role===r.id?700:500,padding:"4px 8px",borderRadius:6,border:"none",cursor:"pointer",background:role===r.id?"var(--card)":"transparent",color:role===r.id?r.c:"var(--text-dim)",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
           </div>
         </div>}
         <div style={{display:"flex",alignItems:"center",gap:mobile?4:8,flexShrink:0,minWidth:0,maxWidth:"100%"}}>
@@ -2724,10 +2724,12 @@ function TopBar({ss}){
           <span style={{fontSize:9,color:"var(--text-mute)"}}>–</span>
           <input type="date" value={tourEnd} onChange={e=>setTourEnd(e.target.value)} style={{fontSize:9,padding:"2px 5px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-3)",color:"var(--text-2)",fontFamily:MN,cursor:"pointer"}}/>
         </div>}
-        {mobile&&<div style={{display:"flex",gap:1,background:"var(--border)",borderRadius:6,padding:2,marginLeft:"auto"}}>
-          {visibleRoles.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:10,fontWeight:role===r.id?700:500,padding:"4px 8px",borderRadius:6,border:"none",cursor:"pointer",background:role===r.id?"var(--card)":"transparent",color:role===r.id?r.c:"var(--text-dim)",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
+        {mobile&&<div style={{display:"flex",alignItems:"center",gap:6,marginLeft:"auto"}}>
+          <div style={{display:"flex",gap:2,background:"var(--border)",borderRadius:6,padding:2}}>
+            {visibleRoles.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:10,fontWeight:role===r.id?700:500,padding:"4px 8px",borderRadius:6,border:"none",cursor:"pointer",background:role===r.id?"var(--card)":"transparent",color:role===r.id?r.c:"var(--text-dim)",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
+          </div>
+          {ss&&<span style={{fontSize:9,color:ss==="saved"?"var(--success-fg)":"var(--text-mute)",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
         </div>}
-        {mobile&&ss&&<span style={{fontSize:9,color:ss==="saved"?"var(--success-fg)":"var(--text-mute)",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
       </div>
       <div style={{display:"flex",padding:mobile?"0 12px":"0 20px",width:"100%",overflowX:"auto",overflowY:"hidden",scrollbarWidth:"thin",WebkitOverflowScrolling:"touch"}}>
         {(orderedTabs||TABS).filter(t=>(hasEvent||t.id!=="advance"&&t.id!=="production")&&canAccessTab(t.id)).map(t=>{
