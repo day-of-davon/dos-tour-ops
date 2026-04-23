@@ -1504,6 +1504,9 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
         {isFresh&&<span title="Booked within the last 48 hours" style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:800,letterSpacing:"0.06em"}}>NEW · 48H</span>}
         {f.parseVerified===true&&<span title="Data verified against source email" style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:"var(--success-bg)",color:"var(--success-fg)",fontWeight:700}}>✓ verified</span>}
         {f.parseVerified===false&&<span title={f.parseNote||"Verification flagged a discrepancy — review before confirming"} style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:"var(--warn-bg)",color:"var(--warn-fg)",fontWeight:700,cursor:"help"}}>⚠ check data</span>}
+        {f.confidence==="med"&&<span title={f.parseNotes||"Parser flagged this leg as medium confidence"} style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:"var(--warn-bg)",color:"var(--warn-fg)",fontWeight:700,cursor:"help"}}>~ med conf</span>}
+        {f.confidence==="low"&&<span title={f.parseNotes||"Parser flagged this leg as low confidence — verify before confirming"} style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:"var(--danger-bg)",color:"var(--danger-fg)",fontWeight:700,cursor:"help"}}>! low conf</span>}
+        {(f.validationFlags||[]).length>0&&<span title={`Validation: ${(f.validationFlags||[]).join(", ")}`} style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:"var(--warn-bg)",color:"var(--warn-fg)",fontWeight:700,cursor:"help"}}>⚠ {(f.validationFlags||[]).length} flag{(f.validationFlags||[]).length>1?"s":""}</span>}
         {st&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:st.bg,color:st.c,fontWeight:700}}>{st.label}{delayed?` +${liveStatus.delayMinutes}m`:""}</span>}
         {f.suggestedShowDate&&<span title={`${f.suggestedRole==="outbound"?"Departs day after":"Arrives for"} ${f.suggestedVenue||f.suggestedShowDate}`} style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:f.suggestedRole==="outbound"?"var(--warn-bg)":"var(--success-bg)",color:f.suggestedRole==="outbound"?"var(--warn-fg)":"var(--success-fg)",fontWeight:700}}>{f.suggestedRole==="outbound"?"OUT":"IN"} · {f.suggestedShowDate}</span>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
@@ -2618,8 +2621,9 @@ function Dash(){
           {!todayShows.length&&!soonShows.length&&!laterShows.length&&<div style={{fontSize:11,color:"var(--text-mute)",textAlign:"center",padding:"20px 0"}}>No upcoming shows.</div>}
         </div>);
       })()}
-      <div style={{display:"flex",flexDirection:"column",gap:8}}>
-        {allTodos.length>0&&<IntelSection title="TO-DOs (PRIVATE)" count={allTodos.length} defaultOpen={true}>
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        {allTodos.length>0&&<div>
+          <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.1em",marginBottom:5}}>TO-DOs (PRIVATE) ({allTodos.length})</div>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
             {allTodos.map(t=>{const sid=showIdFor(t.show);const tid=t.threadTid||(intel[sid]?.threads||[]).find(x=>x.tid)?.tid||null;return(<div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:priB(t.priority),color:priC(t.priority),fontWeight:700,flexShrink:0,marginTop:1}}>{t.priority||"LOW"}</span>
@@ -2631,8 +2635,9 @@ function Dash(){
               </div>
             </div>);})}
           </div>
-        </IntelSection>}
-        {allFollowUps.length>0&&<IntelSection title="FOLLOW-UPS" count={allFollowUps.length} defaultOpen={allTodos.length===0}>
+        </div>}
+        {allFollowUps.length>0&&<div>
+          <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.1em",marginBottom:5}}>FOLLOW-UPS ({allFollowUps.length})</div>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
             {allFollowUps.map((f,i)=>{const sid=showIdFor(f.show);const tid=f.tid||(intel[sid]?.threads||[]).find(x=>x.tid)?.tid||null;return(<div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:priB(f.priority),color:priC(f.priority),fontWeight:700,flexShrink:0,marginTop:1}}>{f.priority||"LOW"}</span>
@@ -2644,8 +2649,9 @@ function Dash(){
               </div>
             </div>);})}
           </div>
-        </IntelSection>}
-        {arItems.length>0&&<IntelSection title="ACTION REQUIRED" count={arItems.length} defaultOpen={false}>
+        </div>}
+        {arItems.length>0&&<div>
+          <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.1em",marginBottom:5}}>ACTION REQUIRED ({arItems.length})</div>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
             {arItems.slice(0,25).map(i=><div key={i.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:bucketB(i.bucket),color:bucketC(i.bucket),fontWeight:700,flexShrink:0,marginTop:1}}>{i.bucket}</span>
@@ -2656,8 +2662,9 @@ function Dash(){
               <button onClick={()=>markAr(i.id,"ignored",i.subject)} style={BTN_IGN}>Ignore</button>
             </div>)}
           </div>
-        </IntelSection>}
-        {logisticsItems.length>0&&<IntelSection title="UPCOMING LOGISTICS" count={logisticsItems.length} defaultOpen={false}>
+        </div>}
+        {logisticsItems.length>0&&<div>
+          <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.1em",marginBottom:5}}>UPCOMING LOGISTICS ({logisticsItems.length})</div>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
             {logisticsItems.map((i,idx)=><div key={idx} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,flexShrink:0,marginTop:1}}>{i.category}</span>
@@ -2667,7 +2674,7 @@ function Dash(){
               <button onClick={()=>markAr(i.id,"ignored",i.subject)} style={BTN_IGN}>Ignore</button>
             </div>)}
           </div>
-        </IntelSection>}
+        </div>}
       </div>
       <button onClick={()=>setTab("advance")} style={{marginTop:12,background:client.color,border:"none",borderRadius:6,color:"#fff",fontSize:11,padding:"8px 16px",cursor:"pointer",fontWeight:700}}>Open Advance Tracker →</button>
     </div>
