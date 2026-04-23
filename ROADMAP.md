@@ -137,7 +137,7 @@ Source: CLAUDE.md §7. Ship before May 4.
 - [ ] Prompt 2: Gmail intel panel + auto-toggle + show nav
 - [ ] Offline read-mode (IndexedDB mirror of `app_storage`) **← revenue-blocking for EU**
 - [ ] Mobile thumb-test on iPhone 15
-- [ ] Remove hardcoded `MY_EMAIL` in [api/comms.js:7](api/comms.js)
+- [x] Remove hardcoded `MY_EMAIL` in [api/comms.js:7](api/comms.js)
 - [ ] Prettier + ESLint + pre-commit
 - [ ] Playwright smoke tests: login, intel scan, ledger edit
 - [ ] Crew tab — port from v5 `App.jsx` (Phase 5 target)

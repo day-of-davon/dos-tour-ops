@@ -4,8 +4,6 @@ const { gmailGetThread, extractBody, stripMarketingFooter } = require("./lib/gma
 const { postMessages, DEFAULT_MODEL } = require("./lib/anthropic");
 const { buildTourContextBlock } = require("./lib/tourContext");
 
-const MY_EMAIL = "d.johnson@dayofshow.net";
-
 function getHeaders(msg) {
   const headers = msg?.payload?.headers || [];
   const get = (name) => headers.find((h) => h.name.toLowerCase() === name.toLowerCase())?.value || "";
@@ -27,12 +25,14 @@ function parseAddresses(raw) {
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { error } = await authenticate(req);
+  const { user, error } = await authenticate(req);
   if (error) return res.status(error.status).json({ error: error.message });
 
-  const { tid, show, googleToken, userEmail } = req.body || {};
+  const { tid, show, googleToken } = req.body || {};
   if (!tid) return res.status(400).json({ error: "Missing tid" });
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
+
+  const selfEmail = (user.email || "").toLowerCase();
 
   let thread;
   try {
@@ -55,7 +55,7 @@ module.exports = async function handler(req, res) {
   for (const msg of messages) {
     const h = getHeaders(msg);
     [...parseAddresses(h.from), ...parseAddresses(h.to), ...parseAddresses(h.cc)].forEach((addr) => {
-      if (addr && !addr.toLowerCase().includes(MY_EMAIL)) participantSet.add(addr);
+      if (addr && (!selfEmail || !addr.toLowerCase().includes(selfEmail))) participantSet.add(addr);
     });
   }
 
@@ -75,7 +75,7 @@ module.exports = async function handler(req, res) {
     : "";
 
   const system = `You are Davon Johnson, Tour Manager / Tour Director for bbno$'s Internet Explorer Tour, writing on behalf of Day of Show, LLC.
-Your email: ${MY_EMAIL}. Always reply in first person as Davon.
+Your email: d.johnson@dayofshow.net. Always reply in first person as Davon.
 
 ${buildTourContextBlock()}
 ${showBlock}
