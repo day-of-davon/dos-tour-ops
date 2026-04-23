@@ -1477,6 +1477,7 @@ function FlightsSection(){
   },[currentSplit,activeSplitParty,activeSplitPartyId,crew]);
   const matchesParty=s=>{
     if(!partyMatch)return true;
+    if((s.excludedParties||[]).includes(partyMatch.partyId))return false;
     if(s.partyId)return s.partyId===partyMatch.partyId;
     const pax=(s.pax||[]).filter(Boolean);
     if(!pax.length)return true;
@@ -1607,7 +1608,17 @@ function FlightsSection(){
     setTimeout(()=>setConfirmingId(null),1200);
   };
 
-  const dismissFlight=id=>uFlight(id,{...flights[id],status:"unresolved"});
+  const dismissFlight=id=>{
+    const f=flights[id];if(!f)return;
+    // On a split day, dismissing a shared flight only hides it from the
+    // active party. Scoped flights (own partyId) dismiss normally.
+    if(partyMatch&&!(f.partyId&&f.partyId===partyMatch.partyId)){
+      const excl=new Set(f.excludedParties||[]);excl.add(partyMatch.partyId);
+      uFlight(id,{...f,excludedParties:[...excl]});
+      return;
+    }
+    uFlight(id,{...f,status:"unresolved"});
+  };
   const deleteFlight=id=>uFlight(id,null);
 
   return(
@@ -3950,6 +3961,7 @@ function TravelDayView(){
   const daySegs=useMemo(()=>{
     const segMatches=s=>{
       if(!partyMatch)return true;
+      if((s.excludedParties||[]).includes(partyMatch.partyId))return false;
       if(s.partyId)return s.partyId===partyMatch.partyId;
       const pax=(s.pax||[]).filter(Boolean);
       if(!pax.length)return true;
@@ -4082,7 +4094,12 @@ function TravelDayView(){
                 <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
                   {s._role==="arr"&&<span style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--success-bg)",color:"var(--success-fg)",fontWeight:800,letterSpacing:"0.06em"}}>ARR</span>}
                   {s.fresh48h&&s.status!=="confirmed"&&<span style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:800,letterSpacing:"0.06em"}}>NEW</span>}
-                  <button onClick={e=>{e.stopPropagation();if(confirm(`Delete this ${m.label.toLowerCase()}?`)){const prev={...s};uFlight(s.id,{...s,status:"dismissed"});pushUndo(`${m.label} deleted.`,()=>uFlight(s.id,prev));if(activeId===s.id)setActiveId(null);}}} title="Delete segment" style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:13,lineHeight:1,padding:"0 4px"}}>×</button>
+                  <button onClick={e=>{e.stopPropagation();if(confirm(`Delete this ${m.label.toLowerCase()}?`)){const prev={...s};let next;
+                    if(partyMatch&&!(s.partyId&&s.partyId===partyMatch.partyId)){
+                      const excl=new Set(s.excludedParties||[]);excl.add(partyMatch.partyId);
+                      next={...s,excludedParties:[...excl]};
+                    }else{next={...s,status:"unresolved"};}
+                    uFlight(s.id,next);pushUndo(`${m.label} deleted.`,()=>uFlight(s.id,prev));if(activeId===s.id)setActiveId(null);}}} title="Delete segment" style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:13,lineHeight:1,padding:"0 4px"}}>×</button>
                 </div>
               </div>
             );
