@@ -1345,7 +1345,7 @@ export default function App(){
           <NavSidebar/>
           <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,minHeight:0,overflow:"hidden"}}>
             {tab!=="dash"&&<SplitPartyTabs/>}
-            <EventSwitcher show={shows[sel]} sel={sel}/>
+            {tab!=="dash"&&<EventSwitcher show={shows[sel]} sel={sel}/>}
             {tab==="dash"&&<Dash/>}{tab==="advance"&&<AdvTab/>}{tab==="guestlist"&&<GuestListTab/>}{tab==="ros"&&<ScheduleTab/>}{tab==="transport"&&<TransTab/>}{tab==="finance"&&<FinTab/>}{tab==="crew"&&<CrewTab/>}{tab==="lodging"&&<LodgingTab/>}{tab==="production"&&<ProdTab/>}
           </div>
         </div>
@@ -1681,10 +1681,11 @@ function FlightsSection(){
   const keepConfirmedKey=[...keepConfirmedIds].sort().join(",");
   useEffect(()=>{const dupes=confirmedRaw.filter(f=>!keepConfirmedIds.has(f.id));if(dupes.length)dupes.forEach(f=>uFlight(f.id,null));},[keepConfirmedKey]);// eslint-disable-line
   const confirmedKeys=new Set(confirmed.map(flightDedupKey));
-  const pendingRaw=allFlights.filter(f=>f.status==="pending"&&!confirmedKeys.has(flightDedupKey(f)));
+  const pendingRaw=allFlights.filter(f=>f.status==="pending"&&!confirmedKeys.has(flightDedupKey(f))&&!f.supersededBy);
   const pendingByKey=new Map();pendingRaw.forEach(f=>{if(!pendingByKey.has(flightDedupKey(f)))pendingByKey.set(flightDedupKey(f),f);});
   const pending=[...pendingByKey.values()];
   const unresolved=allFlights.filter(f=>f.status==="unresolved");
+  const superseded=allFlights.filter(f=>f.status==="cancelled"||f.status==="changed"||f.supersededBy);
 
   const scanFlights=async(opts={})=>{
     try{
@@ -1718,7 +1719,7 @@ function FlightsSection(){
           if(JSON.stringify(merged)!==JSON.stringify(match)){working[match.id]=merged;enriched.push(merged);}
         }else{
           const paxMap=new Map();(f.pax||[]).forEach(p=>{const k=String(p).toLowerCase();if(!paxMap.has(k))paxMap.set(k,p);});
-          const rec={...f,pax:[...paxMap.values()],status:"pending",suggestedCrewIds:matchPaxToCrew(f.pax,crew)};
+          const rec={...f,pax:[...paxMap.values()],status:(f.status==="cancelled"||f.status==="changed")?f.status:"pending",suggestedCrewIds:matchPaxToCrew(f.pax,crew)};
           working[f.id]=rec;novel.push(rec);
         }
       });
@@ -1920,6 +1921,26 @@ function FlightsSection(){
                 <span style={{fontSize:10,color:"var(--text-2)",flexShrink:0}}>{f.flightNo||f.carrier}</span>
                 <span style={{fontSize:9,color:"var(--text-dim)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(f.pax||[]).join(", ")}</span>
                 <button onClick={()=>uFlight(f.id,{...f,status:"pending"})} style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"1px solid var(--info-bg)",background:"var(--info-bg)",color:"var(--link)",cursor:"pointer",fontWeight:700,flexShrink:0}}>↩ Restore</button>
+                <button onClick={()=>deleteFlight(f.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:11,flexShrink:0}}>×</button>
+              </div>
+            ))}
+          </div>
+        </IntelSection>
+      )}
+
+      {/* Changed / Cancelled — superseded by a newer booking email */}
+      {superseded.length>0&&(
+        <IntelSection title="CHANGED / CANCELLED" count={superseded.length}>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {superseded.map(f=>(
+              <div key={f.id} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",background:"var(--warn-bg)",border:"1px solid var(--warn-bg)",borderRadius:6,flexWrap:"wrap",opacity:0.85}}>
+                <span style={{fontSize:8,padding:"1px 5px",borderRadius:3,fontWeight:800,background:f.status==="cancelled"?"var(--danger-bg)":"var(--warn-bg)",color:f.status==="cancelled"?"var(--danger-fg)":"var(--warn-fg)",flexShrink:0,border:`1px solid ${f.status==="cancelled"?"var(--danger-fg)":"var(--warn-fg)"}`}}>{f.status==="cancelled"?"CANCELLED":"CHANGED"}</span>
+                <span style={{fontSize:9,color:"var(--text-dim)",fontWeight:800,fontFamily:MN,flexShrink:0}}>{f.depDate}</span>
+                <span style={{fontSize:11,fontWeight:700,color:"var(--text)",fontFamily:MN,flexShrink:0}}>{f.from}→{f.to}</span>
+                <span style={{fontSize:10,color:"var(--text-2)",flexShrink:0}}>{f.flightNo||f.carrier}</span>
+                <span style={{fontSize:9,color:"var(--text-dim)",flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{(f.paxNormalized||[]).map(p=>p.displayName).join(", ")||(f.pax||[]).join(", ")}</span>
+                {f.supersededBy&&<span title={`Superseded by thread ${f.supersededBy}`} style={{fontSize:8,color:"var(--text-mute)",flexShrink:0,fontFamily:MN}}>↳ newer booking</span>}
+                <button onClick={()=>uFlight(f.id,{...f,status:"pending",supersededBy:undefined})} title="Move back to pending" style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"1px solid var(--info-bg)",background:"var(--info-bg)",color:"var(--link)",cursor:"pointer",fontWeight:700,flexShrink:0}}>↩</button>
                 <button onClick={()=>deleteFlight(f.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:11,flexShrink:0}}>×</button>
               </div>
             ))}
