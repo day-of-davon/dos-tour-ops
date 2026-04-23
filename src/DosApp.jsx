@@ -1037,13 +1037,14 @@ export default function App(){
       let next=p;
       for(const f of confirmed){
         const dir=f.suggestedRole;
-        const dateKey=f.suggestedShowDate;
+        const baseDate=f.suggestedShowDate;
+        const dateKey=f.partyId&&SPLIT_DAYS[baseDate]?`${baseDate}#${f.partyId}`:baseDate;
         const leg={id:`leg_${f.id}`,flight:f.flightNo||"",carrier:f.carrier||"",from:f.from,fromCity:f.fromCity||f.from,to:f.to,toCity:f.toCity||f.to,depart:f.dep,arrive:f.arr,conf:f.confirmNo||f.bookingRef||"",status:"confirmed",flightId:f.id,autoPopulated:true};
         const confKey=dir==="inbound"?"inboundConfirmed":"outboundConfirmed";
         const dateField=dir==="inbound"?"inboundDate":"outboundDate";
         const timeField=dir==="inbound"?"inboundTime":"outboundTime";
         const timeVal=dir==="inbound"?f.arr:f.dep;
-        const dateVal=dir==="inbound"?(f.arrDate||dateKey):f.depDate;
+        const dateVal=dir==="inbound"?(f.arrDate||baseDate):f.depDate;
         for(const crewId of f.suggestedCrewIds){
           const cur=(next[dateKey]||{})[crewId]||{};
           if(cur.attending===false)continue;
@@ -1692,27 +1693,30 @@ function FlightsSection(){
         const match=matchPaxToCrew([name],crew).map(id=>crew.find(c=>c.id===id)).find(Boolean);
         if(!match)return;
         if(inShow){
+          const inKey=f.partyId&&SPLIT_DAYS[inShow.date]?`${inShow.date}#${f.partyId}`:inShow.date;
           setShowCrew(p=>{
-            const cur=p[inShow.date]?.[match.id]||{};
+            const cur=p[inKey]?.[match.id]||{};
             const flightIds=new Set(allLegObjs.map(l=>l.flightId));
             const existing=(cur.inbound||[]).filter(l=>!flightIds.has(l.flightId));
-            return{...p,[inShow.date]:{...p[inShow.date],[match.id]:{...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,inboundDate:lastLeg.arrDate||lastLeg.depDate,inboundTime:lastLeg.arr||"",inbound:[...existing,...allLegObjs]}}};
+            return{...p,[inKey]:{...p[inKey],[match.id]:{...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,inboundDate:lastLeg.arrDate||lastLeg.depDate,inboundTime:lastLeg.arr||"",inbound:[...existing,...allLegObjs]}}};
           });
         }
         if(outShow){
+          const outKey=f.partyId&&SPLIT_DAYS[outShow.date]?`${outShow.date}#${f.partyId}`:outShow.date;
           setShowCrew(p=>{
-            const cur=p[outShow.date]?.[match.id]||{};
+            const cur=p[outKey]?.[match.id]||{};
             const flightIds=new Set(allLegObjs.map(l=>l.flightId));
             const existing=(cur.outbound||[]).filter(l=>!flightIds.has(l.flightId));
-            return{...p,[outShow.date]:{...p[outShow.date],[match.id]:{...cur,attending:true,outboundMode:"fly",outboundConfirmed:true,outboundDate:firstLeg.depDate,outboundTime:firstLeg.dep||"",outbound:[...existing,...allLegObjs]}}};
+            return{...p,[outKey]:{...p[outKey],[match.id]:{...cur,attending:true,outboundMode:"fly",outboundConfirmed:true,outboundDate:firstLeg.depDate,outboundTime:firstLeg.dep||"",outbound:[...existing,...allLegObjs]}}};
           });
         }
         if(!inShow&&!outShow){
           const arrD=f.arrDate||f.depDate;
+          const arrKey=f.partyId&&SPLIT_DAYS[arrD]?`${arrD}#${f.partyId}`:arrD;
           setShowCrew(p=>{
-            const cur=p[arrD]?.[match.id]||{};
+            const cur=p[arrKey]?.[match.id]||{};
             const ex=(cur.inbound||[]).filter(l=>l.flightId!==f.id);
-            return{...p,[arrD]:{...p[arrD],[match.id]:{...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,inboundDate:arrD,inboundTime:f.arr||"",inbound:[...ex,flightToLeg(f)]}}};
+            return{...p,[arrKey]:{...p[arrKey],[match.id]:{...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,inboundDate:arrD,inboundTime:f.arr||"",inbound:[...ex,flightToLeg(f)]}}};
           });
         }
       });
@@ -3797,11 +3801,12 @@ function FlightsListView(){
       const match=matchPaxToCrew([name],crew).map(id=>crew.find(c=>c.id===id)).find(Boolean);
       if(!match)return;
       if(inShow){
+        const inKey=f.partyId&&SPLIT_DAYS[inShow.date]?`${inShow.date}#${f.partyId}`:inShow.date;
         setShowCrew(p=>{
-          const cur=p[inShow.date]?.[match.id]||{};
+          const cur=p[inKey]?.[match.id]||{};
           const flightIds=new Set(allLegObjs.map(l=>l.flightId));
           const existing=(cur.inbound||[]).filter(l=>!flightIds.has(l.flightId));
-          return{...p,[inShow.date]:{...p[inShow.date],[match.id]:{
+          return{...p,[inKey]:{...p[inKey],[match.id]:{
             ...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,
             inboundDate:lastLeg.arrDate||lastLeg.depDate,inboundTime:lastLeg.arr||"",
             inbound:[...existing,...allLegObjs]
@@ -3809,11 +3814,12 @@ function FlightsListView(){
         });
       }
       if(outShow){
+        const outKey=f.partyId&&SPLIT_DAYS[outShow.date]?`${outShow.date}#${f.partyId}`:outShow.date;
         setShowCrew(p=>{
-          const cur=p[outShow.date]?.[match.id]||{};
+          const cur=p[outKey]?.[match.id]||{};
           const flightIds=new Set(allLegObjs.map(l=>l.flightId));
           const existing=(cur.outbound||[]).filter(l=>!flightIds.has(l.flightId));
-          return{...p,[outShow.date]:{...p[outShow.date],[match.id]:{
+          return{...p,[outKey]:{...p[outKey],[match.id]:{
             ...cur,attending:true,outboundMode:"fly",outboundConfirmed:true,
             outboundDate:firstLeg.depDate,outboundTime:firstLeg.dep||"",
             outbound:[...existing,...allLegObjs]
@@ -3823,10 +3829,11 @@ function FlightsListView(){
       // Fallback: no geographic match anywhere — use arrival date as show key (old behavior).
       if(!inShow&&!outShow){
         const arrD=f.arrDate||f.depDate;
+        const arrKey=f.partyId&&SPLIT_DAYS[arrD]?`${arrD}#${f.partyId}`:arrD;
         setShowCrew(p=>{
-          const cur=p[arrD]?.[match.id]||{};
+          const cur=p[arrKey]?.[match.id]||{};
           const ex=(cur.inbound||[]).filter(l=>l.flightId!==f.id);
-          return{...p,[arrD]:{...p[arrD],[match.id]:{
+          return{...p,[arrKey]:{...p[arrKey],[match.id]:{
             ...cur,attending:true,inboundMode:"fly",inboundConfirmed:true,
             inboundDate:arrD,inboundTime:f.arr||"",inbound:[...ex,flightToLeg(f)]
           }}};
@@ -4124,7 +4131,7 @@ function TravelDayView(){
       const hits=partyNames.filter(p=>p.names.some(n=>pax.some(x=>x.includes(n)||n.includes(x.split(" ")[0]))));
       if(hits.length===1)uFlight(s.id,{...s,partyId:hits[0].id});
     });
-  },[sel,currentSplit]);// eslint-disable-line
+  },[sel,currentSplit,flights,crew]);// eslint-disable-line react-hooks/exhaustive-deps
 
   // All non-dismissed segments touching sel (depDate === sel OR arrDate === sel).
   const daySegs=useMemo(()=>{
