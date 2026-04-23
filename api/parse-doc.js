@@ -140,11 +140,26 @@ module.exports = async function handler(req, res) {
   const isPdf = mimeType === "application/pdf" || name.endsWith(".pdf");
   const isDocx = mimeType.includes("wordprocessingml") || name.endsWith(".docx");
   const isXlsx = mimeType.includes("spreadsheetml") || name.endsWith(".xlsx") || name.endsWith(".xls");
+  const imgExts = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic", ".heif"];
+  const isImage = mimeType.startsWith("image/") || imgExts.some(ext => name.endsWith(ext));
+
+  // Claude vision supports jpeg, png, gif, webp. Map common variants (and heic → jpeg hint).
+  const visionMediaType = (() => {
+    if (!isImage) return null;
+    if (mimeType === "image/jpeg" || mimeType === "image/jpg" || name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
+    if (mimeType === "image/png" || name.endsWith(".png")) return "image/png";
+    if (mimeType === "image/webp" || name.endsWith(".webp")) return "image/webp";
+    if (mimeType === "image/gif" || name.endsWith(".gif")) return "image/gif";
+    return mimeType || "image/jpeg";
+  })();
 
   let extractedText = null;
 
   try {
-    if (isPdf && pdfParse) {
+    if (isImage) {
+      // Vision path — no text extraction; Claude reads the image directly.
+      extractedText = null;
+    } else if (isPdf && pdfParse) {
       const buf = Buffer.from(fileBase64, "base64");
       const result = await pdfParse(buf);
       extractedText = result.text.slice(0, 14000);
@@ -169,7 +184,15 @@ module.exports = async function handler(req, res) {
 
   const userPromptText = PROMPT(filename, contextDate);
 
-  const messages = [{ role: "user", content: `${userPromptText}\n\nDOCUMENT CONTENT:\n${extractedText}` }];
+  const messages = isImage
+    ? [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: visionMediaType, data: fileBase64 } },
+          { type: "text", text: `${userPromptText}\n\nThe document is the attached photo. Read it directly.` },
+        ],
+      }]
+    : [{ role: "user", content: `${userPromptText}\n\nDOCUMENT CONTENT:\n${extractedText}` }];
 
   let inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheCreationTokens = 0;
   const callClaude = async (sys, msgs, maxTokens = 4096, model = DEFAULT_MODEL) => {
@@ -197,7 +220,9 @@ module.exports = async function handler(req, res) {
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.`;
 
   // Verification uses extracted JSON + a brief source excerpt only — no full document re-send.
-  const sourceExcerpt = (extractedText || "").slice(0, 2000);
+  const sourceExcerpt = isImage
+    ? `[photo upload: ${filename}]`
+    : (extractedText || "").slice(0, 2000);
   const verifyMsgs = [{ role: "user", content: buildVerifyPrompt(parsed, sourceExcerpt) }];
 
   let verified = parsed;
