@@ -501,7 +501,7 @@ const CLIENTS=[
 ];
 const CM=CLIENTS.reduce((a,c)=>{a[c.id]=c;return a},{});
 const isClientOwner=(me,clientId)=>!!(me?.primary||[]).includes(clientId);
-const ROLES=[{id:"tm",label:"TM",c:"var(--accent)"},{id:"production",label:"Prod",c:"var(--warn-fg)"}];
+const ROLES=[{id:"tm_td",label:"TM/TD",c:"var(--accent)"},{id:"transport_coord",label:"Transport",c:"var(--warn-fg)"}];
 const TABS=[{id:"dash",label:"Dashboard",icon:"⊞"},{id:"advance",label:"Advance",icon:"◎"},{id:"guestlist",label:"Guest List",icon:"◉"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"},{id:"access",label:"Access",icon:"⊙"}];
 const ADMIN_EMAIL="d.johnson@dayofshow.net";
 const PERM_ROLES=[
@@ -803,62 +803,62 @@ const ALL_SHOWS=[
 ];
 
 const DEFAULT_ROS=()=>[
-  {id:"bus_arrive",label:"BUS ARRIVES",duration:0,phase:"bus_in",type:"bus",color:"var(--info-fg)",roles:["tm","transport"],note:"32A 3-phase power",isAnchor:true,anchorKey:"busArrive"},
-  {id:"venue_access",label:"Venue Access",duration:0,phase:"pre",type:"access",color:"var(--text-2)",roles:["tm","production"],note:"Per advance",isAnchor:true,anchorKey:"venueAccess"},
-  {id:"crew_call",label:"CREW CALL",duration:0,phase:"pre",type:"crew",color:"var(--warn-fg)",roles:["tm","production"],note:"Local + tour crew",isAnchor:true,anchorKey:"crewCall"},
-  {id:"loadin",label:"Load In",duration:240,phase:"pre",type:"setup",color:"var(--warn-fg)",roles:["tm","production"],note:"FOH, mons, LD, LED, lasers, merch"},
-  {id:"sc_bbno",label:"SC: bbno$",duration:60,phase:"pre",type:"soundcheck",color:"var(--accent)",roles:["tm","production"],note:"Full band check"},
-  {id:"sc_jb",label:"SC: Jungle Bobby",duration:30,phase:"pre",type:"soundcheck",color:"var(--accent-soft)",roles:["tm","production"],note:"Support act"},
-  {id:"security",label:"Security Meeting",duration:30,phase:"pre",type:"meeting",color:"var(--danger-fg)",roles:["tm"],note:"Barricade, pit, artist security"},
-  {id:"mg_checkin",label:"M&G Check In",duration:30,phase:"mg",type:"mg",color:"var(--success-fg)",roles:["tm","hospitality"],note:"Always before M&G."},
-  {id:"mg",label:"Meet & Greet",duration:120,phase:"mg",type:"mg",color:"var(--success-fg)",roles:["tm","hospitality"],note:"Fan experience",isAnchor:true,anchorKey:"mgTime"},
-  {id:"doors_early",label:"Doors: Early Entry",duration:30,phase:"doors",type:"doors",color:"var(--success-fg)",roles:["tm","hospitality"],note:"VIP / early entry"},
-  {id:"doors_ga",label:"Doors: GA",duration:0,phase:"doors",type:"doors",color:"var(--success-fg)",roles:["tm","hospitality"],note:"General admission",isAnchor:true,anchorKey:"doors"},
-  {id:"bishu",label:"Bishu DJ Set",duration:15,phase:"show",type:"performance",color:"var(--accent)",roles:["tm","production"],note:"Opening DJ"},
-  {id:"jungle_bobby",label:"Jungle Bobby",duration:30,phase:"show",type:"performance",color:"var(--accent)",roles:["tm","production"],note:"Support set"},
-  {id:"changeover",label:"Changeover",duration:15,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm","production"],note:"Stage flip"},
-  {id:"bbno_set",label:"bbno$ HEADLINE SET",duration:105,phase:"show",type:"headline",color:"var(--danger-fg)",roles:["tm","production"],note:"Internet Explorer Tour"},
-  {id:"curfew",label:"CURFEW",duration:0,phase:"curfew",type:"curfew",color:"var(--danger-fg)",roles:["tm"],note:"House lights",isAnchor:true,anchorKey:"curfew"},
-  {id:"crew_cb",label:"Crew Call Back",duration:0,phase:"post",type:"crew",color:"var(--warn-fg)",roles:["tm","production"],note:"30min before set ends",offsetRef:"bbno_set_end",offsetMin:-30},
-  {id:"loadout",label:"Load Out",duration:120,phase:"post",type:"setup",color:"var(--warn-fg)",roles:["tm","production"],note:"Gear to truck/trailer"},
-  {id:"settlement",label:"Settlement",duration:60,phase:"post",type:"business",color:"var(--warn-fg)",roles:["tm"],note:"30min after headline ends",offsetRef:"bbno_set_end",offsetMin:30},
-  {id:"showers",label:"Showers / Wind Down",duration:45,phase:"post",type:"crew",color:"var(--text-2)",roles:["tm","transport"]},
-  {id:"clear",label:"Clear Venue",duration:30,phase:"post",type:"bus",color:"var(--text-3)",roles:["tm","transport"],note:"Final walk, bus loaded"},
-  {id:"bus_depart",label:"BUS DEPARTS",duration:0,phase:"post",type:"bus",color:"var(--info-fg)",roles:["tm","transport"],note:"Next city. Crew sleeps.",isAnchor:true,anchorKey:"busDepart"},
+  {id:"bus_arrive",label:"BUS ARRIVES",duration:0,phase:"bus_in",type:"bus",color:"var(--info-fg)",roles:["tm_td","transport_coord"],note:"32A 3-phase power",isAnchor:true,anchorKey:"busArrive"},
+  {id:"venue_access",label:"Venue Access",duration:0,phase:"pre",type:"access",color:"var(--text-2)",roles:["tm_td","tm_td"],note:"Per advance",isAnchor:true,anchorKey:"venueAccess"},
+  {id:"crew_call",label:"CREW CALL",duration:0,phase:"pre",type:"crew",color:"var(--warn-fg)",roles:["tm_td","tm_td"],note:"Local + tour crew",isAnchor:true,anchorKey:"crewCall"},
+  {id:"loadin",label:"Load In",duration:240,phase:"pre",type:"setup",color:"var(--warn-fg)",roles:["tm_td","tm_td"],note:"FOH, mons, LD, LED, lasers, merch"},
+  {id:"sc_bbno",label:"SC: bbno$",duration:60,phase:"pre",type:"soundcheck",color:"var(--accent)",roles:["tm_td","tm_td"],note:"Full band check"},
+  {id:"sc_jb",label:"SC: Jungle Bobby",duration:30,phase:"pre",type:"soundcheck",color:"var(--accent-soft)",roles:["tm_td","tm_td"],note:"Support act"},
+  {id:"security",label:"Security Meeting",duration:30,phase:"pre",type:"meeting",color:"var(--danger-fg)",roles:["tm_td"],note:"Barricade, pit, artist security"},
+  {id:"mg_checkin",label:"M&G Check In",duration:30,phase:"mg",type:"mg",color:"var(--success-fg)",roles:["tm_td"],note:"Always before M&G."},
+  {id:"mg",label:"Meet & Greet",duration:120,phase:"mg",type:"mg",color:"var(--success-fg)",roles:["tm_td"],note:"Fan experience",isAnchor:true,anchorKey:"mgTime"},
+  {id:"doors_early",label:"Doors: Early Entry",duration:30,phase:"doors",type:"doors",color:"var(--success-fg)",roles:["tm_td"],note:"VIP / early entry"},
+  {id:"doors_ga",label:"Doors: GA",duration:0,phase:"doors",type:"doors",color:"var(--success-fg)",roles:["tm_td"],note:"General admission",isAnchor:true,anchorKey:"doors"},
+  {id:"bishu",label:"Bishu DJ Set",duration:15,phase:"show",type:"performance",color:"var(--accent)",roles:["tm_td","tm_td"],note:"Opening DJ"},
+  {id:"jungle_bobby",label:"Jungle Bobby",duration:30,phase:"show",type:"performance",color:"var(--accent)",roles:["tm_td","tm_td"],note:"Support set"},
+  {id:"changeover",label:"Changeover",duration:15,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm_td","tm_td"],note:"Stage flip"},
+  {id:"bbno_set",label:"bbno$ HEADLINE SET",duration:105,phase:"show",type:"headline",color:"var(--danger-fg)",roles:["tm_td","tm_td"],note:"Internet Explorer Tour"},
+  {id:"curfew",label:"CURFEW",duration:0,phase:"curfew",type:"curfew",color:"var(--danger-fg)",roles:["tm_td"],note:"House lights",isAnchor:true,anchorKey:"curfew"},
+  {id:"crew_cb",label:"Crew Call Back",duration:0,phase:"post",type:"crew",color:"var(--warn-fg)",roles:["tm_td","tm_td"],note:"30min before set ends",offsetRef:"bbno_set_end",offsetMin:-30},
+  {id:"loadout",label:"Load Out",duration:120,phase:"post",type:"setup",color:"var(--warn-fg)",roles:["tm_td","tm_td"],note:"Gear to truck/trailer"},
+  {id:"settlement",label:"Settlement",duration:60,phase:"post",type:"business",color:"var(--warn-fg)",roles:["tm_td"],note:"30min after headline ends",offsetRef:"bbno_set_end",offsetMin:30},
+  {id:"showers",label:"Showers / Wind Down",duration:45,phase:"post",type:"crew",color:"var(--text-2)",roles:["tm_td","transport_coord"]},
+  {id:"clear",label:"Clear Venue",duration:30,phase:"post",type:"bus",color:"var(--text-3)",roles:["tm_td","transport_coord"],note:"Final walk, bus loaded"},
+  {id:"bus_depart",label:"BUS DEPARTS",duration:0,phase:"post",type:"bus",color:"var(--info-fg)",roles:["tm_td","transport_coord"],note:"Next city. Crew sleeps.",isAnchor:true,anchorKey:"busDepart"},
 ];
 
 const RRX_ROS=()=>[
-  {id:"bus_arrive",label:"BUS ARRIVES",duration:0,phase:"bus_in",type:"bus",color:"var(--info-fg)",roles:["tm","transport"],note:"Red Rocks loading dock",isAnchor:true,anchorKey:"busArrive"},
-  {id:"venue_access",label:"Venue Access",duration:0,phase:"pre",type:"access",color:"var(--text-2)",roles:["tm","production"],note:"Per AEG advance",isAnchor:true,anchorKey:"venueAccess"},
-  {id:"crew_call",label:"CREW CALL",duration:0,phase:"pre",type:"crew",color:"var(--warn-fg)",roles:["tm","production"],note:"BNP + tour crew",isAnchor:true,anchorKey:"crewCall"},
-  {id:"loadin",label:"Load In",duration:240,phase:"pre",type:"setup",color:"var(--warn-fg)",roles:["tm","production"],note:"BNP: audio, video, lighting"},
-  {id:"programming",label:"Programming",duration:90,phase:"pre",type:"setup",color:"var(--info-fg)",roles:["tm","production"],note:"LX, VX, Laser. MA3, Depense R4."},
-  {id:"sc_bbno",label:"SC: bbno$",duration:60,phase:"pre",type:"soundcheck",color:"var(--accent)",roles:["tm","production"]},
-  {id:"sc_ot",label:"SC: Oliver Tree",duration:45,phase:"pre",type:"soundcheck",color:"var(--accent-soft)",roles:["tm","production"]},
-  {id:"sc_kaarijaa",label:"SC: Käärijä",duration:30,phase:"pre",type:"soundcheck",color:"var(--accent-pill-border)",roles:["tm","production"]},
-  {id:"sc_yngmartyr",label:"SC: YNG Martyr",duration:25,phase:"pre",type:"soundcheck",color:"var(--accent)",roles:["tm","production"]},
-  {id:"sc_jb",label:"SC: Jungle Bobby",duration:20,phase:"pre",type:"soundcheck",color:"var(--accent-pill-border)",roles:["tm","production"]},
-  {id:"security",label:"Security Meeting",duration:30,phase:"pre",type:"meeting",color:"var(--danger-fg)",roles:["tm"]},
-  {id:"mg_checkin",label:"M&G Check In",duration:30,phase:"mg",type:"mg",color:"var(--success-fg)",roles:["tm","hospitality"]},
-  {id:"mg",label:"Meet & Greet",duration:120,phase:"mg",type:"mg",color:"var(--success-fg)",roles:["tm","hospitality"],isAnchor:true,anchorKey:"mgTime"},
-  {id:"doors_early",label:"Doors: Early Entry",duration:30,phase:"doors",type:"doors",color:"var(--success-fg)",roles:["tm","hospitality"]},
-  {id:"doors_ga",label:"Doors",duration:0,phase:"doors",type:"doors",color:"var(--success-fg)",roles:["tm","hospitality"],isAnchor:true,anchorKey:"doors"},
-  {id:"jungle_bobby_s",label:"Jungle Bobby",duration:30,phase:"show",type:"performance",color:"var(--accent)",roles:["tm","production"]},
-  {id:"co1",label:"Changeover 1",duration:5,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm","production"]},
-  {id:"yng_martyr",label:"YNG Martyr",duration:40,phase:"show",type:"performance",color:"var(--accent)",roles:["tm","production"]},
-  {id:"co2",label:"Changeover 2",duration:5,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm","production"]},
-  {id:"kaarijaa_set",label:"Käärijä",duration:50,phase:"show",type:"performance",color:"var(--accent-soft)",roles:["tm","production"]},
-  {id:"co3",label:"Changeover 3",duration:5,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm","production"]},
-  {id:"oliver_tree",label:"Oliver Tree",duration:50,phase:"show",type:"performance",color:"var(--accent-pill-border)",roles:["tm","production"]},
-  {id:"co4",label:"Changeover 4",duration:10,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm","production"]},
-  {id:"bbno_set",label:"bbno$ HEADLINE SET",duration:105,phase:"show",type:"headline",color:"var(--danger-fg)",roles:["tm","production"]},
-  {id:"curfew",label:"CURFEW (HARD)",duration:0,phase:"curfew",type:"curfew",color:"var(--danger-fg)",roles:["tm"],isAnchor:true,anchorKey:"curfew"},
-  {id:"crew_cb",label:"Crew Call Back",duration:0,phase:"post",type:"crew",color:"var(--warn-fg)",roles:["tm","production"],offsetRef:"bbno_set_end",offsetMin:-30},
-  {id:"loadout",label:"Load Out",duration:120,phase:"post",type:"setup",color:"var(--warn-fg)",roles:["tm","production"]},
-  {id:"settlement",label:"Settlement",duration:60,phase:"post",type:"business",color:"var(--warn-fg)",roles:["tm"],offsetRef:"bbno_set_end",offsetMin:30},
-  {id:"showers",label:"Showers / Wind Down",duration:45,phase:"post",type:"crew",color:"var(--text-2)",roles:["tm","transport"]},
-  {id:"clear",label:"Clear Venue",duration:30,phase:"post",type:"bus",color:"var(--text-3)",roles:["tm","transport"]},
-  {id:"bus_depart",label:"BUS DEPARTS",duration:0,phase:"post",type:"bus",color:"var(--info-fg)",roles:["tm","transport"],isAnchor:true,anchorKey:"busDepart"},
+  {id:"bus_arrive",label:"BUS ARRIVES",duration:0,phase:"bus_in",type:"bus",color:"var(--info-fg)",roles:["tm_td","transport_coord"],note:"Red Rocks loading dock",isAnchor:true,anchorKey:"busArrive"},
+  {id:"venue_access",label:"Venue Access",duration:0,phase:"pre",type:"access",color:"var(--text-2)",roles:["tm_td","tm_td"],note:"Per AEG advance",isAnchor:true,anchorKey:"venueAccess"},
+  {id:"crew_call",label:"CREW CALL",duration:0,phase:"pre",type:"crew",color:"var(--warn-fg)",roles:["tm_td","tm_td"],note:"BNP + tour crew",isAnchor:true,anchorKey:"crewCall"},
+  {id:"loadin",label:"Load In",duration:240,phase:"pre",type:"setup",color:"var(--warn-fg)",roles:["tm_td","tm_td"],note:"BNP: audio, video, lighting"},
+  {id:"programming",label:"Programming",duration:90,phase:"pre",type:"setup",color:"var(--info-fg)",roles:["tm_td","tm_td"],note:"LX, VX, Laser. MA3, Depense R4."},
+  {id:"sc_bbno",label:"SC: bbno$",duration:60,phase:"pre",type:"soundcheck",color:"var(--accent)",roles:["tm_td","tm_td"]},
+  {id:"sc_ot",label:"SC: Oliver Tree",duration:45,phase:"pre",type:"soundcheck",color:"var(--accent-soft)",roles:["tm_td","tm_td"]},
+  {id:"sc_kaarijaa",label:"SC: Käärijä",duration:30,phase:"pre",type:"soundcheck",color:"var(--accent-pill-border)",roles:["tm_td","tm_td"]},
+  {id:"sc_yngmartyr",label:"SC: YNG Martyr",duration:25,phase:"pre",type:"soundcheck",color:"var(--accent)",roles:["tm_td","tm_td"]},
+  {id:"sc_jb",label:"SC: Jungle Bobby",duration:20,phase:"pre",type:"soundcheck",color:"var(--accent-pill-border)",roles:["tm_td","tm_td"]},
+  {id:"security",label:"Security Meeting",duration:30,phase:"pre",type:"meeting",color:"var(--danger-fg)",roles:["tm_td"]},
+  {id:"mg_checkin",label:"M&G Check In",duration:30,phase:"mg",type:"mg",color:"var(--success-fg)",roles:["tm_td"]},
+  {id:"mg",label:"Meet & Greet",duration:120,phase:"mg",type:"mg",color:"var(--success-fg)",roles:["tm_td"],isAnchor:true,anchorKey:"mgTime"},
+  {id:"doors_early",label:"Doors: Early Entry",duration:30,phase:"doors",type:"doors",color:"var(--success-fg)",roles:["tm_td"]},
+  {id:"doors_ga",label:"Doors",duration:0,phase:"doors",type:"doors",color:"var(--success-fg)",roles:["tm_td"],isAnchor:true,anchorKey:"doors"},
+  {id:"jungle_bobby_s",label:"Jungle Bobby",duration:30,phase:"show",type:"performance",color:"var(--accent)",roles:["tm_td","tm_td"]},
+  {id:"co1",label:"Changeover 1",duration:5,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm_td","tm_td"]},
+  {id:"yng_martyr",label:"YNG Martyr",duration:40,phase:"show",type:"performance",color:"var(--accent)",roles:["tm_td","tm_td"]},
+  {id:"co2",label:"Changeover 2",duration:5,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm_td","tm_td"]},
+  {id:"kaarijaa_set",label:"Käärijä",duration:50,phase:"show",type:"performance",color:"var(--accent-soft)",roles:["tm_td","tm_td"]},
+  {id:"co3",label:"Changeover 3",duration:5,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm_td","tm_td"]},
+  {id:"oliver_tree",label:"Oliver Tree",duration:50,phase:"show",type:"performance",color:"var(--accent-pill-border)",roles:["tm_td","tm_td"]},
+  {id:"co4",label:"Changeover 4",duration:10,phase:"show",type:"changeover",color:"var(--text-2)",roles:["tm_td","tm_td"]},
+  {id:"bbno_set",label:"bbno$ HEADLINE SET",duration:105,phase:"show",type:"headline",color:"var(--danger-fg)",roles:["tm_td","tm_td"]},
+  {id:"curfew",label:"CURFEW (HARD)",duration:0,phase:"curfew",type:"curfew",color:"var(--danger-fg)",roles:["tm_td"],isAnchor:true,anchorKey:"curfew"},
+  {id:"crew_cb",label:"Crew Call Back",duration:0,phase:"post",type:"crew",color:"var(--warn-fg)",roles:["tm_td","tm_td"],offsetRef:"bbno_set_end",offsetMin:-30},
+  {id:"loadout",label:"Load Out",duration:120,phase:"post",type:"setup",color:"var(--warn-fg)",roles:["tm_td","tm_td"]},
+  {id:"settlement",label:"Settlement",duration:60,phase:"post",type:"business",color:"var(--warn-fg)",roles:["tm_td"],offsetRef:"bbno_set_end",offsetMin:30},
+  {id:"showers",label:"Showers / Wind Down",duration:45,phase:"post",type:"crew",color:"var(--text-2)",roles:["tm_td","transport_coord"]},
+  {id:"clear",label:"Clear Venue",duration:30,phase:"post",type:"bus",color:"var(--text-3)",roles:["tm_td","transport_coord"]},
+  {id:"bus_depart",label:"BUS DEPARTS",duration:0,phase:"post",type:"bus",color:"var(--info-fg)",roles:["tm_td","transport_coord"],isAnchor:true,anchorKey:"busDepart"},
 ];
 const CUSTOM_ROS_MAP={"2026-04-16":RRX_ROS};
 
@@ -2592,7 +2592,7 @@ function TopBar({ss}){
   const canAccessTab=(id)=>{if(id==="access")return isAdmin;const rule=perms?.[`tab.${id}`];if(!rule)return true;return rule[me?.role]??true;};
   useEffect(()=>{if(!hasEvent&&(tab==="advance"||tab==="production"))setTab("ros");},[hasEvent,tab,setTab]);
   const _auth=useAuth();const _email=_auth?.user?.email||"";
-  const visibleRoles=ROLES.filter(r=>r.id!=="tm"||TM_EMAILS.has(_email));
+  const visibleRoles=ROLES.filter(r=>r.id!=="tm_td"||TM_EMAILS.has(_email));
   const curClient=CM[aC];
   const activeClients=CLIENTS.filter(c=>c.status==="active"&&me.clients.includes(c.id));
   React.useEffect(()=>{if(!activeClients.find(c=>c.id===aC))setAC(me.clients[0]||"bbn");},[me.clients.join(",")]);
@@ -3499,7 +3499,7 @@ function DayScheduleView({show,bus,split,sel}){
   const addItem=()=>{
     if(!newItem.label.trim())return;
     const tMin=newItem.time?pM(newItem.time):null;
-    const nb={id:`item_${Date.now()}`,label:newItem.label.trim(),time:newItem.time,startMin:tMin,notes:newItem.notes,type:"custom",isDayItem:true,color:"var(--accent)",phase:"pre",duration:60,roles:["tm","pm","ld","driver"]};
+    const nb={id:`item_${Date.now()}`,label:newItem.label.trim(),time:newItem.time,startMin:tMin,notes:newItem.notes,type:"custom",isDayItem:true,color:"var(--accent)",phase:"pre",duration:60,roles:["tm_td","pm","ld","driver"]};
     uRos(sel,[...allItems,nb]);
     setNewItem({time:"",label:"",notes:""});setAddingItem(false);
   };
@@ -3849,7 +3849,7 @@ function ROSTab(){
 
   const setDur=(id,dur)=>uRos(rosKey,blocks.map(b=>b.id===id?{...b,duration:Math.max(0,dur)}:b));
   const setBF=(id,field,val)=>uRos(rosKey,blocks.map(b=>b.id===id?{...b,[field]:val}:b));
-  const addBlock=phase=>{const nb={id:`custom_${Date.now()}`,label:"New Block",duration:30,phase,type:"custom",color:"var(--accent)",roles:["tm"]};const idx=blocks.map((b,i)=>b.phase===phase?i:-1).filter(i=>i>=0).pop();const next=[...blocks];if(idx==null)next.push(nb);else next.splice(idx+1,0,nb);uRos(rosKey,next);setEditB(nb.id);};
+  const addBlock=phase=>{const nb={id:`custom_${Date.now()}`,label:"New Block",duration:30,phase,type:"custom",color:"var(--accent)",roles:["tm_td"]};const idx=blocks.map((b,i)=>b.phase===phase?i:-1).filter(i=>i>=0).pop();const next=[...blocks];if(idx==null)next.push(nb);else next.splice(idx+1,0,nb);uRos(rosKey,next);setEditB(nb.id);};
   const removeBlock=id=>{uRos(rosKey,blocks.filter(b=>b.id!==id));setEditB(null);};
   const startResize=(b,edge,e)=>{
     e.stopPropagation();e.preventDefault();
@@ -3876,7 +3876,7 @@ function ROSTab(){
     else{uShow(sel,{subEvents:(show.subEvents||[]).map(e=>e.id===selEventId?{...e,...patch}:e)});}
   };
   const setAnc=(key,str)=>{const m=pM(str);if(m===null)return;uEffShow({[key]:m,[key+"Confirmed"]:true});};
-  const hl=b=>AB.has(b.id)||role==="tm"||b.roles?.includes(role);
+  const hl=b=>AB.has(b.id)||role==="tm_td"||b.roles?.includes(role);
   const AMAP={busArrive:"Bus Arrival",busDepart:"Bus Depart",venueAccess:"Venue Access",crewCall:"Crew Call",mgTime:"M&G",doors:"Doors",curfew:"Curfew"};
   const isCustom=!subEvent&&!!CUSTOM_ROS_MAP[sel];
 
