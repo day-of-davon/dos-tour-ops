@@ -4337,27 +4337,27 @@ function FinLedger(){
       (fin.flightExpenses||[]).forEach(fe=>{
         if(confirmedFlightIds.has(fe.flightId))return;
         if(!fe.amount&&fe.amount!==0)return;
-        out.push({id:fe.flightId||`fe_${date}_${Math.random()}`,date,show:showLabel,cat:"Flight",desc:fe.label||"",payee:(fe.pax||[]).join(", ")||"—",amount:parseFloat(fe.amount||0),currency:fe.currency||"USD",status:"confirmed",ref:fe.carrier||"",payMethod:fe.payMethod||""});
+        out.push({id:fe.flightId||`fe_${date}_${Math.random()}`,date,show:showLabel,cat:"Flight",desc:fe.label||"",payee:(fe.pax||[]).join(", ")||"—",amount:parseFloat(fe.amount||0),currency:fe.currency||"USD",status:"confirmed",ref:fe.carrier||"",payMethod:fe.payMethod||"",bookedDate:"",paidDate:""});
       });
       // Payouts
       (fin.payouts||[]).forEach(p=>{
-        out.push({id:p.id||`po_${date}_${Math.random()}`,date,show:showLabel,cat:"Payout",desc:`${p.dept||""}${p.role?` · ${p.role}`:""}`,payee:p.name||"—",amount:parseFloat(p.amount||0),currency:p.currency||"USD",status:p.status||"pending",ref:p.method||"",payMethod:p.payMethod||p.method||""});
+        out.push({id:p.id||`po_${date}_${Math.random()}`,date,show:showLabel,cat:"Payout",desc:`${p.dept||""}${p.role?` · ${p.role}`:""}`,payee:p.name||"—",amount:parseFloat(p.amount||0),currency:p.currency||"USD",status:p.status||"pending",ref:p.method||"",payMethod:p.payMethod||p.method||"",bookedDate:p.bookedDate||"",paidDate:p.paidDate||""});
       });
       // Lodging expenses
       (fin.ledgerEntries||[]).forEach(le=>{
         if(!le.amount&&le.amount!==0)return;
-        out.push({id:le.id||`le_${date}_${Math.random()}`,date:le.date||date,show:showLabel,cat:"Hotel",desc:le.description||"",payee:le.vendor||"—",amount:parseFloat(le.amount||0),currency:le.currency||"USD",status:"confirmed",ref:le.source||"",payMethod:le.payMethod||""});
+        out.push({id:le.id||`le_${date}_${Math.random()}`,date:le.date||date,show:showLabel,cat:"Hotel",desc:le.description||"",payee:le.vendor||"—",amount:parseFloat(le.amount||0),currency:le.currency||"USD",status:"confirmed",ref:le.source||"",payMethod:le.payMethod||"",bookedDate:le.bookedDate||le.checkIn||"",paidDate:le.paidDate||""});
       });
       // Settlement amount (legacy flat field — skip if events[] has a settlement/wire entry)
       const hasEventForLegacy=(fin.events||[]).some(e=>e.type==="settlement"||e.type==="wire");
       if(fin.settlementAmount&&parseFloat(fin.settlementAmount)>0&&!hasEventForLegacy){
-        out.push({id:`sa_${date}`,date,show:showLabel,cat:"Settlement",desc:"Settlement payment",payee:"—",amount:parseFloat(fin.settlementAmount),currency:"USD",status:fin.stages?.payment_initiated?"confirmed":"pending",ref:fin.wireRef||"",payMethod:""});
+        out.push({id:`sa_${date}`,date,show:showLabel,cat:"Settlement",desc:"Settlement payment",payee:"—",amount:parseFloat(fin.settlementAmount),currency:"USD",status:fin.stages?.payment_initiated?"confirmed":"pending",ref:fin.wireRef||"",payMethod:"",bookedDate:"",paidDate:fin.wireDate||""});
       }
       // Financial events — settlement, wire, withholding, merch, reconciliation
       (fin.events||[]).forEach(ev=>{
         if(!ev||!ev.amount)return;
         const cat=(FIN_EVENT_TYPES.find(t=>t.id===ev.type)?.l)||"Event";
-        out.push({id:ev.id,date:ev.actualDate||ev.expectedDate||date,show:showLabel,cat,desc:ev.note||cat,payee:"—",amount:parseFloat(ev.amount)||0,currency:ev.currency||"USD",status:ev.status||"pending",ref:ev.ref||"",payMethod:ev.payMethod||""});
+        out.push({id:ev.id,date,show:showLabel,cat,desc:ev.note||cat,payee:"—",amount:parseFloat(ev.amount)||0,currency:ev.currency||"USD",status:ev.status||"pending",ref:ev.ref||"",payMethod:ev.payMethod||"",bookedDate:ev.expectedDate||"",paidDate:ev.actualDate||""});
       });
     });
     // Confirmed flights from flights store
@@ -4378,6 +4378,8 @@ function FinLedger(){
         status:"confirmed",
         ref:f.carrier||f.flightNo||"",
         payMethod:f.payMethod||"",
+        bookedDate:"",
+        paidDate:"",
       });
     });
     // Deduplicate: first by id, then flights by flightNo+depDate+route
@@ -4437,13 +4439,15 @@ function FinLedger(){
       ):(
         <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <thead><tr>{[["date","Date"],["show","Show"],["cat","Category"],["payee","Payee"],["desc","Description"],["amount","Amount"],["currency","Curr"],["status","Status"],["ref","Ref"],["payMethod","Payment"]].map(([col,label])=>th(label,col))}</tr></thead>
+            <thead><tr>{[["date","Date"],["bookedDate","Booked"],["paidDate","Paid"],["show","Show"],["cat","Category"],["payee","Payee"],["desc","Description"],["amount","Amount"],["currency","Curr"],["status","Status"],["ref","Ref"],["payMethod","Payment"]].map(([col,label])=>th(label,col))}</tr></thead>
             <tbody>
               {sorted.map((r,i)=>{
                 const cc=CAT_COLOR[r.cat]||{bg:"var(--card-2)",c:"var(--text-2)"};
                 return(
                   <tr key={r.id} style={{borderBottom:"1px solid var(--card-3)",background:i%2===0?"var(--card)":"var(--card-3)"}}>
                     <td style={{padding:"6px 8px",fontFamily:MN,fontSize:9,color:"var(--text-dim)",whiteSpace:"nowrap"}}>{r.date}</td>
+                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:9,color:"var(--text-dim)",whiteSpace:"nowrap"}}>{r.bookedDate||"—"}</td>
+                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:9,color:r.paidDate?"var(--success-fg)":"var(--text-mute)",whiteSpace:"nowrap"}}>{r.paidDate||"—"}</td>
                     <td style={{padding:"6px 8px",fontSize:10,color:"var(--text)",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.show}</td>
                     <td style={{padding:"6px 8px"}}><span style={{fontSize:8,padding:"2px 6px",borderRadius:4,fontWeight:700,background:cc.bg,color:cc.c}}>{r.cat}</span></td>
                     <td style={{padding:"6px 8px",fontSize:10,fontWeight:600,color:"var(--text)"}}>{r.payee}</td>
