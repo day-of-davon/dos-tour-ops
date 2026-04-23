@@ -7,8 +7,7 @@
 //              before: { status: "sent" }, after: { status: "confirmed" }, meta: { source: "manual" } });
 
 import { supabase } from "./supabase";
-
-const TEAM_ID = "dos-bbno-2026";
+import { TEAM_ID } from "./constants";
 
 // Current user role + display id — set once on auth resolve, attached to every audit row.
 let CURRENT_ROLE = null;
@@ -41,17 +40,4 @@ export function logAudit({ entityType, entityId, action, before = null, after = 
       console.warn("[audit] unexpected:", e?.message || e);
     }
   })();
-}
-
-// Convenience: read recent audit entries for a specific entity.
-export async function readAudit(entityType, entityId, limit = 50) {
-  const { data, error } = await supabase
-    .from("audit_log")
-    .select("*")
-    .eq("entity_type", entityType)
-    .eq("entity_id", String(entityId))
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) { console.warn("[audit] read failed:", error.message); return []; }
-  return data || [];
 }

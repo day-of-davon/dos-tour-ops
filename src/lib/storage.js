@@ -2,16 +2,8 @@
 // Two scopes: private (user_id, team_id null) and shared (team_id).
 
 import { supabase } from "./supabase";
+import { TEAM_ID, SHARED_KEYS, PRIVATE_KEYS } from "./constants";
 
-const TEAM_ID = "dos-bbno-2026";
-
-const SHARED_KEYS = new Set([
-  "dos-v7-shows","dos-v7-ros","dos-v7-advances","dos-v7-finance","dos-v7-settings","dos-v7-crew","dos-v7-production",
-  "dos-v7-flights","dos-v7-lodging","dos-v7-guestlists","dos-v7-guestlist-templates","dos-v7-immigration",
-]);
-const PRIVATE_KEYS = new Set([
-  "dos-v7-intel","dos-v7-notes-private","dos-v7-checklist-private",
-]);
 export const isSharedKey = (k) => SHARED_KEYS.has(k);
 export const isPrivateKey = (k) => PRIVATE_KEYS.has(k);
 export { TEAM_ID };
@@ -73,24 +65,3 @@ export const storage = {
 export const getPrivate    = (k)   => storage.get(k);
 export const setPrivate    = (k,v) => storage.set(k, v);
 export const deletePrivate = (k)   => storage.delete(k);
-
-// ── App-level helpers (legacy monolithic blob — stays private) ──────────────
-const STORE_KEY = "dos-tour-ops-v5";
-const SNAP_KEY  = "dos-tour-ops-v5-snap";
-
-export const save      = (data) => storage.set(STORE_KEY, JSON.stringify(data));
-export const load      = async () => {
-  const r = await storage.get(STORE_KEY);
-  return r ? JSON.parse(r.value) : null;
-};
-export const loadSnap  = async () => {
-  const r = await storage.get(SNAP_KEY);
-  return r ? JSON.parse(r.value) : null;
-};
-export const saveSnap  = (data) => storage.set(SNAP_KEY, JSON.stringify(data));
-export const clearAll  = async () => {
-  await storage.delete(STORE_KEY);
-  await storage.delete(SNAP_KEY);
-};
-
-export { STORE_KEY, SNAP_KEY };
