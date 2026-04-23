@@ -1,11 +1,11 @@
 // api/intel.js — Vercel serverless function
-const { createClient } = require("@supabase/supabase-js");
+const { authenticate } = require("./lib/auth");
 const { gmailSearch, gmailGetThread, decodeB64, extractBody, stripMarketingFooter, extractJson } = require("./lib/gmail");
 const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL, HEAVY_MODEL } = require("./lib/anthropic");
 const { startScanRun, finishScanRun, bumpStopReason } = require("./lib/scanMemory");
+const { withTimeout } = require("./lib/utils");
 
 const CACHE_TTL_MINUTES = 60;
-const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`gmail_timeout_${ms}ms`)), ms))]);
 
 // ── Tour context (injected into prompts for accurate owner routing + classification) ──
 const TOUR_CONTEXT = {
@@ -81,7 +81,8 @@ function extractHeaders(thread) {
   const rawLen = rawParts.join("").length;
   const strippedLen = strippedParts.join("").length;
   if (rawLen > strippedLen) console.log(`[intel] footer-strip tid=${thread.id}: saved ${rawLen - strippedLen} chars`);
-  const body = strippedParts.join("\n---\n").slice(0, 5000); // was 1800 — too short for flight receipts and multi-message threads
+  // 5000-char cap: forwarded flight receipts and long threads routinely exceed ~2000 chars.
+  const body = strippedParts.join("\n---\n").slice(0, 5000);
   return {
     id: thread.id,
     subject: get("Subject"),
@@ -457,12 +458,8 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Missing auth token" });
-
-  const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: "Invalid token" });
+  const { user, supabase, error: authErr } = await authenticate(req);
+  if (authErr) return res.status(authErr.status).json({ error: authErr.message });
 
   const { show, googleToken, forceRefresh, userEmail, action, isShared } = req.body || {};
   if (action === "labelScan") return handleLabelScan(req, res, user, supabase);

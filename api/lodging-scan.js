@@ -1,8 +1,8 @@
 // api/lodging-scan.js — Gmail hotel confirmation scraper + Claude parser
-const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`gmail_timeout_${ms}ms`)), ms))]);
-const { createClient } = require("@supabase/supabase-js");
+const { withTimeout } = require("./lib/utils");
+const { authenticate } = require("./lib/auth");
 const { gmailSearch, fetchBatched, extractBody, stripMarketingFooter, extractJson } = require("./lib/gmail");
-const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
+const { postMessages } = require("./lib/anthropic");
 const {
   hashBody, shouldUseCached,
   startScanRun, finishScanRun,
@@ -104,12 +104,8 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Missing auth token" });
-
-  const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: "Invalid token" });
+  const { user, supabase, error: authErr } = await authenticate(req);
+  if (authErr) return res.status(authErr.status).json({ error: authErr.message });
 
   const {
     googleToken,
@@ -223,28 +219,17 @@ Rules:
 
   // Helper: one Claude call, record tokens + stop_reason.
   async function callClaude(contentBlocks) {
-    const resp = await fetch(ANTHROPIC_URL, {
-      method: "POST",
-      headers: ANTHROPIC_HEADERS,
-      body: JSON.stringify({
-        model: DEFAULT_MODEL,
-        max_tokens: 8192,
-        system: [{ type: "text", text: sysPrompt, cache_control: { type: "ephemeral" } }],
-        messages: [{ role: "user", content: contentBlocks }],
-      }),
+    const { text, stopReason, usage } = await postMessages({
+      maxTokens: 8192,
+      system: sysPrompt,
+      messages: [{ role: "user", content: contentBlocks }],
     });
-    if (!resp.ok) {
-      const err = await resp.text();
-      throw Object.assign(new Error(`Anthropic ${resp.status}`), { status: resp.status, detail: err });
-    }
-    const data = await resp.json();
-    inputTokens         += data.usage?.input_tokens                || 0;
-    outputTokens        += data.usage?.output_tokens               || 0;
-    cacheReadTokens     += data.usage?.cache_read_input_tokens     || 0;
-    cacheCreationTokens += data.usage?.cache_creation_input_tokens || 0;
-    bumpStopReason(stopReasons, data.stop_reason);
-    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
-    return { text, stopReason: data.stop_reason };
+    inputTokens         += usage.inputTokens;
+    outputTokens        += usage.outputTokens;
+    cacheReadTokens     += usage.cacheReadTokens;
+    cacheCreationTokens += usage.cacheCreationTokens;
+    bumpStopReason(stopReasons, stopReason);
+    return { text, stopReason };
   }
 
   // Partition fresh threads: with-PDFs go one-at-a-time (per-thread document

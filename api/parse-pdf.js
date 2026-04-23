@@ -1,6 +1,7 @@
 // api/parse-pdf.js — PDF import for show details, contacts, deal terms
-const { createClient } = require("@supabase/supabase-js");
-const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
+const { authenticate } = require("./lib/auth");
+const { extractJson } = require("./lib/gmail");
+const { postMessages } = require("./lib/anthropic");
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -9,12 +10,8 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Missing auth token" });
-
-  const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: "Invalid token" });
+  const { user, error: authErr } = await authenticate(req);
+  if (authErr) return res.status(authErr.status).json({ error: authErr.message });
 
   const { pdfBase64, filename } = req.body || {};
   if (!pdfBase64) return res.status(400).json({ error: "Missing pdfBase64" });
@@ -63,54 +60,25 @@ Return this exact JSON structure (use null for missing fields, empty arrays if n
   "documentType": "<CONTRACT | OFFER | DEAL_MEMO | ADVANCE_SHEET | RIDER | OTHER>"
 }`;
 
-  const anthropicResp = await fetch(ANTHROPIC_URL, {
-    method: "POST",
-    headers: ANTHROPIC_HEADERS,
-    body: JSON.stringify({
-      model: DEFAULT_MODEL,
-      max_tokens: 4096,
-      system: [{ type: "text", text: sysPrompt, cache_control: { type: "ephemeral" } }],
+  let textContent, usage, stopReason;
+  try {
+    ({ text: textContent, stopReason, usage } = await postMessages({
+      system: sysPrompt,
       messages: [{
         role: "user",
         content: [
-          {
-            type: "document",
-            source: {
-              type: "base64",
-              media_type: "application/pdf",
-              data: pdfBase64,
-            },
-          },
+          { type: "document", source: { type: "base64", media_type: "application/pdf", data: pdfBase64 } },
           { type: "text", text: userPrompt },
         ],
       }],
-    }),
-  });
-
-  if (!anthropicResp.ok) {
-    const err = await anthropicResp.text();
-    return res.status(502).json({ error: `Anthropic error: ${anthropicResp.status}`, detail: err });
+    }));
+  } catch (e) {
+    return res.status(502).json({ error: `Anthropic error: ${e.status}`, detail: e.detail });
   }
+  const { inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens } = usage;
+  console.log(`[parse-pdf] tokens: in=${inputTokens} out=${outputTokens} cache_read=${cacheReadTokens} cache_create=${cacheCreationTokens} stop=${stopReason}`);
 
-  const anthropicData = await anthropicResp.json();
-  const inputTokens = anthropicData.usage?.input_tokens || 0;
-  const outputTokens = anthropicData.usage?.output_tokens || 0;
-  const cacheReadTokens = anthropicData.usage?.cache_read_input_tokens || 0;
-  const cacheCreationTokens = anthropicData.usage?.cache_creation_input_tokens || 0;
-  console.log(`[parse-pdf] tokens: in=${inputTokens} out=${outputTokens} cache_read=${cacheReadTokens} cache_create=${cacheCreationTokens} stop=${anthropicData.stop_reason}`);
-  const textContent = (anthropicData.content || [])
-    .filter((b) => b.type === "text")
-    .map((b) => b.text)
-    .join("\n");
-
-  let parsed = null;
-  try {
-    parsed = JSON.parse(textContent.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim());
-  } catch {
-    const m = textContent.match(/\{[\s\S]*"show"[\s\S]*\}/);
-    if (m) { try { parsed = JSON.parse(m[0]); } catch {} }
-  }
-
+  const parsed = extractJson(textContent);
   if (!parsed) return res.status(422).json({ error: "Could not parse document", raw: textContent });
 
   return res.json({ parsed, filename, tokensUsed: inputTokens + outputTokens });

@@ -1,9 +1,9 @@
 // api/parse-doc.js — Unified document triage + extraction
 // Handles PDF (pdf-parse text extraction), DOCX (mammoth), XLSX (xlsx→CSV)
 // Returns { docType, confidence, summary, receipt, flights, show, contacts, techPack, expenses }
-const { createClient } = require("@supabase/supabase-js");
+const { authenticate } = require("./lib/auth");
 const { extractJson } = require("./lib/gmail");
-const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL, HEAVY_MODEL } = require("./lib/anthropic");
+const { DEFAULT_MODEL, HEAVY_MODEL, postMessages } = require("./lib/anthropic");
 
 let mammoth, xlsxLib, pdfParse;
 try { mammoth = require("mammoth"); } catch {}
@@ -130,12 +130,8 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Missing auth token" });
-
-  const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: "Invalid token" });
+  const { user, error: authErr } = await authenticate(req);
+  if (authErr) return res.status(authErr.status).json({ error: authErr.message });
 
   const { fileBase64, mimeType = "", filename = "", contextDate } = req.body || {};
   if (!fileBase64) return res.status(400).json({ error: "Missing fileBase64" });
@@ -177,19 +173,13 @@ module.exports = async function handler(req, res) {
 
   let inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheCreationTokens = 0;
   const callClaude = async (sys, msgs, maxTokens = 4096, model = DEFAULT_MODEL) => {
-    const resp = await fetch(ANTHROPIC_URL, {
-      method: "POST",
-      headers: ANTHROPIC_HEADERS,
-      body: JSON.stringify({ model, max_tokens: maxTokens, system: [{ type: "text", text: sys, cache_control: { type: "ephemeral" } }], messages: msgs }),
-    });
-    if (!resp.ok) throw Object.assign(new Error(`Anthropic ${resp.status}`), { detail: await resp.text() });
-    const data = await resp.json();
-    inputTokens         += data.usage?.input_tokens                || 0;
-    outputTokens        += data.usage?.output_tokens               || 0;
-    cacheReadTokens     += data.usage?.cache_read_input_tokens     || 0;
-    cacheCreationTokens += data.usage?.cache_creation_input_tokens || 0;
-    console.log(`[parse-doc] stop=${data.stop_reason} in=${data.usage?.input_tokens} out=${data.usage?.output_tokens} cache_read=${data.usage?.cache_read_input_tokens}`);
-    return (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+    const { text, stopReason, usage } = await postMessages({ model, maxTokens, system: sys, messages: msgs });
+    inputTokens         += usage.inputTokens;
+    outputTokens        += usage.outputTokens;
+    cacheReadTokens     += usage.cacheReadTokens;
+    cacheCreationTokens += usage.cacheCreationTokens;
+    console.log(`[parse-doc] stop=${stopReason} in=${usage.inputTokens} out=${usage.outputTokens} cache_read=${usage.cacheReadTokens}`);
+    return text;
   };
 
   let rawText;

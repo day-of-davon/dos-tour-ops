@@ -1,8 +1,8 @@
 // api/flights.js — Gmail flight confirmation scraper + Claude parser
-const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`gmail_timeout_${ms}ms`)), ms))]);
-const { createClient } = require("@supabase/supabase-js");
+const { withTimeout } = require("./lib/utils");
+const { authenticate } = require("./lib/auth");
 const { gmailSearch, fetchBatched, extractBody, stripMarketingFooter, extractHtmlRaw, extractJsonLdReservations, extractJson } = require("./lib/gmail");
-const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
+const { DEFAULT_MODEL, postMessages } = require("./lib/anthropic");
 const {
   hashBody, shouldUseCached,
   startScanRun, finishScanRun,
@@ -14,7 +14,8 @@ const {
   fetchAttachmentB64, attachmentFingerprint,
 } = require("./lib/attachments");
 
-// PDF attachment caps (match lodging-scan).
+// PDF attachment caps. Keep in sync with lodging-scan.js — both scanners share the
+// per-scan budget so one scan type can't starve the other on large mailboxes.
 const PDF_MAX_PER_THREAD = 2;
 const PDF_MAX_PER_SCAN   = 20;
 const PDF_MAX_BYTES      = 5 * 1024 * 1024;
@@ -135,11 +136,8 @@ function extractHeaders(thread) {
   const rawLen = rawParts.join("").length;
   const strippedLen = strippedParts.join("").length;
   if (rawLen > strippedLen) console.log(`[flights] footer-strip tid=${thread.id}: saved ${rawLen - strippedLen} chars`);
-  // Body capture: 8000 chars. Forwarded airline receipts often front-load 1-2KB
-  // of Gmail "Fwd:" chrome + From/To/Date headers before the inner airline body
-  // starts, so a 3KB cap was dropping leg #2 on round-trip JetBlue/Air Canada.
-  // Prefer a slice starting at the forwarded-message marker when present, so the
-  // airline content stays in-window instead of getting trimmed.
+  // 8000-char body cap. On forwarded receipts, slice from the "Forwarded message"
+  // marker so the airline body (not the Gmail fwd chrome) stays in-window for Claude.
   const joined = strippedParts.join("\n---\n");
   const fwdMarker = joined.search(/[-]{3,}\s*(?:Forwarded message|Begin forwarded message)/i);
   const body = (fwdMarker > 0 && joined.length > 8000)
@@ -440,12 +438,8 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Missing auth token" });
-
-  const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: "Invalid token" });
+  const { user, supabase, error: authErr } = await authenticate(req);
+  if (authErr) return res.status(authErr.status).json({ error: authErr.message });
 
   const {
     googleToken,
@@ -763,29 +757,25 @@ Return this exact JSON:
     let lastErr;
     for (let attempt = 0; attempt < 3; attempt++) {
       if (attempt > 0) await sleep(500 * 2 ** (attempt - 1));
-      const resp = await fetch(ANTHROPIC_URL, {
-        method: "POST",
-        headers: ANTHROPIC_HEADERS,
-        body: JSON.stringify({ model, max_tokens: maxTokens, system: [{ type: "text", text: sys, cache_control: { type: "ephemeral" } }], messages: [{ role: "user", content: prompt }] }),
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
-        inputTokensTotal        += data.usage?.input_tokens                || 0;
-        outputTokensTotal       += data.usage?.output_tokens               || 0;
-        cacheReadTokensTotal    += data.usage?.cache_read_input_tokens     || 0;
-        cacheCreationTokensTotal += data.usage?.cache_creation_input_tokens || 0;
-        bumpStopReason(stopReasons, data.stop_reason);
-        console.log("[flights] stop_reason:", data.stop_reason, "| model:", data.model, "| attempt:", attempt + 1);
+      try {
+        const { text, stopReason, model: respModel, usage } = await postMessages({
+          model, maxTokens, system: sys, messages: [{ role: "user", content: prompt }],
+        });
+        inputTokensTotal         += usage.inputTokens;
+        outputTokensTotal        += usage.outputTokens;
+        cacheReadTokensTotal     += usage.cacheReadTokens;
+        cacheCreationTokensTotal += usage.cacheCreationTokens;
+        bumpStopReason(stopReasons, stopReason);
+        console.log("[flights] stop_reason:", stopReason, "| model:", respModel, "| attempt:", attempt + 1);
         return extractJson(text);
+      } catch (e) {
+        lastErr = e;
+        if (!RETRYABLE.has(e.status)) {
+          console.error(`[flights] anthropic ${e.status} non-retryable:`, e.detail);
+          throw e;
+        }
+        console.warn(`[flights] anthropic ${e.status} attempt ${attempt + 1}, retrying`);
       }
-      const detail = await resp.text();
-      lastErr = Object.assign(new Error(`Anthropic ${resp.status}`), { detail, status: resp.status });
-      if (!RETRYABLE.has(resp.status)) {
-        console.error(`[flights] anthropic ${resp.status} non-retryable:`, detail);
-        throw lastErr;
-      }
-      console.warn(`[flights] anthropic ${resp.status} attempt ${attempt + 1}, retrying`);
     }
     throw lastErr;
   };
@@ -811,7 +801,7 @@ Return this exact JSON:
     } catch (e) {
       console.error("[flights] anthropic error:", e.message, e.detail);
       let anthropic = null;
-      try { anthropic = JSON.parse(e.detail || "")?.error || null; } catch {}
+      try { anthropic = JSON.parse(e.detail || "")?.error || null; } catch (pe) { console.warn("[flights] anthropic error detail not JSON:", pe.message); }
       const summary = anthropic?.message ? `${anthropic.type || "error"}: ${anthropic.message}` : e.message;
       return res.status(502).json({ error: `Anthropic request failed: ${summary}`, anthropic, detail: e.detail });
     }
