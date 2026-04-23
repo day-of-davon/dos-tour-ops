@@ -18,6 +18,7 @@ export const SK = Object.freeze({
   GUESTLISTS:   "dos-v7-guestlists",
   GL_TEMPLATES: "dos-v7-guestlist-templates",
   IMMIGRATION:  "dos-v7-immigration",
+  PERMISSIONS:  "dos-v7-permissions",
 });
 
 export const PK = Object.freeze({

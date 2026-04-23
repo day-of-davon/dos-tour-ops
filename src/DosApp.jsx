@@ -502,7 +502,45 @@ const CLIENTS=[
 const CM=CLIENTS.reduce((a,c)=>{a[c.id]=c;return a},{});
 const isClientOwner=(me,clientId)=>!!(me?.primary||[]).includes(clientId);
 const ROLES=[{id:"tm",label:"TM",c:"var(--accent)"},{id:"production",label:"Prod",c:"var(--warn-fg)"}];
-const TABS=[{id:"dash",label:"Dashboard",icon:"⊞"},{id:"advance",label:"Advance",icon:"◎"},{id:"guestlist",label:"Guest List",icon:"◉"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"}];
+const TABS=[{id:"dash",label:"Dashboard",icon:"⊞"},{id:"advance",label:"Advance",icon:"◎"},{id:"guestlist",label:"Guest List",icon:"◉"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"},{id:"access",label:"Access",icon:"⊙"}];
+const ADMIN_EMAIL="d.johnson@dayofshow.net";
+const PERM_ROLES=[
+  {id:"tm_td",label:"TM/TD"},
+  {id:"transport_coord",label:"Transport"},
+  {id:"viewer",label:"Viewer"},
+];
+const PERM_SCHEMA=[
+  {section:"Tabs",items:[
+    {id:"tab.dash",label:"Dashboard"},
+    {id:"tab.advance",label:"Advance"},
+    {id:"tab.guestlist",label:"Guest List"},
+    {id:"tab.ros",label:"Schedule"},
+    {id:"tab.transport",label:"Logistics"},
+    {id:"tab.finance",label:"Finance"},
+    {id:"tab.crew",label:"Crew"},
+    {id:"tab.lodging",label:"Lodging"},
+    {id:"tab.production",label:"Production"},
+  ]},
+  {section:"Logistics",items:[
+    {id:"feat.flights.scan",label:"Scan Flights"},
+    {id:"feat.flights.edit",label:"Edit Flights"},
+    {id:"feat.ground.edit",label:"Edit Ground Ops"},
+  ]},
+  {section:"Finance",items:[
+    {id:"feat.finance.edit",label:"Edit Settlement"},
+    {id:"feat.finance.ledger",label:"Ledger"},
+  ]},
+  {section:"Advance",items:[
+    {id:"feat.advance.edit",label:"Edit Checklist"},
+  ]},
+  {section:"Crew",items:[
+    {id:"feat.crew.edit",label:"Edit Roster"},
+  ]},
+  {section:"Production",items:[
+    {id:"feat.production.edit",label:"Edit Production"},
+  ]},
+];
+const DEFAULT_PERMS=(()=>{const p={};PERM_SCHEMA.forEach(s=>s.items.forEach(item=>{p[item.id]={};PERM_ROLES.forEach(r=>{p[item.id][r.id]=true;});}));return p;})();
 const GL_DEFAULT_CATEGORIES=[
   {id:"artist_guest",name:"Artist Guest",side:"artist",zones:["FOH"],qty:6,walkOnQty:2},
   {id:"artist_family",name:"Artist Family",side:"artist",zones:["VIP","DR"],qty:4,walkOnQty:0},
@@ -1077,11 +1115,13 @@ export default function App(){
   const[tourStart,setTourStart]=useState("2026-04-01");
   const[tourEnd,setTourEnd]=useState("2026-06-30");
   const[lastFlightScanAt,setLastFlightScanAt]=useState(null);
+  const[perms,setPerms]=useState(DEFAULT_PERMS);
+  const uPerms=useCallback((permId,roleId,val)=>setPerms(p=>({...p,[permId]:{...p[permId],[roleId]:val}})),[]);
   const mobile=useMobile();
   const st=useRef(null);const stp=useRef(null);
 
   useEffect(()=>{(async()=>{
-    const[s,r,a,f,se,cr,pr,fl,lo,gl,glt,im]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW),sG(SK.PRODUCTION),sG(SK.FLIGHTS),sG(SK.LODGING),sG(SK.GUESTLISTS),sG(SK.GL_TEMPLATES),sG(SK.IMMIGRATION)]);
+    const[s,r,a,f,se,cr,pr,fl,lo,gl,glt,im,pe]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW),sG(SK.PRODUCTION),sG(SK.FLIGHTS),sG(SK.LODGING),sG(SK.GUESTLISTS),sG(SK.GL_TEMPLATES),sG(SK.IMMIGRATION),sG(SK.PERMISSIONS)]);
     const init=ALL_SHOWS.reduce((acc,sh)=>{acc[sh.date]={...sh,doorsConfirmed:false,curfewConfirmed:false,busArriveConfirmed:false,crewCallConfirmed:false,venueAccessConfirmed:false,mgTimeConfirmed:false,etaSource:"schedule",lastModified:Date.now()};return acc;},{});
     const merged={...init};if(s)Object.keys(s).forEach(k=>{merged[k]=merged[k]?{...merged[k],...s[k]}:{...s[k]};});
     setShows(merged);setRos(r||{});setAdvances(a||{});setFinance(f||{});
@@ -1092,7 +1132,7 @@ export default function App(){
     if(se?.tourStart)setTourStart(se.tourStart);if(se?.tourEnd)setTourEnd(se.tourEnd);
     if(se?.lastFlightScanAt)setLastFlightScanAt(se.lastFlightScanAt);
     if(cr?.crew)setCrew(cr.crew);if(cr?.showCrew)setShowCrew(cr.showCrew);
-    setProduction(pr||{});setFlights(fl||{});setLodging(lo||{});setGuestlists(gl||{});setGlTemplates(glt||{});setImmigration(im||{});
+    setProduction(pr||{});setFlights(fl||{});setLodging(lo||{});setGuestlists(gl||{});setGlTemplates(glt||{});setImmigration(im||{});if(pe)setPerms(p=>({...DEFAULT_PERMS,...pe,...Object.fromEntries(Object.entries(DEFAULT_PERMS).map(([k,v])=>([k,{...v,...(pe[k]||{})}])))}));
     const[np,cp,it]=await Promise.all([sGP(PK.NOTES_PRIV),sGP(PK.CHECKLIST_PRIV),sGP(PK.INTEL)]);
     setNotesPriv(np||{});setCheckPriv(cp||{});setIntel(it||{});
     setLoaded(true);
@@ -1260,9 +1300,9 @@ export default function App(){
 
   const save=useCallback(()=>{
     if(!loaded)return;if(st.current)clearTimeout(st.current);
-    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging),sS(SK.GUESTLISTS,guestlists),sS(SK.GL_TEMPLATES,glTemplates),sS(SK.IMMIGRATION,immigration)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
-  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,tabOrder,crew,showCrew,production,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt]);
-  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd]);
+    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging),sS(SK.GUESTLISTS,guestlists),sS(SK.GL_TEMPLATES,glTemplates),sS(SK.IMMIGRATION,immigration),sS(SK.PERMISSIONS,perms)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
+  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,tabOrder,crew,showCrew,production,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt,perms]);
+  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,perms]);
   useEffect(()=>{const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(v=>!v);}if(e.key==="Escape")setCmd(false);};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
   const labelScanFired=useRef(false);
   useEffect(()=>{if(loaded&&!labelScanFired.current){labelScanFired.current=true;refreshLabelIntel();}},[loaded]);// eslint-disable-line
@@ -1383,7 +1423,7 @@ export default function App(){
     if(currentSplit&&activeSplitPartyId)return `${sel}#${activeSplitPartyId}`;
     return sel;
   },[selEventId,sel,currentSplit,activeSplitPartyId]);
-  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,setTransView}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView]);// eslint-disable-line
+  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,setTransView,perms,uPerms}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,perms]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"var(--text-dim)",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
@@ -1399,7 +1439,7 @@ export default function App(){
           <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,minHeight:0,overflow:"hidden"}}>
             {tab!=="dash"&&<SplitPartyTabs/>}
             {tab!=="dash"&&<EventSwitcher show={shows[sel]} sel={sel}/>}
-            {tab==="dash"&&<Dash/>}{tab==="advance"&&<AdvTab/>}{tab==="guestlist"&&<GuestListTab/>}{tab==="ros"&&<ScheduleTab/>}{tab==="transport"&&<TransTab/>}{tab==="finance"&&<FinTab/>}{tab==="crew"&&<CrewTab/>}{tab==="lodging"&&<LodgingTab/>}{tab==="production"&&<ProdTab/>}
+            {tab==="dash"&&<Dash/>}{tab==="advance"&&<AdvTab/>}{tab==="guestlist"&&<GuestListTab/>}{tab==="ros"&&<ScheduleTab/>}{tab==="transport"&&<TransTab/>}{tab==="finance"&&<FinTab/>}{tab==="crew"&&<CrewTab/>}{tab==="lodging"&&<LodgingTab/>}{tab==="production"&&<ProdTab/>}{tab==="access"&&<AccessTab/>}
           </div>
         </div>
         {cmd&&<CmdP/>}
@@ -2544,12 +2584,13 @@ function NavSidebar(){
 }
 
 function TopBar({ss}){
-  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd,advances,finance,intel,cShows,currentSplit,activeSplitParty}=useContext(Ctx);
+  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd,advances,finance,intel,cShows,currentSplit,activeSplitParty,perms,me}=useContext(Ctx);
   const[dragId,setDragId]=useState(null);
   const[overId,setOverId]=useState(null);
   const hasEvent=!!shows[sel]||(currentSplit&&activeSplitParty?.type==="show");
+  const isAdmin=me?.id==="davon";
+  const canAccessTab=(id)=>{if(id==="access")return isAdmin;const rule=perms?.[`tab.${id}`];if(!rule)return true;return rule[me?.role]??true;};
   useEffect(()=>{if(!hasEvent&&(tab==="advance"||tab==="production"))setTab("ros");},[hasEvent,tab,setTab]);
-  const{me}=useContext(Ctx);
   const _auth=useAuth();const _email=_auth?.user?.email||"";
   const visibleRoles=ROLES.filter(r=>r.id!=="tm"||TM_EMAILS.has(_email));
   const curClient=CM[aC];
@@ -2626,7 +2667,7 @@ function TopBar({ss}){
         {mobile&&ss&&<span style={{fontSize:9,color:ss==="saved"?"var(--success-fg)":"var(--text-mute)",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
       </div>
       <div style={{display:"flex",padding:mobile?"0 12px":"0 20px",width:"100%",overflowX:"auto",overflowY:"hidden",scrollbarWidth:"thin",WebkitOverflowScrolling:"touch"}}>
-        {(orderedTabs||TABS).filter(t=>hasEvent||t.id!=="advance"&&t.id!=="production").map(t=>{
+        {(orderedTabs||TABS).filter(t=>(hasEvent||t.id!=="advance"&&t.id!=="production")&&canAccessTab(t.id)).map(t=>{
           const isDrag=dragId===t.id;
           const isOver=overId===t.id&&dragId&&dragId!==t.id;
           return(
@@ -7831,4 +7872,74 @@ function GLMetric({label,value,sub}){
     <div style={{fontSize:9,fontWeight:700,color:"var(--text-dim)",letterSpacing:"0.08em"}}>{label.toUpperCase()}</div>
     <div style={{fontSize:20,fontWeight:800,color:"var(--text)",fontFamily:MN,lineHeight:1.1,marginTop:2}}>{value}{sub&&<span style={{fontSize:10,color:"var(--text-mute)",marginLeft:6}}>{sub}</span>}</div>
   </div>;
+}
+
+function AccessTab(){
+  const{perms,uPerms,me}=useContext(Ctx);
+  if(me?.id!=="davon")return<div style={{padding:40,textAlign:"center",fontSize:11,color:"var(--text-dim)"}}>Access denied.</div>;
+  const cell={display:"flex",alignItems:"center",justifyContent:"center"};
+  const colW=`repeat(${PERM_ROLES.length},80px)`;
+  const gridCols=`1fr ${colW}`;
+  const hdr={fontSize:8,fontWeight:800,letterSpacing:"0.08em",color:"var(--text-dim)",padding:"8px 16px",textTransform:"uppercase"};
+  const resetAll=()=>{
+    const fresh={};
+    PERM_SCHEMA.forEach(s=>s.items.forEach(item=>{
+      fresh[item.id]={};PERM_ROLES.forEach(r=>{fresh[item.id][r.id]=true;});
+    }));
+    PERM_ROLES.forEach(r=>{
+      PERM_SCHEMA.forEach(s=>s.items.forEach(item=>{uPerms(item.id,r.id,true);}));
+    });
+  };
+  return(
+    <div style={{padding:"16px 20px",maxWidth:800}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+        <span style={{fontSize:13,fontWeight:800,color:"var(--text)"}}>Access Control</span>
+        <span style={{fontSize:9,color:"var(--text-dim)"}}>Permissions apply to all non-admin users on next load.</span>
+        <button onClick={resetAll} style={{marginLeft:"auto",fontSize:9,padding:"4px 10px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-2)",color:"var(--text-dim)",cursor:"pointer"}}>Reset All</button>
+      </div>
+      <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:12,overflow:"hidden"}}>
+        {/* Column header */}
+        <div style={{display:"grid",gridTemplateColumns:gridCols,borderBottom:"1px solid var(--border)",background:"var(--card-2)"}}>
+          <div style={hdr}>Permission</div>
+          {PERM_ROLES.map(r=>(
+            <div key={r.id} style={{...hdr,...cell,textAlign:"center",borderLeft:"1px solid var(--border)"}}>
+              {r.label}
+              {r.id==="tm_td"&&<span style={{marginLeft:4,fontSize:7,color:"var(--accent)"}}>admin</span>}
+            </div>
+          ))}
+        </div>
+        {PERM_SCHEMA.map((section,si)=>(
+          <React.Fragment key={section.section}>
+            <div style={{display:"grid",gridTemplateColumns:gridCols,background:"var(--card-3)",borderTop:si>0?"1px solid var(--border)":undefined}}>
+              <div style={{...hdr,color:"var(--text-mute)",paddingTop:6,paddingBottom:6}}>{section.section}</div>
+              {PERM_ROLES.map(r=><div key={r.id} style={{borderLeft:"1px solid var(--border)"}}/>)}
+            </div>
+            {section.items.map((item,ii)=>{
+              const isLast=ii===section.items.length-1;
+              return(
+                <div key={item.id} style={{display:"grid",gridTemplateColumns:gridCols,borderTop:"1px solid var(--card-3)",borderBottom:isLast?"1px solid var(--border)":undefined}}>
+                  <div style={{padding:"8px 16px",fontSize:11,color:"var(--text-2)"}}>{item.label}</div>
+                  {PERM_ROLES.map(r=>{
+                    const isAdmin=r.id==="tm_td";
+                    const val=isAdmin?true:(perms?.[item.id]?.[r.id]??true);
+                    return(
+                      <div key={r.id} style={{...cell,borderLeft:"1px solid var(--border)"}}>
+                        <button
+                          onClick={()=>{if(!isAdmin)uPerms(item.id,r.id,!val);}}
+                          title={isAdmin?"Admin always has access":val?"Revoke":"Grant"}
+                          style={{width:20,height:20,borderRadius:4,border:`2px solid ${val?"var(--success-fg)":"var(--border)"}`,background:val?"var(--success-fg)":"transparent",cursor:isAdmin?"default":"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,opacity:isAdmin?0.5:1}}
+                        >
+                          {val&&<span style={{color:"#fff",fontSize:11,fontWeight:800,lineHeight:1}}>✓</span>}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
 }
