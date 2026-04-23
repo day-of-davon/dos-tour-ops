@@ -1,5 +1,10 @@
+// @ts-check
 // constants.js — single source of truth for scope, storage keys, team, hotel defaults.
 // Consumed by DosApp.jsx, storage.js, audit.js. Do not duplicate these elsewhere.
+
+/**
+ * @typedef {{ id: string, label: string, initials: string, role: string, clients: string[], primary: string[] }} TeamMember
+ */
 
 export const TEAM_ID = "dos-bbno-2026";
 
@@ -28,8 +33,8 @@ export const PK = Object.freeze({
   ACTLOG:         "dos-v7-actlog",
 });
 
-export const SHARED_KEYS = new Set(Object.values(SK));
-export const PRIVATE_KEYS = new Set(Object.values(PK));
+export const SHARED_KEYS = /** @type {Set<string>} */ (new Set(Object.values(SK)));
+export const PRIVATE_KEYS = /** @type {Set<string>} */ (new Set(Object.values(PK)));
 
 // ── Hotel defaults ───────────────────────────────────────────────────────────
 export const HOTEL_DEFAULT_CHECKIN = "15:00";
@@ -47,10 +52,10 @@ export const HOTEL_TODOS_DEFAULT = [
 // ── Team registry ────────────────────────────────────────────────────────────
 // email → {id, label, initials, role, clients[]: access, primary[]: ownership}
 // Single source for auth gating, audit metadata, owner inference, assignment dropdowns.
-export const TEAM = Object.freeze({
+export const TEAM = /** @type {Readonly<Record<string, TeamMember>>} */ (Object.freeze({
   "d.johnson@dayofshow.net": { id: "davon",  label: "Davon",  initials: "DJ", role: "tm_td",           clients: ["bbn","wkn","bwc","elm"], primary: ["bbn"] },
   "olivia@dayofshow.net":    { id: "olivia", label: "Olivia", initials: "OM", role: "transport_coord", clients: ["bbn","wkn","bwc","elm"], primary: ["elm","bwc","wkn"] },
-});
+}));
 
 export const ROLE_LABEL = Object.freeze({
   tm_td:           "TM/TD",
@@ -60,6 +65,7 @@ export const ROLE_LABEL = Object.freeze({
 
 export const GUEST_ME = Object.freeze({ id: "guest", label: "Guest", initials: "··", role: "viewer", clients: ["bbn"], primary: [] });
 
+/** @param {string} email @returns {TeamMember} */
 export const resolveMe = (email) => TEAM[(email || "").toLowerCase()] || GUEST_ME;
 
 // Assignment dropdown (advance items) — derived from TEAM.

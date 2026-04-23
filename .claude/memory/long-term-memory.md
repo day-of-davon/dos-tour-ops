@@ -84,6 +84,20 @@
 
 - [2026-04-22 05:00 UTC] https://www.iata.org/en/publications/api-pnr-toolkit/ — IATA API/PNR Toolkit: international standard for Advance Passenger Information (API = passport MRZ data: name, DOB, gender, nationality, passport number) and Passenger Name Records (PNR = booking data); 100+ countries require API, ~60 require PNR; EU routes all via eu-LISA centralized router; iAPI (2024) adds real-time pre-departure go/no-go per passenger. For bbno$ EU tour: airlines handle API submission on the Dublin inbound and Warsaw outbound flights; bus legs between Schengen countries have no API requirement. Outstanding French work authorization forms (Paris, Chambord, Villeurbanne) are separate labor permits, NOT resolved by API/PNR compliance. DOS Platform relevance: if DOS Advance collects crew/artist passport data, it touches API-schema fields (PAXLST format) and triggers GDPR Article 9 (identity/biometric data); design the travel document collection feature with this in mind before Phase 4.
 
+- [2026-04-23 00:00 UTC] https://github.com/trpc/trpc/releases — tRPC v11.13.2 released March 2026: adds OpenAPI JSON schema generation for any appRouter (no separate openapi plugin required), new streamHeader option on httpBatchStreamLink — OpenAPI gen is new capability for dos-platform if REST compatibility or public API docs are needed; no breaking changes from prior v11 versions.
+
+- [2026-04-23 00:00 UTC] https://n8n.io/pricing/ — n8n AI node library expanded in 2026 with native Claude and Gemini nodes plus Supabase Vector Store integration; AI Agent node runs LangChain tool agents natively — Phase 4 DOS agent workflows can call Claude and read/write Supabase Vector directly from n8n without custom code nodes.
+
+- [2026-04-23 00:00 UTC] https://nextjs.org/blog/next-16-1 — Next.js 16.1 released: Turbopack file system caching (dev cache persists across server restarts, substantially faster cold starts), new built-in bundle analyzer, improved Node.js debugger integration — no breaking changes from v16.0; relevant for dos-platform dev workflow.
+
+- [2026-04-23 00:00 UTC] https://nextjs.org/docs/app/guides/upgrading/version-16 — Next.js 16 requires TypeScript 5.1.0 minimum (not in prior memory entries) and bundles React 19.2 — dos-platform scaffold must pin TS >=5.1; verify tsconfig strict mode compatibility before scaffolding.
+
+- [2026-04-23 00:00 UTC] https://vercel.com/changelog — Vercel Flags became GA on April 16, 2026: built-in feature flag provider in Vercel Dashboard with targeting rules, user segments, and environment controls — dos-platform can use Vercel Flags for Phase 5+ staged rollouts without adding GrowthBook or LaunchDarkly to the stack.
+
+- [2026-04-23 00:00 UTC] https://vercel.com/pricing — Vercel reduced Turbo build machine pricing 16% in 2026: now $0.0035/CPU/min (was ~$0.00417); 30-CPU Turbo machine = $0.105/min — update build-cost projections in FINANCIALS.md.
+
+- [2026-04-23 00:00 UTC] https://vercel.com/changelog — v0 by Vercel became production-ready February 2026: added Git integration, VS Code-style editor, Snowflake/AWS database connectivity, and agentic workflow support — relevant if Dane uses v0 to accelerate dos-platform scaffold in Jun/Jul window; can generate and push production-grade Next.js 16 code directly to a repo.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->

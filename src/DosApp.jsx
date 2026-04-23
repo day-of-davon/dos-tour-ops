@@ -2202,7 +2202,7 @@ function IntelPanel(){
     const{data:{session}}=await supabase.auth.getSession();
     if(!session?.provider_token){setDrafts(p=>({...p,[tid]:{status:"error",error:"Gmail token missing — re-login"}}));return;}
     try{
-      const resp=await fetch("/api/comms",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({tid,show,googleToken:session.provider_token,userEmail:session.user?.email})});
+      const resp=await fetch("/api/comms",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({tid,show,googleToken:session.provider_token})});
       const json=await resp.json();
       if(!resp.ok){setDrafts(p=>({...p,[tid]:{status:"error",error:json.error||"Draft failed"}}));return;}
       setDrafts(p=>({...p,[tid]:{status:"done",text:json.draft,subject:json.subject,participants:json.participants,replyTo:json.replyTo}}));
@@ -5745,14 +5745,17 @@ function FileUploadModal({onClose}){
   const[applied,setApplied]=useState("");
   const[showDateOverride,setShowDateOverride]=useState("");
   const fileRef=useRef(null);
+  const cameraRef=useRef(null);
 
-  const ACCEPT=".pdf,.docx,.xlsx,.xls";
+  const ACCEPT=".pdf,.docx,.xlsx,.xls,image/*";
+  const IMG_EXTS=[".jpg",".jpeg",".png",".webp",".heic",".heif",".gif"];
 
   const handleFile=async(f)=>{
     if(!f)return;
     const name=f.name.toLowerCase();
-    if(![".pdf",".docx",".xlsx",".xls"].some(ext=>name.endsWith(ext))){
-      setError("Unsupported file type. Use PDF, DOCX, or XLSX.");return;
+    const isImg=(f.type||"").startsWith("image/")||IMG_EXTS.some(ext=>name.endsWith(ext));
+    if(!isImg&&![".pdf",".docx",".xlsx",".xls"].some(ext=>name.endsWith(ext))){
+      setError("Unsupported file type. Use PDF, DOCX, XLSX, or a photo.");return;
     }
     setFile(f);setResult(null);setError("");setApplied("");
     setParsing(true);
@@ -5854,23 +5857,33 @@ function FileUploadModal({onClose}){
         {/* Header */}
         <div style={{padding:"14px 18px 10px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <span style={{fontSize:11,fontWeight:800,color:T.text}}>↑ Upload Document</span>
-          <span style={{fontSize:9,color:T.textMute,marginLeft:2}}>PDF · DOCX · XLSX</span>
+          <span style={{fontSize:9,color:T.textMute,marginLeft:2}}>PDF · DOCX · XLSX · Photo</span>
           <button onClick={onClose} style={{marginLeft:"auto",background:"none",border:"none",cursor:"pointer",color:T.textMute,fontSize:20,lineHeight:1}}>×</button>
         </div>
 
         {/* Drop zone */}
         {!result&&!parsing&&(
-          <div
-            onDragOver={e=>{e.preventDefault();setDragging(true);}}
-            onDragLeave={()=>setDragging(false)}
-            onDrop={onDrop}
-            onClick={()=>fileRef.current?.click()}
-            style={{margin:"16px 18px",border:`2px dashed ${dragging?"var(--accent)":"var(--border)"}`,borderRadius:10,padding:"32px 20px",textAlign:"center",cursor:"pointer",background:dragging?"var(--accent-pill-bg)":"var(--card-3)",transition:"all .15s"}}
-          >
-            <div style={{fontSize:24,marginBottom:8}}>📄</div>
-            <div style={{fontSize:11,fontWeight:700,color:T.text,marginBottom:4}}>Drop a file or click to browse</div>
-            <div style={{fontSize:10,color:T.textMute}}>PDF, DOCX, or XLSX — receipts, contracts, tech packs, itineraries, expense reports</div>
-            <input ref={fileRef} type="file" accept={ACCEPT} style={{display:"none"}} onChange={e=>handleFile(e.target.files?.[0])}/>
+          <div style={{margin:"16px 18px",display:"flex",flexDirection:"column",gap:8}}>
+            <div
+              onDragOver={e=>{e.preventDefault();setDragging(true);}}
+              onDragLeave={()=>setDragging(false)}
+              onDrop={onDrop}
+              onClick={()=>fileRef.current?.click()}
+              style={{border:`2px dashed ${dragging?"var(--accent)":"var(--border)"}`,borderRadius:10,padding:"32px 20px",textAlign:"center",cursor:"pointer",background:dragging?"var(--accent-pill-bg)":"var(--card-3)",transition:"all .15s"}}
+            >
+              <div style={{fontSize:24,marginBottom:8}}>📄</div>
+              <div style={{fontSize:11,fontWeight:700,color:T.text,marginBottom:4}}>Drop a file or click to browse</div>
+              <div style={{fontSize:10,color:T.textMute}}>PDF, DOCX, XLSX, or photo — receipts, contracts, tech packs, itineraries, expense reports</div>
+              <input ref={fileRef} type="file" accept={ACCEPT} style={{display:"none"}} onChange={e=>handleFile(e.target.files?.[0])}/>
+            </div>
+            <button
+              type="button"
+              onClick={e=>{e.stopPropagation();cameraRef.current?.click();}}
+              style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,padding:"10px 14px",borderRadius:8,border:"1px solid var(--border)",background:"var(--card-3)",color:T.text,cursor:"pointer",fontSize:11,fontWeight:700,fontFamily:"'Outfit',system-ui"}}
+            >
+              <span style={{fontSize:14}}>📷</span> Take photo
+            </button>
+            <input ref={cameraRef} type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={e=>handleFile(e.target.files?.[0])}/>
           </div>
         )}
 
