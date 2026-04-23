@@ -1,4 +1,5 @@
 // api/flights.js — Gmail flight confirmation scraper + Claude parser
+const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`gmail_timeout_${ms}ms`)), ms))]);
 const { createClient } = require("@supabase/supabase-js");
 const { gmailSearch, fetchBatched, extractBody, stripMarketingFooter, extractHtmlRaw, extractJsonLdReservations, extractJson } = require("./lib/gmail");
 const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
@@ -483,10 +484,10 @@ module.exports = async function handler(req, res) {
   };
 
   try {
-    await runParallel(high);
+    await withTimeout(runParallel(high), 30000);
     // Low sweep: 3 broad queries at maxResults=500, replacing the previous 65+
     // from: domain queries. Skip entirely if high already saturated the cap.
-    if (seen.size < CAP * 0.8) await runParallel(low, 500);
+    if (seen.size < CAP * 0.8) await withTimeout(runParallel(low, 500), 15000);
   } catch (e) {
     if (e.status === 402) return res.status(402).json({ error: "gmail_token_expired" });
     return res.status(500).json({ error: e.message });

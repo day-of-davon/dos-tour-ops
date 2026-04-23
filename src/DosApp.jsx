@@ -1138,7 +1138,7 @@ export default function App(){
           ...(ni.followUps||[]).filter(f=>!prevFuTexts.has(f.action)).map(f=>({ts,type:"scan",section:"followup",showId:sid,action:"added",label:f.action,from:"scan"})),
           ...(existing.followUps||[]).filter(f=>!newFuTexts.has(f.action)).map(f=>({ts,type:"scan",section:"followup",showId:sid,action:"removed",label:f.action,from:"scan"})),
         ];
-        const changelog=[...(p.__changelog||[]).slice(-(499-scanEntries.length)),...scanEntries];
+        const changelog=[...(p.__changelog||[]).slice(-Math.max(1,499-scanEntries.length)),...scanEntries];
         return{...p,__changelog:changelog,[sid]:{threads,followUps:ni.followUps||[],showContacts:contacts,schedule:ni.schedule||existing.schedule||[],todos,matches:existing.matches||[],dismissedFlags:existing.dismissedFlags||[],arStatus:existing.arStatus||{},lastRefreshed:new Date().toISOString(),isShared:data.isShared||false,sharedByOthers:data.sharedByOthers||[]}};
       });
       setRefreshMsg(`${show.venue}: ${data.gmailThreadsFound||0} threads`);
@@ -1177,7 +1177,7 @@ export default function App(){
           ...prevAr.filter(i=>!newIds.has(i.id)).map(i=>({ts,type:"scan",section:"ar",showId:i.showId||null,action:"removed",label:i.subject,from:"scan"})),
         ];
         if(scanEntries.length){
-          setIntel(p=>({...p,__changelog:[...(p.__changelog||[]).slice(-(499-scanEntries.length)),...scanEntries]}));
+          setIntel(p=>({...p,__changelog:[...(p.__changelog||[]).slice(-Math.max(1,499-scanEntries.length)),...scanEntries]}));
         }
         return data;
       });
@@ -1939,7 +1939,7 @@ function IntelPanel(){
   const arDone=useMemo(()=>new Set(intel.__arState?.done||[]),[intel.__arState]);
   const arIgnored=useMemo(()=>new Set(intel.__arState?.ignored||[]),[intel.__arState]);
   const markArIntel=(id,state,label)=>{
-    setIntel(p=>({...p,__arState:{...(p.__arState||{}),[state]:[...new Set([...(p.__arState?.[state]||[]),id])]}}));
+    setIntel(p=>{const prev=p.__arState||{};const next=state==="undone"?{...prev,done:(prev.done||[]).filter(x=>x!==id)}:{...prev,[state]:[...new Set([...(prev[state]||[]),id])]};return{...p,__arState:next};});
     addLog({type:"user",section:"ar",showId:sid,action:state,label,from:"intel_panel"});
   };
   const toggleTodo=(id,currentDone,label)=>{upd({todos:(data.todos||[]).map(t=>t.id===id?{...t,done:!t.done}:t)});addLog({type:"user",section:"todo",showId:sid,action:currentDone?"undone":"done",label,from:"intel_panel"});};
@@ -2140,7 +2140,7 @@ function IntelPanel(){
       return(
         <IntelSection title="ACTIVITY LOG" count={logEntries.length} defaultOpen={false}>
           <div style={{display:"flex",flexDirection:"column",gap:1}}>
-            {logEntries.map((e,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"90px 60px 70px 1fr",gap:6,padding:"3px 0",borderBottom:"1px solid var(--card-3)",fontSize:9,alignItems:"start"}}>
+            {logEntries.map((e,i)=><div key={`${e.ts}-${e.action}-${e.section}-${i}`} style={{display:"grid",gridTemplateColumns:"90px 60px 70px 1fr",gap:6,padding:"3px 0",borderBottom:"1px solid var(--card-3)",fontSize:9,alignItems:"start"}}>
               <span style={{fontFamily:MN,color:"var(--text-mute)",fontSize:8}}>{fmtAudit(e.ts)}</span>
               <span style={{color:"var(--text-dim)",fontSize:8}}>{e.from}</span>
               <span style={{color:entryColor(e.action),fontWeight:700,fontSize:8}}>{e.action}</span>
@@ -2529,7 +2529,7 @@ function Dash(){
 
   const markTodo=(t,state)=>{const sid=showIdFor(t.show);setIntel(p=>({...p,[sid]:{...(p[sid]||{}),todos:(p[sid]?.todos||[]).map(x=>x.id===t.id?{...x,[state]:true}:x)}}));addLog({type:"user",section:"todo",showId:showIdFor(t.show),action:state,label:t.text||t.subject,from:"dashboard"});};
   const markFollowUp=(f,state)=>{const sid=showIdFor(f.show);setIntel(p=>{const fu=p[sid]?.followUps||[];const idx=fu.findIndex(x=>x.action===f.action&&(x.tid===f.tid||x.owner===f.owner||x.priority===f.priority));if(idx<0)return p;return{...p,[sid]:{...(p[sid]||{}),followUps:fu.map((x,j)=>j===idx?{...x,[state]:true}:x)}};});addLog({type:"user",section:"followup",showId:showIdFor(f.show),action:state,label:f.action,from:"dashboard"});};
-  const markAr=(id,state,label)=>{setIntel(p=>({...p,__arState:{...(p.__arState||{}),[state]:[...new Set([...(p.__arState?.[state]||[]),id])]}}));addLog({type:"user",section:"ar",showId:null,action:state,label:label||id,from:"dashboard"});};
+  const markAr=(id,state,label)=>{setIntel(p=>{const prev=p.__arState||{};const next=state==="undone"?{...prev,done:(prev.done||[]).filter(x=>x!==id)}:{...prev,[state]:[...new Set([...(prev[state]||[]),id])]};return{...p,__arState:next};});addLog({type:"user",section:"ar",showId:null,action:state,label:label||id,from:"dashboard"});};
 
   const BTN_DONE={fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--success-bg)",color:"var(--success-fg)"};
   const BTN_IGN={fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--card-2)",color:"var(--text-mute)"};

@@ -1,4 +1,5 @@
 // api/lodging-scan.js — Gmail hotel confirmation scraper + Claude parser
+const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`gmail_timeout_${ms}ms`)), ms))]);
 const { createClient } = require("@supabase/supabase-js");
 const { gmailSearch, fetchBatched, extractBody, stripMarketingFooter, extractJson } = require("./lib/gmail");
 const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
@@ -144,8 +145,8 @@ module.exports = async function handler(req, res) {
   };
 
   try {
-    await runParallel(high, 25);
-    if (seen.size < CAP * 0.8) await runParallel(low, 500);
+    await withTimeout(runParallel(high, 25), 30000);
+    if (seen.size < CAP * 0.8) await withTimeout(runParallel(low, 500), 15000);
   } catch (e) {
     if (e.status === 402) {
       await finishScanRun(runId, { threadsFound: 0, errors: [...errors, { kind: "gmail_token_expired" }], startedAt });
@@ -263,7 +264,7 @@ ${textOnly.map((t, i) => `[${i}] tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}
 Date: ${t.date}
-Body: ${t.body}`).join("\n\n---\n\n")}
+Body: ${(t.body || "").slice(0, 3000)}`).join("\n\n---\n\n")}
 
 ${returnShape}`;
     try {
@@ -289,7 +290,7 @@ tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}
 Date: ${t.date}
-Body: ${t.body}
+Body: ${(t.body || "").slice(0, 3000)}
 
 ${returnShape}`;
           const { text, stopReason } = await callClaude([{ type: "text", text: userPrompt }]);
@@ -329,7 +330,7 @@ tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}
 Date: ${t.date}
-Body: ${t.body}
+Body: ${(t.body || "").slice(0, 3000)}
 
 ${returnShape}`;
           const { text, stopReason } = await callClaude([{ type: "text", text: userPrompt }]);
@@ -353,7 +354,7 @@ tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}
 Date: ${t.date}
-Body: ${t.body}
+Body: ${(t.body || "").slice(0, 3000)}
 
 ${returnShape}`;
     try {

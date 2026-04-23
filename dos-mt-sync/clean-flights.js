@@ -6,6 +6,7 @@ import { getFlights } from './src/dos.js';
 
 const DOS_TEAM_ID = process.env.DOS_TEAM_ID ?? 'dos-bbno-2026';
 const { SUPABASE_URL, SUPABASE_SERVICE_KEY } = process.env;
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) { console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_KEY'); process.exit(1); }
 const dryRun = process.argv.includes('--dry-run');
 
 const normFn = s => String(s || '').trim().toUpperCase().replace(/\s+/g, '');
