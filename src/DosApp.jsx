@@ -86,6 +86,11 @@ const enrichFlight=(existing,fresh)=>{
   }
   if(fresh.parseVerified&&!out.parseVerified){out.parseVerified=true;out.parseNote=fresh.parseNote||null;}
   if(fresh.fresh48h)out.fresh48h=true;
+  // Always refresh server-computed show-match fields — stale match happens when `to` was
+  // missing on the initial parse, causing date-proximity-only matching to a wrong show.
+  if(fresh.suggestedShowDate!==undefined)out.suggestedShowDate=fresh.suggestedShowDate;
+  if(fresh.suggestedRole!==undefined)out.suggestedRole=fresh.suggestedRole;
+  if(fresh.suggestedVenue!==undefined)out.suggestedVenue=fresh.suggestedVenue;
   return out;
 };
 // Locate an existing record that matches a freshly scanned flight. Matches by tid first,
