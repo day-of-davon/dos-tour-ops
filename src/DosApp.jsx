@@ -2449,7 +2449,7 @@ function Dash(){
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",lineHeight:1.4}}>{t.text}</div>{(t.owner||t.deadline)&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{t.owner}{t.deadline?` · due ${t.deadline}`:""}</div>}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                 {t.threadTid&&<a href={gmailUrl(t.threadTid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email →</a>}
-                <div style={{fontSize:9,color:"var(--link)",fontFamily:MN,cursor:"pointer",textDecoration:"underline"}} onClick={()=>{setSel(t.show.date);setTab("advance");}}>{t.show.city} {fD(t.show.date)}</div>
+                <span style={{fontSize:9,color:"var(--text-dim)",fontFamily:MN}}>{t.show.city} {fD(t.show.date)}</span>
               </div>
             </div>)}
           </div>
@@ -2461,7 +2461,7 @@ function Dash(){
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",lineHeight:1.4}}>{f.action}</div>{(f.owner||f.deadline)&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{f.owner}{f.deadline?` · due ${f.deadline}`:""}</div>}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
                 {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email →</a>}
-                <div style={{fontSize:9,color:"var(--link)",fontFamily:MN,cursor:"pointer",textDecoration:"underline"}} onClick={()=>{setSel(f.show.date);setTab("advance");}}>{f.show.city} {fD(f.show.date)}</div>
+                <span style={{fontSize:9,color:"var(--text-dim)",fontFamily:MN}}>{f.show.city} {fD(f.show.date)}</span>
               </div>
             </div>)}
           </div>
@@ -2481,7 +2481,7 @@ function Dash(){
             {logisticsItems.map((i,idx)=><div key={idx} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,flexShrink:0,marginTop:1}}>{i.category}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{i.from}</div></div>
-              {arShowLabel(i)&&<div style={{fontSize:9,color:"var(--link)",fontFamily:MN,flexShrink:0,cursor:"pointer",textDecoration:"underline"}} onClick={()=>{const s=showMap[i.showId];if(s){setSel(s.date);setTab("intel");}}}>{arShowLabel(i)}</div>}
+              {arShowLabel(i)&&<span style={{fontSize:9,color:"var(--text-dim)",fontFamily:MN,flexShrink:0}}>{arShowLabel(i)}</span>}
               <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>email →</a>
             </div>)}
           </div>
