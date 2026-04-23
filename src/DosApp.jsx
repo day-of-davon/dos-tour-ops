@@ -2644,8 +2644,9 @@ function TopBar({ss}){
   const[overId,setOverId]=useState(null);
   const hasEvent=!!shows[sel]||(currentSplit&&activeSplitParty?.type==="show");
   const isAdmin=me?.id==="davon";
-  const canAccessTab=(id)=>{if(id==="access")return isAdmin;const rule=perms?.[`tab.${id}`];if(!rule)return true;return rule[me?.role]??true;};
+  const canAccessTab=(id)=>{if(id==="access")return isAdmin;const rule=perms?.[`tab.${id}`];if(!rule)return true;return rule[role]??true;};
   useEffect(()=>{if(!hasEvent&&(tab==="advance"||tab==="production"))setTab("ros");},[hasEvent,tab,setTab]);
+  useEffect(()=>{if(!canAccessTab(tab))setTab("dash");},[role]);
   const _auth=useAuth();const _email=_auth?.user?.email||"";
   const visibleRoles=ROLES.filter(r=>{if(r.id==="viewer"||r.id==="tm_td")return TM_EMAILS.has(_email);return true;});
   const curClient=CM[aC];
