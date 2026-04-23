@@ -2985,7 +2985,7 @@ function FlightDayStrip({sel}){
 }
 
 function DayScheduleView({show,bus,split,sel}){
-  const{uShow,uRos,gRos,shows,aC,flights,lodging,setTab}=useContext(Ctx);
+  const{uShow,uRos,gRos,shows,aC,flights,lodging,setTab,activeSplitParty}=useContext(Ctx);
   const isTravel=show.type==="travel";
   const isSplit=show.type==="split";
   const isStored=!!shows?.[sel];
@@ -3099,21 +3099,31 @@ function DayScheduleView({show,bus,split,sel}){
 
       <FlightDayStrip sel={sel}/>
       {/* Split card */}
-      {split&&(
-        <div style={{background:"var(--warn-bg)",border:"1px solid var(--warn-bg)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
-          <div style={{fontSize:9,fontWeight:800,color:"var(--warn-fg)",letterSpacing:"0.08em",marginBottom:8}}>SPLIT PARTY — {split.parties.length} GROUPS</div>
-          {split.parties.map(p=>(
-            <div key={p.id} style={{marginBottom:8,padding:"8px 10px",background:p.bg,borderRadius:6,border:`1px solid ${p.color}30`}}>
-              <div style={{fontSize:10,fontWeight:700,color:p.color,marginBottom:3}}>{p.label} <span style={{fontWeight:400,color:"var(--text-dim)"}}>· {p.location}</span></div>
-              <div style={{fontSize:9,color:"var(--text-dim)",marginBottom:6}}>{p.event}</div>
-              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                {p.crew.map(cid=>{const c=DEFAULT_CREW.find(x=>x.id===cid);return c?(<span key={cid} style={{fontSize:8,padding:"2px 8px",borderRadius:10,background:"var(--card)",border:`1px solid ${p.color}40`,color:p.color,fontWeight:600}}>{c.name.split(" ")[0]} <span style={{fontWeight:400,opacity:0.7,fontSize:8}}>({c.role.split(" (")[0].split("/")[0].trim()})</span></span>):null;})}
+      {split&&(()=>{
+        const focusId=activeSplitParty?.id||split.parties[0]?.id;
+        const focus=split.parties.find(p=>p.id===focusId)||split.parties[0];
+        const others=split.parties.filter(p=>p.id!==focus?.id);
+        return(
+          <div style={{background:"var(--warn-bg)",border:"1px solid var(--warn-bg)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
+            <div style={{fontSize:9,fontWeight:800,color:"var(--warn-fg)",letterSpacing:"0.08em",marginBottom:8}}>SPLIT PARTY — {split.parties.length} GROUPS</div>
+            {focus&&(
+              <div style={{padding:"8px 10px",background:focus.bg,borderRadius:6,border:`1px solid ${focus.color}30`,marginBottom:others.length?6:0}}>
+                <div style={{fontSize:10,fontWeight:700,color:focus.color,marginBottom:3}}>{focus.label} <span style={{fontWeight:400,color:"var(--text-dim)"}}>· {focus.location}</span></div>
+                <div style={{fontSize:9,color:"var(--text-dim)",marginBottom:6}}>{focus.event}</div>
+                <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                  {focus.crew.map(cid=>{const c=DEFAULT_CREW.find(x=>x.id===cid);return c?(<span key={cid} style={{fontSize:8,padding:"2px 8px",borderRadius:10,background:"var(--card)",border:`1px solid ${focus.color}40`,color:focus.color,fontWeight:600}}>{c.name.split(" ")[0]} <span style={{fontWeight:400,opacity:0.7,fontSize:8}}>({c.role.split(" (")[0].split("/")[0].trim()})</span></span>):null;})}
+                </div>
+                {focus.note&&<div style={{fontSize:8,color:"var(--text-dim)",marginTop:5,fontStyle:"italic"}}>{focus.note}</div>}
               </div>
-              {p.note&&<div style={{fontSize:8,color:"var(--text-dim)",marginTop:5,fontStyle:"italic"}}>{p.note}</div>}
-            </div>
-          ))}
-        </div>
-      )}
+            )}
+            {others.length>0&&(
+              <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:4}}>
+                {others.map(p=><span key={p.id} style={{fontSize:8,padding:"2px 8px",borderRadius:10,background:"var(--card-2)",color:"var(--text-mute)",fontWeight:600}}>{p.label}</span>)}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Unified timeline: bus + flights + schedule items */}
       <div style={{marginBottom:14}}>
@@ -3255,11 +3265,16 @@ function DayScheduleView({show,bus,split,sel}){
 // Router: dispatches to ROSTab for show days, DayScheduleView for off/travel/split days.
 // Separating into sibling components keeps React hook order stable when switching day types.
 function ScheduleTab(){
-  const{shows,sel,tourDays}=useContext(Ctx);
+  const{shows,sel,tourDays,currentSplit,activeSplitParty}=useContext(Ctx);
   const show=shows[sel];
   const td=tourDays?.[sel];
-  // Synthetic tour days (no show entry) → DayScheduleView only
   const isSynthetic=!show&&td&&(td.type==="off"||td.type==="travel"||td.type==="split");
+  // On a split day with a real show: route by active party type.
+  // Show party → ROS. Non-show party (advance, travel) → that party's day view.
+  if(currentSplit&&show){
+    if(!activeSplitParty||activeSplitParty.type==="show")return <ROSTab/>;
+    return <DayScheduleView show={{type:activeSplitParty.type||"travel",city:activeSplitParty.location||"",venue:activeSplitParty.event||""}} bus={null} split={currentSplit} sel={sel}/>;
+  }
   if(isSynthetic) return <DayScheduleView show={{type:td.type,notes:td.bus?.note}} bus={BUS_DATA_MAP[sel]||td?.bus||null} split={SPLIT_DAYS[sel]||td?.split||null} sel={sel}/>;
   if(!show)return <div style={{padding:40,textAlign:"center",color:"var(--text-dim)",fontSize:11}}>No event scheduled for this date.</div>;
   return <ROSTab/>;
@@ -4061,7 +4076,7 @@ function TravelDayView(){
   const[travelNotes,setTravelNotes]=useState("");
   const curShow=shows?.[sel];
   const curDay=(tourDaysSorted||[]).find(d=>d.date===sel);
-  const title=curShow?.venue||curShow?.city||(curDay?.type==="travel"?"Travel Day":curDay?.type==="split"?"Split Day":curDay?.type==="off"?"Off Day":"—");
+  const title=curShow?.venue||curShow?.city||(curDay?.type==="travel"?"Travel Day":curDay?.type==="split"?(activeSplitParty?.label||"Split Day"):curDay?.type==="off"?"Off Day":"—");
   const subTitle=curShow?curShow.city:(curDay?.city||"");
 
   // Build a pax-name matcher for the active split party (if any). Segments are
