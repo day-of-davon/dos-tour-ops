@@ -5767,7 +5767,8 @@ function CrewTab(){
     });
   };
 
-  const attending=crew.filter(c=>getCD(c.id).attending);
+  const rosterCrew=activeSplitParty?crew.filter(c=>activeSplitParty.crew.includes(c.id)):crew;
+  const attending=rosterCrew.filter(c=>getCD(c.id).attending);
   // Per-crew attending dates across the whole tour, sorted. Used to classify
   // bus-mid vs bus-join vs bus-leave for the lifecycle pills.
   const attendingDatesByCrew=useMemo(()=>{
@@ -5802,6 +5803,7 @@ function CrewTab(){
       <div style={{padding:"6px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:8,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
         <span style={{fontWeight:700,fontSize:11}}>{show?.venue||dateLabel(sel)}</span>
         <span style={{fontSize:11,color:"var(--text-dim)"}}>{show?.city||""}{show?.city?" · ":""}{fFull(sel)}</span>
+        {activeSplitParty&&<span style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:activeSplitParty.bg,color:activeSplitParty.color,fontWeight:700}}>{activeSplitParty.label} · {rosterCrew.length} crew</span>}
         <span style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:700}}>{attending.length} attending</span>
         <div style={{marginLeft:"auto",display:"flex",gap:5}}>
           <button onClick={()=>setTab("transport")} title="Open per-date travel view for all crew" style={{...btn("var(--card-3)","var(--accent)"),border:"1px solid var(--accent-pill-border)"}}>🧭 Travel Day →</button>
@@ -5821,7 +5823,7 @@ function CrewTab(){
           <div style={{display:"grid",gridTemplateColumns:mobile?"28px 1fr 54px 56px":"28px 1fr 170px 54px 56px",gap:8,padding:"6px 14px",borderBottom:"1px solid var(--border)",fontSize:9,fontWeight:700,color:"var(--text-dim)",letterSpacing:"0.06em",textTransform:"uppercase"}}>
             <div/><div>Name / Role</div>{!mobile&&<div>Travel</div>}<div>Park</div><div/>
           </div>
-          {crew.map(c=>{
+          {rosterCrew.map(c=>{
             const cd=getCD(c.id);
             const isOpen=panel?.crewId===c.id;
             const MB=(mode,conf)=>{
