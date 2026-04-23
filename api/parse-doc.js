@@ -3,7 +3,7 @@
 // Returns { docType, confidence, summary, receipt, flights, show, contacts, techPack, expenses }
 const { createClient } = require("@supabase/supabase-js");
 const { extractJson } = require("./lib/gmail");
-const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
+const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL, HEAVY_MODEL } = require("./lib/anthropic");
 
 let mammoth, xlsxLib, pdfParse;
 try { mammoth = require("mammoth"); } catch {}
@@ -176,11 +176,11 @@ module.exports = async function handler(req, res) {
   const messages = [{ role: "user", content: `${userPromptText}\n\nDOCUMENT CONTENT:\n${extractedText}` }];
 
   let inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheCreationTokens = 0;
-  const callClaude = async (sys, msgs, maxTokens = 4096) => {
+  const callClaude = async (sys, msgs, maxTokens = 4096, model = DEFAULT_MODEL) => {
     const resp = await fetch(ANTHROPIC_URL, {
       method: "POST",
       headers: ANTHROPIC_HEADERS,
-      body: JSON.stringify({ model: DEFAULT_MODEL, max_tokens: maxTokens, system: [{ type: "text", text: sys, cache_control: { type: "ephemeral" } }], messages: msgs }),
+      body: JSON.stringify({ model, max_tokens: maxTokens, system: [{ type: "text", text: sys, cache_control: { type: "ephemeral" } }], messages: msgs }),
     });
     if (!resp.ok) throw Object.assign(new Error(`Anthropic ${resp.status}`), { detail: await resp.text() });
     const data = await resp.json();
@@ -212,7 +212,7 @@ IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no
 
   let verified = parsed;
   try {
-    const verifyText = await callClaude(VERIFY_SYS, verifyMsgs, 2048);
+    const verifyText = await callClaude(VERIFY_SYS, verifyMsgs, 2048, HEAVY_MODEL);
     const verifyResult = extractJson(verifyText);
     if (verifyResult) {
       // Apply field-level corrections

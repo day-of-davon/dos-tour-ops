@@ -1,7 +1,7 @@
 // api/intel.js — Vercel serverless function
 const { createClient } = require("@supabase/supabase-js");
 const { gmailSearch, gmailGetThread, decodeB64, extractBody, stripMarketingFooter, extractJson } = require("./lib/gmail");
-const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
+const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL, HEAVY_MODEL } = require("./lib/anthropic");
 const { startScanRun, finishScanRun, bumpStopReason } = require("./lib/scanMemory");
 
 const CACHE_TTL_MINUTES = 60;
@@ -638,7 +638,7 @@ Return this exact JSON:
 }`;
 
   const anthropicBody = JSON.stringify({
-    model: DEFAULT_MODEL,
+    model: HEAVY_MODEL,
     max_tokens: 8192,
     system: [{ type: "text", text: sysPrompt, cache_control: { type: "ephemeral" } }],
     messages: [{ role: "user", content: userPrompt }],

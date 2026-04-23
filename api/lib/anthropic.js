@@ -7,6 +7,7 @@ const ANTHROPIC_HEADERS = {
   "anthropic-version": "2023-06-01",
   "anthropic-beta": "pdfs-2024-09-25,prompt-caching-2024-07-31",
 };
-const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
+const DEFAULT_MODEL = process.env.ANTHROPIC_MODEL       || "claude-sonnet-4-6";
+const HEAVY_MODEL   = process.env.ANTHROPIC_MODEL_HEAVY || "claude-opus-4-7";
 
-module.exports = { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL };
+module.exports = { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL, HEAVY_MODEL };
