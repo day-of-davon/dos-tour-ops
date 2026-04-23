@@ -2879,11 +2879,18 @@ function Dash(){
         {allTodos.length>0&&<div>
           <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.1em",marginBottom:5}}>TO-DOs (PRIVATE) ({allTodos.length})</div>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
-            {allTodos.map(t=>{const sid=showIdFor(t.show);const tid=t.threadTid||(intel[sid]?.threads||[]).find(x=>x.tid)?.tid||null;return(<div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
+            {allTodos.map(t=>{
+              const sid=showIdFor(t.show);
+              const threads=intel[sid]?.threads||[];
+              let matchedTid=t.threadTid||null,matchConf=t.threadTid?"high":null;
+              if(!matchedTid&&threads.length){let best=null,bestScore=0;threads.forEach(th=>{const s=matchScore(t.text||"",th);if(s>bestScore){bestScore=s;best=th;}});const c=confOf(bestScore);if(c&&best){matchedTid=best.tid;matchConf=c;}}
+              const confC=matchConf==="high"?"var(--success-fg)":matchConf==="medium"?"var(--warn-fg)":"var(--link)";
+              const confBg=matchConf==="high"?"var(--success-bg)":matchConf==="medium"?"var(--warn-bg)":"var(--info-bg)";
+              return(<div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:priB(t.priority),color:priC(t.priority),fontWeight:700,flexShrink:0,marginTop:1}}>{t.priority||"LOW"}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",lineHeight:1.4}}>{t.text}</div>{(t.owner||t.deadline)&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{t.owner}{t.deadline?` · due ${t.deadline}`:""}</div>}</div>
               <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
-                {tid&&<a href={gmailUrl(tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email →</a>}
+                {matchedTid&&<a href={gmailUrl(matchedTid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:confBg,color:confC,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email · {matchConf} →</a>}
                 <button onClick={()=>markTodo(t,"done")} style={BTN_DONE}>Done</button>
                 <button onClick={()=>markTodo(t,"ignored")} style={BTN_IGN}>Ignore</button>
               </div>
@@ -2893,11 +2900,18 @@ function Dash(){
         {allFollowUps.length>0&&<div>
           <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.1em",marginBottom:5}}>FOLLOW-UPS ({allFollowUps.length})</div>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
-            {allFollowUps.map((f,i)=>{const sid=showIdFor(f.show);const tid=f.tid||(intel[sid]?.threads||[]).find(x=>x.tid)?.tid||null;return(<div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
+            {allFollowUps.map((f,i)=>{
+              const sid=showIdFor(f.show);
+              const threads=intel[sid]?.threads||[];
+              let matchedTid=f.tid||null,matchConf=f.tid?"high":null;
+              if(!matchedTid&&threads.length){let best=null,bestScore=0;threads.forEach(th=>{const s=matchScore(f.action||"",th);if(s>bestScore){bestScore=s;best=th;}});const c=confOf(bestScore);if(c&&best){matchedTid=best.tid;matchConf=c;}}
+              const confC=matchConf==="high"?"var(--success-fg)":matchConf==="medium"?"var(--warn-fg)":"var(--link)";
+              const confBg=matchConf==="high"?"var(--success-bg)":matchConf==="medium"?"var(--warn-bg)":"var(--info-bg)";
+              return(<div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:priB(f.priority),color:priC(f.priority),fontWeight:700,flexShrink:0,marginTop:1}}>{f.priority||"LOW"}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",lineHeight:1.4}}>{f.action}</div>{(f.owner||f.deadline)&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{f.owner}{f.deadline?` · due ${f.deadline}`:""}</div>}</div>
               <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
-                {tid&&<a href={gmailUrl(tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email →</a>}
+                {matchedTid&&<a href={gmailUrl(matchedTid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:confBg,color:confC,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email · {matchConf} →</a>}
                 <button onClick={()=>markFollowUp(f,"done")} style={BTN_DONE}>Done</button>
                 <button onClick={()=>markFollowUp(f,"ignored")} style={BTN_IGN}>Ignore</button>
               </div>
