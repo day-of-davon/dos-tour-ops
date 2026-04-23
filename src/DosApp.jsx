@@ -2165,7 +2165,7 @@ function IntelPanel(){
       const resp=await fetch("/api/comms",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({tid,show,googleToken:session.provider_token,userEmail:session.user?.email})});
       const json=await resp.json();
       if(!resp.ok){setDrafts(p=>({...p,[tid]:{status:"error",error:json.error||"Draft failed"}}));return;}
-      setDrafts(p=>({...p,[tid]:{status:"done",text:json.draft,subject:json.subject,participants:json.participants}}));
+      setDrafts(p=>({...p,[tid]:{status:"done",text:json.draft,subject:json.subject,participants:json.participants,replyTo:json.replyTo}}));
     }catch(e){setDrafts(p=>({...p,[tid]:{status:"error",error:e.message||"Network error"}}));}
   };
   const clearDraft=tid=>setDrafts(p=>{const n={...p};delete n[tid];return n;});
@@ -2184,8 +2184,13 @@ function IntelPanel(){
       </div>
       <textarea value={d.text} onChange={e=>setDrafts(p=>({...p,[tid]:{...p[tid],text:e.target.value}}))} rows={6} style={{width:"100%",fontFamily:MN,fontSize:9,padding:"6px 8px",border:"1px solid var(--border)",borderRadius:4,resize:"vertical",background:"var(--card)",color:"var(--text)",lineHeight:1.5}}/>
       <div style={{display:"flex",gap:5}}>
-        <button onClick={()=>navigator.clipboard.writeText(d.text)} style={{fontSize:8,padding:"3px 9px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card)",color:"var(--text-2)",cursor:"pointer",fontWeight:700}}>Copy</button>
-        <a href={gmailUrl(tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"3px 9px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card)",color:"var(--link)",cursor:"pointer",fontWeight:700,textDecoration:"none"}}>Open Gmail ↗</a>
+        <button onClick={()=>{
+          navigator.clipboard.writeText(d.text).catch(()=>{});
+          const cc=(d.participants||[]).filter(p=>p&&p!==d.replyTo).join(",");
+          const params=new URLSearchParams({view:"cm",fs:"1",tf:"1",th:tid,to:d.replyTo||"",cc,su:d.subject||"",body:d.text});
+          window.open(`https://mail.google.com/mail/?${params.toString()}`,"_blank","noopener");
+        }} style={{fontSize:8,padding:"3px 9px",borderRadius:4,border:"1px solid var(--accent)",background:"var(--accent)",color:"var(--card)",cursor:"pointer",fontWeight:700}}>Reply in Gmail ↗</button>
+        <button onClick={()=>navigator.clipboard.writeText(d.text)} style={{fontSize:8,padding:"3px 9px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card)",color:"var(--text-2)",cursor:"pointer",fontWeight:700}}>Copy only</button>
       </div>
     </div>;
   };
