@@ -952,6 +952,29 @@ const fmtAudit=(iso)=>{if(!iso)return"";const d=new Date(iso);const M=["Jan","Fe
 const sGP=async k=>{try{const r=await window.storage.getPrivate(k);return r?JSON.parse(r.value):null}catch{return null}};
 const sSP=async(k,v)=>{try{await window.storage.setPrivate(k,JSON.stringify(v));return true}catch{return false}};
 
+function ContextBar(){
+  const{sel,shows,advances,finance,setTab}=useContext(Ctx);
+  const show=shows?.[sel];
+  if(!show)return null;
+  const adv=advances[sel]||{};const items=adv.items||{};const custom=adv.customItems||[];
+  const pc=[...AT,...custom].filter(t=>(items[t.id]?.status||"pending")==="pending").length;
+  const fStages=finance[sel]?.stages||{};
+  const settled=["wire_ref_confirmed","signed_sheet","payment_initiated"].every(k=>fStages[k]);
+  const days=dU(sel);
+  const dayC=days<=7?"var(--danger-fg)":days<=14?"var(--warn-fg)":days<=21?"var(--link)":"var(--text-mute)";
+  return(
+    <div style={{height:28,background:"var(--card)",borderBottom:"1px solid var(--card-2)",display:"flex",alignItems:"center",padding:"0 20px",gap:12,fontSize:9,fontFamily:MN,flexShrink:0}}>
+      <span onClick={()=>setTab("ros")} style={{cursor:"pointer",fontWeight:700,color:"var(--text)",whiteSpace:"nowrap"}}>{fD(sel).toUpperCase()} · {show.city||""} · {show.venue||""}</span>
+      <span style={{padding:"1px 6px",borderRadius:4,background:dayC+"22",color:dayC,fontWeight:800,fontFamily:MN,whiteSpace:"nowrap"}}>{days>0?`${days}d`:"TODAY"}</span>
+      <span onClick={()=>setTab("advance")} style={{cursor:"pointer",color:pc>0?"var(--warn-fg)":"var(--text-mute)",fontWeight:pc>0?700:400,whiteSpace:"nowrap"}}>{pc} open</span>
+      <span style={{display:"flex",alignItems:"center",gap:5,color:"var(--text-mute)",whiteSpace:"nowrap"}}>
+        <span style={{width:7,height:7,borderRadius:99,background:settled?"var(--success-fg)":"var(--text-mute)",display:"inline-block",flexShrink:0}}/>
+        {settled?"SETTLED":"OUTSTANDING"}
+      </span>
+    </div>
+  );
+}
+
 export default function App(){
   const auth=useAuth();
   const me=useMemo(()=>resolveMe(auth?.user?.email),[auth?.user?.email]);
@@ -1028,6 +1051,26 @@ export default function App(){
 
   useEffect(()=>{if(!undoToast)return;const t=setTimeout(()=>setUndoToast(null),30000);return()=>clearTimeout(t);},[undoToast]);
   const pushUndo=useCallback((label,undo)=>setUndoToast({label,undo,ts:Date.now()}),[]);
+
+  useEffect(()=>{
+    const tabMap={a:"advance",f:"finance",s:"ros",t:"transport",c:"crew",g:"guestlist",d:"dash"};
+    const handler=e=>{
+      const tgt=e.target.tagName;
+      if(tgt==="INPUT"||tgt==="TEXTAREA"||e.metaKey||e.ctrlKey||e.altKey)return;
+      if(tabMap[e.key]){setTab(tabMap[e.key]);return;}
+      if(e.key==="ArrowLeft"||e.key==="ArrowRight"){
+        setSel(prev=>{
+          const list=Object.values(shows||{}).sort((a,b)=>a.date.localeCompare(b.date));
+          const idx=list.findIndex(s=>s.date===prev);
+          if(idx<0)return prev;
+          const ni=idx+(e.key==="ArrowRight"?1:-1);
+          return(ni>=0&&ni<list.length)?list[ni].date:prev;
+        });
+      }
+    };
+    window.addEventListener("keydown",handler);
+    return()=>window.removeEventListener("keydown",handler);
+  },[shows,setTab,setSel]);
 
   useEffect(()=>{
     if(!loaded)return;
@@ -1296,6 +1339,7 @@ export default function App(){
       <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0;transition:background 0.13s ease}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:var(--bg)}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}::-webkit-scrollbar-thumb:hover{background:var(--accent)}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:var(--card-2)!important}.rh:hover{background:var(--card-2)!important}button{transition:opacity 0.12s ease,background 0.12s ease,box-shadow 0.12s ease}input:focus,select:focus,textarea:focus{outline:none!important;box-shadow:0 0 0 2px rgba(109,40,217,0.45)!important;border-color:var(--accent)!important}details summary::-webkit-details-marker{display:none}::selection{background:rgba(91,33,182,0.35);color:var(--text)}`}</style>
       <div style={{fontFamily:"'Outfit',system-ui",background:"var(--bg)",color:"var(--text)",height:"100vh",width:"100%",maxWidth:"100vw",overflow:"hidden",display:"flex",flexDirection:"column"}}>
         <TopBar ss={ss}/>
+        <ContextBar/>
         <div style={{flex:1,display:"flex",flexDirection:"row",minWidth:0,minHeight:0,width:"100%",overflow:"hidden"}}>
           <NavSidebar/>
           <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,minHeight:0,overflow:"hidden"}}>
@@ -1357,6 +1401,7 @@ function StatusBtn({status,setStatus,mobile}){
   const tip=mobile?`${s.l} — tap to change`:`${s.l} — click to cycle, caret or right-click for all options`;
   return <div ref={ref} style={{position:"relative",flexShrink:0,display:"inline-flex"}}>
     <button title={tip} onClick={onClick} onContextMenu={onCtx} onMouseDown={onDown} onMouseUp={onUp} onMouseLeave={onUp} onTouchStart={onDown} onTouchEnd={onUp}
+      onKeyDown={e=>{if(["Enter"," ","ArrowRight","+"].includes(e.key)){e.preventDefault();cycle();}}}
       style={{fontSize:mobile?10:9,padding:mobile?"5px 9px":"3px 8px",borderTopLeftRadius:5,borderBottomLeftRadius:5,borderTopRightRadius:0,borderBottomRightRadius:0,border:"none",borderRight:`1px solid ${s.c}26`,cursor:"pointer",fontWeight:700,background:s.b,color:s.c,minWidth:mobile?82:78,minHeight:mobile?28:undefined}}>{s.l}</button>
     <button title="Open all status options" aria-label="Open status menu" onClick={caretClick}
       style={{fontSize:mobile?10:9,padding:mobile?"5px 7px":"3px 6px",borderTopRightRadius:5,borderBottomRightRadius:5,borderTopLeftRadius:0,borderBottomLeftRadius:0,border:"none",cursor:"pointer",fontWeight:800,background:s.b,color:s.c,minHeight:mobile?28:undefined,opacity:.75}}>▾</button>
@@ -2155,7 +2200,7 @@ function SignOut(){
 // ── NAV SIDEBAR ──────────────────────────────────────────────────────────────
 
 function NavSidebar(){
-  const{sidebarOpen,tab,sel,setSel,sorted,tourDaysSorted,shows,uShow,advances,aC,setTab,next,tourDays,showOffDays,setShowOffDays}=useContext(Ctx);
+  const{sidebarOpen,tab,sel,setSel,sorted,tourDaysSorted,shows,uShow,advances,finance,aC,setTab,next,tourDays,showOffDays,setShowOffDays}=useContext(Ctx);
   const[newDate,setNewDate]=useState("");
   const[newType,setNewType]=useState("off");
   const[newVenue,setNewVenue]=useState("");
@@ -2245,11 +2290,18 @@ function NavSidebar(){
                 <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
                   {pc>0&&<span style={{fontSize:8,fontFamily:MN,color:"var(--warn-fg)",fontWeight:700}}>{pc} open</span>}
                   {d.type==="show"&&days>=0&&<span style={{fontSize:8,fontFamily:MN,color:urgColor,fontWeight:700}}>{days}d</span>}
+                  {d.type==="show"&&(()=>{const fStages=finance[d.date]?.stages||{};const settled=["wire_ref_confirmed","signed_sheet","payment_initiated"].every(k=>fStages[k]);const wired=fStages["payment_initiated"];return <span style={{width:6,height:6,borderRadius:99,background:settled?"var(--success-fg)":wired?"var(--warn-fg)":"var(--card-3)",flexShrink:0,display:"inline-block"}} title={settled?"Settled":wired?"Wire initiated":"Settlement pending"}/>;})()}
                   {isOff&&<span style={{fontSize:8,color:"var(--text-mute)",fontStyle:"italic"}}>{d.type}</span>}
                   {d.type==="split"&&d.split?.parties?.map(p=>(
                     <span key={p.id} style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:p.bg,color:p.color,fontWeight:700,fontFamily:MN,whiteSpace:"nowrap"}}>{p.label}</span>
                   ))}
                 </div>
+                {d.type==="show"&&(()=>{const total=AT.length;const confirmed=total-pc;const pct=total>0?(confirmed/total)*100:100;const busEff=BUS_DATA_MAP[d.date]?.arr;return(<>
+                  <div style={{width:"100%",height:2,background:"var(--card-2)",borderRadius:99,marginTop:2}}>
+                    <div style={{width:`${pct}%`,height:"100%",background:pct===100?"var(--success-fg)":pct>60?"var(--warn-fg)":"var(--danger-fg)",borderRadius:99,transition:"width 0.3s ease"}}/>
+                  </div>
+                  {busEff&&busEff!=="—"&&<span style={{fontSize:7,fontFamily:MN,color:"var(--text-faint)",marginTop:1,display:"block"}}>BUS {busEff}</span>}
+                </>);})()}
               </div>
             </div>
           );
@@ -2276,7 +2328,7 @@ function NavSidebar(){
 }
 
 function TopBar({ss}){
-  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd}=useContext(Ctx);
+  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd,advances,finance,intel,cShows}=useContext(Ctx);
   const[dragId,setDragId]=useState(null);
   const[overId,setOverId]=useState(null);
   const{me}=useContext(Ctx);
@@ -2295,6 +2347,15 @@ function TopBar({ss}){
   const curIdx=stepList.findIndex(d=>d.date===sel);
   const stepDate=dir=>{if(curIdx<0)return;const ni=curIdx+dir;if(ni<0||ni>=stepList.length)return;setSel(stepList[ni].date);};
   const canPrev=curIdx>0;const canNext=curIdx>=0&&curIdx<stepList.length-1;
+  const today=new Date().toISOString().slice(0,10);
+  const tabBadge=useMemo(()=>{
+    const upcoming=(cShows||[]).filter(s=>s.date>=today);
+    const pcFn=d=>{const adv=advances[d]||{};const items=adv.items||{};const custom=adv.customItems||[];return[...AT,...custom].filter(t=>(items[t.id]?.status||"pending")==="pending").length;};
+    const advBadge=upcoming.filter(s=>pcFn(s.date)>0).length;
+    const finBadge=(cShows||[]).filter(s=>{if(s.date>=today)return false;const st=finance[s.date]?.stages||{};return!["wire_ref_confirmed","signed_sheet","payment_initiated"].every(k=>st[k]);}).length;
+    const intelBadge=(cShows||[]).flatMap(s=>{const sid=showIdFor(s);return[...(intel[sid]?.todos||[]).filter(t=>!t.done&&!t.ignored),...(intel[sid]?.followUps||[]).filter(f=>!f.done&&!f.ignored)];}).length;
+    return{advance:advBadge,finance:finBadge,dash:intelBadge};
+  },[cShows,advances,finance,intel,today]);
   return(
     <div style={{borderBottom:"1px solid var(--card-2)",background:"var(--bg)",width:"100%",maxWidth:"100%",overflow:"visible",boxShadow:"0 1px 0 rgba(109,40,217,0.15),0 2px 12px rgba(0,0,0,0.45)"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px 5px",minWidth:0,gap:8,width:"100%"}}>
@@ -2362,7 +2423,7 @@ function TopBar({ss}){
               onClick={()=>!t.disabled&&setTab(t.id)}
               style={{padding:mobile?"9px 13px":"6px 12px",fontSize:mobile?12:11,fontWeight:tab===t.id?700:500,color:t.disabled?"var(--text-mute)":tab===t.id?"var(--text)":"var(--text-dim)",background:isOver?"var(--accent-pill-bg)":"none",border:"none",cursor:t.disabled?"default":mobile?"pointer":isDrag?"grabbing":"grab",borderBottom:tab===t.id?"2px solid var(--accent)":isOver?"2px solid var(--accent)":"2px solid transparent",display:"flex",alignItems:"center",gap:5,flexShrink:0,whiteSpace:"nowrap",opacity:isDrag?0.4:1,transition:"opacity .1s,background .1s",userSelect:"none",minHeight:mobile?40:undefined}}
             >
-              <span style={{fontSize:mobile?12:10}}>{t.icon}</span>{t.label}{t.soon&&<span style={{fontSize:8,color:"var(--text-mute)"}}>soon</span>}
+              <span style={{fontSize:mobile?12:10}}>{t.icon}</span>{t.label}{t.soon&&<span style={{fontSize:8,color:"var(--text-mute)"}}>soon</span>}{tabBadge[t.id]>0&&<span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",minWidth:14,height:14,borderRadius:99,background:t.id==="finance"?"var(--danger-fg)":t.id==="advance"?"var(--warn-fg)":"var(--link)",color:"#fff",fontSize:7,fontWeight:800,fontFamily:MN,padding:"0 3px",marginLeft:2,lineHeight:1}}>{tabBadge[t.id]}</span>}
             </button>
           );
         })}
@@ -2445,7 +2506,7 @@ function DateDrawer({onClose}){
 }
 
 function Dash(){
-  const{sorted,cShows,next,setTab,setSel,advances,aC,mobile,intel,setIntel,addLog,labelIntel}=useContext(Ctx);
+  const{sorted,cShows,next,setTab,setSel,advances,finance,aC,mobile,intel,setIntel,addLog,labelIntel}=useContext(Ctx);
   const client=CM[aC];const today=new Date().toISOString().slice(0,10);
   const upcoming=cShows.filter(s=>s.date>=today).slice(0,10);
   const PORD={CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3};
@@ -2454,8 +2515,9 @@ function Dash(){
   const priB=p=>p==="CRITICAL"?"var(--danger-bg)":p==="HIGH"?"var(--warn-bg)":p==="MEDIUM"?"var(--info-bg)":"var(--card-2)";
   const bucketC=b=>b==="urgent"?"var(--danger-fg)":b==="input"?"var(--warn-fg)":b==="standing_by"?"var(--link)":b==="fresh"?"var(--success-fg)":"var(--text-mute)";
   const bucketB=b=>b==="urgent"?"var(--danger-bg)":b==="input"?"var(--warn-bg)":b==="standing_by"?"var(--info-bg)":b==="fresh"?"var(--success-bg)":"var(--card-2)";
-  const flags=useMemo(()=>{const f=[];sorted.forEach(s=>{if(s.notes?.includes("⚠ Immigration")&&dU(s.date)<45)f.push({type:"CRITICAL",msg:`Immigration outstanding — ${s.city} ${fD(s.date)}`,cId:s.clientId});if(s.notes?.includes("settlement slow")&&dU(s.date)<90)f.push({type:"HIGH",msg:`Settlement risk — ${s.venue}`,cId:s.clientId});});return f;},[sorted]);
   const pendingCount=d=>{const adv=advances[d]||{};const items=adv.items||{};const custom=adv.customItems||[];return [...AT,...custom].filter(t=>(items[t.id]?.status||"pending")==="pending").length;};
+  const isFullySettled=d=>{const st=finance?.[d]?.stages||{};return["wire_ref_confirmed","signed_sheet","payment_initiated"].every(k=>st[k]);};
+  const flags=useMemo(()=>{const f=[];sorted.forEach(s=>{if(s.notes?.includes("⚠ Immigration")&&dU(s.date)<45)f.push({type:"CRITICAL",msg:`Immigration outstanding — ${s.city} ${fD(s.date)}`,cId:s.clientId,days:dU(s.date)});if(s.notes?.includes("settlement slow")&&dU(s.date)<90)f.push({type:"HIGH",msg:`Settlement risk — ${s.venue}`,cId:s.clientId,days:dU(s.date)});const days=dU(s.date);const pc=pendingCount(s.date);const total=AT.length;if(s.date>=today&&days<=7&&pc>total*0.5)f.push({type:"HIGH",msg:`${pc} advance items open — ${s.city} in ${days}d`,cId:s.clientId,days,date:s.date});const busEntry=BUS_DATA_MAP[s.date];if(busEntry&&days>=0&&days<=2&&!s.busArriveConfirmed)f.push({type:"HIGH",msg:`Bus arrival unconfirmed — ${s.city}`,cId:s.clientId,days,date:s.date});});return f;},[sorted,advances,today]);
   const showMap=useMemo(()=>{const m={};cShows.forEach(s=>m[showIdFor(s)]=s);return m;},[cShows]);
   const arShowLabel=item=>{const s=showMap[item.showId];return s?`${s.city} ${fD(s.date)}`:"";}
   const arHidden=useMemo(()=>new Set([...(intel.__arState?.done||[]),...(intel.__arState?.ignored||[])]),[intel.__arState]);
@@ -2474,10 +2536,24 @@ function Dash(){
 
   return(
     <div className="fi" style={{padding:mobile?"10px 10px 24px":"14px 20px 30px",maxWidth:960,flex:1,overflowY:"auto",minHeight:0}}>
-      {flags.slice(0,3).map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",background:f.type==="CRITICAL"?"var(--danger-bg)":"var(--warn-bg)",borderRadius:10,marginBottom:4,borderLeft:`3px solid ${f.type==="CRITICAL"?"var(--danger-fg)":"var(--warn-fg)"}`}}><span style={{fontSize:9,fontWeight:800,color:f.type==="CRITICAL"?"var(--danger-fg)":"var(--warn-fg)",fontFamily:MN}}>{f.type}</span><span style={{fontSize:11,color:"var(--text)",fontWeight:600}}>{f.msg}</span><span style={{fontSize:8,color:"var(--text-dim)",fontFamily:MN,marginLeft:"auto"}}>{CM[f.cId]?.short}</span></div>)}
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:10,margin:"10px 0 14px"}}>
-        {[{l:"Next Show",v:next?.city||"--",s:next?`${dU(next.date)}d`:"",c:client.color},{l:`${client.name} Shows`,v:cShows.length,s:"total",c:"var(--text)"},{l:"Open Advances",v:upcoming.filter(s=>pendingCount(s.date)>0).length,s:"pending",c:"var(--warn-fg)"},{l:"Open To-Dos",v:allTodos.length,s:"private",c:allTodos.length>0?"var(--warn-fg)":"var(--text-mute)"},{l:"Follow-Ups",v:allFollowUps.length,s:"across shows",c:allFollowUps.length>0?"var(--link)":"var(--text-mute)"}].map((s,i)=><div key={i} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2,fontWeight:600}}>{s.l}</div><div style={{fontSize:20,fontWeight:800,color:s.c,fontFamily:MN}}>{s.v}</div><div style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN,marginTop:1}}>{s.s}</div></div>)}
-      </div>
+      {flags.slice(0,4).map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",background:f.type==="CRITICAL"?"var(--danger-bg)":"var(--warn-bg)",borderRadius:10,marginBottom:4,borderLeft:`3px solid ${f.type==="CRITICAL"?"var(--danger-fg)":"var(--warn-fg)"}`}}><span style={{fontSize:9,fontWeight:800,color:f.type==="CRITICAL"?"var(--danger-fg)":"var(--warn-fg)",fontFamily:MN}}>{f.type}</span><span style={{fontSize:11,color:"var(--text)",fontWeight:600,flex:1}}>{f.msg}</span>{CM[f.cId]&&<span style={{fontSize:8,color:"var(--text-dim)",fontFamily:MN,flexShrink:0}}>{CM[f.cId].short}</span>}{f.days!=null&&<span style={{fontSize:10,fontFamily:MN,fontWeight:800,color:f.type==="CRITICAL"?"var(--danger-fg)":"var(--warn-fg)",flexShrink:0}}>{f.days}d</span>}</div>)}
+      {(()=>{const unsettledCount=(cShows||[]).filter(s=>s.date<today&&!isFullySettled(s.date)).length;const nextBus=next?BUS_DATA_MAP[next.date]?.dep:null;return(
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:10,margin:"10px 0 12px"}}>
+        {[{l:"Next Show",v:next?.city||"--",s:next?nextBus?`${dU(next.date)}d · BUS ${nextBus}`:`${dU(next.date)}d`:"",c:client.color},{l:`${client.name} Shows`,v:cShows.length,s:"total",c:"var(--text)"},{l:"Open Advances",v:upcoming.filter(s=>pendingCount(s.date)>0).length,s:"shows w/ pending",c:upcoming.filter(s=>pendingCount(s.date)>0).length>0?"var(--warn-fg)":"var(--text-mute)"},{l:"Open To-Dos",v:allTodos.length,s:"private",c:allTodos.length>0?"var(--warn-fg)":"var(--text-mute)"},{l:"Follow-Ups",v:allFollowUps.length,s:"across shows",c:allFollowUps.length>0?"var(--link)":"var(--text-mute)"},{l:"Unsettled",v:unsettledCount,s:"past shows",c:unsettledCount>2?"var(--danger-fg)":unsettledCount>0?"var(--warn-fg)":"var(--text-mute)"}].map((s,i)=><div key={i} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2,fontWeight:600}}>{s.l}</div><div style={{fontSize:20,fontWeight:800,color:s.c,fontFamily:MN}}>{s.v}</div><div style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN,marginTop:1}}>{s.s}</div></div>)}
+      </div>);})()}
+      {(()=>{const pastShows=(cShows||[]).filter(s=>s.date<today).slice(-6);if(!pastShows.length)return null;return(
+      <div style={{marginBottom:12}}>
+        <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.1em",marginBottom:5}}>SETTLEMENT PIPELINE</div>
+        <div style={{display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none",padding:"2px 0"}}>
+          {pastShows.map(s=>{const daysSince=Math.abs(dU(s.date));const settled=isFullySettled(s.date);const wired=(finance?.[s.date]?.stages||{})["payment_initiated"];const overdue=!settled&&daysSince>21;const warn=!settled&&daysSince>7&&!wired;return(
+            <div key={s.date} onClick={()=>{setSel(s.date);setTab("finance");}} className="rh" title={settled?"Settled":overdue?"Overdue":"Pending"} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:99,border:"1px solid var(--border)",background:settled?"var(--success-bg)":overdue?"var(--danger-bg)":warn?"var(--warn-bg)":"var(--card)",cursor:"pointer",flexShrink:0}}>
+              <div style={{width:6,height:6,borderRadius:99,background:settled?"var(--success-fg)":overdue?"var(--danger-fg)":warn?"var(--warn-fg)":"var(--card-3)",flexShrink:0}}/>
+              <span style={{fontSize:8,fontWeight:700,color:settled?"var(--success-fg)":overdue?"var(--danger-fg)":warn?"var(--warn-fg)":"var(--text-2)",whiteSpace:"nowrap",fontFamily:MN}}>{s.city} · {fD(s.date)}</span>
+              {overdue&&<span style={{fontSize:7,color:"var(--danger-fg)",fontFamily:MN,fontWeight:800}}>{daysSince}d</span>}
+            </div>
+          );})}
+        </div>
+      </div>);})()}
       {urgentItems.length>0&&<div style={{marginBottom:10,display:"flex",flexDirection:"column",gap:3}}>
         {urgentItems.slice(0,4).map(i=><div key={i.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"7px 12px",background:"var(--danger-bg)",borderRadius:10,borderLeft:"3px solid var(--danger-fg)"}}>
           <span style={{fontSize:9,fontWeight:800,color:"var(--danger-fg)",fontFamily:MN,flexShrink:0,marginTop:1}}>{i.category}</span>
@@ -2486,19 +2562,53 @@ function Dash(){
           <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--danger-bg)",color:"var(--danger-fg)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0,border:"1px solid var(--danger-fg)"}}>email →</a>
         </div>)}
       </div>}
-      <div style={{fontSize:9,fontWeight:800,color:client.color,letterSpacing:"0.1em",marginBottom:5}}>{client.name.toUpperCase()} — UPCOMING</div>
-      <div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:12}}>
-        {upcoming.map(show=>{const days=dU(show.date),uc=days<=7?"var(--danger-fg)":days<=14?"var(--warn-fg)":days<=21?"var(--link)":"var(--text-mute)";const pc=pendingCount(show.date);
-          return(<div key={show.date} onClick={()=>{setSel(show.date);setTab("ros");}} className="br rh" style={{display:"grid",gridTemplateColumns:"34px 58px 1fr auto 54px 30px",alignItems:"center",gap:6,padding:"9px 12px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,cursor:"pointer",borderLeft:`3px solid ${uc}`}}>
+      {(()=>{
+        const todayShows=upcoming.filter(s=>s.date===today);
+        const soonShows=upcoming.filter(s=>dU(s.date)<=14&&s.date!==today);
+        const laterShows=upcoming.filter(s=>dU(s.date)>14).slice(0,5);
+        const renderShowRow=(show,compact=false)=>{const days=dU(show.date),uc=days<=7?"var(--danger-fg)":days<=14?"var(--warn-fg)":days<=21?"var(--link)":"var(--text-mute)";const pc=pendingCount(show.date);
+          const depts=DEPTS.filter(d=>d.id!=="all");
+          const healthBars=!compact&&<div style={{display:"flex",gap:2,alignItems:"flex-end"}}>
+            {depts.map(dept=>{const di=AT.filter(t=>t.dept===dept.id);const conf=di.filter(t=>(advances[show.date]?.items?.[t.id]?.status||"pending")==="confirmed").length;const pct=di.length>0?conf/di.length:1;return(<div key={dept.id} title={`${dept.label}: ${conf}/${di.length}`} style={{width:4,height:20,borderRadius:2,background:"var(--card-2)",overflow:"hidden",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+              <div style={{height:`${pct*100}%`,background:pct===1?"var(--success-fg)":pct>0.5?"var(--warn-fg)":"var(--danger-fg)"}}/>
+            </div>);})}</div>;
+          return(<div key={show.date} onClick={()=>{setSel(show.date);setTab("ros");}} className="br rh" style={{display:"grid",gridTemplateColumns:"34px 58px 1fr auto auto 30px",alignItems:"center",gap:6,padding:"9px 12px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,cursor:"pointer",borderLeft:`3px solid ${uc}`}}>
             <div style={{fontFamily:MN,fontSize:9,color:"var(--text-dim)"}}>{fW(show.date)}</div>
             <div style={{fontFamily:MN,fontSize:10,color:"var(--accent)",fontWeight:700}}>{fD(show.date)}</div>
             <div><div style={{fontSize:11,fontWeight:700}}>{show.city}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{show.venue}</div></div>
-            <div style={{display:"flex",gap:3}}>{pc>0&&<span style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--warn-bg)",color:"var(--warn-fg)",fontWeight:700,fontFamily:MN}}>{pc} open</span>}{show.notes?.includes("⚠")&&<span>⚠</span>}</div>
+            <div style={{display:"flex",gap:3,alignItems:"center"}}>{pc>0&&<span style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--warn-bg)",color:"var(--warn-fg)",fontWeight:700,fontFamily:MN}}>{pc} open</span>}{show.notes?.includes("⚠")&&<span>⚠</span>}{healthBars}</div>
             <div style={{fontFamily:MN,fontSize:9,fontWeight:600,color:show.doorsConfirmed?"var(--success-fg)":"var(--warn-fg)",textAlign:"right"}}>{fmt(show.doors)}{show.doorsConfirmed?" ✓":" ?"}</div>
             <div style={{fontFamily:MN,fontSize:11,fontWeight:800,color:uc,textAlign:"right"}}>{days}d</div>
-          </div>);
-        })}
-      </div>
+          </div>);};
+        return(<div style={{marginBottom:12}}>
+          {todayShows.length>0&&<div style={{marginBottom:8}}>
+            <div style={{fontSize:9,fontWeight:800,color:"var(--danger-fg)",letterSpacing:"0.1em",marginBottom:5}}>TODAY</div>
+            {todayShows.map(show=>{const pc=pendingCount(show.date);return(<div key={show.date} style={{background:"var(--danger-bg)",border:"2px solid var(--danger-fg)",borderRadius:10,padding:"12px 14px",marginBottom:4}}>
+              <div style={{fontSize:16,fontWeight:800,color:"var(--text)"}}>{show.city}</div>
+              <div style={{fontSize:10,color:"var(--text-dim)",marginBottom:8}}>{show.venue} · {show.promoter}</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:8}}>
+                <span style={{fontSize:10,fontFamily:MN,color:"var(--warn-fg)",fontWeight:700}}>DOORS {fmt(show.doors)}</span>
+                <span style={{fontSize:10,fontFamily:MN,color:"var(--danger-fg)",fontWeight:700}}>CURFEW {fmt(show.curfew)}</span>
+                {pc>0&&<span style={{fontSize:9,padding:"2px 7px",borderRadius:4,background:"var(--warn-bg)",color:"var(--warn-fg)",fontWeight:700}}>{pc} advance open</span>}
+              </div>
+              <div style={{display:"flex",gap:5}}>
+                <button onClick={e=>{e.stopPropagation();setSel(show.date);setTab("ros");}} style={{fontSize:9,padding:"4px 10px",borderRadius:6,border:"1px solid var(--danger-fg)",background:"transparent",color:"var(--danger-fg)",cursor:"pointer",fontWeight:700}}>→ ROS</button>
+                <button onClick={e=>{e.stopPropagation();setSel(show.date);setTab("advance");}} style={{fontSize:9,padding:"4px 10px",borderRadius:6,border:"1px solid var(--warn-fg)",background:"transparent",color:"var(--warn-fg)",cursor:"pointer",fontWeight:700}}>→ Advance</button>
+                <button onClick={e=>{e.stopPropagation();setSel(show.date);setTab("finance");}} style={{fontSize:9,padding:"4px 10px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-2)",cursor:"pointer",fontWeight:700}}>→ Finance</button>
+              </div>
+            </div>);})}
+          </div>}
+          {soonShows.length>0&&<>
+            <div style={{fontSize:9,fontWeight:800,color:"var(--warn-fg)",letterSpacing:"0.1em",marginBottom:5}}>NEXT 14 DAYS</div>
+            <div style={{display:"flex",flexDirection:"column",gap:3,marginBottom:8}}>{soonShows.map(show=>renderShowRow(show))}</div>
+          </>}
+          {laterShows.length>0&&<>
+            <div style={{fontSize:9,fontWeight:800,color:client.color,letterSpacing:"0.1em",marginBottom:5}}>{client.name.toUpperCase()} — UPCOMING</div>
+            <div style={{display:"flex",flexDirection:"column",gap:3}}>{laterShows.map(show=>renderShowRow(show,true))}</div>
+          </>}
+          {!todayShows.length&&!soonShows.length&&!laterShows.length&&<div style={{fontSize:11,color:"var(--text-mute)",textAlign:"center",padding:"20px 0"}}>No upcoming shows.</div>}
+        </div>);
+      })()}
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {allTodos.length>0&&<IntelSection title="TO-DOs (PRIVATE)" count={allTodos.length} defaultOpen={true}>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
@@ -2775,7 +2885,18 @@ function AdvTab(){
     return b;
   };
 
-  if(!show)return<div style={{padding:40,textAlign:"center",color:"var(--text-dim)"}}>Select a show.</div>;
+  if(!show)return(
+    <div style={{padding:40,textAlign:"center",color:"var(--text-dim)"}}>
+      <div style={{fontSize:32,marginBottom:12,opacity:0.3}}>◎</div>
+      <div style={{fontSize:14,fontWeight:700,color:"var(--text)",marginBottom:6}}>Select a show to start advancing</div>
+      <div style={{fontSize:11,color:"var(--text-dim)",marginBottom:16,maxWidth:280,margin:"0 auto 16px"}}>Choose a date from the sidebar or use ← → to navigate shows.</div>
+      {upcoming.length>0&&<button onClick={()=>setSel(upcoming[0].date)} style={{background:"var(--accent)",color:"#fff",border:"none",borderRadius:6,padding:"8px 20px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Jump to next show →</button>}
+    </div>
+  );
+
+  const SLA_THRESHOLDS={catering:14,production:21,hospitality:10,merch:7,security:7};
+  const daysOut=sel?dU(sel):null;
+  const slaViolations=daysOut!=null?DEPTS.filter(d=>d.id!=="all"&&SLA_THRESHOLDS[d.id]&&daysOut<=SLA_THRESHOLDS[d.id]&&(deptCounts[d.id]?.pending||0)>0).map(d=>({dept:d,threshold:SLA_THRESHOLDS[d.id],pending:deptCounts[d.id].pending})):[];
 
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)",position:"relative"}}>
@@ -2784,13 +2905,27 @@ function AdvTab(){
         <span style={{fontSize:11,color:"var(--text-dim)"}}>{show.city} · {fFull(sel)}</span>
         <span style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:totalPending===0?"var(--success-bg)":"var(--warn-bg)",color:totalPending===0?"var(--success-fg)":"var(--warn-fg)",fontWeight:700}}>{totalPending===0?"Complete":`${totalPending} pending`}</span>
       </div>
+      {slaViolations.length>0&&<div style={{padding:"4px 20px",background:"var(--warn-bg)",borderBottom:"1px solid var(--warn-fg)",display:"flex",gap:6,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
+        <span style={{fontSize:8,fontWeight:800,color:"var(--warn-fg)",fontFamily:MN,flexShrink:0}}>SLA</span>
+        {slaViolations.map(v=><span key={v.dept.id} style={{fontSize:8,padding:"2px 7px",borderRadius:99,background:v.dept.bg,color:v.dept.color,fontWeight:700}}>{v.dept.label} {v.pending} open · due {v.threshold}d out</span>)}
+      </div>}
       {!showEmail&&<div style={{padding:"4px 20px",borderBottom:"1px solid var(--border)",background:"var(--card-3)",display:"flex",gap:2,overflowX:"auto",flexShrink:0,scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
-        {DEPTS.map(d=>{const isA=activeDept===d.id;const cnt=d.id==="all"?null:deptCounts[d.id];
-          return(<button key={d.id} onClick={()=>setActiveDept(d.id)} style={{flexShrink:0,padding:"3px 10px",borderRadius:99,border:isA?`1.5px solid ${d.color}`:"1px solid var(--border)",background:isA?d.bg:"transparent",color:isA?d.color:"var(--text-dim)",fontSize:9,fontWeight:isA?700:500,cursor:"pointer",display:"flex",alignItems:"center",gap:4}}>
-            {d.label}
-            {cnt&&cnt.pending>0&&<span style={{fontSize:8,background:d.color,color:"#fff",borderRadius:10,padding:"1px 4px",fontWeight:700}}>{cnt.pending}</span>}
+        {DEPTS.map(d=>{const isA=activeDept===d.id;const cnt=d.id==="all"?null:deptCounts[d.id];const pct=cnt&&cnt.total>0?((cnt.total-cnt.pending)/cnt.total)*100:100;
+          return(<button key={d.id} onClick={()=>setActiveDept(d.id)} style={{flexShrink:0,padding:"4px 10px 5px",borderRadius:99,border:isA?`1.5px solid ${d.color}`:"1px solid var(--border)",background:isA?d.bg:"transparent",color:isA?d.color:"var(--text-dim)",fontSize:9,fontWeight:isA?700:500,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+            <div style={{display:"flex",alignItems:"center",gap:4}}>
+              <span>{d.label}</span>
+              {cnt&&cnt.pending>0&&<span style={{fontSize:8,background:d.color,color:"#fff",borderRadius:10,padding:"1px 4px",fontWeight:700}}>{cnt.pending}</span>}
+            </div>
+            {cnt&&cnt.total>0&&<div style={{width:"100%",minWidth:36,height:2,background:"rgba(255,255,255,0.15)",borderRadius:99}}>
+              <div style={{width:`${pct}%`,height:"100%",background:cnt.pending===0?"var(--success-fg)":isA?"rgba(255,255,255,0.7)":d.color,borderRadius:99,transition:"width 0.4s ease"}}/>
+            </div>}
           </button>);
         })}
+      </div>}
+      {!showEmail&&activeDept!=="all"&&(deptCounts[activeDept]?.pending||0)>0&&<div style={{padding:"5px 20px",background:"var(--card-2)",borderBottom:"1px solid var(--border)",display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+        <span style={{fontSize:9,color:"var(--text-dim)",fontFamily:MN}}>{deptCounts[activeDept]?.pending} pending in {DM[activeDept]?.label}</span>
+        <button onClick={()=>allItems.filter(t=>t.dept===activeDept&&getStatus(t.id)==="pending").forEach(t=>setStatus(t.id,"in_progress"))} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--link)",background:"var(--info-bg)",color:"var(--link)",cursor:"pointer",fontWeight:700}}>Mark all In Progress</button>
+        <button onClick={()=>{setEmailDept(activeDept);setShowEmail(true);}} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card)",color:"var(--text-2)",cursor:"pointer",fontWeight:700}}>Draft Advance Email</button>
       </div>}
       <div style={{flex:1,overflow:"auto",padding:"10px 20px 30px"}}>
         {showEmail?(
@@ -2858,7 +2993,10 @@ function AdvTab(){
                       </div>
                     </div>
                     <div style={{paddingTop:1}}>{emailMatch}</div>
-                    <div style={{paddingTop:1}}><StatusBtn status={status} setStatus={(ns)=>setStatus(item.id,ns)} mobile={mobile}/></div>
+                    <div style={{paddingTop:1,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
+                      <StatusBtn status={status} setStatus={(ns)=>setStatus(item.id,ns)} mobile={mobile}/>
+                      {status!=="confirmed"&&(()=>{const dc=(show.advance||[]).find(c=>c.dept===item.dept);return dc?<a href={`mailto:${dc.email}?subject=${encodeURIComponent(`${show.venue}, ${show.city} — ${fFull(sel)} | ${DM[item.dept]?.label||""} Advance`)}`} title={`Email ${dc.name}`} style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>✉ {dc.name.split(" ")[0]}</a>:null;})()}
+                    </div>
                   </div>
                 );
               };
@@ -3439,7 +3577,15 @@ function ROSTab(){
   const effShow=subEvent||show;
   const rosKey=eventKey;
   const blocks=gRos(rosKey);
-  if(!show)return null;
+  const today2=new Date().toISOString().slice(0,10);const upcoming0=cShows.filter(s=>s.date>=today2);
+  if(!show)return(
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flex:1,padding:40,gap:10}}>
+      <div style={{fontSize:32,opacity:0.2}}>📋</div>
+      <div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>No show selected</div>
+      <div style={{fontSize:11,color:"var(--text-dim)",maxWidth:280,textAlign:"center"}}>Select a show from the sidebar to view and edit the run of show.</div>
+      {upcoming0[0]&&<button onClick={()=>setSel(upcoming0[0].date)} style={{marginTop:6,padding:"6px 16px",borderRadius:8,border:"none",background:"var(--accent)",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>Jump to next show →</button>}
+    </div>
+  );
   const today=new Date().toISOString().slice(0,10);const upcoming=cShows.filter(s=>s.date>=today);
 
   const busCalTimes=useMemo(()=>{
@@ -3580,7 +3726,7 @@ function ROSTab(){
     );
   };
 
-  const phases=[{k:"bus_in",l:"BUS ARRIVAL",s:"Anchor"},{k:"pre",l:"PRE-SHOW",s:"Forward from Crew Call"},{k:"mg",l:"MEET & GREET",s:"Anchor"},{k:"doors",l:"DOORS",s:"Contract anchor"},{k:"show",l:"SHOW",s:"Doors +60min"},{k:"curfew",l:"CURFEW",s:sel==="2026-04-16"?"HARD":"Contract anchor"},{k:"post",l:"POST-SHOW",s:"Relative to set end"}];
+  const phases=[{k:"bus_in",l:"BUS ARRIVAL",s:"Anchor",pc:"var(--link)"},{k:"pre",l:"PRE-SHOW",s:"Forward from Crew Call",pc:"var(--warn-fg)"},{k:"mg",l:"MEET & GREET",s:"Anchor",pc:"var(--accent)"},{k:"doors",l:"DOORS",s:"Contract anchor",pc:"var(--success-fg)"},{k:"show",l:"SHOW",s:"Doors +60min",pc:"var(--danger-fg)"},{k:"curfew",l:"CURFEW",s:sel==="2026-04-16"?"HARD":"Contract anchor",pc:"var(--text-dim)"},{k:"post",l:"POST-SHOW",s:"Relative to set end",pc:"var(--info-fg)"}];
 
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
@@ -3608,7 +3754,7 @@ function ROSTab(){
       <div style={{padding:"10px 20px 30px",background:"var(--bg)",flex:1,overflowY:"auto"}}>
         <FlightDayStrip sel={sel}/>
         {phases.filter(ph=>!(ph.k==="mg"&&effShow.mgSkip)&&!(ph.k==="bus_in"&&(effShow.busSkip||effShow.busPre))).map(ph=>{const pb=blocks.filter(b=>ph.k==="bus_in"?b.phase==="bus_in":ph.k==="curfew"?b.id==="curfew":ph.k==="doors"?b.phase==="doors":ph.k==="mg"?b.phase==="mg":b.phase===ph.k);const canAdd=!["bus_in","curfew","doors","mg"].includes(ph.k);
-          return(<div key={ph.k} style={{marginBottom:6}}><div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0 3px"}}><div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",color:"var(--text-dim)"}}>{ph.l}</div><div style={{flex:1,height:1,background:"var(--border)"}}/><div style={{fontSize:8,color:"var(--text-mute)",fontStyle:"italic"}}>{ph.s}</div>{canAdd&&<button onClick={()=>addBlock(ph.k)} title="Add block" style={{background:"none",border:"1px dashed var(--text-faint)",borderRadius:6,color:"var(--text-dim)",fontSize:9,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>+ Block</button>}</div><div style={{display:"flex",flexDirection:"column",gap:3}}>{pb.map(b=>renderB(b))}</div>{!pb.length&&canAdd&&<div style={{fontSize:9,color:"var(--text-mute)",fontStyle:"italic",padding:"4px 0"}}>No blocks — click + Block to add.</div>}</div>);
+          return(<div key={ph.k} style={{marginBottom:6}}><div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0 3px"}}><div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",color:ph.pc||"var(--text-dim)"}}>{ph.l}</div><div style={{flex:1,height:1,background:"var(--border)"}}/><div style={{fontSize:8,color:"var(--text-mute)",fontStyle:"italic"}}>{ph.s}</div>{canAdd&&<button onClick={()=>addBlock(ph.k)} title="Add block" style={{background:"none",border:"1px dashed var(--text-faint)",borderRadius:6,color:"var(--text-dim)",fontSize:9,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>+ Block</button>}</div><div style={{display:"flex",flexDirection:"column",gap:3}}>{pb.map(b=>renderB(b))}</div>{!pb.length&&canAdd&&<div style={{fontSize:9,color:"var(--text-mute)",fontStyle:"italic",padding:"4px 0"}}>No blocks — click + Block to add.</div>}</div>);
         })}
         <div style={{marginTop:12,padding:"12px 14px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,display:"flex",gap:12,flexWrap:"wrap"}}>
           {[...(effShow.busSkip?[]:[{l:effShow.busPre?"Bus":"Bus ETA",v:effShow.busPre?"On-site (prev)":fmt(effShow.busArrive),c:"var(--link)"}]),{l:"Crew Call",v:fmt(effShow.crewCall),c:"var(--warn-fg)"},{l:"M&G",v:fmt(effShow.mgTime),c:"var(--success-fg)",hide:effShow.mgSkip},{l:"Doors",v:fmt(effShow.doors),c:"var(--success-fg)"},{l:"Headline",v:times.bbno_set?`${fmt(times.bbno_set.s)}–${fmt(times.bbno_set.e)}`:"--",c:"var(--danger-fg)"},{l:"Settlement",v:times.settlement?fmt(times.settlement.s):"--",c:"var(--warn-fg)"},{l:"Curfew",v:fmt(effShow.curfew),c:"var(--danger-fg)"},{l:"Bus Out",v:times.bus_depart?fmt(times.bus_depart.s):"--",c:"var(--link)",hide:effShow.busSkip}].filter(s=>!s.hide).map((s,i)=><div key={i}><div style={{fontSize:8,color:"var(--text-dim)",marginBottom:1,fontWeight:600}}>{s.l}</div><div style={{fontFamily:MN,fontSize:11,color:s.c,fontWeight:800}}>{s.v}</div></div>)}
@@ -3672,6 +3818,11 @@ function TourCalendar(){
     off:{l:"OFF",c:"var(--text-dim)",b:"var(--card-2)"},
     split:{l:"SPLIT",c:"var(--warn-fg)",b:"var(--warn-bg)"},
   };
+  const todayISO=new Date().toISOString().slice(0,10);
+  const parseDriveH=s=>{if(!s)return 0;const m=s.match(/(\d+)h/);return m?parseInt(m[1]):0;};
+  const maxDriveH=Math.max(1,...days.filter(d=>d.type==="travel"&&d.bus?.drive).map(d=>parseDriveH(d.bus.drive)));
+  const totalKm=days.filter(d=>d.bus?.km>0).reduce((s,d)=>s+(d.bus?.km||0),0);
+  const totalDriveH=days.filter(d=>d.type==="travel"&&d.bus?.drive).reduce((s,d)=>s+parseDriveH(d.bus.drive),0);
   return(
     <div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:8}}>
@@ -3705,12 +3856,18 @@ function TourCalendar(){
           const isExp=expRows[d.iso];
           const hasFlag=(d.bus?.flag==="⚠")||(d.show?.notes||"").includes("⚠");
           const canExpand=isSplit||hasFlag;
+          const showTodayMarker=i>0&&days[i-1].iso<todayISO&&d.iso>=todayISO;
+          const driveH=parseDriveH(d.bus?.drive);
+          const drivePct=maxDriveH>0?Math.min(100,(driveH/maxDriveH)*100):0;
+          const driveC=driveH>5?"var(--danger-fg)":driveH>3?"var(--warn-fg)":"var(--success-fg)";
           return(
-            <div key={d.iso} style={{borderBottom:i<days.length-1?"1px solid var(--card-3)":"none"}}>
+            <React.Fragment key={d.iso}>
+              {showTodayMarker&&<div style={{padding:"4px 12px",background:"var(--warn-bg)",borderTop:"1px solid var(--warn-fg)",borderBottom:"1px solid var(--warn-fg)",fontSize:8,fontWeight:800,color:"var(--warn-fg)",fontFamily:MN,letterSpacing:"0.1em"}}>▸ TODAY</div>}
+              <div style={{borderBottom:i<days.length-1?"1px solid var(--card-3)":"none"}}>
               <div
                 onClick={()=>openDay(d.iso)}
                 className="rh"
-                style={{display:"grid",gridTemplateColumns:"76px 58px 1fr auto",alignItems:"center",gap:8,padding:isOff?"5px 12px":"8px 12px",background:d.type==="show"?"var(--muted-bg)":d.type==="travel"?"var(--info-bg)":d.type==="split"?"var(--warn-bg)":"var(--card)",cursor:"pointer",opacity:isOff?0.65:1}}
+                style={{display:"grid",gridTemplateColumns:"76px 58px 1fr auto",alignItems:"center",gap:8,padding:isOff?"5px 12px":"8px 12px",background:d.type==="show"?"var(--muted-bg)":d.type==="travel"?"var(--info-bg)":d.type==="split"?"var(--warn-bg)":"var(--card)",cursor:"pointer",opacity:isOff?0.65:1,borderLeft:d.type==="show"?"3px solid var(--success-fg)":"3px solid transparent"}}
               >
                 <div style={{display:"flex",alignItems:"baseline",gap:4}}>
                   <span style={{fontFamily:MN,fontSize:isOff?9:10,fontWeight:isOff?400:700,color:ts.c}}>{fD(d.iso)}</span>
@@ -3750,6 +3907,7 @@ function TourCalendar(){
                   {canExpand&&<span onClick={e=>{e.stopPropagation();setExpRows(p=>({...p,[d.iso]:!p[d.iso]}));}} style={{fontSize:9,color:ts.c,fontWeight:700,padding:"2px 6px",borderRadius:4,cursor:"pointer"}}>{isExp?"▴":"▾"}</span>}
                 </div>
               </div>
+              {d.type==="travel"&&driveH>0&&<div style={{height:3,background:"var(--card-2)"}}><div style={{width:`${drivePct}%`,height:"100%",background:driveC,transition:"width 0.3s"}}/></div>}
               {isSplit&&isExp&&(
                 <div style={{padding:"0 12px 10px",background:"var(--warn-bg)",borderTop:"1px solid var(--warn-bg)"}}>
                   {d.split.parties.map(p=>(
@@ -3777,8 +3935,13 @@ function TourCalendar(){
                 <div style={{padding:"6px 12px 8px",background:"var(--warn-bg)",borderTop:"1px solid var(--warn-bg)",fontSize:9,color:"var(--warn-fg)"}}>{d.show.notes}</div>
               )}
             </div>
+            </React.Fragment>
           );
         })}
+      </div>
+      <div style={{marginTop:8,padding:"10px 14px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,display:"flex",gap:20,alignItems:"center"}}>
+        <div style={{display:"flex",alignItems:"baseline",gap:4}}><span style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"var(--link)"}}>{totalKm.toLocaleString()}km</span><span style={{fontSize:9,color:"var(--text-dim)",marginLeft:4}}>TOTAL DRIVE DIST</span></div>
+        <div style={{display:"flex",alignItems:"baseline",gap:4}}><span style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"var(--text)"}}>{totalDriveH}h</span><span style={{fontSize:9,color:"var(--text-dim)",marginLeft:4}}>TOTAL DRIVE TIME</span></div>
       </div>
     </div>
   );
@@ -4960,7 +5123,7 @@ function FinEventsPanel({selS,fin,uFin,pushUndo}){
 }
 
 function FinTab(){
-  const{shows,cShows,finance,uFin,pushUndo,labelIntel,sel,eventKey}=useContext(Ctx);
+  const{shows,cShows,finance,uFin,pushUndo,labelIntel,sel,setSel,eventKey}=useContext(Ctx);
   const today=new Date().toISOString().slice(0,10);
   const[finView,setFinView]=useState("settlement");
   const[addP,setAddP]=useState(false);
@@ -4985,19 +5148,43 @@ function FinTab(){
     <div className="fi" style={{display:"flex",flexDirection:"column",flex:1,minHeight:0}}>
       {/* Sub-tab bar */}
       <div style={{display:"flex",gap:0,borderBottom:"1px solid var(--border)",background:"var(--card)",flexShrink:0,padding:"0 16px"}}>
-        {[["settlement","Settlement"],["ledger","Ledger"]].map(([v,l])=>(
+        {[["settlement","Settlement"],["ledger","Ledger"],["overview","All Shows"]].map(([v,l])=>(
           <button key={v} onClick={()=>setFinView(v)} style={{padding:"8px 16px",fontSize:11,fontWeight:finView===v?700:500,color:finView===v?"var(--text)":"var(--text-dim)",border:"none",borderBottom:finView===v?"2px solid var(--text)":"2px solid transparent",background:"none",cursor:"pointer",letterSpacing:"0.01em"}}>{l}</button>
         ))}
       </div>
       {finView==="ledger"&&<FinLedger/>}
+      {finView==="overview"&&(()=>{const today=new Date().toISOString().slice(0,10);return(<div style={{flex:1,overflow:"auto",padding:"14px 20px 30px"}}>
+        <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em",marginBottom:8}}>SETTLEMENT STATUS — ALL SHOWS</div>
+        <div style={{display:"flex",flexDirection:"column",gap:3}}>
+          {cShows.map(s=>{const fk=s.date;const fStages=finance[fk]?.stages||{};const isSettled=["wire_ref_confirmed","signed_sheet","payment_initiated"].every(k=>fStages[k]);const inProgress=fStages["payment_initiated"];const isPast=s.date<today;const days=dU(s.date);const overdue=isPast&&!isSettled&&Math.abs(days)>7;return(
+            <div key={s.date} onClick={()=>{setSel(s.date);setFinView("settlement");}} className="rh" style={{display:"grid",gridTemplateColumns:"58px 1fr 80px 90px 70px",alignItems:"center",gap:8,padding:"8px 12px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,cursor:"pointer",borderLeft:`3px solid ${isSettled?"var(--success-fg)":inProgress?"var(--warn-fg)":overdue?"var(--danger-fg)":"var(--card-2)"}`}}>
+              <div style={{fontFamily:MN,fontSize:9,color:"var(--text-dim)"}}>{fD(s.date)}</div>
+              <div><div style={{fontSize:10,fontWeight:700}}>{s.city}</div><div style={{fontSize:8,color:"var(--text-dim)"}}>{s.venue}</div></div>
+              <div style={{fontSize:9,fontFamily:MN,color:"var(--text-2)"}}>{finance[fk]?.settlementAmount?`$${finance[fk].settlementAmount}`:"—"}</div>
+              <div style={{fontSize:8,padding:"2px 6px",borderRadius:99,background:isSettled?"var(--success-bg)":inProgress?"var(--warn-bg)":"var(--card-2)",color:isSettled?"var(--success-fg)":inProgress?"var(--warn-fg)":"var(--text-mute)",fontWeight:700,textAlign:"center"}}>{isSettled?"Settled":inProgress?"In Progress":"Pending"}</div>
+              <div style={{fontSize:8,color:overdue?"var(--danger-fg)":"var(--text-mute)",fontFamily:MN,textAlign:"right"}}>{isPast&&!isSettled?`${Math.abs(days)}d overdue`:days>0?`${days}d out`:"today"}</div>
+            </div>
+          );})}
+        </div>
+      </div>);})()}
       {finView==="settlement"&&<div style={{flex:1,overflow:"auto",padding:"14px 20px 30px"}}>
-        {!sel?(<div style={{textAlign:"center",padding:"40px 0",color:"var(--text-mute)"}}><div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Finance</div><div style={{fontSize:11}}>No show selected.</div></div>):(
+        {!sel?(<div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 0",gap:10}}><div style={{fontSize:32,opacity:0.2}}>💰</div><div style={{fontSize:14,fontWeight:700,color:"var(--text)"}}>No show selected</div><div style={{fontSize:11,color:"var(--text-dim)",maxWidth:280,textAlign:"center"}}>Select a show from the sidebar to view settlement and payouts.</div>{cShows.filter(s=>s.date>=new Date().toISOString().slice(0,10))[0]&&<button onClick={()=>setSel(cShows.filter(s=>s.date>=new Date().toISOString().slice(0,10))[0].date)} style={{marginTop:6,padding:"6px 16px",borderRadius:8,border:"none",background:"var(--accent)",color:"#fff",fontSize:11,fontWeight:700,cursor:"pointer"}}>Jump to next show →</button>}</div>):(
           <div>
             <div style={{marginBottom:10}}>
               <div style={{fontSize:13,fontWeight:800}}>{show?.city} — {show?.venue}</div>
               <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:MN,marginTop:1}}>{fFull(sel)}</div>
               {done&&<div style={{marginTop:6,display:"inline-flex",alignItems:"center",gap:5,padding:"4px 10px",background:"var(--success-bg)",borderRadius:10,fontSize:10,fontWeight:800,color:"var(--success-fg)"}}>SETTLEMENT DONE ✓</div>}
             </div>
+            {(()=>{const guarantee=parseFloat(show?.guarantee||0);const wireAmount=parseFloat(fin.settlementAmount||0);const variance=wireAmount-guarantee;const variancePct=guarantee>0?(variance/guarantee)*100:null;return guarantee>0?(
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
+                {[{l:"Deal Guarantee",v:`$${guarantee.toLocaleString()}`,c:"var(--text)"},{l:"Settlement Amount",v:wireAmount>0?`$${wireAmount.toLocaleString()}`:"—",c:"var(--text)"},{l:"Variance",v:variancePct!=null?`${variance>=0?"+":""}$${Math.abs(variance).toLocaleString()} (${variancePct.toFixed(1)}%)`:"—",c:variance>=0?"var(--success-fg)":"var(--danger-fg)"}].map(s=>(
+                  <div key={s.l} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,padding:"10px 12px"}}>
+                    <div style={{fontSize:8,color:"var(--text-dim)",marginBottom:3,fontWeight:600}}>{s.l}</div>
+                    <div style={{fontSize:15,fontWeight:800,color:s.c,fontFamily:MN}}>{s.v}</div>
+                  </div>
+                ))}
+              </div>
+            ):null;})()}
             {(()=>{const ps=(labelIntel?.settlements||[]).filter(s=>s.showId===showIdFor(shows?.[sel]||{}));return ps.length>0?(
               <div style={{background:"var(--info-bg)",border:"1px solid var(--info-bg)",borderRadius:10,padding:"10px 12px",marginBottom:10}}>
                 <div style={{fontSize:9,fontWeight:800,color:"var(--link)",letterSpacing:"0.08em",marginBottom:6}}>INBOX SETTLEMENTS ({ps.length})</div>
@@ -5035,7 +5222,18 @@ function FinTab(){
                   );})}
                 </div>
               </div>
-              {!done&&stages["payment_initiated"]&&<div style={{marginTop:8,padding:"7px 10px",background:"var(--warn-bg)",borderRadius:6,fontSize:10,color:"var(--warn-fg)",fontWeight:600}}>Wire ref # and signed settlement sheet both required to mark as done.</div>}
+              {(()=>{const wireSteps=[{id:"signed",label:"Sheet Signed",stageKey:"signed_sheet"},{id:"wire",label:"Wire Initiated",stageKey:"payment_initiated"},{id:"ref",label:"Ref Confirmed",stageKey:"wire_ref_confirmed"}];return(
+                <div style={{display:"flex",alignItems:"center",gap:0,marginTop:10,padding:"8px 0"}}>
+                  {wireSteps.map((step,i)=>{const d=stages[step.stageKey];return(<React.Fragment key={step.id}>
+                    {i>0&&<div style={{flex:1,height:2,background:d?"var(--success-fg)":"var(--card-2)"}}/>}
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,flexShrink:0}}>
+                      <div style={{width:10,height:10,borderRadius:99,background:d?"var(--success-fg)":"var(--card-2)",border:`2px solid ${d?"var(--success-fg)":"var(--border)"}`}}/>
+                      <div style={{fontSize:8,color:"var(--text-dim)",textAlign:"center",whiteSpace:"nowrap"}}>{step.label}</div>
+                    </div>
+                  </React.Fragment>);})}
+                </div>
+              );})()}
+              {!done&&stages["payment_initiated"]&&<div style={{marginTop:4,padding:"7px 10px",background:"var(--warn-bg)",borderRadius:6,fontSize:10,color:"var(--warn-fg)",fontWeight:600}}>Wire ref # and signed sheet both required to mark done.</div>}
               <div style={{marginTop:10,fontSize:9,color:"var(--text-mute)",fontStyle:"italic"}}>Legacy flat fields below. Prefer <b>Financial Events</b> above for new settlements, wires, withholding, and merch — each tracks independently.</div>
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:7,marginTop:6}}>
                 {[{l:"Wire Ref #",k:"wireRef",ph:"REF-20260520"},{l:"Wire Date",k:"wireDate",ph:"2026-05-22"},{l:"Settlement Amount",k:"settlementAmount",ph:"0.00"}].map(f=><div key={f.k}><div style={{fontSize:9,color:"var(--text-dim)",marginBottom:2}}>{f.l}</div><input defaultValue={fin[f.k]||""} onBlur={e=>{const v=e.target.value;const prev=fin[f.k]||"";if(v===prev)return;uFin(eventKey,{[f.k]:v});pushUndo(`${f.l} updated.`,()=>uFin(eventKey,{[f.k]:prev}));}} placeholder={f.ph} style={{width:"100%",background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text)",fontSize:10,fontFamily:MN,padding:"4px 6px",outline:"none"}}/></div>)}
@@ -5102,7 +5300,7 @@ function FinTab(){
                   <td style={{padding:"5px 7px",fontFamily:MN,fontSize:9,color:"var(--text-mute)"}}>{p.date}</td>
                 </tr>)}</tbody>
               </table>):<div style={{fontSize:11,color:"var(--text-mute)",textAlign:"center",padding:"14px 0"}}>No payouts logged.</div>}
-              {payouts.length>0&&currencies.map(cur=><div key={cur} style={{marginTop:8,padding:"6px 10px",background:"var(--card-3)",borderRadius:6,fontSize:9,color:"var(--text-2)"}}><span style={{fontWeight:700}}>Batch total {cur}: </span><span style={{fontFamily:MN,fontWeight:700,color:"var(--text)"}}>{batchTotal(cur)}</span><span style={{marginLeft:8,color:"var(--text-mute)"}}>({payouts.filter(p=>p.currency===cur).length} payees)</span></div>)}
+              {payouts.length>0&&currencies.map(cur=>{const t=parseFloat(batchTotal(cur));const FX={EUR:1.08,GBP:1.27};const usdEquiv=FX[cur]?(t*FX[cur]).toFixed(2):null;return(<div key={cur} style={{marginTop:8,padding:"6px 10px",background:"var(--card-3)",borderRadius:6,fontSize:9,color:"var(--text-2)",display:"flex",alignItems:"center",gap:8}}><span style={{fontWeight:700}}>Batch total {cur}: </span><span style={{fontFamily:MN,fontWeight:700,color:"var(--text)"}}>{batchTotal(cur)}</span><span style={{color:"var(--text-mute)"}}>({payouts.filter(p=>p.currency===cur).length} payees)</span>{usdEquiv&&<span style={{fontFamily:MN,color:"var(--text-mute)",marginLeft:"auto"}}>≈ USD {usdEquiv}</span>}</div>);})}
             </div>
           </div>
         )}
