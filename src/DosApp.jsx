@@ -5863,6 +5863,8 @@ function CrewTab(){
   const[panel,setPanel]=useState(null);
   const[editMode,setEditMode]=useState(false);
   const[flightPicker,setFlightPicker]=useState(null); // {crewId, dir}
+  const[addPickerOpen,setAddPickerOpen]=useState(false);
+  const[addPickerSel,setAddPickerSel]=useState([]);
   const show=shows[sel];
   const today=new Date().toISOString().slice(0,10);
   // eventKey already includes split-party scope on split days.
@@ -5975,7 +5977,8 @@ function CrewTab(){
         <div style={{marginLeft:"auto",display:"flex",gap:5}}>
           <button onClick={()=>setTab("transport")} title="Open per-date travel view for all crew" style={{...btn("var(--card-3)","var(--accent)"),border:"1px solid var(--accent-pill-border)"}}>🧭 Travel Day →</button>
           <button onClick={()=>setEditMode(v=>!v)} style={btn(editMode?"var(--accent)":"var(--card-3)",editMode?"var(--card)":"var(--text-2)")}>{editMode?"Done Editing":"Edit Roster"}</button>
-          <button onClick={addMember} style={btn()}>+ Add</button>
+          {editMode&&<button onClick={addMember} style={btn("var(--card-3)","var(--text-2)")}>+ New Member</button>}
+          <button onClick={()=>{setAddPickerOpen(v=>!v);setAddPickerSel([]);}} style={btn(addPickerOpen?"var(--accent)":"var(--success-fg)")}>{addPickerOpen?"Cancel":"+ Add to Event"}</button>
         </div>
       </div>
       {isInheriting&&prevDate&&(
@@ -5984,6 +5987,44 @@ function CrewTab(){
           <button onClick={copyFromPrev} style={{marginLeft:"auto",fontSize:9,padding:"3px 9px",borderRadius:6,border:"none",background:"var(--warn-fg)",color:"#fff",cursor:"pointer",fontWeight:700,flexShrink:0}}>Copy to {fD(sel)}</button>
         </div>
       )}
+      {addPickerOpen&&(()=>{
+        const notAttending=rosterCrew.filter(c=>!getCD(c.id).attending);
+        const confirmAdd=()=>{
+          addPickerSel.forEach(id=>updateSC(id,{attending:true}));
+          setAddPickerOpen(false);setAddPickerSel([]);
+        };
+        return(
+          <div style={{margin:"10px 20px 0",background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
+            <div style={{padding:"8px 14px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:8,fontSize:10,fontWeight:700}}>
+              <span>Add to {show?.venue||dateLabel(sel)}</span>
+              <span style={{fontSize:9,color:"var(--text-dim)",fontWeight:400}}>{addPickerSel.length} selected</span>
+              <div style={{marginLeft:"auto",display:"flex",gap:5}}>
+                {notAttending.length>0&&<button onClick={()=>setAddPickerSel(addPickerSel.length===notAttending.length?[]:notAttending.map(c=>c.id))} style={{background:"none",border:"1px solid var(--border)",borderRadius:6,fontSize:9,padding:"3px 9px",cursor:"pointer",color:"var(--text-2)"}}>{addPickerSel.length===notAttending.length?"Deselect All":"Select All"}</button>}
+                <button onClick={confirmAdd} disabled={addPickerSel.length===0} style={{background:addPickerSel.length?"var(--success-fg)":"var(--card-3)",border:"none",borderRadius:6,fontSize:10,padding:"4px 12px",cursor:addPickerSel.length?"pointer":"default",color:addPickerSel.length?"#fff":"var(--text-mute)",fontWeight:700}}>Add {addPickerSel.length>0?addPickerSel.length+" ":""}</button>
+              </div>
+            </div>
+            {notAttending.length===0
+              ?<div style={{padding:"14px",fontSize:10,color:"var(--text-dim)"}}>All roster members are already attending.</div>
+              :<div style={{display:"flex",flexDirection:"column"}}>
+                {notAttending.map(c=>{
+                  const sel2=addPickerSel.includes(c.id);
+                  return(
+                    <div key={c.id} onClick={()=>setAddPickerSel(p=>sel2?p.filter(x=>x!==c.id):[...p,c.id])} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 14px",borderBottom:"1px solid var(--card-3)",cursor:"pointer",background:sel2?"var(--accent-pill-bg)":"transparent"}}>
+                      <div style={{width:16,height:16,borderRadius:3,border:`2px solid ${sel2?"var(--accent)":"var(--border)"}`,background:sel2?"var(--accent)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        {sel2&&<span style={{color:"#fff",fontSize:10,fontWeight:700}}>✓</span>}
+                      </div>
+                      <div>
+                        <div style={{fontSize:11,fontWeight:600,color:"var(--text)"}}>{c.name||<span style={{color:"var(--text-mute)"}}>Unnamed</span>}</div>
+                        <div style={{fontSize:9,color:"var(--text-dim)"}}>{c.role}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            }
+          </div>
+        );
+      })()}
       <div style={{padding:"10px 20px 30px",display:"flex",flexDirection:"column",gap:10}}>
         {/* Roster */}
         <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
