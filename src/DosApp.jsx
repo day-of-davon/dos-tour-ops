@@ -2544,9 +2544,11 @@ function NavSidebar(){
 }
 
 function TopBar({ss}){
-  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd,advances,finance,intel,cShows}=useContext(Ctx);
+  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd,advances,finance,intel,cShows,currentSplit,activeSplitParty}=useContext(Ctx);
   const[dragId,setDragId]=useState(null);
   const[overId,setOverId]=useState(null);
+  const hasEvent=!!shows[sel]||(currentSplit&&activeSplitParty?.type==="show");
+  useEffect(()=>{if(!hasEvent&&(tab==="advance"||tab==="production"))setTab("ros");},[hasEvent,tab,setTab]);
   const{me}=useContext(Ctx);
   const _auth=useAuth();const _email=_auth?.user?.email||"";
   const visibleRoles=ROLES.filter(r=>r.id!=="tm"||TM_EMAILS.has(_email));
@@ -2624,7 +2626,7 @@ function TopBar({ss}){
         {mobile&&ss&&<span style={{fontSize:9,color:ss==="saved"?"var(--success-fg)":"var(--text-mute)",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
       </div>
       <div style={{display:"flex",padding:mobile?"0 12px":"0 20px",width:"100%",overflowX:"auto",overflowY:"hidden",scrollbarWidth:"thin",WebkitOverflowScrolling:"touch"}}>
-        {(orderedTabs||TABS).map(t=>{
+        {(orderedTabs||TABS).filter(t=>hasEvent||t.id!=="advance"&&t.id!=="production").map(t=>{
           const isDrag=dragId===t.id;
           const isOver=overId===t.id&&dragId&&dragId!==t.id;
           return(
