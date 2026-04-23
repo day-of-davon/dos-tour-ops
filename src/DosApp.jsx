@@ -2395,7 +2395,7 @@ function DateDrawer({onClose}){
 }
 
 function Dash(){
-  const{sorted,cShows,next,setTab,setSel,advances,aC,mobile,intel,labelIntel}=useContext(Ctx);
+  const{sorted,cShows,next,setTab,setSel,advances,aC,mobile,intel,setIntel,labelIntel}=useContext(Ctx);
   const client=CM[aC];const today=new Date().toISOString().slice(0,10);
   const upcoming=cShows.filter(s=>s.date>=today).slice(0,10);
   const PORD={CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3};
@@ -2408,11 +2408,19 @@ function Dash(){
   const pendingCount=d=>{const adv=advances[d]||{};const items=adv.items||{};const custom=adv.customItems||[];return [...AT,...custom].filter(t=>(items[t.id]?.status||"pending")==="pending").length;};
   const showMap=useMemo(()=>{const m={};cShows.forEach(s=>m[showIdFor(s)]=s);return m;},[cShows]);
   const arShowLabel=item=>{const s=showMap[item.showId];return s?`${s.city} ${fD(s.date)}`:"";}
-  const allTodos=useMemo(()=>cShows.flatMap(s=>{const sid=showIdFor(s);return(intel[sid]?.todos||[]).filter(t=>!t.done).map(t=>({...t,show:s}));}).sort((a,b)=>{const d=(PORD[a.priority]??4)-(PORD[b.priority]??4);return d!==0?d:a.show.date.localeCompare(b.show.date);}),[cShows,intel]);
-  const allFollowUps=useMemo(()=>cShows.flatMap(s=>{const sid=showIdFor(s);return(intel[sid]?.followUps||[]).map(f=>({...f,show:s}));}).sort((a,b)=>(PORD[a.priority]??4)-(PORD[b.priority]??4)),[cShows,intel]);
-  const arItems=useMemo(()=>(labelIntel?.actionRequired||[]).sort((a,b)=>{const d=(BORD[a.bucket]??5)-(BORD[b.bucket]??5);return d!==0?d:new Date(b.date)-new Date(a.date);}),[labelIntel]);
+  const arHidden=useMemo(()=>new Set([...(intel.__arState?.done||[]),...(intel.__arState?.ignored||[])]),[intel.__arState]);
+  const allTodos=useMemo(()=>cShows.flatMap(s=>{const sid=showIdFor(s);return(intel[sid]?.todos||[]).filter(t=>!t.done&&!t.ignored).map(t=>({...t,show:s}));}).sort((a,b)=>{const d=(PORD[a.priority]??4)-(PORD[b.priority]??4);return d!==0?d:a.show.date.localeCompare(b.show.date);}),[cShows,intel]);
+  const allFollowUps=useMemo(()=>cShows.flatMap(s=>{const sid=showIdFor(s);return(intel[sid]?.followUps||[]).filter(f=>!f.done&&!f.ignored).map(f=>({...f,show:s}));}).sort((a,b)=>(PORD[a.priority]??4)-(PORD[b.priority]??4)),[cShows,intel]);
+  const arItems=useMemo(()=>(labelIntel?.actionRequired||[]).filter(i=>!arHidden.has(i.id)).sort((a,b)=>{const d=(BORD[a.bucket]??5)-(BORD[b.bucket]??5);return d!==0?d:new Date(b.date)-new Date(a.date);}),[labelIntel,arHidden]);
   const urgentItems=useMemo(()=>arItems.filter(i=>i.bucket==="urgent"||i.category==="LEGAL"),[arItems]);
-  const logisticsItems=useMemo(()=>(labelIntel?.advanceItems||[]).filter(i=>i.category==="LOGISTICS"||i.category==="ADVANCE").slice(0,20),[labelIntel]);
+  const logisticsItems=useMemo(()=>(labelIntel?.advanceItems||[]).filter(i=>!arHidden.has(i.id)&&(i.category==="LOGISTICS"||i.category==="ADVANCE")).slice(0,20),[labelIntel,arHidden]);
+
+  const markTodo=(t,state)=>{const sid=showIdFor(t.show);setIntel(p=>({...p,[sid]:{...(p[sid]||{}),todos:(p[sid]?.todos||[]).map(x=>x.id===t.id?{...x,[state]:true}:x)}}));};
+  const markFollowUp=(f,state)=>{const sid=showIdFor(f.show);setIntel(p=>{const fu=p[sid]?.followUps||[];const idx=fu.findIndex(x=>x.action===f.action&&(x.tid===f.tid||x.owner===f.owner||x.priority===f.priority));if(idx<0)return p;return{...p,[sid]:{...(p[sid]||{}),followUps:fu.map((x,j)=>j===idx?{...x,[state]:true}:x)}};});};
+  const markAr=(id,state)=>{setIntel(p=>({...p,__arState:{...(p.__arState||{}),[state]:[...new Set([...(p.__arState?.[state]||[]),id])]}}));};
+
+  const BTN_DONE={fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--success-bg)",color:"var(--success-fg)"};
+  const BTN_IGN={fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--card-2)",color:"var(--text-mute)"};
 
   return(
     <div className="fi" style={{padding:mobile?"10px 10px 24px":"14px 20px 30px",maxWidth:960,flex:1,overflowY:"auto",minHeight:0}}>
@@ -2447,9 +2455,10 @@ function Dash(){
             {allTodos.map(t=>{const sid=showIdFor(t.show);const tid=t.threadTid||(intel[sid]?.threads||[]).find(x=>x.tid)?.tid||null;return(<div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:priB(t.priority),color:priC(t.priority),fontWeight:700,flexShrink:0,marginTop:1}}>{t.priority||"LOW"}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",lineHeight:1.4}}>{t.text}</div>{(t.owner||t.deadline)&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{t.owner}{t.deadline?` · due ${t.deadline}`:""}</div>}</div>
-              <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
                 {tid&&<a href={gmailUrl(tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email →</a>}
-                <span style={{fontSize:9,color:"var(--text-dim)",fontFamily:MN}}>{t.show.city} {fD(t.show.date)}</span>
+                <button onClick={()=>markTodo(t,"done")} style={BTN_DONE}>Done</button>
+                <button onClick={()=>markTodo(t,"ignored")} style={BTN_IGN}>Ignore</button>
               </div>
             </div>);})}
           </div>
@@ -2459,9 +2468,10 @@ function Dash(){
             {allFollowUps.map((f,i)=>{const sid=showIdFor(f.show);const tid=f.tid||(intel[sid]?.threads||[]).find(x=>x.tid)?.tid||null;return(<div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:priB(f.priority),color:priC(f.priority),fontWeight:700,flexShrink:0,marginTop:1}}>{f.priority||"LOW"}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",lineHeight:1.4}}>{f.action}</div>{(f.owner||f.deadline)&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{f.owner}{f.deadline?` · due ${f.deadline}`:""}</div>}</div>
-              <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
                 {tid&&<a href={gmailUrl(tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email →</a>}
-                <span style={{fontSize:9,color:"var(--text-dim)",fontFamily:MN}}>{f.show.city} {fD(f.show.date)}</span>
+                <button onClick={()=>markFollowUp(f,"done")} style={BTN_DONE}>Done</button>
+                <button onClick={()=>markFollowUp(f,"ignored")} style={BTN_IGN}>Ignore</button>
               </div>
             </div>);})}
           </div>
@@ -2473,6 +2483,8 @@ function Dash(){
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{i.from}{arShowLabel(i)?` · ${arShowLabel(i)}`:""}</div></div>
               <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN,flexShrink:0,paddingTop:2}}>{i.category}</span>
               <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>email →</a>
+              <button onClick={()=>markAr(i.id,"done")} style={BTN_DONE}>Done</button>
+              <button onClick={()=>markAr(i.id,"ignored")} style={BTN_IGN}>Ignore</button>
             </div>)}
           </div>
         </IntelSection>}
@@ -2481,8 +2493,9 @@ function Dash(){
             {logisticsItems.map((i,idx)=><div key={idx} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,flexShrink:0,marginTop:1}}>{i.category}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{i.from}</div></div>
-              {arShowLabel(i)&&<span style={{fontSize:9,color:"var(--text-dim)",fontFamily:MN,flexShrink:0}}>{arShowLabel(i)}</span>}
               <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>email →</a>
+              <button onClick={()=>markAr(i.id,"done")} style={BTN_DONE}>Done</button>
+              <button onClick={()=>markAr(i.id,"ignored")} style={BTN_IGN}>Ignore</button>
             </div>)}
           </div>
         </IntelSection>}
@@ -5327,7 +5340,7 @@ function CmdP(){
   const[q,setQ]=useState("");const[sel1,setSel1]=useState(0);const ref=useRef(null);const listRef=useRef(null);
   useEffect(()=>{ref.current?.focus();},[]);
   const actions=useMemo(()=>{
-    const a=[{type:"action",id:"open_now",label:"Go to Now",sub:"Dashboard / next 72h",icon:"◉",run:()=>setTab("dashboard")},
+    const a=[{type:"action",id:"open_now",label:"Go to Now",sub:"Dashboard / next 72h",icon:"◉",run:()=>setTab("dash")},
       {type:"action",id:"open_advance",label:"Open Advance tracker",sub:"current show",icon:"◎",run:()=>setTab("advance")},
       {type:"action",id:"open_ros",label:"Open Schedule",sub:"ROS for current show",icon:"▦",run:()=>setTab("ros")},
       {type:"action",id:"open_transport",label:"Open Logistics",sub:"bus + dispatch",icon:"◈",run:()=>setTab("transport")},
@@ -5354,7 +5367,7 @@ function CmdP(){
     if(item.type==="action"){item.run?.();}
     if(item.type==="tab")setTab(item.id);
     if(item.type==="show"){setSel(item.id);if(item.cId)setAC(item.cId);setTab("ros");}
-    if(item.type==="client"){setAC(item.id);setTab("dashboard");}
+    if(item.type==="client"){setAC(item.id);setTab("dash");}
     setCmd(false);
   };
   const onKey=e=>{
