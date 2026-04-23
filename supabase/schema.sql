@@ -175,3 +175,63 @@ create policy "insert own audit"
   with check (auth.uid() = user_id);
 
 -- No update / delete policies: append-only.
+
+-- ── Scan runs: per-invocation metadata for intel/flights/lodging scanners ─────
+create table if not exists scan_runs (
+  id                  uuid        default gen_random_uuid() primary key,
+  scanner             text        not null,   -- 'intel' | 'flights' | 'lodging'
+  user_id             uuid        references auth.users on delete cascade not null,
+  team_id             text,
+  params              jsonb       default '{}',
+  started_at          timestamptz not null default now(),
+  finished_at         timestamptz,
+  duration_ms         int,
+  threads_found       int         default 0,
+  threads_cached      int         default 0,
+  threads_parsed      int         default 0,
+  attachments_scanned int         default 0,
+  input_tokens        int         default 0,
+  output_tokens       int         default 0,
+  cache_read_tokens   int         default 0,
+  cache_creation_tokens int       default 0,
+  cost_cents          int         default 0,
+  stop_reasons        jsonb       default '{}',
+  errors              jsonb       default '[]'
+);
+
+-- Add cache columns on existing deployments
+alter table scan_runs add column if not exists cache_read_tokens   int default 0;
+alter table scan_runs add column if not exists cache_creation_tokens int default 0;
+
+create index if not exists scan_runs_user_time_idx
+  on scan_runs (user_id, started_at desc);
+create index if not exists scan_runs_team_time_idx
+  on scan_runs (team_id, started_at desc) where team_id is not null;
+
+alter table scan_runs enable row level security;
+
+drop policy if exists "own scan runs" on scan_runs;
+create policy "own scan runs"
+  on scan_runs
+  using (auth.uid() = user_id);
+
+-- ── Scan thread cache: per-thread memoization keyed by content hash ───────────
+create table if not exists scan_thread_cache (
+  id                        uuid        default gen_random_uuid() primary key,
+  scanner                   text        not null,
+  thread_id                 text        not null,
+  team_id                   text,
+  last_msg_ms               bigint,
+  body_hash                 text,
+  result                    jsonb,
+  stop_reason               text,
+  footer_strip_saved_chars  int,
+  attachment_fingerprints   jsonb       default '[]',
+  parsed_at                 timestamptz not null default now(),
+  unique (scanner, thread_id)
+);
+
+create index if not exists scan_thread_cache_scanner_idx
+  on scan_thread_cache (scanner, thread_id);
+
+alter table scan_thread_cache enable row level security;

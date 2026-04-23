@@ -181,7 +181,7 @@ module.exports = async function handler(req, res) {
   }
   console.log(`[lodging-scan] runId=${runId} threads=${threads.length} cached=${threads.length - fresh.length} fresh=${fresh.length}`);
 
-  let inputTokens = 0, outputTokens = 0;
+  let inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheCreationTokens = 0;
   let attachmentsScanned = 0;
   let claudeLodgings = [];
 
@@ -237,8 +237,10 @@ Rules:
       throw Object.assign(new Error(`Anthropic ${resp.status}`), { status: resp.status, detail: err });
     }
     const data = await resp.json();
-    inputTokens  += data.usage?.input_tokens  || 0;
-    outputTokens += data.usage?.output_tokens || 0;
+    inputTokens         += data.usage?.input_tokens                || 0;
+    outputTokens        += data.usage?.output_tokens               || 0;
+    cacheReadTokens     += data.usage?.cache_read_input_tokens     || 0;
+    cacheCreationTokens += data.usage?.cache_creation_input_tokens || 0;
     bumpStopReason(stopReasons, data.stop_reason);
     const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
     return { text, stopReason: data.stop_reason };
@@ -383,7 +385,7 @@ ${returnShape}`;
     threadsCached: threads.length - fresh.length,
     threadsParsed: fresh.length,
     attachmentsScanned,
-    inputTokens, outputTokens,
+    inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens,
     stopReasons, errors,
     startedAt,
   });

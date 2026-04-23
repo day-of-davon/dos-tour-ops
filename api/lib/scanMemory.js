@@ -10,8 +10,10 @@ const TEAM_ID = "dos-bbno-2026";
 // Per-million-token pricing in cents. claude-sonnet-4-* family.
 // Keep synced with https://www.anthropic.com/pricing — good enough for internal dashboards.
 const PRICE_PER_MTOK = {
-  input_cents: 300,      // $3 / Mtok
-  output_cents: 1500,    // $15 / Mtok
+  input_cents: 300,             // $3/Mtok fresh input
+  output_cents: 1500,           // $15/Mtok output
+  cache_creation_cents: 375,    // $3.75/Mtok cache write (1.25x input)
+  cache_read_cents: 30,         // $0.30/Mtok cache read (0.1x input)
 };
 
 function client() {
@@ -44,10 +46,12 @@ function shouldUseCached(cacheRow, lastMsgMs, bodyHash, attachmentFingerprints =
   return true;
 }
 
-function computeCostCents(inputTokens = 0, outputTokens = 0) {
-  const inC = (inputTokens  * PRICE_PER_MTOK.input_cents)  / 1_000_000;
-  const outC = (outputTokens * PRICE_PER_MTOK.output_cents) / 1_000_000;
-  return Math.round(inC + outC);
+function computeCostCents(inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheCreationTokens = 0) {
+  const inC       = (inputTokens         * PRICE_PER_MTOK.input_cents)           / 1_000_000;
+  const outC      = (outputTokens        * PRICE_PER_MTOK.output_cents)          / 1_000_000;
+  const readC     = (cacheReadTokens     * PRICE_PER_MTOK.cache_read_cents)      / 1_000_000;
+  const createC   = (cacheCreationTokens * PRICE_PER_MTOK.cache_creation_cents)  / 1_000_000;
+  return Math.round(inC + outC + readC + createC);
 }
 
 async function startScanRun({ scanner, userId, params = {} }) {
@@ -68,11 +72,17 @@ async function finishScanRun(runId, stats) {
     threadsFound = 0, threadsCached = 0, threadsParsed = 0,
     attachmentsScanned = 0,
     inputTokens = 0, outputTokens = 0,
+    cacheReadTokens = 0, cacheCreationTokens = 0,
     stopReasons = {}, errors = [],
     startedAt = null,
   } = stats || {};
   const finished = new Date();
   const duration = startedAt ? finished.getTime() - startedAt : null;
+  const costCents = computeCostCents(inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens);
+  if (cacheReadTokens || cacheCreationTokens) {
+    const savedCents = Math.round((cacheReadTokens * (PRICE_PER_MTOK.input_cents - PRICE_PER_MTOK.cache_read_cents)) / 1_000_000);
+    console.log(`[scanMemory] cache: read=${cacheReadTokens} created=${cacheCreationTokens} saved≈$${(savedCents / 100).toFixed(4)}`);
+  }
   const { error } = await sb.from("scan_runs").update({
     finished_at: finished.toISOString(),
     duration_ms: duration,
@@ -82,7 +92,9 @@ async function finishScanRun(runId, stats) {
     attachments_scanned: attachmentsScanned,
     input_tokens: inputTokens,
     output_tokens: outputTokens,
-    cost_cents: computeCostCents(inputTokens, outputTokens),
+    cache_read_tokens: cacheReadTokens,
+    cache_creation_tokens: cacheCreationTokens,
+    cost_cents: costCents,
     stop_reasons: stopReasons,
     errors,
   }).eq("id", runId);

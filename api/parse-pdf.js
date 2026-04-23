@@ -68,7 +68,7 @@ Return this exact JSON structure (use null for missing fields, empty arrays if n
     headers: ANTHROPIC_HEADERS,
     body: JSON.stringify({
       model: DEFAULT_MODEL,
-      max_tokens: 2000,
+      max_tokens: 4096,
       system: [{ type: "text", text: sysPrompt, cache_control: { type: "ephemeral" } }],
       messages: [{
         role: "user",
@@ -93,6 +93,11 @@ Return this exact JSON structure (use null for missing fields, empty arrays if n
   }
 
   const anthropicData = await anthropicResp.json();
+  const inputTokens = anthropicData.usage?.input_tokens || 0;
+  const outputTokens = anthropicData.usage?.output_tokens || 0;
+  const cacheReadTokens = anthropicData.usage?.cache_read_input_tokens || 0;
+  const cacheCreationTokens = anthropicData.usage?.cache_creation_input_tokens || 0;
+  console.log(`[parse-pdf] tokens: in=${inputTokens} out=${outputTokens} cache_read=${cacheReadTokens} cache_create=${cacheCreationTokens} stop=${anthropicData.stop_reason}`);
   const textContent = (anthropicData.content || [])
     .filter((b) => b.type === "text")
     .map((b) => b.text)
@@ -108,5 +113,5 @@ Return this exact JSON structure (use null for missing fields, empty arrays if n
 
   if (!parsed) return res.status(422).json({ error: "Could not parse document", raw: textContent });
 
-  return res.json({ parsed, filename });
+  return res.json({ parsed, filename, tokensUsed: inputTokens + outputTokens });
 };

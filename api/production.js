@@ -4,7 +4,7 @@
 
 const { createClient } = require("@supabase/supabase-js");
 const { extractJson } = require("./lib/gmail");
-const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL } = require("./lib/anthropic");
+const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL, HEAVY_MODEL } = require("./lib/anthropic");
 
 const QUOTE_PROMPT = `Extract equipment line items from this vendor production quote PDF.
 Return ONLY a JSON array. No preamble, no markdown fences.
@@ -256,7 +256,7 @@ module.exports = async function handler(req, res) {
     method: "POST",
     headers: ANTHROPIC_HEADERS,
     body: JSON.stringify({
-      model: DEFAULT_MODEL,
+      model: HEAVY_MODEL,
       max_tokens: 2048,
       system: [{ type: "text", text: "You are a production document parser for concert touring. Return ONLY valid JSON arrays. No markdown, no backticks, no preamble.", cache_control: { type: "ephemeral" } }],
       messages: [{
@@ -275,6 +275,11 @@ module.exports = async function handler(req, res) {
   }
 
   const anthropicData = await anthropicResp.json();
+  const inputTokens = anthropicData.usage?.input_tokens || 0;
+  const outputTokens = anthropicData.usage?.output_tokens || 0;
+  const cacheReadTokens = anthropicData.usage?.cache_read_input_tokens || 0;
+  const cacheCreationTokens = anthropicData.usage?.cache_creation_input_tokens || 0;
+  console.log(`[production] tokens: in=${inputTokens} out=${outputTokens} cache_read=${cacheReadTokens} cache_create=${cacheCreationTokens} stop=${anthropicData.stop_reason}`);
   const textContent = (anthropicData.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
   const parsed = extractJson(textContent);
 
@@ -315,5 +320,5 @@ module.exports = async function handler(req, res) {
       };
     });
 
-  return res.json({ items: enriched, docType, vendorName, quoteRef, count: enriched.length });
+  return res.json({ items: enriched, docType, vendorName, quoteRef, count: enriched.length, tokensUsed: inputTokens + outputTokens });
 };
