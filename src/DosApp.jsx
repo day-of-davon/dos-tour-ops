@@ -1630,7 +1630,8 @@ function FlightsSection(){
         <div style={{marginLeft:"auto",display:"flex",gap:6}}>
           <button onClick={()=>{const before=Object.keys(flights).length;const cleaned=cleanFlightsObj(flights);const after=Object.keys(cleaned).length;if(confirm(`Clean & deduplicate flights? ${before}→${after} (−${before-after})`)){setFlights(cleaned);setScanMsg(`Cleaned: ${before}→${after} flights.`);}}} disabled={scanning} style={{background:"var(--border)",color:"var(--text-dim)",border:"1px solid var(--border)",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700}}>Clean & Dedup</button>
           <button onClick={()=>{if(confirm(`Clear all ${allFlights.length} flights and rescan Gmail?`))scanFlights({reset:true});}} disabled={scanning} style={{background:scanning?"var(--border)":"var(--danger-fg)",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>Reset & Rescan</button>
-          <button onClick={()=>scanFlights({force:true})} disabled={scanning} title="Force re-parse all emails — extracts payment method from existing confirmations" style={{background:scanning?"var(--border)":"var(--warn-bg)",color:scanning?"var(--text-dim)":"var(--warn-fg)",border:`1px solid ${scanning?"var(--border)":"var(--warn-fg)"}`,borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>Force Rescan</button>
+          <button onClick={()=>scanFlights({forcePayMethod:true})} disabled={scanning} title="Re-parse only emails missing payment method / card info" style={{background:scanning?"var(--border)":"var(--warn-bg)",color:scanning?"var(--text-dim)":"var(--warn-fg)",border:`1px solid ${scanning?"var(--border)":"var(--warn-fg)"}`,borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"↺ Payment"}</button>
+          <button onClick={()=>scanFlights({force:true})} disabled={scanning} title="Force re-parse all emails" style={{background:scanning?"var(--border)":"var(--card-3)",color:scanning?"var(--text-dim)":"var(--text-2)",border:"1px solid var(--border)",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>Force Rescan</button>
           <button onClick={()=>scanFlights()} disabled={scanning} style={{background:scanning?"var(--border)":"var(--link)",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail"}</button>
         </div>
       </div>
@@ -4382,17 +4383,26 @@ function FinLedger(){
         paidDate:"",
       });
     });
-    // Deduplicate: first by id, then flights by flightNo+depDate+route
+    // Deduplicate: id first, then per-category content hash (handles same entity
+    // arriving from multiple sources with different synthetic ids).
     const seenIds=new Set();
-    const seenFlightKeys=new Set();
-    return out.filter(r=>{
-      if(seenIds.has(r.id))return false;
-      seenIds.add(r.id);
-      if(r.cat==="Flight"&&r.desc){
-        const k=r.desc+"|"+r.date;
-        if(seenFlightKeys.has(k))return false;
-        seenFlightKeys.add(k);
+    const seenKeys=new Set();
+    const keyFor=r=>{
+      if(r.cat==="Flight"){
+        const m=(r.desc||"").match(/([A-Z0-9]+)\s*·\s*(.+?)\s*→\s*(.+)/);
+        const route=m?`${m[2].trim()}>${m[3].trim()}`:r.desc;
+        return `F|${r.date}|${(r.ref||"").toUpperCase()}|${route}|${(r.payee||"").toLowerCase()}`;
       }
+      if(r.cat==="Hotel")     return `H|${r.date}|${(r.payee||"").toLowerCase()}|${r.amount??""}|${r.currency}`;
+      if(r.cat==="Payout")    return `P|${r.date}|${(r.payee||"").toLowerCase()}|${r.amount??""}|${r.currency}`;
+      if(r.cat==="Settlement")return `S|${r.date}|${r.amount??""}|${r.currency}|${r.ref||""}`;
+      return null;
+    };
+    return out.filter(r=>{
+      if(r.id&&seenIds.has(r.id))return false;
+      if(r.id)seenIds.add(r.id);
+      const k=keyFor(r);
+      if(k){if(seenKeys.has(k))return false;seenKeys.add(k);}
       return true;
     });
   },[finance,flights,shows]);

@@ -453,6 +453,7 @@ module.exports = async function handler(req, res) {
     sweepFrom = null,
     shows = [],
     force = false,
+    forcePayMethod = false,
   } = req.body || {};
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
 
@@ -541,9 +542,14 @@ module.exports = async function handler(req, res) {
     const expectedLegs = expectedLegCount(t.body);
     const cachedLegCount = Array.isArray(cached?.result) ? cached.result.length : 0;
     const underParsed = expectedLegs >= 2 && cachedLegCount < expectedLegs;
-    if (!force && !underParsed && shouldUseCached(cached, t.lastMsgMs, bodyHash, t.attachmentFingerprints)) {
+    // forcePayMethod: re-parse threads where all cached flights lack payMethod.
+    // Bypass JSON-LD shortcircuit too — payment info is in body text, not schema.org.
+    const missingPayMethod = forcePayMethod && Array.isArray(cached?.result) && cached.result.length > 0
+      && cached.result.every(r => r.payMethod == null || r.payMethod === "");
+    if (!force && !missingPayMethod && !underParsed && shouldUseCached(cached, t.lastMsgMs, bodyHash, t.attachmentFingerprints)) {
       if (Array.isArray(cached.result)) cachedFlights.push(...cached.result);
     } else {
+      if (missingPayMethod) t.forcedForPayMethod = true;
       freshThreads.push(t);
     }
     for (const d of t.droppedAttachments || []) runErrors.push({ kind: "folio_dedup_dropped", tid: t.id, filename: d.filename, reason: d.reason });
@@ -566,7 +572,7 @@ module.exports = async function handler(req, res) {
     if (!mapped.length) continue;
     jsonLdFlights.push(...mapped);
     const expected = expectedLegCount(t.body);
-    if (mapped.length >= expected) {
+    if (mapped.length >= expected && !t.forcedForPayMethod) {
       jsonLdTids.add(t.id);
     } else {
       jsonLdPartialTids++;
