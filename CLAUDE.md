@@ -4,6 +4,29 @@
 
 ---
 
+## Operating System — where to look
+
+This file is identity + anti-patterns + pointers. Sections below duplicate content held canonically elsewhere — when they conflict, the linked file wins.
+
+| Topic | Canonical file |
+|---|---|
+| Weekly KPIs | [METRICS.md](METRICS.md) |
+| Weekly log | [JOURNAL.md](JOURNAL.md) |
+| Extracted rules | [LESSONS.md](LESSONS.md) |
+| Show + phase retros | [RETROS.md](RETROS.md) |
+| Decisions log (was §4) | [DECISIONS.md](DECISIONS.md) |
+| Decision frameworks + pricing (was §8) | [STRATEGY.md](STRATEGY.md) |
+| Phases (was §10) | [ROADMAP.md](ROADMAP.md) |
+| Risks | [RISKS.md](RISKS.md) |
+| Active bets | [HYPOTHESES.md](HYPOTHESES.md) |
+| Competitive map (was §9) | [COMPETITORS.md](COMPETITORS.md) |
+| Projections | [FINANCIALS.md](FINANCIALS.md) |
+
+**Cadence:** Sunday 8pm, 20 min — update METRICS.md + JOURNAL.md. Monthly 1st Sunday — review HYPOTHESES + RISKS + FINANCIALS.
+**Tier:** LOW (manual, $0 API overhead). Revisit Aug 2026 for MEDIUM.
+
+---
+
 ## 0. What This Is
 
 DOS is two things built by one team:
