@@ -4197,7 +4197,7 @@ function TravelDayView(){
                     if(partyMatch&&!(s.partyId&&s.partyId===partyMatch.partyId)){
                       const excl=new Set(s.excludedParties||[]);excl.add(partyMatch.partyId);
                       next={...s,excludedParties:[...excl]};
-                    }else{next={...s,status:"unresolved"};}
+                    }else{next={...s,status:"dismissed"};}
                     uFlight(s.id,next);pushUndo(`${m.label} deleted.`,()=>uFlight(s.id,prev));if(activeId===s.id)setActiveId(null);}}} title="Delete segment" style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:13,lineHeight:1,padding:"0 4px"}}>×</button>
                 </div>
               </div>
