@@ -3957,6 +3957,25 @@ function TravelDayView(){
     return {names,partyId:activeSplitPartyId};
   },[currentSplit,activeSplitParty,activeSplitPartyId,crew]);
 
+  // Auto-scope legacy segments: on a split day, tag each untagged segment with
+  // the unique party whose crew overlaps its pax. Ambiguous/zero-match segments
+  // stay shared.
+  useEffect(()=>{
+    if(!currentSplit)return;
+    const partyNames=currentSplit.parties.map(p=>({id:p.id,names:(p.crew||[]).map(id=>{
+      const c=(crew||[]).find(x=>x.id===id);return (c?.name||id).toLowerCase();
+    })}));
+    Object.values(flights||{}).forEach(s=>{
+      if(!s||s.status==="dismissed")return;
+      if(s.partyId)return;
+      if(s.depDate!==sel&&s.arrDate!==sel)return;
+      const pax=(s.pax||[]).filter(Boolean).map(n=>String(n).toLowerCase());
+      if(!pax.length)return;
+      const hits=partyNames.filter(p=>p.names.some(n=>pax.some(x=>x.includes(n)||n.includes(x.split(" ")[0]))));
+      if(hits.length===1)uFlight(s.id,{...s,partyId:hits[0].id});
+    });
+  },[sel,currentSplit]);// eslint-disable-line
+
   // All non-dismissed segments touching sel (depDate === sel OR arrDate === sel).
   const daySegs=useMemo(()=>{
     const segMatches=s=>{
@@ -4094,6 +4113,10 @@ function TravelDayView(){
                 <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
                   {s._role==="arr"&&<span style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--success-bg)",color:"var(--success-fg)",fontWeight:800,letterSpacing:"0.06em"}}>ARR</span>}
                   {s.fresh48h&&s.status!=="confirmed"&&<span style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:800,letterSpacing:"0.06em"}}>NEW</span>}
+                  {partyMatch&&s.partyId!==partyMatch.partyId&&<button onClick={e=>{e.stopPropagation();
+                    const excl=(s.excludedParties||[]).filter(p=>p!==partyMatch.partyId);
+                    uFlight(s.id,{...s,partyId:partyMatch.partyId,excludedParties:excl});
+                  }} title={`Scope to ${activeSplitParty?.label||"this event"}`} style={{fontSize:8,padding:"2px 6px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-3)",color:"var(--text-dim)",cursor:"pointer",fontWeight:700,letterSpacing:"0.04em"}}>↳ {(activeSplitParty?.label||"SCOPE").toUpperCase()}</button>}
                   <button onClick={e=>{e.stopPropagation();if(confirm(`Delete this ${m.label.toLowerCase()}?`)){const prev={...s};let next;
                     if(partyMatch&&!(s.partyId&&s.partyId===partyMatch.partyId)){
                       const excl=new Set(s.excludedParties||[]);excl.add(partyMatch.partyId);
