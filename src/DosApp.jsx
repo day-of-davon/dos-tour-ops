@@ -1617,7 +1617,7 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
   const fld=(key,label,extra={})=><div style={{minWidth:0,...extra.w?{width:extra.w}:{}}}><div style={lbl}>{label}</div><input style={{...inp,...extra.style}} value={draft[key]??""} onChange={e=>setDraft(p=>({...p,[key]:extra.upper?e.target.value.toUpperCase():e.target.value}))} maxLength={extra.max}/></div>;
   return(
     <div style={{background:"var(--card)",border:`1px solid ${editing?"var(--accent)":isFresh?"var(--accent)":st&&delayed?"var(--warn-fg)":st?.c==="var(--danger-fg)"?"var(--danger-fg)":"var(--border)"}`,borderRadius:10,padding:"10px 12px",display:"flex",flexDirection:"column",gap:6,boxShadow:isFresh&&!editing?"0 0 0 2px var(--accent-pill-bg)":undefined}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+      <div onClick={()=>setCollapsed(c=>!c)} style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",cursor:"pointer"}}>
         {legLabel&&<span style={{fontSize:7,fontWeight:800,letterSpacing:"0.08em",padding:"1px 6px",borderRadius:6,background:"var(--card-3)",color:"var(--text-mute)",flexShrink:0}}>{legLabel}</span>}
         <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"var(--link)"}}>{f.from}<span style={{fontSize:10,color:"var(--text-mute)",fontWeight:400,padding:"0 5px"}}>→</span>{f.to}</div>
         <div style={{fontSize:10,fontWeight:700,color:"var(--text)"}}>{f.flightNo||f.carrier}</div>
@@ -1631,10 +1631,9 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
         {st&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:st.bg,color:st.c,fontWeight:700}}>{st.label}{delayed?` +${liveStatus.delayMinutes}m`:""}</span>}
         {f.suggestedShowDate&&<span title={`${f.suggestedRole==="outbound"?"Departs day after":"Arrives for"} ${f.suggestedVenue||f.suggestedShowDate}`} style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:f.suggestedRole==="outbound"?"var(--warn-bg)":"var(--success-bg)",color:f.suggestedRole==="outbound"?"var(--warn-fg)":"var(--success-fg)",fontWeight:700}}>{f.suggestedRole==="outbound"?"OUT":"IN"} · {f.suggestedShowDate}</span>}
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
-          {onRefreshStatus&&<button onClick={onRefreshStatus} disabled={refreshing} title="Refresh live status" style={{background:"none",border:"none",cursor:refreshing?"default":"pointer",fontSize:10,color:refreshing?"var(--text-mute)":"var(--accent)",padding:0,lineHeight:1}}>{refreshing?"⟳":"⟳"}</button>}
-          {onUpdate&&!editing&&!collapsed&&<button onClick={startEdit} title="Edit flight data" style={{fontSize:9,padding:"1px 7px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:"var(--text-dim)",cursor:"pointer",fontWeight:600}}>Edit</button>}
+          {onRefreshStatus&&<button onClick={e=>{e.stopPropagation();onRefreshStatus();}} disabled={refreshing} title="Refresh live status" style={{background:"none",border:"none",cursor:refreshing?"default":"pointer",fontSize:10,color:refreshing?"var(--text-mute)":"var(--accent)",padding:0,lineHeight:1}}>{refreshing?"⟳":"⟳"}</button>}
+          {onUpdate&&!editing&&!collapsed&&<button onClick={e=>{e.stopPropagation();startEdit();}} title="Edit flight data" style={{fontSize:9,padding:"1px 7px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:"var(--text-dim)",cursor:"pointer",fontWeight:600}}>Edit</button>}
           <div style={{fontSize:9,fontFamily:MN,color:"var(--text-2)",fontWeight:600}}>{f.depDate}</div>
-          <button onClick={()=>setCollapsed(c=>!c)} title={collapsed?"Expand":"Collapse"} style={{background:"none",border:"none",cursor:"pointer",fontSize:9,color:"var(--text-mute)",padding:"0 2px",lineHeight:1,flexShrink:0}}>{collapsed?"▼":"▲"}</button>
         </div>
       </div>
       {collapsed&&<div style={{display:"flex",gap:12,flexWrap:"wrap",fontSize:9,color:"var(--text-dim)",paddingTop:2}}>
