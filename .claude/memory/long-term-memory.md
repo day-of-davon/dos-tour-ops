@@ -84,6 +84,14 @@
 
 - [2026-04-22 05:00 UTC] https://www.iata.org/en/publications/api-pnr-toolkit/ — IATA API/PNR Toolkit: international standard for Advance Passenger Information (API = passport MRZ data: name, DOB, gender, nationality, passport number) and Passenger Name Records (PNR = booking data); 100+ countries require API, ~60 require PNR; EU routes all via eu-LISA centralized router; iAPI (2024) adds real-time pre-departure go/no-go per passenger. For bbno$ EU tour: airlines handle API submission on the Dublin inbound and Warsaw outbound flights; bus legs between Schengen countries have no API requirement. Outstanding French work authorization forms (Paris, Chambord, Villeurbanne) are separate labor permits, NOT resolved by API/PNR compliance. DOS Platform relevance: if DOS Advance collects crew/artist passport data, it touches API-schema fields (PAXLST format) and triggers GDPR Article 9 (identity/biometric data); design the travel document collection feature with this in mind before Phase 4.
 
+- [2026-04-23 04:00 UTC] https://trpc.io/blog/announcing-trpc-v11 — tRPC v11 two additional breaking changes not captured in prior entry: (1) subscriptions now use AsyncGenerator return type (affects any real-time ops subscriptions in dos-platform); (2) AbortControllerEsque polyfill removed — if dos-platform targets any non-modern browsers, add abortcontroller-polyfill explicitly.
+
+- [2026-04-23 04:00 UTC] https://hatchworks.com/blog/ai-agents/n8n-guide/ — n8n natively supports Anthropic's Model Context Protocol (MCP, 8M+ server downloads) and has an AI Agent node with first-class Anthropic Claude integration; ~75% of n8n customers already using AI features — DOS Phase 4 architecture can route Claude agent actions directly into n8n workflows via MCP without custom HTTP triggers; reduces integration complexity.
+
+- [2026-04-23 04:00 UTC] https://supabase.com/changelog — Supabase now available on AWS Marketplace; enterprises with AWS spend commitments can apply those credits to Supabase billing — relevant for DOS Platform enterprise tier sales where prospects may have AWS EDP contracts; removes a procurement objection.
+
+- [2026-04-23 04:00 UTC] https://supabase.com/changelog — Supabase Edge Functions can now be downloaded via CLI without Docker — local dev workflow improvement for dos-platform Phase 4; no Docker daemon required for Edge Function development or iteration.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
