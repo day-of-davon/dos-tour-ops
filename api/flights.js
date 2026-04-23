@@ -473,59 +473,15 @@ function supersedeFlights(flights, threads) {
 }
 
 // ── Query list ────────────────────────────────────────────────────────────────
-// High priority: subject sweeps + destination queries. Run first; fill the cap
-// before the low sweep. Catches forwarded receipts regardless of sender domain.
-// Low priority: single broad carrier/OTA sweep (maxResults=500) replacing the
-// previous 65+ from: domain queries. Fewer Gmail API calls, same effective recall
-// since category:travel and subject sweeps already cover major carriers directly.
+// Two queries, both at maxResults=500:
+// 1. Comprehensive keyword+carrier+OTA sweep with negative marketing filters.
+// 2. EU/NA destination sweep — catches forwarded receipts where no carrier
+//    branding appears in the body (booking-agent emails, plain-text forwards).
 function buildFlightQueryGroups(after) {
   const W = `after:${after}`;
-  const high = [
-    // Gmail's ML-classified travel bucket — catches senders we've never received from
-    `category:travel ${W}`,
-    // Subject sweeps — catch forwarded receipts regardless of sender
-    `subject:("Your Flight Receipt") ${W}`,
-    `subject:("flight receipt") ${W}`,
-    `subject:("flight confirmation") ${W}`,
-    `subject:("your flight") ${W}`,
-    `subject:("e-ticket") (flight OR airline OR airways) ${W}`,
-    `subject:("boarding pass") ${W}`,
-    // "itinerary and receipt" — AA format. subject:("itinerary and receipt") fails (Gmail treats "and" as operator)
-    `subject:itinerary subject:receipt ${W}`,
-    `subject:("your itinerary") ${W}`,
-    `from:(@aa.com) (itinerary OR receipt OR confirmation) ${W}`,
-    `subject:("itinerary") (flight OR airline OR departure) ${W}`,
-    `subject:("booking confirmation") (flight OR airline OR airways) ${W}`,
-    `subject:("trip confirmation") (flight OR airline) ${W}`,
-    `"booking reference" (flight OR departure OR arrival) ${W}`,
-    `"confirmation code" (flight OR airline OR departure) ${W}`,
-    // Destination-specific — tour show airports, high recall
-    `(BOS OR PVD OR MHT OR BDL OR ORH OR "Boston" OR "Nashville" OR "BNA") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(DEN OR "Denver" OR "Morrison") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(YYZ OR YTZ OR YHM OR "Toronto" OR "Mississauga") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(YOW OR "Ottawa") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(BDL OR PVD OR HPN OR "Uncasville" OR "Hartford" OR "Providence") (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(LHR OR LGW OR LTN OR STN OR LCY OR Heathrow OR Gatwick OR Stansted OR Luton) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(DUB OR Dublin OR MAN OR Manchester OR GLA OR Glasgow) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(ZRH OR Zurich OR CGN OR Cologne OR AMS OR Amsterdam) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(CDG OR ORY OR Paris OR MXP OR LIN OR Milan) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-    `(PRG OR Prague OR BER OR Berlin OR BTS OR Bratislava OR WAW OR Warsaw) (confirmation OR receipt OR itinerary OR "e-ticket") (flight OR airline) ${W}`,
-  ];
-  const low = [
-    // Carrier name sweep — full airline brand names. Body-text match catches
-    // OTA and forwarded confirmations regardless of sender domain.
-    `(Delta OR United OR "American Airlines" OR Southwest OR JetBlue OR "Alaska Airlines" OR "Air Canada" OR "British Airways" OR Lufthansa OR "Air France" OR "Aer Lingus" OR Ryanair OR easyJet OR KLM OR "Turkish Airlines" OR Emirates OR Etihad OR "Qatar Airways" OR "Singapore Airlines" OR "Cathay Pacific" OR Iberia OR Qantas OR LATAM OR ANA OR "Korean Air" OR "Japan Airlines") (confirmation OR receipt OR itinerary OR "e-ticket" OR "booking reference" OR confirmed OR booked) ${W}`,
-    // IATA code patterns — catches confirmation emails by flight code regardless
-    // of carrier branding. Common in GDS/OTA/forwarded itinerary emails.
-    `("Flight DL" OR "Flight UA" OR "Flight AA" OR "Flight WN" OR "Flight B6" OR "Flight AS" OR "Flight AC" OR "Flight BA" OR "Flight LH" OR "Flight AF" OR "Flight KL" OR "Flight FR" OR "Flight U2" OR "Flight EK" OR "Flight EY" OR "Flight QR" OR "Flight TK" OR "Flight SQ" OR "Flight CX" OR "Flight IB" OR "Flight QF" OR "Flight LA" OR "Flight NH" OR "Flight KE" OR "Flight JL") ${W}`,
-    // OTA flight bookings
-    `(Expedia OR "Booking.com" OR Concur OR Travelport OR Hopper OR "Trip.com") (flight OR itinerary OR airline) ${W}`,
-    // Ground/rail — aligned with "other travel" clause in comprehensive search string
-    `(Uber OR Lyft OR Hertz OR Enterprise OR Avis OR Eurostar OR Trainline OR FlixBus OR Omio) (confirmation OR receipt OR booking OR reservation OR itinerary) ${W}`,
-    // Private charters
-    `("private jet" OR "charter flight") (confirmation OR itinerary OR booking) ${W}`,
-  ];
-  return { high, low };
+  const primary = `(subject:(confirmation OR confirmed OR itinerary OR "e-ticket" OR booked OR "booking confirmation" OR "flight receipt" OR "your flight" OR "your trip" OR "your booking" OR "your stay" OR "your reservation") OR "booking reference" OR "confirmation number" OR "record locator" OR "reservation number" OR "ticket number" OR "flight receipt" OR PNR) AND (Delta OR "United Airlines" OR "American Airlines" OR Southwest OR Ryanair OR easyJet OR Emirates OR Lufthansa OR "British Airways" OR "Air France" OR KLM OR "Turkish Airlines" OR "Qatar Airways" OR Etihad OR "Singapore Airlines" OR "Cathay Pacific" OR JetBlue OR "Alaska Airlines" OR "Air Canada" OR Iberia OR Qantas OR LATAM OR ANA OR "Korean Air" OR "Japan Airlines" OR "Flight DL" OR "Flight UA" OR "Flight AA" OR "Flight WN" OR "Flight FR" OR "Flight U2" OR "Flight EK" OR "Flight LH" OR "Flight BA" OR "Flight AF" OR "Flight KL" OR "Flight TK" OR "Flight QR" OR "Flight EY" OR "Flight SQ" OR "Flight CX" OR "Flight B6" OR "Flight AS" OR "Flight AC" OR "Flight IB" OR "Flight QF" OR "Flight LA" OR "Flight NH" OR "Flight KE" OR "Flight JL" OR Marriott OR Bonvoy OR Hilton OR Hyatt OR IHG OR Sheraton OR Westin OR "Ritz-Carlton" OR "Four Seasons" OR "W Hotels" OR "Crowne Plaza" OR "Holiday Inn" OR InterContinental OR Novotel OR Sofitel OR Radisson OR "Best Western" OR Wyndham OR "Hampton Inn" OR DoubleTree OR Kimpton OR Aloft OR Andaz OR Pullman OR Booking.com OR Expedia OR Airbnb OR Hotels.com OR Vrbo OR Agoda OR Trip.com OR Priceline OR Kayak OR Hopper) -subject:(reminder OR review OR survey OR feedback OR promotion OR promotional OR deal OR sale OR newsletter OR "price drop" OR "fare alert" OR welcome OR offer OR "limited time" OR "last chance" OR earn OR points OR miles OR status OR upgrade OR "check in" OR "check-in" OR "tips for" OR "ways to") -unsubscribe -"manage preferences" ${W}`;
+  const destinations = `(DUB OR Dublin OR MAN OR Manchester OR GLA OR Glasgow OR LHR OR LGW OR LTN OR STN OR LCY OR Heathrow OR Gatwick OR ZRH OR Zurich OR CGN OR Cologne OR AMS OR Amsterdam OR CDG OR ORY OR Paris OR MXP OR Milan OR LYS OR Lyon OR Villeurbanne OR PRG OR Prague OR BER OR Berlin OR BTS OR Bratislava OR WAW OR Warsaw OR BOS OR Boston OR DEN OR Denver OR YYZ OR Toronto OR Mississauga OR YOW OR Ottawa) (confirmation OR receipt OR itinerary OR "e-ticket" OR "booking reference") (flight OR airline OR airways) ${W}`;
+  return { high: [primary, destinations], low: [] };
 }
 
 // ── Airport → show-city map ───────────────────────────────────────────────────
@@ -638,10 +594,7 @@ module.exports = async function handler(req, res) {
   };
 
   try {
-    await withTimeout(runParallel(high), 30000);
-    // Low sweep: 3 broad queries at maxResults=500, replacing the previous 65+
-    // from: domain queries. Skip entirely if high already saturated the cap.
-    if (seen.size < CAP * 0.8) await withTimeout(runParallel(low, 500), 15000);
+    await withTimeout(runParallel(high, 500), 30000);
   } catch (e) {
     if (e.status === 402) return res.status(402).json({ error: "gmail_token_expired" });
     return res.status(500).json({ error: e.message });
