@@ -1564,7 +1564,7 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
           {onRefreshStatus&&<button onClick={onRefreshStatus} disabled={refreshing} title="Refresh live status" style={{background:"none",border:"none",cursor:refreshing?"default":"pointer",fontSize:10,color:refreshing?"var(--text-mute)":"var(--accent)",padding:0,lineHeight:1}}>{refreshing?"⟳":"⟳"}</button>}
           {onUpdate&&!editing&&<button onClick={startEdit} title="Edit flight data" style={{fontSize:9,padding:"1px 7px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:"var(--text-dim)",cursor:"pointer",fontWeight:600}}>Edit</button>}
-          <div style={{fontSize:9,fontFamily:MN,color:"var(--text-2)",fontWeight:600}}>{f.depDate}{f.dep?` · ${f.dep}`:""}{f.arr?`–${f.arr}`:""}</div>
+          <div style={{fontSize:9,fontFamily:MN,color:"var(--text-2)",fontWeight:600}}>{f.depDate}</div>
         </div>
       </div>
       {liveStatus&&(
@@ -1577,16 +1577,34 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
           {liveStatus.fetchedAt&&<div style={{marginLeft:"auto"}}><div style={{fontSize:8,color:"var(--text-mute)"}}>updated {new Date(liveStatus.fetchedAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div></div>}
         </div>
       )}
-      {!editing&&<div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"flex-start"}}>
-        {f.fromCity&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>FROM</div><div style={{fontSize:10,color:"var(--text)"}}>{f.fromCity}</div></div>}
-        {f.toCity&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>TO</div><div style={{fontSize:10,color:"var(--text)"}}>{f.toCity}</div></div>}
-        {onUpdatePax
-          ?<PaxEditor pax={f.pax||[]} crew={crew} onSave={onUpdatePax}/>
-          :(f.pax?.length>0&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>PAX</div><div style={{fontSize:10,color:"var(--text)"}}>{f.paxNormalized?.length?f.paxNormalized.map((p,i)=><span key={i} title={p.crewId?`Roster match: ${p.crewId}`:"No roster match"}>{i>0&&", "}<span style={{color:p.crewId?"var(--success-fg)":"var(--text)"}}>{p.displayName}</span>{p.crewId&&<span style={{fontSize:7,marginLeft:2,opacity:0.7}}>✓</span>}</span>):f.pax.join(", ")}</div></div>)}
-        {f.pnr&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>PNR</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.pnr}</div></div>}
-        {f.confirmNo&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>CONF #</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.confirmNo}</div></div>}
-        {f.ticketNo&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>TICKET #</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.ticketNo}</div></div>}
-        {f.cost&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>COST</div><div style={{fontFamily:MN,fontSize:10,color:"var(--success-fg)",fontWeight:700}}>{f.currency||"$"}{f.cost}</div></div>}
+      {!editing&&<div style={{display:"flex",flexDirection:"column",gap:8}}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:8,alignItems:"center"}}>
+          <div>
+            <div style={{fontFamily:MN,fontSize:17,fontWeight:800,color:"var(--text)",lineHeight:1}}>{f.from||"—"}</div>
+            {f.fromCity&&<div style={{fontSize:9,color:"var(--text-dim)",marginTop:2}}>{f.fromCity}</div>}
+            <div style={{fontFamily:MN,fontSize:12,fontWeight:700,color:"var(--text)",marginTop:4}}>{f.dep||"—"}</div>
+            {f.depDate&&<div style={{fontSize:8,color:"var(--text-mute)",marginTop:1}}>{f.depDate}</div>}
+          </div>
+          <div style={{textAlign:"center",minWidth:40}}>
+            {f.durationMinutes&&<div style={{fontSize:8,color:"var(--text-mute)",marginBottom:2}}>{Math.floor(f.durationMinutes/60)}h{String(f.durationMinutes%60).padStart(2,"0")}m</div>}
+            <div style={{fontSize:12,color:"var(--text-mute)"}}>→</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontFamily:MN,fontSize:17,fontWeight:800,color:"var(--text)",lineHeight:1}}>{f.to||"—"}</div>
+            {f.toCity&&<div style={{fontSize:9,color:"var(--text-dim)",marginTop:2}}>{f.toCity}</div>}
+            <div style={{fontFamily:MN,fontSize:12,fontWeight:700,color:"var(--text)",marginTop:4}}>{f.arr||"—"}</div>
+            {f.arrDate&&<div style={{fontSize:8,color:"var(--text-mute)",marginTop:1}}>{f.arrDate}</div>}
+          </div>
+        </div>
+        <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"flex-start",paddingTop:2,borderTop:"1px solid var(--card-3)"}}>
+          {onUpdatePax
+            ?<PaxEditor pax={f.pax||[]} crew={crew} onSave={onUpdatePax}/>
+            :(f.pax?.length>0&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>PAX</div><div style={{fontSize:10,color:"var(--text)"}}>{f.paxNormalized?.length?f.paxNormalized.map((p,i)=><span key={i} title={p.crewId?`Roster match: ${p.crewId}`:"No roster match"}>{i>0&&", "}<span style={{color:p.crewId?"var(--success-fg)":"var(--text)"}}>{p.displayName}</span>{p.crewId&&<span style={{fontSize:7,marginLeft:2,opacity:0.7}}>✓</span>}</span>):f.pax.join(", ")}</div></div>)}
+          {f.pnr&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>PNR</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.pnr}</div></div>}
+          {f.confirmNo&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>CONF #</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.confirmNo}</div></div>}
+          {f.ticketNo&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>TICKET #</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.ticketNo}</div></div>}
+          {f.cost&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>COST</div><div style={{fontFamily:MN,fontSize:10,color:"var(--success-fg)",fontWeight:700}}>{f.currency||"$"}{f.cost}</div></div>}
+        </div>
       </div>}
       {editing&&<div style={{display:"flex",flexDirection:"column",gap:6,padding:"8px 10px",background:"var(--card-2)",borderRadius:6,border:"1px solid var(--border)"}}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6}}>
