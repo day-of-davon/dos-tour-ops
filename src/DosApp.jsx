@@ -264,6 +264,50 @@ const findReturnLeg=(f,allFlightsObj)=>{
   )||null;
 };
 
+// Build a chronological timeline of all travel events touching `date`. daySegs
+// is the caller-scoped list of segments (already filtered by party). lodging is
+// the separate lodging store; check-ins/outs on `date` become timeline entries.
+// Each entry: {kind, seg, label, start, end, from, to, gapBefore, warning}.
+// start/end are HH:MM strings; gapBefore is minutes since previous entry's end.
+const HOTEL_DEFAULT_CHECKIN="15:00",HOTEL_DEFAULT_CHECKOUT="11:00";
+const buildDayTimeline=(date,daySegs,lodging)=>{
+  const entries=[];
+  (daySegs||[]).forEach(s=>{
+    const t=segType(s);
+    const isArr=s._role==="arr"||(s.arrDate===date&&s.depDate!==date);
+    const start=isArr?s.arr:s.dep;
+    const end=isArr?s.arr:(s.arr||s.dep);
+    if(!start)return;
+    const label=t==="air"?(s.flightNo||s.carrier||"Flight"):t==="ground"?(s.mode||s.provider||"Ground"):t==="hotel"?(s.hotelName||"Hotel"):t==="bus"?(s.carrier||"Bus"):t==="rail"?(s.trainNo||s.carrier||"Rail"):"Seg";
+    entries.push({kind:t,seg:s,label,start,end,from:isArr?s.fromCity||s.from:s.fromCity||s.from,to:s.toCity||s.to,isArr});
+  });
+  Object.values(lodging||{}).forEach(h=>{
+    if(!h)return;
+    if(h.checkIn===date)entries.push({kind:"hotel_in",seg:h,label:h.hotelName||"Hotel",start:h.checkInTime||HOTEL_DEFAULT_CHECKIN,end:h.checkInTime||HOTEL_DEFAULT_CHECKIN,from:null,to:h.city||h.hotelName});
+    if(h.checkOut===date)entries.push({kind:"hotel_out",seg:h,label:h.hotelName||"Hotel",start:h.checkOutTime||HOTEL_DEFAULT_CHECKOUT,end:h.checkOutTime||HOTEL_DEFAULT_CHECKOUT,from:h.hotelName,to:null});
+  });
+  entries.sort((a,b)=>(hhmmToMin(a.start)??0)-(hhmmToMin(b.start)??0));
+  for(let i=0;i<entries.length;i++){
+    if(i===0){entries[i].gapBefore=null;entries[i].warning=null;continue;}
+    const prev=entries[i-1],cur=entries[i];
+    const g=(hhmmToMin(cur.start)??0)-(hhmmToMin(prev.end)??0);
+    cur.gapBefore=g;
+    cur.warning=null;
+    const sameAirport=prev.kind==="air"&&cur.kind==="air"&&
+      (prev.seg?.to||"").toUpperCase()===(cur.seg?.from||"").toUpperCase();
+    if(sameAirport&&g<60&&g>=0)cur.warning="tight-connection";
+    else if(sameAirport&&g<0)cur.warning="missed-connection";
+    else if(prev.kind==="air"&&prev.isArr&&!["ground","bus","rail"].includes(cur.kind)&&g>30){
+      // Air arrival with no ground/bus follow-up before the next event at a different place → unbridged.
+      const prevCity=cityKey(prev.to||prev.seg?.toCity||"");
+      const curCity=cityKey(cur.from||cur.to||cur.seg?.city||"");
+      if(prevCity&&curCity&&prevCity!==curCity)cur.warning="unbridged";
+      else if(prev.to&&cur.kind==="hotel_in")cur.warning="unbridged";
+    }else if(g>360)cur.warning="long-layover";
+  }
+  return entries;
+};
+
 // ── Segment model (unified travel store) ───────────────────────────────────
 // The `flights` store widens into a generic segments store: each record has a `type`
 // ∈ {air, ground, bus, rail, sea, hotel}. Legacy records (no type) are implicitly "air".
@@ -4011,7 +4055,7 @@ function FlightsListView(){
 // Master Tour-style: chronological list on the left, editor drawer on the right. The currently-selected show
 // date (sel) drives what's displayed; header shows a prev/next stepper and jumps to the Travel Dates menu.
 function TravelDayView(){
-  const{flights,uFlight,sel,setSel,setDateMenu,shows,sorted,tourDaysSorted,crew,setShowCrew,showCrew,mobile,pushUndo,currentSplit,activeSplitParty,activeSplitPartyId}=useContext(Ctx);
+  const{flights,uFlight,sel,setSel,setDateMenu,shows,sorted,tourDaysSorted,crew,setShowCrew,showCrew,mobile,pushUndo,currentSplit,activeSplitParty,activeSplitPartyId,lodging}=useContext(Ctx);
   const[activeId,setActiveId]=useState(null);
   const[addType,setAddType]=useState(null);
   const[travelNotes,setTravelNotes]=useState("");
@@ -4077,6 +4121,23 @@ function TravelDayView(){
   },[flights,sel,partyMatch]);
 
   const active=daySegs.find(s=>s.id===activeId)||null;
+
+  // Timeline: chronological strip of all same-day events + hotel check-ins/outs.
+  const timeline=useMemo(()=>buildDayTimeline(sel,daySegs,lodging),[sel,daySegs,lodging]);
+  // Air-arrivals on this date whose next timeline entry is flagged `unbridged` — candidates for a ground-suggestion ghost row.
+  const unbridgedAirIds=useMemo(()=>{
+    const ids=new Set();
+    for(let i=1;i<timeline.length;i++){
+      const prev=timeline[i-1],cur=timeline[i];
+      if(cur.warning==="unbridged"&&prev.kind==="air"&&prev.isArr&&prev.seg?.id)ids.add(prev.seg.id);
+    }
+    return ids;
+  },[timeline]);
+  // Hotel destination on this date (pulled from lodging store) for ground-suggestion defaults.
+  const destHotel=useMemo(()=>{
+    const today=Object.values(lodging||{}).find(h=>h&&h.checkIn===sel);
+    return today||null;
+  },[lodging,sel]);
 
   // Add a new segment (local-only until first save; uses timestamp-based id).
   const handleAdd=(type)=>{
@@ -4144,6 +4205,36 @@ function TravelDayView(){
         </div>
       )}
 
+      {/* Travel Day Timeline — chronological strip with gaps + warnings */}
+      {timeline.length>0&&(
+        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 14px"}}>
+          <div style={{fontSize:8,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.08em",marginBottom:6}}>TIMELINE</div>
+          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",fontFamily:MN,fontSize:10}}>
+            {timeline.map((e,i)=>{
+              const icon=e.kind==="air"?"✈":e.kind==="ground"?"🚗":e.kind==="bus"?"🚌":e.kind==="rail"?"🚆":e.kind==="hotel"||e.kind==="hotel_in"||e.kind==="hotel_out"?"🏨":"◆";
+              const m=e.kind==="hotel_in"||e.kind==="hotel_out"?SEG_META.hotel:SEG_META[e.kind]||SEG_META.air;
+              const warnColor=e.warning==="missed-connection"?"var(--danger-fg)":(e.warning==="tight-connection"||e.warning==="unbridged")?"var(--warn-fg)":"var(--text-dim)";
+              const warnBg=e.warning==="missed-connection"?"var(--danger-bg)":(e.warning==="tight-connection"||e.warning==="unbridged")?"var(--warn-bg)":"transparent";
+              const gapLabel=e.gapBefore!=null?(e.gapBefore<60?`${e.gapBefore}m`:`${Math.round(e.gapBefore/60*10)/10}h`):null;
+              return(
+                <React.Fragment key={i}>
+                  {i>0&&gapLabel&&(
+                    <span title={e.warning||""} style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:warnBg,color:warnColor,border:e.warning?`1px solid ${warnColor}40`:"1px dashed var(--border)",fontWeight:700}}>
+                      {e.warning==="unbridged"?`⚠ ${gapLabel} unbridged`:e.warning==="tight-connection"?`⚠ ${gapLabel} layover`:e.warning==="missed-connection"?`✗ missed`:gapLabel}
+                    </span>
+                  )}
+                  <span style={{display:"inline-flex",alignItems:"center",gap:5,padding:"3px 8px",borderRadius:6,background:m.bg,color:m.color,fontWeight:700,border:`1px solid ${m.border}`}}>
+                    <span>{icon}</span>
+                    <span>{e.start}</span>
+                    <span style={{opacity:.8}}>{e.kind==="hotel_in"?"check-in":e.kind==="hotel_out"?"check-out":e.label}</span>
+                  </span>
+                </React.Fragment>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Add bar */}
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
         <span style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em"}}>ADD SEGMENT</span>
@@ -4168,10 +4259,22 @@ function TravelDayView(){
             const m=segMeta(s);const isActive=s.id===activeId;
             const timeLabel=s._role==="arr"?`Arr ${s.arr||"—"}`:`${s.dep||"—"}${s.arr?` – ${s.arr}`:""}`;
             const routeLabel=segType(s)==="hotel"?(s.hotelName||s.to||"Hotel"):`${s.from||"—"}${s.to?` → ${s.to}`:""}`;
+            const needsGround=unbridgedAirIds.has(s.id);
+            const addGroundBridge=()=>{
+              const id=`seg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
+              const arrMin=hhmmToMin(s.arr)??0;
+              const depMin=arrMin+20; // 20m customs buffer
+              const pad=n=>String(n).padStart(2,"0");
+              const dep=`${pad(Math.floor(depMin/60)%24)}:${pad(depMin%60)}`;
+              const toLabel=destHotel?(destHotel.hotelName||destHotel.city||""):"";
+              const seed={id,type:"ground",status:"confirmed",mode:"uber",depDate:sel,arrDate:sel,dep,arr:"",from:s.to||"",fromCity:s.toCity||"",to:toLabel,toCity:destHotel?.city||s.toCity||"",pax:[...(s.pax||[])],...(currentSplit&&activeSplitPartyId?{partyId:activeSplitPartyId}:{})};
+              uFlight(id,seed);setActiveId(id);
+            };
             const detail=segType(s)==="air"?`${s.flightNo||""} ${s.carrier||""}`.trim():segType(s)==="ground"?`${s.mode||"drive"}${s.provider?` · ${s.provider}`:""}`:segType(s)==="hotel"?(s.hotelName||""):(s.carrier||s.mode||"");
             const paxList=pax(s);
             return(
-              <div key={s.id} onClick={()=>setActiveId(s.id)} className="rh" style={{display:"grid",gridTemplateColumns:"20px auto 1fr auto",gap:10,padding:"9px 12px",background:"var(--card)",border:`1px solid ${isActive?m.border:"var(--border)"}`,borderLeft:`3px solid ${m.color}`,borderRadius:10,cursor:"pointer",boxShadow:isActive?"0 0 0 2px var(--accent-pill-bg)":undefined}}>
+              <React.Fragment key={s.id}>
+              <div onClick={()=>setActiveId(s.id)} className="rh" style={{display:"grid",gridTemplateColumns:"20px auto 1fr auto",gap:10,padding:"9px 12px",background:"var(--card)",border:`1px solid ${isActive?m.border:"var(--border)"}`,borderLeft:`3px solid ${m.color}`,borderRadius:10,cursor:"pointer",boxShadow:isActive?"0 0 0 2px var(--accent-pill-bg)":undefined}}>
                 <div style={{fontSize:13,lineHeight:1,paddingTop:2}}>{m.icon}</div>
                 <div style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:2,flexShrink:0,minWidth:90}}>
                   {paxList.length>0&&<div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
@@ -4201,6 +4304,13 @@ function TravelDayView(){
                     uFlight(s.id,next);pushUndo(`${m.label} deleted.`,()=>uFlight(s.id,prev));if(activeId===s.id)setActiveId(null);}}} title="Delete segment" style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:13,lineHeight:1,padding:"0 4px"}}>×</button>
                 </div>
               </div>
+              {needsGround&&(
+                <button onClick={addGroundBridge} title="Add ground bridge from airport to hotel" style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",background:"transparent",border:"1px dashed var(--warn-fg)",borderLeft:"3px solid var(--warn-fg)",borderRadius:10,color:"var(--warn-fg)",cursor:"pointer",textAlign:"left",fontSize:10,fontWeight:700,letterSpacing:"0.02em"}}>
+                  <span style={{fontSize:13}}>＋</span>
+                  <span>Add ground: {s.to||s.toCity||"airport"} → {destHotel?.hotelName||destHotel?.city||"hotel"} · ~20m buffer · Uber</span>
+                </button>
+              )}
+              </React.Fragment>
             );
           })}
         </div>
