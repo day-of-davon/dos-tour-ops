@@ -2713,8 +2713,6 @@ function TopBar({ss}){
     <div style={{borderBottom:"1px solid var(--card-2)",background:"var(--bg)",width:"100%",maxWidth:"100%",overflow:"visible",boxShadow:"0 1px 0 rgba(109,40,217,0.15),0 2px 12px rgba(0,0,0,0.45)"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px 5px",minWidth:0,gap:8,width:"100%"}}>
         <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flexShrink:1,overflow:"hidden"}}>
-          <span style={{fontSize:16,fontWeight:800,color:T.text,letterSpacing:"-0.03em",flexShrink:0}}>DOS</span>
-          <span style={{fontSize:8,color:T.textMute,fontWeight:600}}>v7.0</span>
           <button onClick={()=>{
             if(!sidebarOpen){
               const today=new Date().toISOString().slice(0,10);
@@ -2723,7 +2721,10 @@ function TopBar({ss}){
               if(target)setSel(target);
             }
             setSidebarOpen(v=>!v);
-          }} title="Jump to today" style={{fontSize:11,padding:"3px 7px",borderRadius:6,border:"1px solid var(--border)",background:sidebarOpen?"var(--accent)":"var(--card-3)",color:sidebarOpen?"var(--card)":"var(--text-2)",cursor:"pointer",flexShrink:0}}>☰</button>
+          }} title="Jump to today" style={{display:"flex",alignItems:"center",gap:6,padding:"4px 10px 4px 8px",borderRadius:8,border:"1px solid var(--border)",background:sidebarOpen?"var(--accent)":"var(--card-3)",color:sidebarOpen?"var(--card)":"var(--text)",cursor:"pointer",flexShrink:0}}>
+            <span style={{fontSize:16,fontWeight:800,letterSpacing:"-0.03em",lineHeight:1}}>DOS</span>
+            <span style={{fontSize:11,opacity:0.7,lineHeight:1}}>☰</span>
+          </button>
           <div style={{display:"flex",alignItems:"center",gap:0,flexShrink:0}}>
             <button onClick={()=>stepDate(-1)} disabled={!canPrev} title="Previous date" style={{fontSize:11,padding:"2px 7px",borderRadius:"5px 0 0 5px",border:"1px solid var(--border)",borderRight:"none",background:canPrev?"var(--card-3)":"var(--card-4)",color:canPrev?"var(--text)":"var(--text-mute)",cursor:canPrev?"pointer":"default"}}>‹</button>
             <button onClick={()=>stepDate(1)} disabled={!canNext} title="Next date" style={{fontSize:11,padding:"2px 7px",borderRadius:"0 5px 5px 0",border:"1px solid var(--border)",background:canNext?"var(--card-3)":"var(--card-4)",color:canNext?"var(--text)":"var(--text-mute)",cursor:canNext?"pointer":"default"}}>›</button>
