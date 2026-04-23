@@ -235,3 +235,42 @@ create index if not exists scan_thread_cache_scanner_idx
   on scan_thread_cache (scanner, thread_id);
 
 alter table scan_thread_cache enable row level security;
+
+-- ── Feature comments: user feedback, bug reports, feature requests ────────────
+create table if not exists feature_comments (
+  id         uuid        primary key default gen_random_uuid(),
+  created_at timestamptz default now(),
+  user_id    uuid        references auth.users on delete cascade not null,
+  user_email text,
+  team_id    text        not null,
+  role       text        not null,   -- tm_td | internal | viewer
+  tab        text        not null,   -- dash | advance | ros | ...
+  section    text,                   -- section label from COMMENT_TARGETS map
+  category   text        not null,   -- bug | feature | ux | fix
+  body       text        not null,
+  status     text        not null default 'open'  -- open | reviewed | planned | done | wontfix
+);
+
+create index if not exists feature_comments_team_idx
+  on feature_comments (team_id, created_at desc);
+create index if not exists feature_comments_user_idx
+  on feature_comments (user_id, created_at desc);
+
+alter table feature_comments enable row level security;
+
+drop policy if exists "read team comments" on feature_comments;
+drop policy if exists "insert own comment" on feature_comments;
+drop policy if exists "update status team" on feature_comments;
+
+create policy "read team comments"
+  on feature_comments for select
+  using (team_id = 'dos-bbno-2026');
+
+create policy "insert own comment"
+  on feature_comments for insert
+  with check (auth.uid() = user_id and team_id = 'dos-bbno-2026');
+
+create policy "update status team"
+  on feature_comments for update
+  using (team_id = 'dos-bbno-2026')
+  with check (team_id = 'dos-bbno-2026');

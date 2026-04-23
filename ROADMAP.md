@@ -140,3 +140,32 @@ Source: CLAUDE.md §7. Ship before May 4.
 - [ ] Remove hardcoded `MY_EMAIL` in [api/comms.js:7](api/comms.js)
 - [ ] Prettier + ESLint + pre-commit
 - [ ] Playwright smoke tests: login, intel scan, ledger edit
+- [ ] Crew tab — port from v5 `App.jsx` (Phase 5 target)
+
+### Advance status buttons — design spec (Prompt 1 detail)
+
+- Single click cycles: Pending → In Progress → Confirmed.
+- Long-press / right-click opens popover with all 9 states.
+- Mobile: tap opens popover.
+- Colors: Confirmed=green, Escalate=red, Follow Up/Respond=amber, In Progress=blue, Sent/Received=slate, N/A=muted + strikethrough.
+- Storage: shared if item is shared, private if item is private.
+
+### Auto-toggle from email scrape (Prompt 2 detail)
+
+- Shared checklist item confirmed → shared storage, visible to all users.
+- Private item confirmed → private storage, user only.
+- One-click "Confirm" always required before marking complete.
+- Undo available for 30 seconds after confirm.
+- Never auto-confirms without user action.
+
+---
+
+## Phase 0 blocking backlog (pre-Platform)
+
+Source: CLAUDE.md §11. Unblock before Phase 0 entry.
+
+- [ ] Create GitHub org for DOS LLC.
+- [ ] Create `dos-platform` repo (Next.js 15 scaffold).
+- [ ] Create new Supabase project for platform (separate from v7).
+- [ ] Contact Josh Gallegos (check PayPal first).
+- [ ] Install SuperClaude, GWS CLI, Claude Task Master.
