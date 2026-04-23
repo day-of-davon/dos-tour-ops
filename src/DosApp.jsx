@@ -2425,7 +2425,7 @@ function Dash(){
           <span style={{fontSize:9,fontWeight:800,color:"var(--danger-fg)",fontFamily:MN,flexShrink:0,marginTop:1}}>{i.category}</span>
           <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,fontWeight:600,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{i.from}{arShowLabel(i)?` · ${arShowLabel(i)}`:""}</div></div>
           <span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:bucketB(i.bucket),color:bucketC(i.bucket),fontWeight:700,flexShrink:0}}>{i.bucket}</span>
-          <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--danger-fg)",textDecoration:"none",flexShrink:0,opacity:0.8,paddingTop:1}}>↗</a>
+          <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--danger-bg)",color:"var(--danger-fg)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0,border:"1px solid var(--danger-fg)"}}>email →</a>
         </div>)}
       </div>}
       <div style={{fontSize:9,fontWeight:800,color:client.color,letterSpacing:"0.1em",marginBottom:5}}>{client.name.toUpperCase()} — UPCOMING</div>
@@ -2448,7 +2448,7 @@ function Dash(){
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:priB(t.priority),color:priC(t.priority),fontWeight:700,flexShrink:0,marginTop:1}}>{t.priority||"LOW"}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",lineHeight:1.4}}>{t.text}</div>{(t.owner||t.deadline)&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{t.owner}{t.deadline?` · due ${t.deadline}`:""}</div>}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                {t.threadTid&&<a href={gmailUrl(t.threadTid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none"}}>email ↗</a>}
+                {t.threadTid&&<a href={gmailUrl(t.threadTid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email →</a>}
                 <div style={{fontSize:9,color:"var(--link)",fontFamily:MN,cursor:"pointer",textDecoration:"underline"}} onClick={()=>{setSel(t.show.date);setTab("advance");}}>{t.show.city} {fD(t.show.date)}</div>
               </div>
             </div>)}
@@ -2460,7 +2460,7 @@ function Dash(){
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:priB(f.priority),color:priC(f.priority),fontWeight:700,flexShrink:0,marginTop:1}}>{f.priority||"LOW"}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",lineHeight:1.4}}>{f.action}</div>{(f.owner||f.deadline)&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{f.owner}{f.deadline?` · due ${f.deadline}`:""}</div>}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none"}}>email ↗</a>}
+                {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email →</a>}
                 <div style={{fontSize:9,color:"var(--link)",fontFamily:MN,cursor:"pointer",textDecoration:"underline"}} onClick={()=>{setSel(f.show.date);setTab("advance");}}>{f.show.city} {fD(f.show.date)}</div>
               </div>
             </div>)}
@@ -2472,7 +2472,7 @@ function Dash(){
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:bucketB(i.bucket),color:bucketC(i.bucket),fontWeight:700,flexShrink:0,marginTop:1}}>{i.bucket}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{i.from}{arShowLabel(i)?` · ${arShowLabel(i)}`:""}</div></div>
               <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN,flexShrink:0,paddingTop:2}}>{i.category}</span>
-              <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",flexShrink:0,paddingTop:1}}>↗</a>
+              <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>email →</a>
             </div>)}
           </div>
         </IntelSection>}
@@ -2482,7 +2482,7 @@ function Dash(){
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,flexShrink:0,marginTop:1}}>{i.category}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{i.from}</div></div>
               {arShowLabel(i)&&<div style={{fontSize:9,color:"var(--link)",fontFamily:MN,flexShrink:0,cursor:"pointer",textDecoration:"underline"}} onClick={()=>{const s=showMap[i.showId];if(s){setSel(s.date);setTab("intel");}}}>{arShowLabel(i)}</div>}
-              <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",flexShrink:0,paddingTop:1}}>↗</a>
+              <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>email →</a>
             </div>)}
           </div>
         </IntelSection>}
