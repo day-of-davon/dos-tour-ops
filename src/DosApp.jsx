@@ -1208,7 +1208,7 @@ export default function App(){
       if(!session){setRefreshMsg("No active session");return;}
       const googleToken=session.provider_token;
       if(!googleToken){setRefreshMsg("Gmail token missing — sign out and back in");return;}
-      const ac1=new AbortController();const t1=setTimeout(()=>ac1.abort(),30000);
+      const ac1=new AbortController();const t1=setTimeout(()=>ac1.abort(),110000);
       let resp;try{resp=await fetch("/api/intel",{method:"POST",signal:ac1.signal,headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({show,googleToken,forceRefresh:force,userEmail:session.user?.email})});}finally{clearTimeout(t1);}
       if(!resp.ok){const err=await resp.json().catch(()=>({}));const msg=err.error==="gmail_token_expired"?"gmail_token_expired":`http_${resp.status}`;addActLog({module:"intel",action:"intel.scan.error",target:{type:"show",id:sid,label:show.venue},payload:{status:resp.status,message:msg},context:{date:show.date,showId:sid,eventKey:sid}});setRefreshMsg(err.error==="gmail_token_expired"?"Gmail token expired — re-sign in":`Error: ${resp.status}`);return;}
       const data=await resp.json();const ni=data.intel;
@@ -1265,7 +1265,7 @@ export default function App(){
       if(!session?.provider_token)return;
       const showsArr=Object.values(shows||{}).filter(s=>s.clientId===aC);
       const authHeaders={"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`};
-      const ac3=new AbortController();const t3=setTimeout(()=>ac3.abort(),30000);
+      const ac3=new AbortController();const t3=setTimeout(()=>ac3.abort(),110000);
       let resp;try{resp=await fetch("/api/intel",{method:"POST",signal:ac3.signal,headers:authHeaders,body:JSON.stringify({action:"bulkFetch",shows:showsArr,googleToken:session.provider_token,forceRefresh:force,userEmail:session.user?.email})});}finally{clearTimeout(t3);}
       if(!resp.ok)return;
       const data=await resp.json();
@@ -2156,6 +2156,39 @@ function IntelPanel(){
   const upd=patch=>setIntel(p=>({...p,[sid]:{...(p[sid]||{}),...patch}}));
   const primaryTid=(data.threads||[]).find(t=>t.tid)?.tid||null;
   const threadHref=(tid)=>tid?gmailUrl(tid):null;
+  const[drafts,setDrafts]=useState({});
+  const draftReply=async(tid)=>{
+    setDrafts(p=>({...p,[tid]:{status:"loading"}}));
+    const{data:{session}}=await supabase.auth.getSession();
+    if(!session?.provider_token){setDrafts(p=>({...p,[tid]:{status:"error",error:"Gmail token missing — re-login"}}));return;}
+    try{
+      const resp=await fetch("/api/comms",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({tid,show,googleToken:session.provider_token,userEmail:session.user?.email})});
+      const json=await resp.json();
+      if(!resp.ok){setDrafts(p=>({...p,[tid]:{status:"error",error:json.error||"Draft failed"}}));return;}
+      setDrafts(p=>({...p,[tid]:{status:"done",text:json.draft,subject:json.subject,participants:json.participants}}));
+    }catch(e){setDrafts(p=>({...p,[tid]:{status:"error",error:e.message||"Network error"}}));}
+  };
+  const clearDraft=tid=>setDrafts(p=>{const n={...p};delete n[tid];return n;});
+  const DraftPanel=({tid})=>{
+    const d=drafts[tid];if(!d)return null;
+    if(d.status==="loading")return<div style={{padding:"6px 0 4px 0",fontSize:9,color:"var(--text-mute)",fontFamily:MN}}>Drafting…</div>;
+    if(d.status==="error")return<div style={{display:"flex",alignItems:"center",gap:6,padding:"4px 0"}}>
+      <span style={{fontSize:9,color:"var(--danger-fg)"}}>{d.error}</span>
+      <button onClick={()=>clearDraft(tid)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-mute)",fontSize:11}}>×</button>
+    </div>;
+    return<div style={{marginTop:4,border:"1px solid var(--accent)",borderRadius:6,padding:"8px 10px",background:"var(--card-2)",display:"flex",flexDirection:"column",gap:6}}>
+      <div style={{display:"flex",alignItems:"center",gap:6}}>
+        <span style={{fontSize:8,fontWeight:800,color:"var(--accent)",letterSpacing:"0.06em"}}>DRAFT REPLY</span>
+        <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.subject}</span>
+        <button onClick={()=>clearDraft(tid)} title="Close draft" style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-mute)",fontSize:11,flexShrink:0}}>×</button>
+      </div>
+      <textarea value={d.text} onChange={e=>setDrafts(p=>({...p,[tid]:{...p[tid],text:e.target.value}}))} rows={6} style={{width:"100%",fontFamily:MN,fontSize:9,padding:"6px 8px",border:"1px solid var(--border)",borderRadius:4,resize:"vertical",background:"var(--card)",color:"var(--text)",lineHeight:1.5}}/>
+      <div style={{display:"flex",gap:5}}>
+        <button onClick={()=>navigator.clipboard.writeText(d.text)} style={{fontSize:8,padding:"3px 9px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card)",color:"var(--text-2)",cursor:"pointer",fontWeight:700}}>Copy</button>
+        <a href={gmailUrl(tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"3px 9px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card)",color:"var(--link)",cursor:"pointer",fontWeight:700,textDecoration:"none"}}>Open Gmail ↗</a>
+      </div>
+    </div>;
+  };
   const arDone=useMemo(()=>new Set(intel.__arState?.done||[]),[intel.__arState]);
   const arIgnored=useMemo(()=>new Set(intel.__arState?.ignored||[]),[intel.__arState]);
   const markArIntel=(id,state,label)=>{
@@ -2254,15 +2287,19 @@ function IntelPanel(){
             <div key={b.key} style={{background:b.bg,border:`1px solid ${b.col}30`,borderRadius:10,padding:"8px 12px"}}>
               <div style={{fontSize:8,fontWeight:800,color:b.col,letterSpacing:"0.08em",marginBottom:5}}>{b.label} ({grouped[b.key].length})</div>
               {grouped[b.key].map(item=>{const done=arDone.has(item.id);return(
-                <div key={item.id} style={{display:"flex",gap:8,padding:"4px 0",borderBottom:`1px solid ${b.col}18`,alignItems:"center",opacity:done?0.45:1}}>
+                <React.Fragment key={item.id}>
+                <div style={{display:"flex",gap:8,padding:"4px 0",borderBottom:`1px solid ${b.col}18`,alignItems:"center",opacity:done?0.45:1}}>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:done?"line-through":"none"}}>{item.subject}</div>
                     <div style={{fontSize:9,color:b.col,opacity:0.85}}>{item.category&&item.category!=="MISC"?`${item.category} · `:""}{item.signal} · {item.from}</div>
                   </div>
                   <a href={gmailUrl(item.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",flexShrink:0}}>↗</a>
+                  <button onClick={()=>draftReply(item.id)} disabled={drafts[item.id]?.status==="loading"} title="Draft reply-all" style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"1px solid var(--accent)",background:"var(--card)",color:"var(--accent)",cursor:"pointer",fontWeight:700,flexShrink:0,opacity:drafts[item.id]?.status==="loading"?0.5:1}}>✉</button>
                   <button onClick={()=>markArIntel(item.id,done?"undone":"done",item.subject)} title={done?"Mark open":"Mark done"} style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"none",background:done?"var(--success-bg)":"var(--card-2)",color:done?"var(--success-fg)":"var(--text-2)",cursor:"pointer",fontWeight:700,flexShrink:0}}>✓</button>
                   <button onClick={()=>markArIntel(item.id,"ignored",item.subject)} title="Ignore" style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"none",background:"var(--card-2)",color:"var(--text-mute)",cursor:"pointer",fontWeight:700,flexShrink:0}}>✕</button>
                 </div>
+                <DraftPanel tid={item.id}/>
+                </React.Fragment>
               );})}
 
             </div>
@@ -2360,9 +2397,11 @@ function IntelPanel(){
                     </a>}
                   {thread.status&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--card-2)",color:"var(--text-mute)",fontWeight:600,flexShrink:0,whiteSpace:"nowrap"}}>{thread.status}</span>}
                   <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN,flexShrink:0}}>{thread.date}</span>
+                  {!thread.manual&&<button onClick={()=>draftReply(tid)} disabled={drafts[tid]?.status==="loading"} title="Draft reply-all" style={{fontSize:9,padding:"2px 6px",borderRadius:4,border:"1px solid var(--accent)",background:"var(--card)",color:"var(--accent)",cursor:"pointer",fontWeight:700,flexShrink:0,opacity:drafts[tid]?.status==="loading"?0.5:1}}>✉</button>}
                   <button onClick={()=>delThread(tid)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-mute)",fontSize:11,flexShrink:0}}>×</button>
                 </div>
               )}
+              {thread&&<DraftPanel tid={tid}/>}
               {gTodos.map(renderTodo)}
               {gFus.map(f=>renderFu(f,(data.followUps||[]).findIndex(x=>x===f)))}
             </div>
