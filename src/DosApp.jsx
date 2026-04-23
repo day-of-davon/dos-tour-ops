@@ -894,6 +894,57 @@ const showIdFor=(s)=>`${s.venue}__${s.date}`.toLowerCase().replace(/\s+/g,"_");
 const gmailUrl=(tid)=>`https://mail.google.com/mail/u/0/#all/${tid}`;
 const STOP=new Set(["the","a","an","of","to","for","and","or","is","on","in","with","your","we","please","be","at","by","from","are","this","that"]);
 const tokens=(s)=>(String(s||"").toLowerCase().match(/[a-z0-9]{3,}/g)||[]).filter(w=>!STOP.has(w));
+// ── Intel deduplication ──────────────────────────────────────────────────────
+// Runs after every scan/import. Normalizes and fuzzy-matches todos, followUps,
+// and threads so repeated scans don't accumulate near-identical entries.
+function textSimilar(a,b){
+  const ta=tokens(a),tb=tokens(b);
+  if(!ta.length||!tb.length)return false;
+  const sa=new Set(ta),sb=new Set(tb);
+  const na=String(a||"").toLowerCase().trim(),nb=String(b||"").toLowerCase().trim();
+  if(na===nb)return true;
+  if(na.includes(nb)||nb.includes(na))return true;
+  const shared=[...sa].filter(w=>sb.has(w)).length;
+  return shared/Math.min(sa.size,sb.size)>=0.75;
+}
+function deduplicateIntel(data){
+  if(!data)return data;
+  // Threads: dedup by tid, then by normalized subject+sender prefix
+  const seenTid=new Set(),seenSubj=new Map();
+  const threads=(data.threads||[]).filter(t=>{
+    if(seenTid.has(t.tid))return false;
+    seenTid.add(t.tid);
+    if(t.manual)return true;
+    const key=String(t.subject||"").toLowerCase().replace(/^(re|fwd?):\s*/i,"").trim()+"|"+String(t.from||"").toLowerCase().split(/[\s@]/)[0];
+    if(seenSubj.has(key))return false;
+    seenSubj.set(key,true);
+    return true;
+  });
+  // Todos: keep highest-priority when action text is similar; manual todos always survive
+  const todos=[];
+  for(const t of(data.todos||[])){
+    if(t.manual){todos.push(t);continue;}
+    const dupe=todos.findIndex(x=>!x.manual&&textSimilar(x.text,t.text));
+    if(dupe<0){todos.push(t);}
+    else{
+      const PRI={CRITICAL:0,HIGH:1,MED:2,MEDIUM:2,LOW:3};
+      if((PRI[t.priority]??4)<(PRI[todos[dupe].priority]??4))todos[dupe]={...t,id:todos[dupe].id};
+    }
+  }
+  // FollowUps: keep highest-priority when action text is similar; manual ones survive
+  const followUps=[];
+  for(const f of(data.followUps||[])){
+    if(f.manual){followUps.push(f);continue;}
+    const dupe=followUps.findIndex(x=>!x.manual&&textSimilar(x.action,f.action));
+    if(dupe<0){followUps.push(f);}
+    else{
+      const PRI={CRITICAL:0,HIGH:1,MED:2,MEDIUM:2,LOW:3};
+      if((PRI[f.priority]??4)<(PRI[followUps[dupe].priority]??4))followUps[dupe]=f;
+    }
+  }
+  return{...data,threads,todos,followUps};
+}
+
 function matchScore(itemText,thread){
   const a=new Set(tokens(itemText));const b=new Set([...tokens(thread.subject),...tokens(thread.from)]);
   if(!a.size||!b.size)return 0;let hit=0;a.forEach(w=>{if(b.has(w))hit++;});
@@ -1140,7 +1191,8 @@ export default function App(){
           ...(existing.followUps||[]).filter(f=>!newFuTexts.has(f.action)).map(f=>({ts,type:"scan",section:"followup",showId:sid,action:"removed",label:f.action,from:"scan"})),
         ];
         const changelog=[...(p.__changelog||[]).slice(-Math.max(1,499-scanEntries.length)),...scanEntries];
-        return{...p,__changelog:changelog,[sid]:{threads,followUps:ni.followUps||[],showContacts:contacts,schedule:ni.schedule||existing.schedule||[],todos,matches:existing.matches||[],dismissedFlags:existing.dismissedFlags||[],arStatus:existing.arStatus||{},lastRefreshed:new Date().toISOString(),isShared:data.isShared||false,sharedByOthers:data.sharedByOthers||[],_partial:!!ni._partial}};
+        const merged2=deduplicateIntel({threads,followUps:ni.followUps||[],showContacts:contacts,schedule:ni.schedule||existing.schedule||[],todos,matches:existing.matches||[],dismissedFlags:existing.dismissedFlags||[],arStatus:existing.arStatus||{},lastRefreshed:new Date().toISOString(),isShared:data.isShared||false,sharedByOthers:data.sharedByOthers||[],_partial:!!ni._partial});
+        return{...p,__changelog:changelog,[sid]:merged2};
       });
       setRefreshMsg(`${show.venue}: ${data.gmailThreadsFound||0} threads`);
       setTimeout(()=>setRefreshMsg(""),3500);
@@ -1193,7 +1245,7 @@ export default function App(){
               const found=allItems.find(t=>t.id===tid);
               return found?{tid:found.id,subject:found.subject,from:found.from,date:found.date,snippet:found.snippet,fromLabelScan:true,intent:"MISC"}:{tid,fromLabelScan:true,subject:"",from:"",intent:"MISC"};
             });
-            if(newStubs.length)next[sid]={...existing,threads:[...(existing.threads||[]),...newStubs]};
+            if(newStubs.length)next[sid]=deduplicateIntel({...existing,threads:[...(existing.threads||[]),...newStubs]});
           }
           return next;
         });
@@ -2035,6 +2087,7 @@ function IntelPanel(){
       {data._partial&&<span title="Claude response was truncated by max_tokens; some threads/fields may be missing. Re-run the scan." style={{fontSize:9,fontWeight:700,color:"var(--warn-fg)",fontFamily:MN,padding:"1px 6px",borderRadius:4,border:"1px solid var(--warn-fg)"}}>PARTIAL</span>}
       <span style={{marginLeft:"auto",fontSize:9,color:"var(--text-dim)"}}>{(data.threads||[]).length} threads · {(data.todos||[]).length} to-dos</span>
       <button onClick={()=>toggleIntelShare(show,!shared)} style={{background:shared?"var(--success-bg)":"var(--card-2)",color:shared?"var(--success-fg)":"var(--text-2)",border:`1px solid ${shared?"var(--success-fg)":"var(--border)"}`,borderRadius:6,fontSize:9,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>{shared?"Shared with team":"Share with team"}</button>
+      <button onClick={()=>{const d=intel[sid];if(!d)return;const before={t:(d.todos||[]).length,f:(d.followUps||[]).length,th:(d.threads||[]).length};const clean=deduplicateIntel(d);const saved=(before.t-(clean.todos||[]).length)+(before.f-(clean.followUps||[]).length)+(before.th-(clean.threads||[]).length);setIntel(p=>({...p,[sid]:clean}));if(saved>0)addLog({type:"user",section:"dedup",showId:sid,action:"cleaned",label:`Removed ${saved} duplicate${saved>1?"s":""}`,from:"intel_panel"});}} title="Remove near-duplicate todos, follow-ups, and threads" style={{background:"var(--card-2)",color:"var(--text-2)",border:"1px solid var(--border)",borderRadius:6,fontSize:9,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>Clean Dupes</button>
       <button onClick={()=>refreshIntel(show,true)} disabled={!!refreshing} style={{background:refreshing?"var(--border)":"var(--accent)",color:refreshing?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:refreshing?"default":"pointer",fontWeight:700}}>{busy?"Scanning…":"Refresh Intel"}</button>
     </div>
     {refreshMsg&&<div style={{fontSize:10,color:"var(--accent)",fontFamily:MN}}>{refreshMsg}</div>}
@@ -2105,38 +2158,82 @@ function IntelPanel(){
         </div>)}
       </div>}
     </IntelSection>
-    <IntelSection title="TO-DOS (PRIVATE)" count={(data.todos||[]).filter(t=>!t.ignored).length} defaultOpen={true} actions={<button onClick={addTodo} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Add</button>}>
-      {(data.todos||[]).filter(t=>!t.ignored).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No action items yet.</div>:
-        [...(data.todos||[])].filter(t=>!t.ignored).sort((a,b)=>({CRITICAL:0,HIGH:1,MED:2,MEDIUM:2,LOW:3}[a.priority]??4)-({CRITICAL:0,HIGH:1,MED:2,MEDIUM:2,LOW:3}[b.priority]??4)).map(t=><div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-3)"}}>
+    {(()=>{
+      const PRI={CRITICAL:0,HIGH:1,MED:2,MEDIUM:2,LOW:3};
+      const threadMap=new Map((data.threads||[]).map(t=>[t.tid,t]));
+      const activeTodos=(data.todos||[]).filter(t=>!t.ignored);
+      const activeFu=(data.followUps||[]).filter(f=>!f.done&&!f.ignored);
+      const todosByTid={};for(const t of activeTodos)(todosByTid[t.threadTid||"__none__"]||=[]).push(t);
+      const fuByTid={};for(const f of activeFu)(fuByTid[f.tid||"__none__"]||=[]).push(f);
+      const seenTid=new Set();
+      const groups=[];
+      for(const t of(data.threads||[])){if(seenTid.has(t.tid)||(!t.manual&&!t.subject))continue;seenTid.add(t.tid);groups.push({thread:t,tid:t.tid});}
+      for(const k of[...Object.keys(todosByTid),...Object.keys(fuByTid)]){if(k==="__none__"||seenTid.has(k))continue;seenTid.add(k);groups.push({thread:null,tid:k});}
+      const unlinkedTodos=todosByTid["__none__"]||[];
+      const unlinkedFu=fuByTid["__none__"]||[];
+      const renderTodo=t=>(
+        <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"3px 0 3px 10px",borderTop:"1px solid var(--card-3)"}}>
           <input type="checkbox" checked={!!t.done} onChange={()=>toggleTodo(t.id,t.done,t.text)}/>
-          {(()=>{const h=threadHref(t.threadTid||primaryTid);return h?<a href={h} target="_blank" rel="noopener noreferrer" style={{fontSize:10,flex:1,color:t.done?"var(--text-mute)":"var(--link)",textDecoration:t.done?"line-through":"none",fontWeight:500}}>{t.text}</a>:<span style={{fontSize:10,flex:1,color:t.done?"var(--text-mute)":"var(--text)",textDecoration:t.done?"line-through":"none"}}>{t.text}</span>;})()}
+          <span style={{fontSize:10,flex:1,color:t.done?"var(--text-mute)":"var(--text)",textDecoration:t.done?"line-through":"none"}}>{t.text}</span>
+          {t.threadTid&&<a href={gmailUrl(t.threadTid)} target="_blank" rel="noopener noreferrer" title="Open thread" style={{color:"var(--text-mute)",fontSize:9,textDecoration:"none",flexShrink:0}}>✉</a>}
           {t.priority&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:t.priority==="CRITICAL"?"var(--danger-bg)":t.priority==="HIGH"?"var(--warn-bg)":"var(--card-2)",color:t.priority==="CRITICAL"?"var(--danger-fg)":t.priority==="HIGH"?"var(--warn-fg)":"var(--text-dim)",fontWeight:700}}>{t.priority}</span>}
-          <button onClick={()=>delTodo(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:11}}>×</button>
-        </div>)}
-    </IntelSection>
-    {(()=>{const visibleFu=(data.followUps||[]).filter(f=>!f.done&&!f.ignored);return(
-    <IntelSection title="FOLLOW-UPS" count={visibleFu.length} defaultOpen={true} actions={<button onClick={addFollowUp} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Add</button>}>
-      {visibleFu.length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No follow-ups.</div>:
-        visibleFu.map((f)=>{const i=(data.followUps||[]).findIndex(x=>x===f);return(<div key={i} style={{display:"grid",gridTemplateColumns:`1fr 100px 80px 100px${f.manual?"":" auto auto"} 28px`,gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-3)",fontSize:10,alignItems:"center"}}>
-          {f.manual?<input value={f.action||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,action:e.target.value}:x)})} placeholder="Action" style={UI.input}/>:(()=>{const h=threadHref(f.tid||primaryTid);return h?<a href={h} target="_blank" rel="noopener noreferrer" style={{color:"var(--link)",textDecoration:"none",fontWeight:500}}>{f.action}</a>:<span>{f.action}</span>;})()}
+          <button onClick={()=>delTodo(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-mute)",fontSize:11}}>×</button>
+        </div>
+      );
+      const renderFu=(f,i)=>(
+        <div key={i} style={{display:"grid",gridTemplateColumns:`1fr 90px 70px 90px${f.manual?"":" auto auto"} 24px`,gap:6,padding:"3px 0 3px 10px",borderTop:"1px solid var(--card-3)",fontSize:10,alignItems:"center"}}>
+          {f.manual?<input value={f.action||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,action:e.target.value}:x)})} placeholder="Action" style={UI.input}/>:f.tid?<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" title="Open thread" style={{fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"var(--text)",textDecoration:"underline",textDecorationColor:"var(--text-mute)",textUnderlineOffset:2}}>{f.action}</a>:<span style={{fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.action}</span>}
           {f.manual?<input value={f.owner||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,owner:e.target.value}:x)})} placeholder="Owner" style={UI.input}/>:<span style={{fontSize:8,color:"var(--text-dim)"}}>{f.owner}</span>}
           {f.manual?<select value={f.priority||"MED"} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,priority:e.target.value}:x)})} style={UI.input}><option>CRITICAL</option><option>HIGH</option><option>MED</option><option>LOW</option></select>:<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:f.priority==="CRITICAL"?"var(--danger-bg)":"var(--card-2)",color:f.priority==="CRITICAL"?"var(--danger-fg)":"var(--text-dim)",fontWeight:700}}>{f.priority}</span>}
           {f.manual?<input value={f.deadline||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,deadline:e.target.value}:x)})} placeholder="YYYY-MM-DD" style={UI.input}/>:<span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN}}>{f.deadline}</span>}
-          {!f.manual&&<button onClick={()=>{upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,done:true}:x)});addLog({type:"user",section:"followup",showId:sid,action:"done",label:f.action,from:"intel_panel"});}} style={{fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--success-bg)",color:"var(--success-fg)"}}>Done</button>}
-          {!f.manual&&<button onClick={()=>{upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,ignored:true}:x)});addLog({type:"user",section:"followup",showId:sid,action:"ignored",label:f.action,from:"intel_panel"});}} style={{fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--card-2)",color:"var(--text-mute)"}}>Ignore</button>}
-          <button onClick={()=>delFollowUp(i)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:11}}>×</button>
-        </div>);})}
-    </IntelSection>);})()}
-    <IntelSection title="THREADS (PRIVATE)" count={(data.threads||[]).filter(t=>t.manual||t.subject).length} defaultOpen={true} actions={<button onClick={addThread} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Add</button>}>
-      {(data.threads||[]).filter(t=>t.manual||t.subject).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No threads.</div>:
-        (data.threads||[]).filter(t=>t.manual||t.subject).map(t=><div key={t.tid} style={{display:"grid",gridTemplateColumns:"1fr auto auto 28px",gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-3)",fontSize:10,alignItems:"center"}}>
-          {t.manual?<input value={t.subject||""} onChange={e=>upd({threads:data.threads.map(x=>x.tid===t.tid?{...x,subject:e.target.value}:x)})} placeholder="Subject" style={UI.input}/>:
-            <a href={gmailUrl(t.tid)} target="_blank" rel="noopener noreferrer" style={{color:"var(--text)",textDecoration:"none",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}><span style={{fontWeight:600}}>{t.subject}</span> <span style={{color:"var(--text-dim)",fontSize:9}}>· {t.from}</span></a>}
-          <span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:700}}>{t.intent||"?"}</span>
-          <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN}}>{t.date}</span>
-          <button onClick={()=>delThread(t.tid)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:11}}>×</button>
-        </div>)}
-    </IntelSection>
+          {!f.manual&&<button onClick={()=>{upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,done:true}:x)});addLog({type:"user",section:"followup",showId:sid,action:"done",label:f.action,from:"intel_panel"});}} style={{fontSize:8,padding:"2px 5px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--success-bg)",color:"var(--success-fg)"}}>Done</button>}
+          {!f.manual&&<button onClick={()=>{upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,ignored:true}:x)});addLog({type:"user",section:"followup",showId:sid,action:"ignored",label:f.action,from:"intel_panel"});}} style={{fontSize:8,padding:"2px 5px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--card-2)",color:"var(--text-mute)"}}>Ignore</button>}
+          <button onClick={()=>delFollowUp(i)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-mute)",fontSize:11}}>×</button>
+        </div>
+      );
+      const totalCount=(data.threads||[]).filter(t=>t.manual||t.subject).length;
+      const itemCount=activeTodos.length+activeFu.length;
+      return(
+      <IntelSection title="INTEL BY THREAD" count={totalCount} defaultOpen={true} actions={<div style={{display:"flex",gap:4}}>
+        <button onClick={addTodo} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Todo</button>
+        <button onClick={addThread} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Thread</button>
+        <button onClick={addFollowUp} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Follow-up</button>
+      </div>}>
+        {totalCount===0&&itemCount===0&&<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No intel yet. Run a scan.</div>}
+        {groups.map(({thread,tid})=>{
+          const gTodos=(todosByTid[tid]||[]).sort((a,b)=>(PRI[a.priority]??4)-(PRI[b.priority]??4));
+          const gFus=fuByTid[tid]||[];
+          if(!thread&&!gTodos.length&&!gFus.length)return null;
+          return(
+            <div key={tid} style={{marginBottom:6,borderLeft:"2px solid var(--border)",paddingLeft:8}}>
+              {thread&&(
+                <div style={{display:"flex",alignItems:"center",gap:6,padding:"4px 0"}}>
+                  <span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:700,flexShrink:0}}>{thread.intent||"?"}</span>
+                  {thread.manual
+                    ?<input value={thread.subject||""} onChange={e=>upd({threads:data.threads.map(x=>x.tid===tid?{...x,subject:e.target.value}:x)})} placeholder="Subject" style={{...UI.input,flex:1}}/>
+                    :<a href={gmailUrl(tid)} target="_blank" rel="noopener noreferrer" style={{flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:"var(--text)",textDecoration:"none",fontSize:10}}>
+                      <span style={{fontWeight:600}}>{thread.subject}</span>{thread.from&&<span style={{color:"var(--text-dim)",fontSize:8}}>{" · "+thread.from}</span>}
+                    </a>}
+                  {thread.status&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--card-2)",color:"var(--text-mute)",fontWeight:600,flexShrink:0,whiteSpace:"nowrap"}}>{thread.status}</span>}
+                  <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN,flexShrink:0}}>{thread.date}</span>
+                  <button onClick={()=>delThread(tid)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--text-mute)",fontSize:11,flexShrink:0}}>×</button>
+                </div>
+              )}
+              {gTodos.map(renderTodo)}
+              {gFus.map(f=>renderFu(f,(data.followUps||[]).findIndex(x=>x===f)))}
+            </div>
+          );
+        })}
+        {(unlinkedTodos.length>0||unlinkedFu.length>0)&&(
+          <div style={{marginBottom:6,borderLeft:"2px solid var(--card-3)",paddingLeft:8}}>
+            <div style={{fontSize:8,fontWeight:700,color:"var(--text-mute)",letterSpacing:"0.06em",padding:"3px 0"}}>MANUAL / NO THREAD</div>
+            {[...unlinkedTodos].sort((a,b)=>(PRI[a.priority]??4)-(PRI[b.priority]??4)).map(renderTodo)}
+            {unlinkedFu.map(f=>renderFu(f,(data.followUps||[]).findIndex(x=>x===f)))}
+          </div>
+        )}
+      </IntelSection>
+      );
+    })()}
     {(data.showContacts||[]).length>0&&<div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px"}}>
       <div style={{fontSize:9,fontWeight:800,color:"var(--text-dim)",letterSpacing:"0.06em",marginBottom:6}}>CONTACTS</div>
       {data.showContacts.map((c,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 1fr auto",gap:8,padding:"4px 0",borderBottom:"1px solid var(--card-3)",fontSize:10}}>
