@@ -2707,9 +2707,17 @@ function TopBar({ss}){
         </div>
       </div>
       <div style={{padding:mobile?"3px 12px 5px":"3px 20px 5px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-        <select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${curClient?.color||"var(--border)"}`,background:curClient?`${curClient.color}14`:"var(--card)",color:curClient?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer",minHeight:mobile?30:undefined}}>
-          {activeClients.map(c=><option key={c.id} value={c.id} style={{color:"var(--text)",fontWeight:500}}>● {c.name} · {c.type==="festival"?"FEST":"ARTIST"}</option>)}
+        <select value={sel} onChange={e=>setSel(e.target.value)} style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${curClient?.color||"var(--border)"}`,background:curClient?`${curClient.color}14`:"var(--card)",color:curClient?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer",minHeight:mobile?30:undefined,maxWidth:mobile?220:320}}>
+          {stepList.map(d=>{
+            const s=shows[d.date];
+            const isShow=d.type==="show"||!!s;
+            const label=isShow?`● ${s?.city||"Show"} · ${fD(d.date)}`:d.type==="travel"?`→ Travel · ${fD(d.date)}`:d.type==="off"?`○ Off · ${fD(d.date)}`:`· ${fD(d.date)}`;
+            return <option key={d.date} value={d.date} style={{color:"var(--text)",fontWeight:500}}>{label}</option>;
+          })}
         </select>
+        {activeClients.length>1&&<select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${curClient?.color||"var(--border)"}`,background:curClient?`${curClient.color}14`:"var(--card)",color:curClient?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer",minHeight:mobile?30:undefined}}>
+          {activeClients.map(c=><option key={c.id} value={c.id} style={{color:"var(--text)",fontWeight:500}}>● {c.name} · {c.type==="festival"?"FEST":"ARTIST"}</option>)}
+        </select>}
         {!mobile&&<div style={{display:"flex",alignItems:"center",gap:4,marginLeft:8}}>
           <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN,fontWeight:700,letterSpacing:"0.06em",flexShrink:0}}>TOUR</span>
           <input type="date" value={tourStart} onChange={e=>setTourStart(e.target.value)} style={{fontSize:9,padding:"2px 5px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-3)",color:"var(--text-2)",fontFamily:MN,cursor:"pointer"}}/>
