@@ -1,6 +1,6 @@
 import 'dotenv/config';
 
-const DOS_TEAM_ID = process.env.DOS_TEAM_ID ?? 'dos-bbno-eu-2026';
+const DOS_TEAM_ID = process.env.DOS_TEAM_ID ?? 'dos-bbno-2026';
 
 async function fetchKey(key, teamId = DOS_TEAM_ID) {
   const { SUPABASE_URL, SUPABASE_SERVICE_KEY } = process.env;

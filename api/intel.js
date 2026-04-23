@@ -5,6 +5,7 @@ const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL, HEAVY_MODEL } = require
 const { startScanRun, finishScanRun, bumpStopReason } = require("./lib/scanMemory");
 
 const CACHE_TTL_MINUTES = 60;
+const withTimeout = (promise, ms) => Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`gmail_timeout_${ms}ms`)), ms))]);
 
 // ── Tour context (injected into prompts for accurate owner routing + classification) ──
 const TOUR_CONTEXT = {
@@ -280,10 +281,10 @@ async function handleBulkFetch(req, res, user, supabase) {
 
   let threadIds = [];
   try {
-    const [labelIds, ...extraResults] = await Promise.all([
+    const [labelIds, ...extraResults] = await withTimeout(Promise.all([
       gmailSearch(googleToken, "label:bbno$", 60),
       ...EXTRA_QUERIES.map(q => gmailSearch(googleToken, q, 25).catch(() => [])),
-    ]);
+    ]), 45000);
     threadIds = [...new Set([...labelIds, ...extraResults.flat()])];
   } catch (e) {
     if (e.message.includes("401") || e.message.includes("403")) return res.status(402).json({ error: "gmail_token_expired" });
@@ -377,10 +378,10 @@ async function handleLabelScan(req, res, user, supabase) {
 
   let threadIds = [];
   try {
-    const [labelIds, ...extraResults] = await Promise.all([
+    const [labelIds, ...extraResults] = await withTimeout(Promise.all([
       gmailSearch(googleToken, "label:bbno$", 60), // bumped from 50
       ...EXTRA_QUERIES.map(q => gmailSearch(googleToken, q, 25).catch(() => [])),
-    ]);
+    ]), 45000);
     threadIds = [...new Set([...labelIds, ...extraResults.flat()])];
   } catch (e) {
     if (e.message.includes("401") || e.message.includes("403")) return res.status(402).json({ error: "gmail_token_expired" });
@@ -448,7 +449,9 @@ async function handleLabelScan(req, res, user, supabase) {
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 module.exports = async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  const ALLOWED_ORIGINS = ["https://dos-tour-ops.vercel.app", "http://localhost:3000", "http://localhost:5173"];
+  const reqOrigin = req.headers.origin;
+  res.setHeader("Access-Control-Allow-Origin", (reqOrigin && ALLOWED_ORIGINS.includes(reqOrigin)) ? reqOrigin : ALLOWED_ORIGINS[0]);
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   if (req.method === "OPTIONS") return res.status(200).end();

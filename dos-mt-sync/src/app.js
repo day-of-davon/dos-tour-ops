@@ -1,43 +1,34 @@
 import { _electron as electron } from 'playwright';
-import { mkdirSync, existsSync } from 'node:fs';
-import { homedir } from 'node:os';
-import { join } from 'node:path';
 import { log } from './log.js';
 
 const MT_PATH = process.env.MT_APP_PATH
   || '/Applications/Master Tour.app/Contents/MacOS/Master Tour';
 
-const MT_USER_DATA_DIR = process.env.MT_USER_DATA_DIR
-  || join(homedir(), '.dos-mt-sync', 'mt-profile');
-
-const READY_TIMEOUT_MS = 5 * 60_000;
+const READY_TIMEOUT_MS = 30_000;
 
 let _app = null;
 let _page = null;
 
 export async function launchMT() {
-  const firstRun = !existsSync(MT_USER_DATA_DIR);
-  mkdirSync(MT_USER_DATA_DIR, { recursive: true });
-
   log.info(`Launching Master Tour: ${MT_PATH}`);
-  log.info(`Profile: ${MT_USER_DATA_DIR}`);
-  _app = await electron.launch({
-    executablePath: MT_PATH,
-    args: [`--user-data-dir=${MT_USER_DATA_DIR}`],
-  });
+  // Launch without --user-data-dir so MT uses its default (already logged-in) session.
+  _app = await electron.launch({ executablePath: MT_PATH });
   _page = await _app.firstWindow();
   await _page.waitForLoadState('domcontentloaded');
 
-  if (firstRun) {
-    log.warn('First run with this profile — log in to Master Tour in the window that just opened. Waiting up to 5 min for the app to reach the Events screen.');
-  }
-  await _page.waitForSelector('text=Events', { timeout: READY_TIMEOUT_MS });
+  // Nav labels are i18n keys ("Event_plural", not "Events").
+  // "Dashboard" is the first sidebar item after login — wait up to 30s.
+  await _page.waitForSelector('text=Dashboard', { timeout: READY_TIMEOUT_MS });
   log.ok('Master Tour ready');
   return _page;
 }
 
 export async function closeMT() {
-  if (_app) await _app.close();
+  if (_app) {
+    try { await _app.close(); } catch {}
+    _app = null;
+    _page = null;
+  }
 }
 
 export function getPage() {

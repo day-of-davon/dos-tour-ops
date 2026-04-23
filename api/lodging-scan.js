@@ -282,9 +282,9 @@ ${returnShape}`;
   for (const t of withPdf) {
     if (attachmentsScanned >= PDF_MAX_PER_SCAN) {
       errors.push({ kind: "pdf_scan_cap_reached", tid: t.id, attemptedFiles: t.attachments.length });
-      // fall through to text-only path for this thread
-      try {
-        const userPrompt = `Extract all hotel/accommodation reservations from this thread. Tour date range: ${tourStart} to ${tourEnd}.
+      if ((t.body || "").length >= 300) {
+        try {
+          const userPrompt = `Extract all hotel/accommodation reservations from this thread. Tour date range: ${tourStart} to ${tourEnd}.
 tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}
@@ -292,13 +292,16 @@ Date: ${t.date}
 Body: ${t.body}
 
 ${returnShape}`;
-        const { text, stopReason } = await callClaude([{ type: "text", text: userPrompt }]);
-        lastStopReason = stopReason;
-        const parsed = extractJson(text);
-        const rows = Array.isArray(parsed?.lodgings) ? parsed.lodgings : [];
-        for (const h of rows) (perThreadResults[h.tid] ||= []).push(h);
-      } catch (e) {
-        errors.push({ kind: "anthropic_error", phase: "fallback_text", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+          const { text, stopReason } = await callClaude([{ type: "text", text: userPrompt }]);
+          lastStopReason = stopReason;
+          const parsed = extractJson(text);
+          const rows = Array.isArray(parsed?.lodgings) ? parsed.lodgings : [];
+          for (const h of rows) (perThreadResults[h.tid] ||= []).push(h);
+        } catch (e) {
+          errors.push({ kind: "anthropic_error", phase: "fallback_text", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+        }
+      } else {
+        console.log(`[lodging-scan] pdf cap fallback skipped tid=${t.id}: body too short (${(t.body || "").length} chars)`);
       }
       continue;
     }
@@ -316,6 +319,31 @@ ${returnShape}`;
       });
       usedFiles.push(a.filename);
       attachmentsScanned++;
+    }
+
+    if (docBlocks.length === 0) {
+      if ((t.body || "").length >= 300) {
+        try {
+          const userPrompt = `Extract all hotel/accommodation reservations from this thread. Tour date range: ${tourStart} to ${tourEnd}.
+tid:${t.id}
+Subject: ${t.subject}
+From: ${t.from}
+Date: ${t.date}
+Body: ${t.body}
+
+${returnShape}`;
+          const { text, stopReason } = await callClaude([{ type: "text", text: userPrompt }]);
+          lastStopReason = stopReason;
+          const parsed = extractJson(text);
+          const rows = Array.isArray(parsed?.lodgings) ? parsed.lodgings : [];
+          for (const h of rows) (perThreadResults[h.tid] ||= []).push(h);
+        } catch (e) {
+          errors.push({ kind: "anthropic_error", phase: "pdf_thread", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+        }
+      } else {
+        console.log(`[lodging-scan] pdf fetch failed + short body, skipping tid=${t.id}`);
+      }
+      continue;
     }
 
     const userPrompt = `Extract all hotel/accommodation reservations for this thread. Tour date range: ${tourStart} to ${tourEnd}.

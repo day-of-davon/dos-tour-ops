@@ -724,7 +724,7 @@ ${batch.map((t, i) => `[${i + offset}] tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}${t.forwardedSender ? `\nOriginal sender (from forwarded header): ${t.forwardedSender.name}${t.forwardedSender.email ? ` <${t.forwardedSender.email}>` : ""}` : ""}
 Date: ${t.date}
-Body: ${t.body}`).join("\n\n---\n\n")}
+Body: ${(t.body || "").slice(0, 3000)}`).join("\n\n---\n\n")}
 
 Return this exact JSON:
 {
@@ -832,13 +832,19 @@ Return this exact JSON:
   // Safety net for simpleTextThreads where expectedLegCount returned < 2 but
   // Claude actually found a multi-leg email. multiLegTextThreads already got
   // isolated parsing above and should not need this.
+  const MISSED_RETRY_CAP = 5;
   const byTidCount = {};
   for (const f of claudeFlights) byTidCount[f.tid] = (byTidCount[f.tid] || 0) + 1;
-  const missedThreads = simpleTextThreads.filter(t => {
+  const allMissedThreads = simpleTextThreads.filter(t => {
     const got = byTidCount[t.id] || 0;
     const expected = expectedLegCount(t.body);
     return expected >= 2 && got < expected;
   });
+  const missedThreads = allMissedThreads.slice(0, MISSED_RETRY_CAP);
+  if (allMissedThreads.length > MISSED_RETRY_CAP) {
+    console.log(`[flights] missed-leg retry capped: ${allMissedThreads.length} → ${MISSED_RETRY_CAP}`);
+    runErrors.push({ kind: "retry_cap", total: allMissedThreads.length, capped: allMissedThreads.length - MISSED_RETRY_CAP });
+  }
   if (missedThreads.length) {
     console.log(`[flights] missed-leg retry: ${missedThreads.length} threads`);
     const retryResults = await Promise.allSettled(missedThreads.map(t => {
@@ -903,12 +909,15 @@ Return this exact JSON:
   for (const t of withPdfThreads) {
     if (attachmentsScanned >= PDF_MAX_PER_SCAN) {
       runErrors.push({ kind: "pdf_scan_cap_reached", tid: t.id, attemptedFiles: t.attachments.length });
-      // Fall back to text-only single-thread parse so we don't drop the record.
-      try {
-        const pdfFallback = await parseAndVerifyBatch([t], 0);
-        claudeFlights.push(...pdfFallback.map(f => ({ ...f, source: f.source || "claude" })));
-      } catch (e) {
-        runErrors.push({ kind: "anthropic_error", phase: "pdf_fallback_text", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+      if ((t.body || "").length >= 300) {
+        try {
+          const pdfFallback = await parseAndVerifyBatch([t], 0);
+          claudeFlights.push(...pdfFallback.map(f => ({ ...f, source: f.source || "claude" })));
+        } catch (e) {
+          runErrors.push({ kind: "anthropic_error", phase: "pdf_fallback_text", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+        }
+      } else {
+        console.log(`[flights] pdf cap fallback skipped tid=${t.id}: body too short (${(t.body || "").length} chars)`);
       }
       continue;
     }
@@ -922,6 +931,20 @@ Return this exact JSON:
       docBlocks.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: b64 } });
       usedFiles.push(a.filename);
       attachmentsScanned++;
+    }
+
+    if (docBlocks.length === 0) {
+      if ((t.body || "").length >= 300) {
+        try {
+          const pdfFallback = await parseAndVerifyBatch([t], 0);
+          claudeFlights.push(...pdfFallback.map(f => ({ ...f, source: f.source || "claude" })));
+        } catch (e) {
+          runErrors.push({ kind: "anthropic_error", phase: "pdf_thread", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+        }
+      } else {
+        console.log(`[flights] pdf fetch failed + short body, skipping tid=${t.id}`);
+      }
+      continue;
     }
 
     const userPrompt = `Extract all flight segments from this thread. Tour date range: ${tourStart} to ${tourEnd}.
