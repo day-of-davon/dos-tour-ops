@@ -4501,12 +4501,23 @@ function TransTab(){
   );
 }
 
+const LEDGER_EDITABLE={
+  confirmedFlight:new Set(["date","amount","currency","ref","bookedDate","paidDate"]),
+  event:new Set(["date","desc","amount","currency","status","ref","bookedDate","paidDate"]),
+  payout:new Set(["payee","amount","currency","status","ref","bookedDate","paidDate"]),
+  ledgerEntry:new Set(["date","desc","payee","amount","currency","ref","bookedDate","paidDate"]),
+  flightExpense:new Set(["desc","amount","currency","ref","bookedDate","paidDate"]),
+  legacySettlement:new Set(["amount","ref"]),
+};
+
 function FinLedger(){
-  const{shows,finance,flights,setUploadOpen}=useContext(Ctx);
+  const{shows,finance,flights,uFin,uFlight,setUploadOpen}=useContext(Ctx);
   const[filterCat,setFilterCat]=useState("all");
   const[filterCur,setFilterCur]=useState("all");
   const[sortCol,setSortCol]=useState("date");
   const[sortDir,setSortDir]=useState(1);
+  const[ec,setEc]=useState(null);
+  const[eVal,setEVal]=useState("");
 
   const rows=useMemo(()=>{
     const out=[];
@@ -4523,27 +4534,27 @@ function FinLedger(){
       (fin.flightExpenses||[]).forEach(fe=>{
         if(confirmedFlightIds.has(fe.flightId))return;
         if(!fe.amount&&fe.amount!==0)return;
-        out.push({id:fe.flightId||`fe_${date}_${Math.random()}`,date,show:showLabel,cat:"Flight",desc:fe.label||"",payee:(fe.pax||[]).join(", ")||"—",amount:parseFloat(fe.amount||0),currency:fe.currency||"USD",status:"confirmed",ref:fe.carrier||"",payMethod:fe.payMethod||"",bookedDate:"",paidDate:""});
+        out.push({id:fe.flightId||`fe_${date}_${Math.random()}`,date,show:showLabel,cat:"Flight",desc:fe.label||"",payee:(fe.pax||[]).join(", ")||"—",amount:parseFloat(fe.amount||0),currency:fe.currency||"USD",status:"confirmed",ref:fe.carrier||"",payMethod:fe.payMethod||"",bookedDate:"",paidDate:"",_src:{type:"flightExpense",date,srcId:fe.flightId}});
       });
       // Payouts
       (fin.payouts||[]).forEach(p=>{
-        out.push({id:p.id||`po_${date}_${Math.random()}`,date,show:showLabel,cat:"Payout",desc:`${p.dept||""}${p.role?` · ${p.role}`:""}`,payee:p.name||"—",amount:parseFloat(p.amount||0),currency:p.currency||"USD",status:p.status||"pending",ref:p.method||"",payMethod:p.payMethod||p.method||"",bookedDate:p.bookedDate||"",paidDate:p.paidDate||""});
+        out.push({id:p.id||`po_${date}_${Math.random()}`,date,show:showLabel,cat:"Payout",desc:`${p.dept||""}${p.role?` · ${p.role}`:""}`,payee:p.name||"—",amount:parseFloat(p.amount||0),currency:p.currency||"USD",status:p.status||"pending",ref:p.method||"",payMethod:p.payMethod||p.method||"",bookedDate:p.bookedDate||"",paidDate:p.paidDate||"",_src:{type:"payout",date,srcId:p.id}});
       });
       // Lodging expenses
       (fin.ledgerEntries||[]).forEach(le=>{
         if(!le.amount&&le.amount!==0)return;
-        out.push({id:le.id||`le_${date}_${Math.random()}`,date:le.date||date,show:showLabel,cat:"Hotel",desc:le.description||"",payee:le.vendor||"—",amount:parseFloat(le.amount||0),currency:le.currency||"USD",status:"confirmed",ref:le.source||"",payMethod:le.payMethod||"",bookedDate:le.bookedDate||le.checkIn||"",paidDate:le.paidDate||""});
+        out.push({id:le.id||`le_${date}_${Math.random()}`,date:le.date||date,show:showLabel,cat:"Hotel",desc:le.description||"",payee:le.vendor||"—",amount:parseFloat(le.amount||0),currency:le.currency||"USD",status:"confirmed",ref:le.source||"",payMethod:le.payMethod||"",bookedDate:le.bookedDate||le.checkIn||"",paidDate:le.paidDate||"",_src:{type:"ledgerEntry",date,srcId:le.id}});
       });
       // Settlement amount (legacy flat field — skip if events[] has a settlement/wire entry)
       const hasEventForLegacy=(fin.events||[]).some(e=>e.type==="settlement"||e.type==="wire");
       if(fin.settlementAmount&&parseFloat(fin.settlementAmount)>0&&!hasEventForLegacy){
-        out.push({id:`sa_${date}`,date,show:showLabel,cat:"Settlement",desc:"Settlement payment",payee:"—",amount:parseFloat(fin.settlementAmount),currency:"USD",status:fin.stages?.payment_initiated?"confirmed":"pending",ref:fin.wireRef||"",payMethod:"",bookedDate:"",paidDate:fin.wireDate||""});
+        out.push({id:`sa_${date}`,date,show:showLabel,cat:"Settlement",desc:"Settlement payment",payee:"—",amount:parseFloat(fin.settlementAmount),currency:"USD",status:fin.stages?.payment_initiated?"confirmed":"pending",ref:fin.wireRef||"",payMethod:"",bookedDate:"",paidDate:fin.wireDate||"",_src:{type:"legacySettlement",date,srcId:null}});
       }
       // Financial events — settlement, wire, withholding, merch, reconciliation
       (fin.events||[]).forEach(ev=>{
         if(!ev||!ev.amount)return;
         const cat=(FIN_EVENT_TYPES.find(t=>t.id===ev.type)?.l)||"Event";
-        out.push({id:ev.id,date,show:showLabel,cat,desc:ev.note||cat,payee:"—",amount:parseFloat(ev.amount)||0,currency:ev.currency||"USD",status:ev.status||"pending",ref:ev.ref||"",payMethod:ev.payMethod||"",bookedDate:ev.expectedDate||"",paidDate:ev.actualDate||""});
+        out.push({id:ev.id,date,show:showLabel,cat,desc:ev.note||cat,payee:"—",amount:parseFloat(ev.amount)||0,currency:ev.currency||"USD",status:ev.status||"pending",ref:ev.ref||"",payMethod:ev.payMethod||"",bookedDate:ev.expectedDate||"",paidDate:ev.actualDate||"",_src:{type:"event",date,srcId:ev.id}});
       });
     });
     // Confirmed flights from flights store
@@ -4566,6 +4577,7 @@ function FinLedger(){
         payMethod:f.payMethod||"",
         bookedDate:"",
         paidDate:"",
+        _src:{type:"confirmedFlight",date:f.depDate||"",srcId:f.id},
       });
     });
     // Deduplicate: id first, then per-category content hash (handles same entity
@@ -4592,11 +4604,65 @@ function FinLedger(){
     });
   },[finance,flights,shows]);
 
+  const commit=()=>{
+    if(!ec)return;
+    const r=rows.find(x=>x.id===ec.id);
+    if(!r){setEc(null);return;}
+    const{type,date,srcId}=r._src;
+    const val=eVal.trim();
+    const num=parseFloat(val)||0;
+    if(type==="confirmedFlight"){
+      const f=flights[srcId];if(!f){setEc(null);return;}
+      const FK={amount:"cost",ref:"carrier",date:"depDate"};
+      uFlight(srcId,{...f,[FK[ec.field]||ec.field]:ec.field==="amount"?num:val,locked:true,editedAt:Date.now()});
+    }else if(type==="event"){
+      const fin=finance[date]||{};
+      const FK={desc:"note",bookedDate:"expectedDate",paidDate:"actualDate"};
+      uFin(date,{events:(fin.events||[]).map(e=>e.id===srcId?{...e,[FK[ec.field]||ec.field]:ec.field==="amount"?num:val}:e)});
+    }else if(type==="payout"){
+      const fin=finance[date]||{};
+      const FK={payee:"name",ref:"method"};
+      uFin(date,{payouts:(fin.payouts||[]).map(p=>p.id===srcId?{...p,[FK[ec.field]||ec.field]:ec.field==="amount"?num:val}:p)});
+    }else if(type==="ledgerEntry"){
+      const fin=finance[date]||{};
+      const FK={payee:"vendor",desc:"description",ref:"source"};
+      uFin(date,{ledgerEntries:(fin.ledgerEntries||[]).map(e=>e.id===srcId?{...e,[FK[ec.field]||ec.field]:ec.field==="amount"?num:val}:e)});
+    }else if(type==="flightExpense"){
+      const fin=finance[date]||{};
+      const FK={desc:"label",ref:"carrier"};
+      uFin(date,{flightExpenses:(fin.flightExpenses||[]).map(fe=>fe.flightId===srcId?{...fe,[FK[ec.field]||ec.field]:ec.field==="amount"?num:val}:fe)});
+    }else if(type==="legacySettlement"){
+      const FK={amount:"settlementAmount",ref:"wireRef",paidDate:"wireDate"};
+      const fk=FK[ec.field];
+      if(fk)uFin(date,{[fk]:ec.field==="amount"?String(num):val});
+    }
+    setEc(null);
+  };
+
+  const startEdit=(r,field,curVal)=>{
+    if(!LEDGER_EDITABLE[r._src?.type]?.has(field))return;
+    setEc({id:r.id,field});
+    setEVal(curVal!=null?String(curVal):"");
+  };
+
+  const INP={background:"var(--card-3)",border:"1px solid var(--accent)",borderRadius:4,color:"var(--text)",outline:"none",padding:"2px 4px",width:"100%",boxSizing:"border-box"};
+
+  const ecell=(r,field,display,tdStyle)=>{
+    const active=ec&&ec.id===r.id&&ec.field===field;
+    const canEdit=!!LEDGER_EDITABLE[r._src?.type]?.has(field);
+    if(active){
+      const isDate=field==="date"||field==="bookedDate"||field==="paidDate";
+      const isNum=field==="amount";
+      const isCur=field==="currency";
+      if(isCur)return <td style={tdStyle}><select autoFocus value={eVal} onChange={e=>setEVal(e.target.value)} onBlur={commit} style={{...INP,fontSize:9}}>{["USD","CAD","GBP","EUR"].map(c=><option key={c}>{c}</option>)}</select></td>;
+      return <td style={tdStyle}><input autoFocus type={isDate?"date":isNum?"number":"text"} step={isNum?"0.01":undefined} value={eVal} onChange={e=>setEVal(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==="Enter")commit();if(e.key==="Escape")setEc(null);}} style={{...INP,fontSize:isNum?11:9,fontFamily:isNum||isDate?MN:"inherit"}}/></td>;
+    }
+    return <td style={{...tdStyle,cursor:canEdit?"text":"default"}} onClick={()=>startEdit(r,field,display)}>{display||"—"}</td>;
+  };
+
   const cats=[...new Set(rows.map(r=>r.cat))].sort();
   const curs=[...new Set(rows.map(r=>r.currency))].sort();
-
   const filtered=rows.filter(r=>(filterCat==="all"||r.cat===filterCat)&&(filterCur==="all"||r.currency===filterCur));
-
   const sorted=[...filtered].sort((a,b)=>{
     let va=a[sortCol],vb=b[sortCol];
     if(sortCol==="amount"){va=a.amount??-Infinity;vb=b.amount??-Infinity;}
@@ -4604,7 +4670,6 @@ function FinLedger(){
     if(typeof vb==="string")vb=vb.toLowerCase();
     return va<vb?-sortDir:va>vb?sortDir:0;
   });
-
   const totals=filtered.reduce((m,r)=>{if(r.amount!=null)m[r.currency]=(m[r.currency]||0)+r.amount;return m;},{});
 
   const th=(label,col)=>{
@@ -4638,19 +4703,28 @@ function FinLedger(){
             <tbody>
               {sorted.map((r,i)=>{
                 const cc=CAT_COLOR[r.cat]||{bg:"var(--card-2)",c:"var(--text-2)"};
+                const bg=i%2===0?"var(--card)":"var(--card-3)";
+                const d0={padding:"6px 8px",fontSize:9,color:"var(--text-dim)",whiteSpace:"nowrap"};
+                const canStatus=!!LEDGER_EDITABLE[r._src?.type]?.has("status");
                 return(
-                  <tr key={r.id} style={{borderBottom:"1px solid var(--card-3)",background:i%2===0?"var(--card)":"var(--card-3)"}}>
-                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:9,color:"var(--text-dim)",whiteSpace:"nowrap"}}>{r.date}</td>
-                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:9,color:"var(--text-dim)",whiteSpace:"nowrap"}}>{r.bookedDate||"—"}</td>
-                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:9,color:r.paidDate?"var(--success-fg)":"var(--text-mute)",whiteSpace:"nowrap"}}>{r.paidDate||"—"}</td>
+                  <tr key={r.id} style={{borderBottom:"1px solid var(--card-3)",background:bg}}>
+                    {ecell(r,"date",r.date,{...d0,fontFamily:MN})}
+                    {ecell(r,"bookedDate",r.bookedDate,{...d0,fontFamily:MN})}
+                    {ecell(r,"paidDate",r.paidDate,{...d0,fontFamily:MN,color:r.paidDate?"var(--success-fg)":"var(--text-mute)"})}
                     <td style={{padding:"6px 8px",fontSize:10,color:"var(--text)",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.show}</td>
                     <td style={{padding:"6px 8px"}}><span style={{fontSize:8,padding:"2px 6px",borderRadius:4,fontWeight:700,background:cc.bg,color:cc.c}}>{r.cat}</span></td>
-                    <td style={{padding:"6px 8px",fontSize:10,fontWeight:600,color:"var(--text)"}}>{r.payee}</td>
-                    <td style={{padding:"6px 8px",fontSize:9,color:"var(--text-dim)",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.desc}</td>
-                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:11,fontWeight:700,color:r.amount!=null?"var(--text)":"var(--text-mute)",textAlign:"right"}}>{r.amount!=null?r.amount.toFixed(2):"—"}</td>
-                    <td style={{padding:"6px 8px",fontSize:9,color:"var(--text-dim)"}}>{r.currency}</td>
-                    <td style={{padding:"6px 8px"}}><span style={{fontSize:8,padding:"2px 5px",borderRadius:4,fontWeight:700,background:r.status==="confirmed"?"var(--success-bg)":"var(--warn-bg)",color:r.status==="confirmed"?"var(--success-fg)":"var(--warn-fg)"}}>{r.status}</span></td>
-                    <td style={{padding:"6px 8px",fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>{r.ref||"—"}</td>
+                    {ecell(r,"payee",r.payee,{padding:"6px 8px",fontSize:10,fontWeight:600,color:"var(--text)"})}
+                    {ecell(r,"desc",r.desc,{padding:"6px 8px",fontSize:9,color:"var(--text-dim)",maxWidth:180,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"})}
+                    {ecell(r,"amount",r.amount!=null?r.amount.toFixed(2):null,{padding:"6px 8px",fontFamily:MN,fontSize:11,fontWeight:700,color:r.amount!=null?"var(--text)":"var(--text-mute)",textAlign:"right"})}
+                    {ecell(r,"currency",r.currency,{padding:"6px 8px",fontSize:9,color:"var(--text-dim)"})}
+                    {ec&&ec.id===r.id&&ec.field==="status"?(
+                      <td style={{padding:"6px 8px"}}><select autoFocus value={eVal} onChange={e=>setEVal(e.target.value)} onBlur={commit} style={{...INP,fontSize:9}}>{["pending","confirmed","cancelled","paid"].map(s=><option key={s}>{s}</option>)}</select></td>
+                    ):(
+                      <td style={{padding:"6px 8px",cursor:canStatus?"pointer":"default"}} onClick={()=>canStatus&&startEdit(r,"status",r.status)}>
+                        <span style={{fontSize:8,padding:"2px 5px",borderRadius:4,fontWeight:700,background:r.status==="confirmed"?"var(--success-bg)":"var(--warn-bg)",color:r.status==="confirmed"?"var(--success-fg)":"var(--warn-fg)"}}>{r.status}</span>
+                      </td>
+                    )}
+                    {ecell(r,"ref",r.ref,{padding:"6px 8px",fontFamily:MN,fontSize:8,color:"var(--text-mute)"})}
                     <td style={{padding:"6px 8px",fontSize:9,color:"var(--text-2)",whiteSpace:"nowrap"}}>{r.payMethod||"—"}</td>
                   </tr>
                 );
