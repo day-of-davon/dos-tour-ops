@@ -1088,7 +1088,15 @@ export default function App(){
         const merged=(existing.todos||[]).map(t=>(!t.threadTid&&newTidByText.has(t.text))?{...t,threadTid:newTidByText.get(t.text)}:t);
         const mergedTexts=new Set(merged.map(t=>t.text));
         const todos=[...merged,...newTodos.filter(t=>!mergedTexts.has(t.text))];
-        return{...p,[sid]:{threads,followUps:ni.followUps||[],showContacts:contacts,schedule:ni.schedule||existing.schedule||[],todos,matches:existing.matches||[],dismissedFlags:existing.dismissedFlags||[],lastRefreshed:new Date().toISOString(),isShared:data.isShared||false,sharedByOthers:data.sharedByOthers||[]}};
+        const prevFuTexts=new Set((existing.followUps||[]).map(f=>f.action));
+        const newFuTexts=new Set((ni.followUps||[]).map(f=>f.action));
+        const ts=new Date().toISOString();
+        const scanEntries=[
+          ...(ni.followUps||[]).filter(f=>!prevFuTexts.has(f.action)).map(f=>({ts,type:"scan",section:"followup",showId:sid,action:"added",label:f.action,from:"scan"})),
+          ...(existing.followUps||[]).filter(f=>!newFuTexts.has(f.action)).map(f=>({ts,type:"scan",section:"followup",showId:sid,action:"removed",label:f.action,from:"scan"})),
+        ];
+        const changelog=[...(p.__changelog||[]).slice(-(499-scanEntries.length)),...scanEntries];
+        return{...p,__changelog:changelog,[sid]:{threads,followUps:ni.followUps||[],showContacts:contacts,schedule:ni.schedule||existing.schedule||[],todos,matches:existing.matches||[],dismissedFlags:existing.dismissedFlags||[],arStatus:existing.arStatus||{},lastRefreshed:new Date().toISOString(),isShared:data.isShared||false,sharedByOthers:data.sharedByOthers||[]}};
       });
       setRefreshMsg(`${show.venue}: ${data.gmailThreadsFound||0} threads`);
       setTimeout(()=>setRefreshMsg(""),3500);
@@ -1115,7 +1123,21 @@ export default function App(){
       let resp;try{resp=await fetch("/api/intel",{method:"POST",signal:ac3.signal,headers:authHeaders,body:JSON.stringify({action:"bulkFetch",shows:showsArr,googleToken:session.provider_token,forceRefresh:force,userEmail:session.user?.email})});}finally{clearTimeout(t3);}
       if(!resp.ok)return;
       const data=await resp.json();
-      setLabelIntel(data);
+      setLabelIntel(prev=>{
+        const prevAr=prev?.actionRequired||[];
+        const prevIds=new Set(prevAr.map(i=>i.id));
+        const newAr=data.actionRequired||[];
+        const newIds=new Set(newAr.map(i=>i.id));
+        const ts=new Date().toISOString();
+        const scanEntries=[
+          ...newAr.filter(i=>!prevIds.has(i.id)).map(i=>({ts,type:"scan",section:"ar",showId:i.showId||null,action:"added",label:i.subject,from:"scan"})),
+          ...prevAr.filter(i=>!newIds.has(i.id)).map(i=>({ts,type:"scan",section:"ar",showId:i.showId||null,action:"removed",label:i.subject,from:"scan"})),
+        ];
+        if(scanEntries.length){
+          setIntel(p=>({...p,__changelog:[...(p.__changelog||[]).slice(-(499-scanEntries.length)),...scanEntries]}));
+        }
+        return data;
+      });
       if(data.byShow){
         setIntel(prev=>{
           const next={...prev};
@@ -1134,6 +1156,10 @@ export default function App(){
       }
     }catch(e){console.error("[labelScan]",e.message);}
   },[shows,aC]);
+
+  const addLog=useCallback((entry)=>{
+    setIntel(p=>({...p,__changelog:[...(p.__changelog||[]).slice(-499),{ts:new Date().toISOString(),...entry}]}));
+  },[setIntel]);
 
   const save=useCallback(()=>{
     if(!loaded)return;if(st.current)clearTimeout(st.current);
@@ -1260,7 +1286,7 @@ export default function App(){
     if(currentSplit&&activeSplitPartyId)return `${sel}#${activeSplitPartyId}`;
     return sel;
   },[selEventId,sel,currentSplit,activeSplitPartyId]);
-  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration,me}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration,me]);// eslint-disable-line
+  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration,me}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration,me]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"var(--text-dim)",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
@@ -1860,14 +1886,18 @@ function FlightsSection(){
 }
 
 function IntelPanel(){
-  const{sel,shows,intel,refreshIntel,toggleIntelShare,refreshing,refreshMsg,setIntel,uShow,labelIntel}=useContext(Ctx);
+  const{sel,shows,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,uShow,labelIntel}=useContext(Ctx);
   const show=shows[sel];const sid=show?showIdFor(show):"";const data=intel[sid]||{};
   const upd=patch=>setIntel(p=>({...p,[sid]:{...(p[sid]||{}),...patch}}));
   const primaryTid=(data.threads||[]).find(t=>t.tid)?.tid||null;
   const threadHref=(tid)=>tid?gmailUrl(tid):null;
-  const arStatus=data.arStatus||{};
-  const setArStatus=(id,status)=>upd({arStatus:{...(data.arStatus||{}),[id]:status}});
-  const toggleTodo=id=>upd({todos:(data.todos||[]).map(t=>t.id===id?{...t,done:!t.done}:t)});
+  const arDone=useMemo(()=>new Set(intel.__arState?.done||[]),[intel.__arState]);
+  const arIgnored=useMemo(()=>new Set(intel.__arState?.ignored||[]),[intel.__arState]);
+  const markArIntel=(id,state,label)=>{
+    setIntel(p=>({...p,__arState:{...(p.__arState||{}),[state]:[...new Set([...(p.__arState?.[state]||[]),id])]}}));
+    addLog({type:"user",section:"ar",showId:sid,action:state,label,from:"intel_panel"});
+  };
+  const toggleTodo=(id,currentDone,label)=>{upd({todos:(data.todos||[]).map(t=>t.id===id?{...t,done:!t.done}:t)});addLog({type:"user",section:"todo",showId:sid,action:currentDone?"undone":"done",label,from:"intel_panel"});};
   const delTodo=id=>upd({todos:(data.todos||[]).filter(t=>t.id!==id)});
   const dismissFlag=k=>upd({dismissedFlags:[...(data.dismissedFlags||[]),k]});
   const addTodo=()=>upd({todos:[...(data.todos||[]),{id:`t${Date.now()}`,text:"New action item",priority:"MED",done:false,ts:Date.now()}]});
@@ -1938,7 +1968,7 @@ function IntelPanel(){
     </div>
     {refreshMsg&&<div style={{fontSize:10,color:"var(--accent)",fontFamily:MN}}>{refreshMsg}</div>}
     {(()=>{
-      const arItems=(labelIntel?.actionRequired||[]).filter(item=>item.showId===sid&&arStatus[item.id]!=="dismissed");
+      const arItems=(labelIntel?.actionRequired||[]).filter(item=>item.showId===sid&&!arIgnored.has(item.id));
       if(!arItems.length)return null;
       const BUCKETS=[
         {key:"urgent",label:"URGENT",bg:"var(--danger-bg)",col:"var(--danger-fg)"},
@@ -1955,15 +1985,15 @@ function IntelPanel(){
           {BUCKETS.filter(b=>grouped[b.key].length>0).map(b=>(
             <div key={b.key} style={{background:b.bg,border:`1px solid ${b.col}30`,borderRadius:10,padding:"8px 12px"}}>
               <div style={{fontSize:8,fontWeight:800,color:b.col,letterSpacing:"0.08em",marginBottom:5}}>{b.label} ({grouped[b.key].length})</div>
-              {grouped[b.key].map(item=>{const st=arStatus[item.id]||"open";const done=st==="actioned";return(
+              {grouped[b.key].map(item=>{const done=arDone.has(item.id);return(
                 <div key={item.id} style={{display:"flex",gap:8,padding:"4px 0",borderBottom:`1px solid ${b.col}18`,alignItems:"center",opacity:done?0.45:1}}>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:done?"line-through":"none"}}>{item.subject}</div>
                     <div style={{fontSize:9,color:b.col,opacity:0.85}}>{item.category&&item.category!=="MISC"?`${item.category} · `:""}{item.signal} · {item.from}</div>
                   </div>
                   <a href={gmailUrl(item.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",flexShrink:0}}>↗</a>
-                  <button onClick={()=>setArStatus(item.id,done?"open":"actioned")} title={done?"Mark open":"Mark actioned"} style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"none",background:done?"var(--success-bg)":"var(--card-2)",color:done?"var(--success-fg)":"var(--text-2)",cursor:"pointer",fontWeight:700,flexShrink:0}}>{done?"✓":"✓"}</button>
-                  <button onClick={()=>setArStatus(item.id,"dismissed")} title="Dismiss" style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"none",background:"var(--card-2)",color:"var(--text-mute)",cursor:"pointer",fontWeight:700,flexShrink:0}}>✕</button>
+                  <button onClick={()=>markArIntel(item.id,done?"undone":"done",item.subject)} title={done?"Mark open":"Mark done"} style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"none",background:done?"var(--success-bg)":"var(--card-2)",color:done?"var(--success-fg)":"var(--text-2)",cursor:"pointer",fontWeight:700,flexShrink:0}}>✓</button>
+                  <button onClick={()=>markArIntel(item.id,"ignored",item.subject)} title="Ignore" style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"none",background:"var(--card-2)",color:"var(--text-mute)",cursor:"pointer",fontWeight:700,flexShrink:0}}>✕</button>
                 </div>
               );})}
 
@@ -2004,25 +2034,28 @@ function IntelPanel(){
         </div>)}
       </div>}
     </IntelSection>
-    <IntelSection title="TO-DOS (PRIVATE)" count={(data.todos||[]).length} defaultOpen={true} actions={<button onClick={addTodo} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Add</button>}>
-      {(data.todos||[]).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No action items yet.</div>:
-        [...(data.todos||[])].sort((a,b)=>({CRITICAL:0,HIGH:1,MED:2,MEDIUM:2,LOW:3}[a.priority]??4)-({CRITICAL:0,HIGH:1,MED:2,MEDIUM:2,LOW:3}[b.priority]??4)).map(t=><div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-3)"}}>
-          <input type="checkbox" checked={!!t.done} onChange={()=>toggleTodo(t.id)}/>
+    <IntelSection title="TO-DOS (PRIVATE)" count={(data.todos||[]).filter(t=>!t.ignored).length} defaultOpen={true} actions={<button onClick={addTodo} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Add</button>}>
+      {(data.todos||[]).filter(t=>!t.ignored).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No action items yet.</div>:
+        [...(data.todos||[])].filter(t=>!t.ignored).sort((a,b)=>({CRITICAL:0,HIGH:1,MED:2,MEDIUM:2,LOW:3}[a.priority]??4)-({CRITICAL:0,HIGH:1,MED:2,MEDIUM:2,LOW:3}[b.priority]??4)).map(t=><div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-3)"}}>
+          <input type="checkbox" checked={!!t.done} onChange={()=>toggleTodo(t.id,t.done,t.text)}/>
           {(()=>{const h=threadHref(t.threadTid||primaryTid);return h?<a href={h} target="_blank" rel="noopener noreferrer" style={{fontSize:10,flex:1,color:t.done?"var(--text-mute)":"var(--link)",textDecoration:t.done?"line-through":"none",fontWeight:500}}>{t.text}</a>:<span style={{fontSize:10,flex:1,color:t.done?"var(--text-mute)":"var(--text)",textDecoration:t.done?"line-through":"none"}}>{t.text}</span>;})()}
           {t.priority&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:t.priority==="CRITICAL"?"var(--danger-bg)":t.priority==="HIGH"?"var(--warn-bg)":"var(--card-2)",color:t.priority==="CRITICAL"?"var(--danger-fg)":t.priority==="HIGH"?"var(--warn-fg)":"var(--text-dim)",fontWeight:700}}>{t.priority}</span>}
           <button onClick={()=>delTodo(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:11}}>×</button>
         </div>)}
     </IntelSection>
-    <IntelSection title="FOLLOW-UPS" count={(data.followUps||[]).length} defaultOpen={true} actions={<button onClick={addFollowUp} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Add</button>}>
-      {(data.followUps||[]).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No follow-ups.</div>:
-        data.followUps.map((f,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 100px 80px 100px 28px",gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-3)",fontSize:10,alignItems:"center"}}>
+    {(()=>{const visibleFu=(data.followUps||[]).filter(f=>!f.done&&!f.ignored);return(
+    <IntelSection title="FOLLOW-UPS" count={visibleFu.length} defaultOpen={true} actions={<button onClick={addFollowUp} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Add</button>}>
+      {visibleFu.length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No follow-ups.</div>:
+        visibleFu.map((f)=>{const i=(data.followUps||[]).findIndex(x=>x===f);return(<div key={i} style={{display:"grid",gridTemplateColumns:`1fr 100px 80px 100px${f.manual?"":" auto auto"} 28px`,gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-3)",fontSize:10,alignItems:"center"}}>
           {f.manual?<input value={f.action||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,action:e.target.value}:x)})} placeholder="Action" style={UI.input}/>:(()=>{const h=threadHref(f.tid||primaryTid);return h?<a href={h} target="_blank" rel="noopener noreferrer" style={{color:"var(--link)",textDecoration:"none",fontWeight:500}}>{f.action}</a>:<span>{f.action}</span>;})()}
           {f.manual?<input value={f.owner||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,owner:e.target.value}:x)})} placeholder="Owner" style={UI.input}/>:<span style={{fontSize:8,color:"var(--text-dim)"}}>{f.owner}</span>}
           {f.manual?<select value={f.priority||"MED"} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,priority:e.target.value}:x)})} style={UI.input}><option>CRITICAL</option><option>HIGH</option><option>MED</option><option>LOW</option></select>:<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:f.priority==="CRITICAL"?"var(--danger-bg)":"var(--card-2)",color:f.priority==="CRITICAL"?"var(--danger-fg)":"var(--text-dim)",fontWeight:700}}>{f.priority}</span>}
           {f.manual?<input value={f.deadline||""} onChange={e=>upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,deadline:e.target.value}:x)})} placeholder="YYYY-MM-DD" style={UI.input}/>:<span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN}}>{f.deadline}</span>}
+          {!f.manual&&<button onClick={()=>{upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,done:true}:x)});addLog({type:"user",section:"followup",showId:sid,action:"done",label:f.action,from:"intel_panel"});}} style={{fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--success-bg)",color:"var(--success-fg)"}}>Done</button>}
+          {!f.manual&&<button onClick={()=>{upd({followUps:data.followUps.map((x,idx)=>idx===i?{...x,ignored:true}:x)});addLog({type:"user",section:"followup",showId:sid,action:"ignored",label:f.action,from:"intel_panel"});}} style={{fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--card-2)",color:"var(--text-mute)"}}>Ignore</button>}
           <button onClick={()=>delFollowUp(i)} style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:11}}>×</button>
-        </div>)}
-    </IntelSection>
+        </div>);})}
+    </IntelSection>);})()}
     <IntelSection title="THREADS (PRIVATE)" count={(data.threads||[]).filter(t=>t.manual||t.subject).length} defaultOpen={true} actions={<button onClick={addThread} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Add</button>}>
       {(data.threads||[]).filter(t=>t.manual||t.subject).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No threads.</div>:
         (data.threads||[]).filter(t=>t.manual||t.subject).map(t=><div key={t.tid} style={{display:"grid",gridTemplateColumns:"1fr auto auto 28px",gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-3)",fontSize:10,alignItems:"center"}}>
@@ -2055,6 +2088,23 @@ function IntelPanel(){
         </div>}
       </div>;
     })}
+    {(()=>{
+      const logEntries=[...(intel.__changelog||[])].filter(e=>e.showId===sid||e.showId===null).reverse().slice(0,50);
+      if(!logEntries.length)return null;
+      const entryColor=a=>a==="done"||a==="added"?"var(--success-fg)":a==="ignored"||a==="removed"?"var(--danger-fg)":"var(--text-dim)";
+      return(
+        <IntelSection title="ACTIVITY LOG" count={logEntries.length} defaultOpen={false}>
+          <div style={{display:"flex",flexDirection:"column",gap:1}}>
+            {logEntries.map((e,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"90px 60px 70px 1fr",gap:6,padding:"3px 0",borderBottom:"1px solid var(--card-3)",fontSize:9,alignItems:"start"}}>
+              <span style={{fontFamily:MN,color:"var(--text-mute)",fontSize:8}}>{fmtAudit(e.ts)}</span>
+              <span style={{color:"var(--text-dim)",fontSize:8}}>{e.from}</span>
+              <span style={{color:entryColor(e.action),fontWeight:700,fontSize:8}}>{e.action}</span>
+              <span style={{color:"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.section}: {e.label}</span>
+            </div>)}
+          </div>
+        </IntelSection>
+      );
+    })()}
   </div>;
 }
 
@@ -2395,7 +2445,7 @@ function DateDrawer({onClose}){
 }
 
 function Dash(){
-  const{sorted,cShows,next,setTab,setSel,advances,aC,mobile,intel,setIntel,labelIntel}=useContext(Ctx);
+  const{sorted,cShows,next,setTab,setSel,advances,aC,mobile,intel,setIntel,addLog,labelIntel}=useContext(Ctx);
   const client=CM[aC];const today=new Date().toISOString().slice(0,10);
   const upcoming=cShows.filter(s=>s.date>=today).slice(0,10);
   const PORD={CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3};
@@ -2415,9 +2465,9 @@ function Dash(){
   const urgentItems=useMemo(()=>arItems.filter(i=>i.bucket==="urgent"||i.category==="LEGAL"),[arItems]);
   const logisticsItems=useMemo(()=>(labelIntel?.advanceItems||[]).filter(i=>!arHidden.has(i.id)&&(i.category==="LOGISTICS"||i.category==="ADVANCE")).slice(0,20),[labelIntel,arHidden]);
 
-  const markTodo=(t,state)=>{const sid=showIdFor(t.show);setIntel(p=>({...p,[sid]:{...(p[sid]||{}),todos:(p[sid]?.todos||[]).map(x=>x.id===t.id?{...x,[state]:true}:x)}}));};
-  const markFollowUp=(f,state)=>{const sid=showIdFor(f.show);setIntel(p=>{const fu=p[sid]?.followUps||[];const idx=fu.findIndex(x=>x.action===f.action&&(x.tid===f.tid||x.owner===f.owner||x.priority===f.priority));if(idx<0)return p;return{...p,[sid]:{...(p[sid]||{}),followUps:fu.map((x,j)=>j===idx?{...x,[state]:true}:x)}};});};
-  const markAr=(id,state)=>{setIntel(p=>({...p,__arState:{...(p.__arState||{}),[state]:[...new Set([...(p.__arState?.[state]||[]),id])]}}));};
+  const markTodo=(t,state)=>{const sid=showIdFor(t.show);setIntel(p=>({...p,[sid]:{...(p[sid]||{}),todos:(p[sid]?.todos||[]).map(x=>x.id===t.id?{...x,[state]:true}:x)}}));addLog({type:"user",section:"todo",showId:showIdFor(t.show),action:state,label:t.text||t.subject,from:"dashboard"});};
+  const markFollowUp=(f,state)=>{const sid=showIdFor(f.show);setIntel(p=>{const fu=p[sid]?.followUps||[];const idx=fu.findIndex(x=>x.action===f.action&&(x.tid===f.tid||x.owner===f.owner||x.priority===f.priority));if(idx<0)return p;return{...p,[sid]:{...(p[sid]||{}),followUps:fu.map((x,j)=>j===idx?{...x,[state]:true}:x)}};});addLog({type:"user",section:"followup",showId:showIdFor(f.show),action:state,label:f.action,from:"dashboard"});};
+  const markAr=(id,state,label)=>{setIntel(p=>({...p,__arState:{...(p.__arState||{}),[state]:[...new Set([...(p.__arState?.[state]||[]),id])]}}));addLog({type:"user",section:"ar",showId:null,action:state,label:label||id,from:"dashboard"});};
 
   const BTN_DONE={fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--success-bg)",color:"var(--success-fg)"};
   const BTN_IGN={fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--card-2)",color:"var(--text-mute)"};
@@ -2483,8 +2533,8 @@ function Dash(){
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{i.from}{arShowLabel(i)?` · ${arShowLabel(i)}`:""}</div></div>
               <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN,flexShrink:0,paddingTop:2}}>{i.category}</span>
               <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>email →</a>
-              <button onClick={()=>markAr(i.id,"done")} style={BTN_DONE}>Done</button>
-              <button onClick={()=>markAr(i.id,"ignored")} style={BTN_IGN}>Ignore</button>
+              <button onClick={()=>markAr(i.id,"done",i.subject)} style={BTN_DONE}>Done</button>
+              <button onClick={()=>markAr(i.id,"ignored",i.subject)} style={BTN_IGN}>Ignore</button>
             </div>)}
           </div>
         </IntelSection>}
@@ -2494,8 +2544,8 @@ function Dash(){
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,flexShrink:0,marginTop:1}}>{i.category}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{i.from}</div></div>
               <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>email →</a>
-              <button onClick={()=>markAr(i.id,"done")} style={BTN_DONE}>Done</button>
-              <button onClick={()=>markAr(i.id,"ignored")} style={BTN_IGN}>Ignore</button>
+              <button onClick={()=>markAr(i.id,"done",i.subject)} style={BTN_DONE}>Done</button>
+              <button onClick={()=>markAr(i.id,"ignored",i.subject)} style={BTN_IGN}>Ignore</button>
             </div>)}
           </div>
         </IntelSection>}
@@ -2625,7 +2675,7 @@ function ImmigrationPanel(){
 }
 
 function AdvTab(){
-  const{shows,cShows,advances,uAdv,sel,setSel,eventKey,aC,mobile,checkPriv,uCheckPriv,intel,setIntel,pushUndo}=useContext(Ctx);
+  const{shows,cShows,advances,uAdv,sel,setSel,eventKey,aC,mobile,checkPriv,uCheckPriv,intel,setIntel,addLog,pushUndo}=useContext(Ctx);
   const a=useAuth();const meEmail=a?.user?.email||"unknown";
   const[openDone,setOpenDone]=useState({});
   useEffect(()=>setOpenDone({}),[sel]);
@@ -2661,6 +2711,7 @@ function AdvTab(){
         before:{status:prevStatus},after:{status},
         meta:{private:!!it?.private,question:it?.q||null},
         teamScoped:!it?.private});
+      addLog({type:"user",section:"advance",showId:sid||eventKey,action:"status",label:`${it?.q||id}: ${prevStatus}→${status}`,from:"advance_tab"});
     }};
   const setOverride=(id,q)=>uAdv(eventKey,{itemOverrides:{...overrides,[id]:{...overrides[id],q}}});
   const deleteCustom=id=>{const it=allItems.find(x=>x.id===id);if(!it)return;
