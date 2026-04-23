@@ -4374,11 +4374,26 @@ function TravelDayView(){
     });
   },[sel,currentSplit,flights,crew]);// eslint-disable-line react-hooks/exhaustive-deps
 
+  // Flight IDs directly assigned to crew members of the active split party via the
+  // Crew tab. These bypass pax-name matching so segments show even when pax is unset
+  // or uses a different name format.
+  const crewLinkedFlightIds=useMemo(()=>{
+    if(!currentSplit||!activeSplitPartyId)return new Set();
+    const sc=showCrew[`${sel}#${activeSplitPartyId}`]||{};
+    const ids=new Set();
+    Object.values(sc).forEach(cd=>{
+      if(!cd?.attending)return;
+      ["inbound","outbound"].forEach(dir=>{(cd[dir]||[]).forEach(leg=>{if(leg.flightId)ids.add(leg.flightId);});});
+    });
+    return ids;
+  },[sel,activeSplitPartyId,showCrew,currentSplit]);
+
   // All non-dismissed segments touching sel (depDate === sel OR arrDate === sel).
   const daySegs=useMemo(()=>{
     const segMatches=s=>{
       if(!partyMatch)return true;
       if((s.excludedParties||[]).includes(partyMatch.partyId))return false;
+      if(crewLinkedFlightIds.has(s.id))return true;
       if(s.partyId)return s.partyId===partyMatch.partyId;
       const pax=(s.pax||[]).filter(Boolean);
       if(!pax.length)return true;
@@ -4396,7 +4411,7 @@ function TravelDayView(){
         return{...s,_role:isArrOnly?"arr":"dep",_sort:sortMin};
       })
       .sort((a,b)=>a._sort-b._sort);
-  },[flights,sel,partyMatch]);
+  },[flights,sel,partyMatch,crewLinkedFlightIds]);
 
   const active=daySegs.find(s=>s.id===activeId)||null;
 
