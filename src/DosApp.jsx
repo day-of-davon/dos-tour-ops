@@ -1145,6 +1145,7 @@ export default function App(){
   const[perms,setPerms]=useState(DEFAULT_PERMS);
   const uPerms=useCallback((permId,roleId,val)=>setPerms(p=>({...p,[permId]:{...p[permId],[roleId]:val}})),[]);
   const[commentMode,setCommentMode]=useState(false);
+  const[showPickerOpen,setShowPickerOpen]=useState(false);
   const[actLog,setActLog]=useState([]);
   const addActLog=useCallback((event)=>setActLog(p=>{const next=[...p,{...event,ts:new Date().toISOString(),session:SESSION_ID}];return next.length>2000?next.slice(-2000):next;}),[]);
   const mobile=useMobile();
@@ -1460,18 +1461,18 @@ export default function App(){
     if(currentSplit&&activeSplitPartyId)return `${sel}#${activeSplitPartyId}`;
     return sel;
   },[selEventId,sel,currentSplit,activeSplitPartyId]);
-  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,setTransView,perms,uPerms,actLog,addActLog,commentMode,setCommentMode}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,perms,actLog,addActLog,commentMode,setCommentMode]);// eslint-disable-line
+  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,setTransView,perms,uPerms,actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,perms,actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:T.text,letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:T.textDim,marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
   return(
     <Ctx.Provider value={ctxValue}>
       <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-      <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0;transition:background 0.13s ease}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:var(--bg)}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}::-webkit-scrollbar-thumb:hover{background:var(--accent)}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}.br:hover{background:var(--card-2)!important}.rh:hover{background:var(--card-2)!important}button{transition:opacity 0.12s ease,background 0.12s ease,box-shadow 0.12s ease}input:focus,select:focus,textarea:focus{outline:none!important;box-shadow:0 0 0 2px rgba(109,40,217,0.45)!important;border-color:var(--accent)!important}details summary::-webkit-details-marker{display:none}::selection{background:rgba(91,33,182,0.35);color:var(--text)}`}</style>
+      <style>{`*{box-sizing:border-box;margin:0;padding:0}html,body,#root{width:100%;max-width:100vw;overflow-x:hidden}.br,.rh{min-width:0;transition:background 0.13s ease}.br>div,.rh>div{min-width:0;overflow:hidden;text-overflow:ellipsis}body{background:var(--bg)}img,svg,video{max-width:100%;height:auto}::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--accent);border-radius:4px}::-webkit-scrollbar-thumb:hover{background:var(--accent)}@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}.fi{animation:fi .18s ease forwards}@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}@keyframes fadeIn{from{opacity:0}to{opacity:1}}.br:hover{background:var(--card-2)!important}.rh:hover{background:var(--card-2)!important}button{transition:opacity 0.12s ease,background 0.12s ease,box-shadow 0.12s ease}input:focus,select:focus,textarea:focus{outline:none!important;box-shadow:0 0 0 2px rgba(109,40,217,0.45)!important;border-color:var(--accent)!important}details summary::-webkit-details-marker{display:none}::selection{background:rgba(91,33,182,0.35);color:var(--text)}`}</style>
       <div style={{fontFamily:"'Outfit',system-ui",background:"var(--bg)",color:T.text,height:"100vh",width:"100%",maxWidth:"100vw",overflow:"hidden",display:"flex",flexDirection:"column"}}>
         <TopBar ss={ss}/>
         <ContextBar/>
-        <div style={{flex:1,display:"flex",flexDirection:"row",minWidth:0,minHeight:0,width:"100%",overflow:"hidden"}}>
+        <div style={{flex:1,display:"flex",flexDirection:"row",minWidth:0,minHeight:0,width:"100%",overflow:"visible",position:"relative"}}>
           <NavSidebar/>
           <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,minHeight:0,overflow:"hidden"}}>
             {tab!=="dash"&&<SplitPartyTabs/>}
@@ -1484,6 +1485,7 @@ export default function App(){
         {dateMenu&&<DateDrawer onClose={()=>setDateMenu(false)}/>}
         {uploadOpen&&<FileUploadModal onClose={()=>setUploadOpen(false)}/>}
         {commentMode&&<CommentPanel/>}
+        {showPickerOpen&&<ShowPickerSheet/>}
         {undoToast&&<div style={{position:"fixed",bottom:20,left:"50%",transform:"translateX(-50%)",background:"var(--border)",color:"#fff",borderRadius:10,padding:"8px 14px",display:"flex",alignItems:"center",gap:10,fontSize:11,boxShadow:"0 8px 24px rgba(0,0,0,.2)",zIndex:90}}>
           <span>{undoToast.label}</span>
           <button onClick={()=>{undoToast.undo();setUndoToast(null);}} style={{background:"var(--accent)",border:"none",borderRadius:6,color:"#fff",fontSize:10,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>Undo</button>
@@ -2581,10 +2583,9 @@ function NavSidebar(){
 
   const typeColor=t=>t==="travel"?{bg:"var(--info-bg)",c:"var(--link)"}:t==="off"?{bg:"var(--card-2)",c:"var(--text-mute)"}:t==="split"?{bg:"var(--warn-bg)",c:"var(--warn-fg)"}:{bg:"var(--success-bg)",c:"var(--success-fg)"};
 
-  if(!sidebarOpen)return null;
-
-  return(
-    <div style={{width:200,flexShrink:0,background:"var(--bg)",borderRight:"1px solid var(--card-2)",display:"flex",flexDirection:"column",height:"100%",minHeight:0,overflow:"hidden"}}>
+  return(<>
+    <div onClick={()=>setSidebarOpen(false)} style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.45)",zIndex:79,opacity:sidebarOpen?1:0,pointerEvents:sidebarOpen?"auto":"none",transition:"opacity 220ms ease"}}/>
+    <div style={{position:"absolute",top:0,left:0,bottom:0,width:220,background:"var(--card)",borderRight:"1px solid var(--border)",zIndex:80,transform:sidebarOpen?"translateX(0)":"translateX(-220px)",transition:"transform 220ms cubic-bezier(0.25,0,0.1,1)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
       {/* Mini stats */}
       {next&&(
         <div style={{padding:"10px 12px 8px",borderBottom:"1px solid var(--border)"}}>
@@ -2673,11 +2674,77 @@ function NavSidebar(){
         <button onClick={add} disabled={!newDate||!!shows[newDate]} style={{...UI.expandBtn(false,"var(--success-fg)"),fontSize:9,padding:"4px 0",width:"100%",opacity:(!newDate||shows[newDate])?0.4:1}}>+ Add Date</button>
       </div>
     </div>
+  </>);
+}
+
+function ShowPickerSheet(){
+  const{showPickerOpen,setShowPickerOpen,sel,setSel,shows,sorted,tourDaysSorted,showOffDays,aC,mobile,tab,setTab}=useContext(Ctx);
+  const[q,setQ]=useState("");
+  const inputRef=useRef(null);
+  useEffect(()=>{if(showPickerOpen)setTimeout(()=>inputRef.current?.focus(),80);},[showPickerOpen]);
+  useEffect(()=>{const fn=e=>{if(e.key==="Escape")setShowPickerOpen(false);};document.addEventListener("keydown",fn);return()=>document.removeEventListener("keydown",fn);},[]);
+  const rows=useMemo(()=>{
+    const tourIds=new Set((tourDaysSorted||[]).map(d=>d.date));
+    const extras=(sorted||[]).filter(s=>s.clientId===aC&&!tourIds.has(s.date)).map(s=>({date:s.date,type:s.type||"show",city:s.city}));
+    const all=[...(tourDaysSorted||[]),...extras].sort((a,b)=>a.date.localeCompare(b.date));
+    return(showOffDays?all:all.filter(d=>d.type!=="off"&&d.type!=="travel")).filter(d=>{
+      if(!q)return true;
+      const s=shows[d.date];
+      const city=(s?.city||d.city||"").toLowerCase();
+      const dt=fD(d.date).toLowerCase();
+      return city.includes(q.toLowerCase())||dt.includes(q.toLowerCase());
+    });
+  },[tourDaysSorted,sorted,showOffDays,aC,q]);
+  const grouped=useMemo(()=>{
+    const m={};
+    rows.forEach(d=>{
+      const mo=new Date(d.date+"T12:00:00").toLocaleString("en-US",{month:"long",year:"numeric"});
+      if(!m[mo])m[mo]=[];
+      m[mo].push(d);
+    });
+    return Object.entries(m);
+  },[rows]);
+  const pick=(date)=>{setSel(date);if(tab==="dash")setTab("ros");setShowPickerOpen(false);};
+  if(!showPickerOpen)return null;
+  const sheetH=mobile?"72vh":"56vh";
+  return(
+    <>
+      <div onClick={()=>setShowPickerOpen(false)} style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.4)",zIndex:88,animation:"fadeIn 200ms ease"}}/>
+      <div style={{position:"fixed",bottom:0,left:0,right:0,height:sheetH,background:"var(--card)",borderRadius:"16px 16px 0 0",borderTop:"1px solid var(--border)",zIndex:89,display:"flex",flexDirection:"column",animation:"slideUp 240ms cubic-bezier(0.32,0,0.67,0)"}}>
+        <div style={{width:36,height:4,borderRadius:2,background:"var(--border)",margin:"10px auto 0",flexShrink:0}}/>
+        <div style={{padding:"8px 14px 6px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+          <input ref={inputRef} value={q} onChange={e=>setQ(e.target.value)} placeholder="Search shows…" style={{flex:1,fontSize:11,padding:"6px 10px",borderRadius:8,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text,fontFamily:"'Outfit',system-ui",outline:"none"}}/>
+          <button onClick={()=>setShowPickerOpen(false)} style={{background:"none",border:"none",color:T.textDim,cursor:"pointer",fontSize:16,padding:"0 4px",lineHeight:1}}>✕</button>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"4px 0 20px"}}>
+          {grouped.map(([mo,dates])=>(
+            <div key={mo}>
+              <div style={{fontSize:8,fontWeight:700,color:T.textFaint,letterSpacing:"0.08em",textTransform:"uppercase",padding:"10px 14px 4px"}}>{mo}</div>
+              {dates.map(d=>{
+                const s=shows[d.date];
+                const isSel=d.date===sel;
+                const isShow=d.type==="show"||!!s;
+                const label=isShow?(s?.city||"Show"):d.type==="travel"?"Travel":"Off Day";
+                const dotBg=isSel?"var(--accent)":isShow?"var(--success-fg)":d.type==="travel"?"var(--link)":"var(--text-faint)";
+                return(
+                  <div key={d.date} onClick={()=>pick(d.date)} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",cursor:"pointer",background:isSel?"var(--accent-pill-bg)":"transparent",transition:"background 80ms ease"}}>
+                    <div style={{width:7,height:7,borderRadius:"50%",background:dotBg,flexShrink:0}}/>
+                    <span style={{fontSize:11,fontWeight:isSel?700:500,color:isSel?T.accentSoft:T.text,flex:1}}>{label}</span>
+                    <span style={{fontSize:10,color:T.textDim,fontFamily:MN,fontWeight:600}}>{fD(d.date)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+          {grouped.length===0&&<div style={{padding:"24px 14px",fontSize:11,color:T.textMute,textAlign:"center"}}>No shows match "{q}"</div>}
+        </div>
+      </div>
+    </>
   );
 }
 
 function TopBar({ss}){
-  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd,advances,finance,intel,cShows,currentSplit,activeSplitParty,perms,me,commentMode,setCommentMode}=useContext(Ctx);
+  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,setShowOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd,advances,finance,intel,cShows,currentSplit,activeSplitParty,perms,me,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen}=useContext(Ctx);
   const[dragId,setDragId]=useState(null);
   const[overId,setOverId]=useState(null);
   const hasEvent=!!shows[sel]||(currentSplit&&activeSplitParty?.type==="show");
@@ -2713,8 +2780,6 @@ function TopBar({ss}){
     <div style={{borderBottom:"1px solid var(--card-2)",background:"var(--bg)",width:"100%",maxWidth:"100%",overflow:"visible",boxShadow:"0 1px 0 rgba(109,40,217,0.15),0 2px 12px rgba(0,0,0,0.45)"}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px 5px",minWidth:0,gap:8,width:"100%"}}>
         <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flexShrink:1,overflow:"hidden"}}>
-          <span style={{fontSize:16,fontWeight:800,color:T.text,letterSpacing:"-0.03em",flexShrink:0}}>DOS</span>
-          <span style={{fontSize:8,color:T.textMute,fontWeight:600}}>v7.0</span>
           <button onClick={()=>{
             if(!sidebarOpen){
               const today=new Date().toISOString().slice(0,10);
@@ -2723,7 +2788,9 @@ function TopBar({ss}){
               if(target)setSel(target);
             }
             setSidebarOpen(v=>!v);
-          }} title="Jump to today" style={{fontSize:11,padding:"3px 7px",borderRadius:6,border:"1px solid var(--border)",background:sidebarOpen?"var(--accent)":"var(--card-3)",color:sidebarOpen?"var(--card)":"var(--text-2)",cursor:"pointer",flexShrink:0}}>☰</button>
+          }} title="Navigation" style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:8,background:sidebarOpen?"var(--accent-soft)":"var(--accent)",color:"#fff",border:"none",cursor:"pointer",fontWeight:800,fontSize:13,letterSpacing:"-0.02em",flexShrink:0,lineHeight:1,transition:"background 150ms ease"}}>
+            <span>DOS</span><span style={{fontSize:15,fontWeight:300,opacity:0.8,lineHeight:1}}>≡</span>
+          </button>
           <div style={{display:"flex",alignItems:"center",gap:0,flexShrink:0}}>
             <button onClick={()=>stepDate(-1)} disabled={!canPrev} title="Previous date" style={{fontSize:11,padding:"2px 7px",borderRadius:"5px 0 0 5px",border:"1px solid var(--border)",borderRight:"none",background:canPrev?"var(--card-3)":"var(--card-4)",color:canPrev?"var(--text)":"var(--text-mute)",cursor:canPrev?"pointer":"default"}}>‹</button>
             <button onClick={()=>stepDate(1)} disabled={!canNext} title="Next date" style={{fontSize:11,padding:"2px 7px",borderRadius:"0 5px 5px 0",border:"1px solid var(--border)",background:canNext?"var(--card-3)":"var(--card-4)",color:canNext?"var(--text)":"var(--text-mute)",cursor:canNext?"pointer":"default"}}>›</button>
@@ -2747,14 +2814,17 @@ function TopBar({ss}){
         </div>
       </div>
       <div style={{padding:mobile?"3px 12px 5px":"3px 20px 5px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-        <select value={sel} onChange={e=>setSel(e.target.value)} style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${curClient?.color||"var(--border)"}`,background:curClient?`${curClient.color}14`:"var(--card)",color:curClient?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer",minHeight:mobile?30:undefined,maxWidth:mobile?220:320}}>
-          {stepList.map(d=>{
-            const s=shows[d.date];
-            const isShow=d.type==="show"||!!s;
-            const label=isShow?`● ${s?.city||"Show"} · ${fD(d.date)}`:d.type==="travel"?`→ Travel · ${fD(d.date)}`:d.type==="off"?`○ Off · ${fD(d.date)}`:`· ${fD(d.date)}`;
-            return <option key={d.date} value={d.date} style={{color:T.text,fontWeight:500}}>{label}</option>;
-          })}
-        </select>
+        <button onClick={()=>setShowPickerOpen(true)} style={{display:"flex",alignItems:"center",gap:6,padding:mobile?"5px 12px":"4px 11px",borderRadius:99,border:`1.5px solid ${curClient?.color||"var(--border)"}`,background:curClient?`${curClient.color}18`:"var(--card)",color:curClient?.color||T.text2,fontFamily:"'Outfit',system-ui",fontWeight:700,fontSize:mobile?11:10,cursor:"pointer",minHeight:mobile?30:undefined,flexShrink:0,transition:"background 120ms ease"}}>
+          <span style={{width:6,height:6,borderRadius:"50%",background:curClient?.color||T.accent,display:"inline-block",flexShrink:0}}/>
+          <span>{(()=>{const s=shows[sel];const d=stepList.find(x=>x.date===sel);if(s)return`${s.city} · ${fD(sel)}`;if(d?.type==="travel")return`Travel · ${fD(sel)}`;if(d?.type==="off")return`Off · ${fD(sel)}`;return sel?fD(sel):"Select show";})()}</span>
+          <span style={{fontSize:8,color:T.textDim,marginLeft:1}}>▾</span>
+        </button>
+        <button onClick={()=>setShowOffDays(v=>!v)} title={showOffDays?"Hide off/travel days":"Show off/travel days"} style={{display:"flex",alignItems:"center",gap:6,padding:mobile?"5px 10px":"3px 9px",borderRadius:99,border:"1px solid var(--border)",background:showOffDays?"var(--accent-pill-bg)":"var(--card-2)",cursor:"pointer",flexShrink:0,minHeight:mobile?30:undefined,transition:"background 150ms ease"}}>
+          <span style={{fontSize:mobile?10:9,fontWeight:600,color:showOffDays?T.accentSoft:T.textDim,whiteSpace:"nowrap"}}>off / travel</span>
+          <div style={{position:"relative",width:24,height:14,borderRadius:99,background:showOffDays?"var(--accent)":"var(--card-3)",transition:"background 150ms ease",flexShrink:0}}>
+            <span style={{position:"absolute",top:2,left:showOffDays?12:2,width:10,height:10,borderRadius:99,background:"#fff",transition:"left 150ms ease",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}/>
+          </div>
+        </button>
         {activeClients.length>1&&<select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${curClient?.color||"var(--border)"}`,background:curClient?`${curClient.color}14`:"var(--card)",color:curClient?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer",minHeight:mobile?30:undefined}}>
           {activeClients.map(c=><option key={c.id} value={c.id} style={{color:T.text,fontWeight:500}}>● {c.name} · {c.type==="festival"?"FEST":"ARTIST"}</option>)}
         </select>}
