@@ -3379,54 +3379,17 @@ function FlightDayStrip({sel}){
       );})()}
       {open&&(
         <div style={{borderTop:"1px solid var(--info-bg)",display:"flex",flexDirection:"column",gap:0}}>
-          {tagFlightRoles(deps,arrs).map(({f,role},i,arr)=>{
-            const isDep=role==="dep";
-            const sameDay=f.depDate===f.arrDate;
-            const live=liveStatuses[f.id];
-            const liveStyle=live?.status==="Cancelled"?{background:"var(--danger-bg)",borderColor:"var(--danger-bg)"}:live?.status==="Delayed"?{background:"var(--warn-bg)",borderColor:"var(--warn-bg)"}:{};
-            return(
-              <div key={f.id} style={{padding:"10px 14px",borderBottom:i<arr.length-1?"1px solid var(--info-bg)":"none",display:"grid",gridTemplateColumns:"auto 1fr auto",gap:"6px 12px",alignItems:"start",...liveStyle}}>
-                {/* Left: type badge */}
-                <div style={{display:"flex",flexDirection:"column",gap:3,alignItems:"center",paddingTop:1}}>
-                  <span style={{fontSize:8,fontWeight:800,padding:"2px 5px",borderRadius:4,background:isDep?"var(--link)":"var(--success-fg)",color:"#fff",letterSpacing:"0.06em"}}>{isDep?"DEP":"ARR"}</span>
-                  {live?.status&&<span style={{fontSize:8,fontWeight:700,padding:"1px 4px",borderRadius:4,...(STATUS_STYLE[live.status]||STATUS_STYLE.Unknown),background:(STATUS_STYLE[live.status]||STATUS_STYLE.Unknown).bg,color:(STATUS_STYLE[live.status]||STATUS_STYLE.Unknown).c}}>{(STATUS_STYLE[live.status]||STATUS_STYLE.Unknown).label}</span>}
-                </div>
-                {/* Center: flight info */}
-                <div>
-                  <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:3}}>
-                    <span style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"var(--link)"}}>{f.from}<span style={{fontSize:10,color:"var(--info-fg)",fontWeight:400,padding:"0 4px"}}>→</span>{f.to}</span>
-                    <span style={{fontSize:10,fontWeight:700,color:"var(--info-fg)"}}>{f.flightNo||f.carrier}</span>
-                    {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:"var(--text-dim)"}}>{f.carrier}</span>}
-                    {f.pnr&&<span style={{fontFamily:MN,fontSize:8,color:"var(--text-mute)"}}>{f.pnr}</span>}
-                  </div>
-                  {f.pax?.length>0&&<div style={{fontSize:9,color:"var(--text-2)",marginBottom:live?3:0}}>{f.pax.join(", ")}</div>}
-                  {live&&<div style={{display:"flex",gap:10,flexWrap:"wrap",fontSize:9,color:"var(--text-2)"}}>
-                    {live.depActual&&<span>Actual dep: <strong style={{fontFamily:MN}}>{live.depActual}</strong></span>}
-                    {live.arrActual&&<span>Actual arr: <strong style={{fontFamily:MN}}>{live.arrActual}</strong></span>}
-                    {live.depGate&&<span>Gate: <strong>{live.depGate}</strong></span>}
-                    {live.depTerminal&&<span>T<strong>{live.depTerminal}</strong></span>}
-                    {live.delayMinutes>0&&<span style={{color:"var(--warn-fg)",fontWeight:700}}>+{live.delayMinutes}m delay</span>}
-                    {live.aircraft&&<span style={{color:"var(--text-mute)"}}>{live.aircraft}</span>}
-                  </div>}
-                </div>
-                {/* Right: times */}
-                <div style={{textAlign:"right"}}>
-                  <div style={{display:"flex",flexDirection:"column",gap:2,alignItems:"flex-end"}}>
-                    {f.dep&&<div style={{display:"flex",alignItems:"center",gap:5}}>
-                      <span style={{fontSize:8,color:"var(--link)",fontWeight:700}}>DEP</span>
-                      <span style={{fontFamily:MN,fontSize:11,fontWeight:800,color:live?.depActual&&live.depActual!==f.dep?"var(--warn-fg)":"var(--link)"}}>{live?.depActual||f.dep}</span>
-                      {live?.depActual&&live.depActual!==f.dep&&<span style={{fontFamily:MN,fontSize:9,color:"var(--text-mute)",textDecoration:"line-through"}}>{f.dep}</span>}
-                    </div>}
-                    {f.arr&&<div style={{display:"flex",alignItems:"center",gap:5}}>
-                      <span style={{fontSize:8,color:"var(--success-fg)",fontWeight:700}}>ARR{!sameDay?` ${f.arrDate?.slice(5)}`:""}</span>
-                      <span style={{fontFamily:MN,fontSize:11,fontWeight:800,color:live?.arrActual&&live.arrActual!==f.arr?"var(--warn-fg)":"var(--success-fg)"}}>{live?.arrActual||f.arr}</span>
-                      {live?.arrActual&&live.arrActual!==f.arr&&<span style={{fontFamily:MN,fontSize:9,color:"var(--text-mute)",textDecoration:"line-through"}}>{f.arr}</span>}
-                    </div>}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+          <div style={{display:"flex",flexDirection:"column",gap:6,padding:"8px 10px"}}>
+          {tagFlightRoles(deps,arrs).map(({f,role})=>(
+            <FlightCard key={f.id} f={f}
+              legLabel={role==="dep"?"DEP":"ARR"}
+              defaultCollapsed={true}
+              liveStatus={liveStatuses[f.id]||null}
+              refreshing={false}
+              onRefreshStatus={null}
+            />
+          ))}
+          </div>
         </div>
       )}
     </div>
@@ -6156,13 +6119,19 @@ function CrewTab(){
                                   const exact=flightsForDir(dir);
                                   const nearby=dir==="outbound"?outboundNearby:[];
                                   const renderRow=(f,badge)=>{const alreadyAssigned=(cd[dir]||[]).some(l=>l.flightId===f.id);return(
-                                    <div key={f.id} onClick={()=>!alreadyAssigned&&assignFlight(c.id,dir,f)} style={{display:"flex",alignItems:"center",gap:10,padding:"7px 10px",borderBottom:"1px solid var(--card-3)",cursor:alreadyAssigned?"default":"pointer",background:alreadyAssigned?"var(--card-3)":"var(--card)",opacity:alreadyAssigned?0.6:1}} className="rh">
-                                      <span style={{fontSize:10,fontWeight:700,color:"var(--accent)",minWidth:60}}>{f.flightNo||f.carrier}</span>
-                                      <span style={{fontSize:10,flex:1,color:"var(--text)"}}>{f.fromCity||f.from} → {f.toCity||f.to}</span>
-                                      <span style={{fontSize:9,fontFamily:MN,color:"var(--text-dim)"}}>{f.depDate!==sel?fD(f.depDate):""} {f.dep} → {f.arr}</span>
-                                      {f.pax?.length>0&&<span style={{fontSize:8,color:"var(--text-mute)"}}>{f.pax.join(", ")}</span>}
-                                      {badge&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--warn-bg)",color:"var(--warn-fg)",fontWeight:700,whiteSpace:"nowrap"}}>{badge}</span>}
-                                      {alreadyAssigned?<span style={{fontSize:8,color:"var(--success-fg)",fontWeight:700}}>✓ Assigned</span>:<span style={{fontSize:9,color:"var(--accent)",fontWeight:700}}>Assign →</span>}
+                                    <div key={f.id} onClick={()=>!alreadyAssigned&&assignFlight(c.id,dir,f)} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderBottom:"1px solid var(--card-3)",cursor:alreadyAssigned?"default":"pointer",background:alreadyAssigned?"var(--card-3)":"var(--card)",opacity:alreadyAssigned?0.6:1,flexWrap:"wrap"}} className="rh">
+                                      <span style={{fontFamily:MN,fontSize:12,fontWeight:800,color:"var(--link)",flexShrink:0}}>{f.from}<span style={{fontSize:9,color:"var(--text-mute)",fontWeight:400,padding:"0 4px"}}>→</span>{f.to}</span>
+                                      <span style={{fontSize:10,fontWeight:700,color:"var(--text)",flexShrink:0}}>{f.flightNo||f.carrier}</span>
+                                      {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:"var(--text-dim)",flexShrink:0}}>{f.carrier}</span>}
+                                      <span style={{fontFamily:MN,fontSize:9,color:"var(--text-2)",flexShrink:0}}>{f.dep}{f.arr?`–${f.arr}`:""}</span>
+                                      {(f.fromCity||f.toCity)&&<span style={{fontSize:9,color:"var(--text-mute)",flexShrink:0}}>{f.fromCity||f.from} → {f.toCity||f.to}</span>}
+                                      {f.depDate!==sel&&<span style={{fontFamily:MN,fontSize:8,color:"var(--text-mute)",flexShrink:0}}>{fD(f.depDate)}</span>}
+                                      {f.pnr&&<span style={{fontFamily:MN,fontSize:8,fontWeight:700,color:"var(--text-2)",flexShrink:0}}>{f.pnr}</span>}
+                                      {f.fareClass&&<span style={{fontSize:8,color:"var(--text-mute)",textTransform:"capitalize",flexShrink:0}}>{f.fareClass}</span>}
+                                      {f.pax?.length>0&&<span style={{fontSize:8,color:"var(--text-mute)",flexShrink:0}}>{f.pax.length} pax</span>}
+                                      <span style={{flex:1}}/>
+                                      {badge&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--warn-bg)",color:"var(--warn-fg)",fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>{badge}</span>}
+                                      {alreadyAssigned?<span style={{fontSize:8,color:"var(--success-fg)",fontWeight:700,flexShrink:0}}>✓ Assigned</span>:<span style={{fontSize:9,color:"var(--accent)",fontWeight:700,flexShrink:0}}>Assign →</span>}
                                     </div>
                                   );};
                                   if(exact.length===0&&nearby.length===0)return <div style={{padding:"12px 10px",fontSize:10,color:"var(--text-mute)",textAlign:"center"}}>No confirmed {dir==="inbound"?"arrivals":"departures"} on {fD(sel)}.<br/><span style={{fontSize:9}}>Scan Gmail for flights in Transport tab.</span></div>;
