@@ -12,6 +12,19 @@ const HEAVY_MODEL   = process.env.ANTHROPIC_MODEL_HEAVY || "claude-opus-4-7";
 // Wraps the system prompt with ephemeral cache_control and normalises usage fields.
 // Throws Error with { status, detail } on non-2xx so callers can build their own error responses.
 async function postMessages({ model = DEFAULT_MODEL, maxTokens = 4096, system, messages }) {
+  // Guard: Anthropic rejects empty text content blocks with a cryptic 400.
+  if (!system) throw new Error("postMessages: system prompt is empty or missing");
+  if (!messages?.length) throw new Error("postMessages: messages array is empty");
+  for (const msg of messages) {
+    const content = msg.content;
+    if (typeof content === "string" && content === "") throw new Error("postMessages: message content is empty string");
+    if (Array.isArray(content)) {
+      for (const block of content) {
+        if (block.type === "text" && !block.text) throw new Error(`postMessages: text block in ${msg.role} message has empty text`);
+      }
+    }
+  }
+
   const resp = await fetch(ANTHROPIC_URL, {
     method: "POST",
     headers: ANTHROPIC_HEADERS,

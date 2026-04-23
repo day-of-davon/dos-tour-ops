@@ -533,7 +533,7 @@ module.exports = async function handler(req, res) {
           if (resolved.length) {
             const capped = resolved.slice(0, 8);
             console.log(`[intel] bulk cache hit for ${showId}: ${capped.length}/${resolved.length} threads`);
-            threads = capped.map(t => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 1200) }));
+            threads = capped;
             fromBulkCache = true;
           }
         }
@@ -576,8 +576,7 @@ module.exports = async function handler(req, res) {
     try {
       threads = (await Promise.all(ids.map((id) => gmailGetThread(googleToken, id).catch(() => null))))
         .filter(Boolean)
-        .map(extractHeaders)
-        .map((t) => ({ ...t, bodySnippet: (t.bodySnippet || "").slice(0, 1200) }));
+        .map(extractHeaders);
     } catch (e) {
       return res.status(502).json({ error: `Gmail thread fetch failed: ${e.message}` });
     }
@@ -615,6 +614,8 @@ Priority rules:
 - HIGH: show <48h away, or item is blocking advance checklist
 - MEDIUM: standard advance items, 2-4 weeks out
 - LOW: FYI threads, resolved items, informational
+
+Status phrases (use exactly one, uppercase): AWAITING RESPONSE, DRAFT READY, CONFIRMED, NEEDS DECISION, PENDING VENDOR, SENT, OVERDUE, RESOLVED.
 
 Time extraction: Convert all times to 24h HH:MM format. "7pm" → "19:00", "6:30 AM" → "06:30". Common EU show times: doors 19:00, curfew 23:00.`;
 

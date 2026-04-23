@@ -719,7 +719,7 @@ ${batch.map((t, i) => `[${i + offset}] tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}${t.forwardedSender ? `\nOriginal sender (from forwarded header): ${t.forwardedSender.name}${t.forwardedSender.email ? ` <${t.forwardedSender.email}>` : ""}` : ""}
 Date: ${t.date}
-Body: ${(t.body || "").slice(0, 3000)}`).join("\n\n---\n\n")}
+Body: ${t.body || ""}`).join("\n\n---\n\n")}
 
 Return this exact JSON:
 {

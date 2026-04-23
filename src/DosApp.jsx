@@ -1140,7 +1140,7 @@ export default function App(){
           ...(existing.followUps||[]).filter(f=>!newFuTexts.has(f.action)).map(f=>({ts,type:"scan",section:"followup",showId:sid,action:"removed",label:f.action,from:"scan"})),
         ];
         const changelog=[...(p.__changelog||[]).slice(-Math.max(1,499-scanEntries.length)),...scanEntries];
-        return{...p,__changelog:changelog,[sid]:{threads,followUps:ni.followUps||[],showContacts:contacts,schedule:ni.schedule||existing.schedule||[],todos,matches:existing.matches||[],dismissedFlags:existing.dismissedFlags||[],arStatus:existing.arStatus||{},lastRefreshed:new Date().toISOString(),isShared:data.isShared||false,sharedByOthers:data.sharedByOthers||[]}};
+        return{...p,__changelog:changelog,[sid]:{threads,followUps:ni.followUps||[],showContacts:contacts,schedule:ni.schedule||existing.schedule||[],todos,matches:existing.matches||[],dismissedFlags:existing.dismissedFlags||[],arStatus:existing.arStatus||{},lastRefreshed:new Date().toISOString(),isShared:data.isShared||false,sharedByOthers:data.sharedByOthers||[],_partial:!!ni._partial}};
       });
       setRefreshMsg(`${show.venue}: ${data.gmailThreadsFound||0} threads`);
       setTimeout(()=>setRefreshMsg(""),3500);
@@ -2008,6 +2008,7 @@ function IntelPanel(){
       <span style={{fontSize:10,fontWeight:800,color:"var(--accent)",letterSpacing:"0.06em"}}>GMAIL INTEL</span>
       <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"var(--card-2)",color:"var(--text-dim)",fontWeight:600,letterSpacing:"0.04em"}}>PRIVATE</span>
       {data.lastRefreshed&&<span style={{fontSize:9,color:"var(--text-mute)",fontFamily:MN}}>last: {new Date(data.lastRefreshed).toLocaleString()}</span>}
+      {data._partial&&<span title="Claude response was truncated by max_tokens; some threads/fields may be missing. Re-run the scan." style={{fontSize:9,fontWeight:700,color:"var(--warn-fg)",fontFamily:MN,padding:"1px 6px",borderRadius:4,border:"1px solid var(--warn-fg)"}}>PARTIAL</span>}
       <span style={{marginLeft:"auto",fontSize:9,color:"var(--text-dim)"}}>{(data.threads||[]).length} threads · {(data.todos||[]).length} to-dos</span>
       <button onClick={()=>toggleIntelShare(show,!shared)} style={{background:shared?"var(--success-bg)":"var(--card-2)",color:shared?"var(--success-fg)":"var(--text-2)",border:`1px solid ${shared?"var(--success-fg)":"var(--border)"}`,borderRadius:6,fontSize:9,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>{shared?"Shared with team":"Share with team"}</button>
       <button onClick={()=>refreshIntel(show,true)} disabled={!!refreshing} style={{background:refreshing?"var(--border)":"var(--accent)",color:refreshing?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:refreshing?"default":"pointer",fontWeight:700}}>{busy?"Scanning…":"Refresh Intel"}</button>
@@ -4753,7 +4754,7 @@ function TransTab(){
       </div>
       <div style={{flex:1,overflow:"auto",padding:"12px 20px 30px"}}>
         {view==="travel"&&<><TravelDayView/><div style={{margin:"20px 0 8px",display:"flex",alignItems:"center",gap:10}}><div style={{flex:1,height:1,background:"var(--border)"}}></div><span style={{fontSize:8,fontWeight:800,color:"var(--text-mute)",letterSpacing:"0.1em",whiteSpace:"nowrap"}}>TOUR CALENDAR</span><div style={{flex:1,height:1,background:"var(--border)"}}></div></div><TourCalendar/></>}
-        {view==="flights"&&<>{false&&labelIntel?.crewFlights?.length>0&&(
+        {view==="flights"&&<>{labelIntel?.crewFlights?.length>0&&(
           <div style={{background:"var(--info-bg)",border:"1px solid var(--info-bg)",borderRadius:10,marginBottom:12,overflow:"hidden"}}>
             <div onClick={()=>setCrewFlightsOpen(v=>!v)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",cursor:"pointer",userSelect:"none"}}>
               <div style={{fontSize:9,fontWeight:800,color:"var(--info-fg)",letterSpacing:"0.08em"}}>CREW FLIGHTS · LABEL SCAN ({labelIntel.crewFlights.length} deduped)</div>
@@ -5915,6 +5916,10 @@ function CrewTab(){
                             {conf?"✓ Confirmed":"Unconfirmed"}
                           </button>
                         </div>
+                        <div style={{display:"grid",gridTemplateColumns:"130px 100px",gap:6,alignItems:"center",marginBottom:mode==="fly"?8:6}}>
+                          <input type="date" value={cd[dateKey]||""} onChange={e=>updateSC(c.id,{[dateKey]:e.target.value})} title={`${dirLabel} date`} style={inp}/>
+                          <input type="time" value={cd[timeKey]||""} onChange={e=>updateSC(c.id,{[timeKey]:e.target.value})} title={`${dirLabel} time`} style={inp}/>
+                        </div>
                         {mode==="fly"?(
                           <div style={{display:"flex",flexDirection:"column",gap:6}}>
                             {(cd[dir]||[]).map(leg=>{
@@ -5980,11 +5985,7 @@ function CrewTab(){
                             )}
                           </div>
                         ):(
-                          <div style={{display:"grid",gridTemplateColumns:"130px 100px 1fr",gap:6,alignItems:"center"}}>
-                            <input type="date" value={cd[dateKey]} onChange={e=>updateSC(c.id,{[dateKey]:e.target.value})} style={inp}/>
-                            <input type="time" value={cd[timeKey]} onChange={e=>updateSC(c.id,{[timeKey]:e.target.value})} style={inp}/>
-                            <input value={cd[notesKey]} onChange={e=>updateSC(c.id,{[notesKey]:e.target.value})} placeholder={dir==="inbound"?"Pickup / meet point…":"Drop-off / instructions…"} style={inp}/>
-                          </div>
+                          <input value={cd[notesKey]||""} onChange={e=>updateSC(c.id,{[notesKey]:e.target.value})} placeholder={dir==="inbound"?"Pickup / meet point…":"Drop-off / instructions…"} style={inp}/>
                         )}
                       </div>
                     );

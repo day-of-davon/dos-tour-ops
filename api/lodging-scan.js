@@ -29,7 +29,10 @@ function extractHeaders(thread) {
   const strippedLen = strippedParts.join("").length;
   const footerStripSaved = Math.max(0, rawLen - strippedLen);
   if (footerStripSaved) console.log(`[lodging] footer-strip tid=${thread.id}: saved ${footerStripSaved} chars`);
-  const body = strippedParts.join("\n---\n").slice(0, 1400);
+  // 6000-char cap. Hotel confirmations bury total/tax, cancellation policy, and
+  // room details near the bottom. 1400 was truncating folio totals on Marriott
+  // and IHG forwards; raised to match flights/intel extractHeaders.
+  const body = strippedParts.join("\n---\n").slice(0, 6000);
   const lastMsgMs = last?.internalDate ? Number(last.internalDate) : null;
   // Attachments: walk tree, dedup Marriott-style (folio_NNNN, Receipt (2), etc.)
   const allAttachments = collectThreadAttachments(thread);
@@ -249,7 +252,7 @@ ${textOnly.map((t, i) => `[${i}] tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}
 Date: ${t.date}
-Body: ${(t.body || "").slice(0, 3000)}`).join("\n\n---\n\n")}
+Body: ${t.body || ""}`).join("\n\n---\n\n")}
 
 ${returnShape}`;
     try {
@@ -275,7 +278,7 @@ tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}
 Date: ${t.date}
-Body: ${(t.body || "").slice(0, 3000)}
+Body: ${t.body || ""}
 
 ${returnShape}`;
           const { text, stopReason } = await callClaude([{ type: "text", text: userPrompt }]);
@@ -315,7 +318,7 @@ tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}
 Date: ${t.date}
-Body: ${(t.body || "").slice(0, 3000)}
+Body: ${t.body || ""}
 
 ${returnShape}`;
           const { text, stopReason } = await callClaude([{ type: "text", text: userPrompt }]);
@@ -339,7 +342,7 @@ tid:${t.id}
 Subject: ${t.subject}
 From: ${t.from}
 Date: ${t.date}
-Body: ${(t.body || "").slice(0, 3000)}
+Body: ${t.body || ""}
 
 ${returnShape}`;
     try {
