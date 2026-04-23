@@ -612,7 +612,7 @@ module.exports = async function handler(req, res) {
   } = req.body || {};
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
 
-  const after = sweepFrom ? toGmailDate(sweepFrom) : nDaysAgo(180);
+  const after = sweepFrom ? toGmailDate(sweepFrom) : nDaysAgo(365);
   const initialParams = { sweepFrom, tourStart, tourEnd, after, showsCount: shows.length };
   const { runId, startedAt } = await startScanRun({
     scanner: "flights", userId: user.id, params: initialParams,
