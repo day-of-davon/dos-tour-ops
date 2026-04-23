@@ -501,13 +501,13 @@ const CLIENTS=[
 ];
 const CM=CLIENTS.reduce((a,c)=>{a[c.id]=c;return a},{});
 const isClientOwner=(me,clientId)=>!!(me?.primary||[]).includes(clientId);
-const ROLES=[{id:"tm_td",label:"TM/TD",c:"var(--accent)"},{id:"transport_coord",label:"Transport",c:"var(--warn-fg)"},{id:"viewer",label:"Viewer",c:"var(--text-dim)"}];
+const ROLES=[{id:"tm_td",label:"TM/TD",c:"var(--accent)"},{id:"internal",label:"Internal",c:"var(--warn-fg)"},{id:"viewer",label:"Viewer",c:"var(--text-dim)"}];
 const TABS=[{id:"dash",label:"Dashboard",icon:"⊞"},{id:"advance",label:"Advance",icon:"◎"},{id:"guestlist",label:"Guest List",icon:"◉"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"},{id:"access",label:"Access",icon:"⊙"}];
 const ADMIN_EMAIL="d.johnson@dayofshow.net";
 const SESSION_ID=Math.random().toString(36).slice(2,9);
 const PERM_ROLES=[
   {id:"tm_td",label:"TM/TD"},
-  {id:"transport_coord",label:"Transport"},
+  {id:"internal",label:"Internal"},
   {id:"viewer",label:"Viewer"},
 ];
 const PERM_SCHEMA=[
@@ -804,7 +804,7 @@ const ALL_SHOWS=[
 ];
 
 const DEFAULT_ROS=()=>[
-  {id:"bus_arrive",label:"BUS ARRIVES",duration:0,phase:"bus_in",type:"bus",color:"var(--info-fg)",roles:["tm_td","transport_coord"],note:"32A 3-phase power",isAnchor:true,anchorKey:"busArrive"},
+  {id:"bus_arrive",label:"BUS ARRIVES",duration:0,phase:"bus_in",type:"bus",color:"var(--info-fg)",roles:["tm_td","internal"],note:"32A 3-phase power",isAnchor:true,anchorKey:"busArrive"},
   {id:"venue_access",label:"Venue Access",duration:0,phase:"pre",type:"access",color:"var(--text-2)",roles:["tm_td","viewer"],note:"Per advance",isAnchor:true,anchorKey:"venueAccess"},
   {id:"crew_call",label:"CREW CALL",duration:0,phase:"pre",type:"crew",color:"var(--warn-fg)",roles:["tm_td","viewer"],note:"Local + tour crew",isAnchor:true,anchorKey:"crewCall"},
   {id:"loadin",label:"Load In",duration:240,phase:"pre",type:"setup",color:"var(--warn-fg)",roles:["tm_td","viewer"],note:"FOH, mons, LD, LED, lasers, merch"},
@@ -823,13 +823,13 @@ const DEFAULT_ROS=()=>[
   {id:"crew_cb",label:"Crew Call Back",duration:0,phase:"post",type:"crew",color:"var(--warn-fg)",roles:["tm_td","viewer"],note:"30min before set ends",offsetRef:"bbno_set_end",offsetMin:-30},
   {id:"loadout",label:"Load Out",duration:120,phase:"post",type:"setup",color:"var(--warn-fg)",roles:["tm_td","viewer"],note:"Gear to truck/trailer"},
   {id:"settlement",label:"Settlement",duration:60,phase:"post",type:"business",color:"var(--warn-fg)",roles:["tm_td"],note:"30min after headline ends",offsetRef:"bbno_set_end",offsetMin:30},
-  {id:"showers",label:"Showers / Wind Down",duration:45,phase:"post",type:"crew",color:"var(--text-2)",roles:["tm_td","transport_coord"]},
-  {id:"clear",label:"Clear Venue",duration:30,phase:"post",type:"bus",color:"var(--text-3)",roles:["tm_td","transport_coord"],note:"Final walk, bus loaded"},
-  {id:"bus_depart",label:"BUS DEPARTS",duration:0,phase:"post",type:"bus",color:"var(--info-fg)",roles:["tm_td","transport_coord"],note:"Next city. Crew sleeps.",isAnchor:true,anchorKey:"busDepart"},
+  {id:"showers",label:"Showers / Wind Down",duration:45,phase:"post",type:"crew",color:"var(--text-2)",roles:["tm_td","internal"]},
+  {id:"clear",label:"Clear Venue",duration:30,phase:"post",type:"bus",color:"var(--text-3)",roles:["tm_td","internal"],note:"Final walk, bus loaded"},
+  {id:"bus_depart",label:"BUS DEPARTS",duration:0,phase:"post",type:"bus",color:"var(--info-fg)",roles:["tm_td","internal"],note:"Next city. Crew sleeps.",isAnchor:true,anchorKey:"busDepart"},
 ];
 
 const RRX_ROS=()=>[
-  {id:"bus_arrive",label:"BUS ARRIVES",duration:0,phase:"bus_in",type:"bus",color:"var(--info-fg)",roles:["tm_td","transport_coord"],note:"Red Rocks loading dock",isAnchor:true,anchorKey:"busArrive"},
+  {id:"bus_arrive",label:"BUS ARRIVES",duration:0,phase:"bus_in",type:"bus",color:"var(--info-fg)",roles:["tm_td","internal"],note:"Red Rocks loading dock",isAnchor:true,anchorKey:"busArrive"},
   {id:"venue_access",label:"Venue Access",duration:0,phase:"pre",type:"access",color:"var(--text-2)",roles:["tm_td","viewer"],note:"Per AEG advance",isAnchor:true,anchorKey:"venueAccess"},
   {id:"crew_call",label:"CREW CALL",duration:0,phase:"pre",type:"crew",color:"var(--warn-fg)",roles:["tm_td","viewer"],note:"BNP + tour crew",isAnchor:true,anchorKey:"crewCall"},
   {id:"loadin",label:"Load In",duration:240,phase:"pre",type:"setup",color:"var(--warn-fg)",roles:["tm_td","viewer"],note:"BNP: audio, video, lighting"},
@@ -857,9 +857,9 @@ const RRX_ROS=()=>[
   {id:"crew_cb",label:"Crew Call Back",duration:0,phase:"post",type:"crew",color:"var(--warn-fg)",roles:["tm_td","viewer"],offsetRef:"bbno_set_end",offsetMin:-30},
   {id:"loadout",label:"Load Out",duration:120,phase:"post",type:"setup",color:"var(--warn-fg)",roles:["tm_td","viewer"]},
   {id:"settlement",label:"Settlement",duration:60,phase:"post",type:"business",color:"var(--warn-fg)",roles:["tm_td"],offsetRef:"bbno_set_end",offsetMin:30},
-  {id:"showers",label:"Showers / Wind Down",duration:45,phase:"post",type:"crew",color:"var(--text-2)",roles:["tm_td","transport_coord"]},
-  {id:"clear",label:"Clear Venue",duration:30,phase:"post",type:"bus",color:"var(--text-3)",roles:["tm_td","transport_coord"]},
-  {id:"bus_depart",label:"BUS DEPARTS",duration:0,phase:"post",type:"bus",color:"var(--info-fg)",roles:["tm_td","transport_coord"],isAnchor:true,anchorKey:"busDepart"},
+  {id:"showers",label:"Showers / Wind Down",duration:45,phase:"post",type:"crew",color:"var(--text-2)",roles:["tm_td","internal"]},
+  {id:"clear",label:"Clear Venue",duration:30,phase:"post",type:"bus",color:"var(--text-3)",roles:["tm_td","internal"]},
+  {id:"bus_depart",label:"BUS DEPARTS",duration:0,phase:"post",type:"bus",color:"var(--info-fg)",roles:["tm_td","internal"],isAnchor:true,anchorKey:"busDepart"},
 ];
 const CUSTOM_ROS_MAP={"2026-04-16":RRX_ROS};
 
