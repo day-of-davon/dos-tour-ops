@@ -887,6 +887,13 @@ const SPLIT_DAYS={
   }
 };
 
+const resolvePartyCrew=(date,partyId,showCrew,allCrew)=>{
+  const sc=showCrew[`${date}#${partyId}`]||{};
+  const hasData=Object.values(sc).some(c=>c.attending!==undefined);
+  if(!hasData)return null;
+  return allCrew.filter(c=>sc[c.id]?.attending===true).map(c=>c.id);
+};
+
 const Ctx=createContext(null);
 
 function useMobile(bp=640){
@@ -1018,7 +1025,14 @@ export default function App(){
   // Per-date active split-party id. Absent entries fall back to the first party.
   const[splitParty,setSplitPartyState]=useState({});
   const setSplitParty=useCallback((date,partyId)=>setSplitPartyState(p=>({...p,[date]:partyId})),[]);
-  const currentSplit=SPLIT_DAYS[sel]||null;
+  const effectiveSplitDays=useMemo(()=>{
+    const out={};
+    Object.entries(SPLIT_DAYS).forEach(([date,split])=>{
+      out[date]={...split,parties:split.parties.map(p=>{const resolved=resolvePartyCrew(date,p.id,showCrew,crew);return resolved?{...p,crew:resolved}:p;})};
+    });
+    return out;
+  },[showCrew,crew]);
+  const currentSplit=effectiveSplitDays[sel]||null;
   const activeSplitPartyId=currentSplit?(splitParty[sel]||currentSplit.parties[0].id):null;
   const activeSplitParty=currentSplit?currentSplit.parties.find(p=>p.id===activeSplitPartyId):null;
   const[tourStart,setTourStart]=useState("2026-04-01");
@@ -1280,7 +1294,7 @@ export default function App(){
   const tourDays=useMemo(()=>{
     const m={};
     (sorted||[]).forEach(s=>{
-      m[s.date]={date:s.date,type:s.type||"show",show:s,bus:BUS_DATA_MAP[s.date]||null,split:SPLIT_DAYS[s.date]||null,synthetic:false,city:s.city,venue:s.venue,clientId:s.clientId};
+      m[s.date]={date:s.date,type:s.type||"show",show:s,bus:BUS_DATA_MAP[s.date]||null,split:effectiveSplitDays[s.date]||null,synthetic:false,city:s.city,venue:s.venue,clientId:s.clientId};
     });
     if(!sorted.length)return m;
     const start=new Date(sorted[0].date+'T12:00:00');
@@ -1288,7 +1302,7 @@ export default function App(){
     for(let d=new Date(start.getTime());d<=end;d.setDate(d.getDate()+1)){
       const iso=d.toISOString().slice(0,10);
       const bus=BUS_DATA_MAP[iso]||null;
-      const split=SPLIT_DAYS[iso]||null;
+      const split=effectiveSplitDays[iso]||null;
       if(m[iso]){
         // enrich existing real show with bus/split context
         m[iso]={...m[iso],bus:m[iso].bus||bus,split:m[iso].split||split};
@@ -1300,7 +1314,7 @@ export default function App(){
       else{m[iso]={date:iso,type:"off",synthetic:true,city:"—",venue:"Off Day",clientId:"bbn"};}
     }
     return m;
-  },[sorted]);
+  },[sorted,effectiveSplitDays]);
   const tourDaysSorted=useMemo(()=>Object.values(tourDays).sort((a,b)=>a.date.localeCompare(b.date)),[tourDays]);
 
   // Ordered tabs: apply saved tabOrder, append any tabs not in saved order (handles new tabs added in code)
@@ -1329,7 +1343,7 @@ export default function App(){
     if(currentSplit&&activeSplitPartyId)return `${sel}#${activeSplitPartyId}`;
     return sel;
   },[selEventId,sel,currentSplit,activeSplitPartyId]);
-  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration,me}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,immigration,uImmigration,me]);// eslint-disable-line
+  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:"var(--text)",letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:"var(--text-dim)",marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
@@ -3496,7 +3510,7 @@ function ScheduleTab(){
     if(!activeSplitParty||activeSplitParty.type==="show")return <ROSTab/>;
     return <DayScheduleView show={{type:activeSplitParty.type||"travel",city:activeSplitParty.location||"",venue:activeSplitParty.event||""}} bus={null} split={currentSplit} sel={sel}/>;
   }
-  if(isSynthetic) return <DayScheduleView show={{type:td.type,notes:td.bus?.note}} bus={BUS_DATA_MAP[sel]||td?.bus||null} split={SPLIT_DAYS[sel]||td?.split||null} sel={sel}/>;
+  if(isSynthetic) return <DayScheduleView show={{type:td.type,notes:td.bus?.note}} bus={BUS_DATA_MAP[sel]||td?.bus||null} split={currentSplit||td?.split||null} sel={sel}/>;
   if(!show)return <div style={{padding:40,textAlign:"center",color:"var(--text-dim)",fontSize:11}}>No event scheduled for this date.</div>;
   return <ROSTab/>;
 }
@@ -3567,7 +3581,7 @@ function EventSwitcher({show,sel}){
 }
 
 function ROSTab(){
-  const{shows,uShow,gRos,uRos,ros,sel,setSel,eventKey,cShows,role,aC,selEventId,setSelEventId}=useContext(Ctx);
+  const{shows,uShow,gRos,uRos,ros,sel,setSel,eventKey,cShows,role,aC,selEventId,setSelEventId,currentSplit}=useContext(Ctx);
   const[editB,setEditB]=useState(null);const[dOver,setDOver]=useState(null);
   const[editShow,setEditShow]=useState(false);
   const[editVenue,setEditVenue]=useState("");const[editCity,setEditCity]=useState("");const[editPromoter,setEditPromoter]=useState("");
@@ -3730,7 +3744,7 @@ function ROSTab(){
 
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
-      {isNonShowDay&&<DayScheduleView show={show} bus={BUS_DATA_MAP[sel]||null} split={SPLIT_DAYS[sel]||null} sel={sel}/>}
+      {isNonShowDay&&<DayScheduleView show={show} bus={BUS_DATA_MAP[sel]||null} split={currentSplit||null} sel={sel}/>}
       {!isNonShowDay&&<><div style={{padding:"6px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:10,flexWrap:"wrap",fontSize:11,flexShrink:0,alignItems:"center"}}>
         <span style={{fontWeight:700}}>{effShow.venue}</span><span style={{color:"var(--text-2)",fontSize:10}}>{effShow.promoter}</span>
         {isCustom&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"var(--accent-pill-bg)",color:"var(--accent)",fontWeight:700}}>Custom ROS</span>}
@@ -3766,7 +3780,7 @@ function ROSTab(){
 }
 
 function TourCalendar(){
-  const{setSel,setTab,flights,uFlight}=useContext(Ctx);
+  const{setSel,setTab,flights,uFlight,effectiveSplitDays}=useContext(Ctx);
   const importBusLegs=()=>{
     const base=new Date('2026-05-02T12:00:00');
     BUS_DATA.forEach(d=>{
@@ -3803,7 +3817,7 @@ function TourCalendar(){
       const iso=d.toISOString().slice(0,10);
       const bus=busMap[iso];
       const show=showMap[iso];
-      const split=SPLIT_DAYS[iso];
+      const split=effectiveSplitDays[iso];
       let type="off";
       if(split)type="split";
       else if(show||(bus&&bus.show))type="show";
@@ -3811,7 +3825,7 @@ function TourCalendar(){
       result.push({iso,bus,show,split,type});
     }
     return result;
-  },[busMap,showMap]);
+  },[busMap,showMap,effectiveSplitDays]);
   const TS={
     show:{l:"SHOW",c:"var(--success-fg)",b:"var(--success-bg)"},
     travel:{l:"TRAVEL",c:"var(--link)",b:"var(--info-bg)"},
