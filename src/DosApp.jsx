@@ -3,11 +3,15 @@ import { useAuth } from "./components/AuthGate.jsx";
 import { Button, Pill } from "./components/ui.jsx";
 import { supabase } from "./lib/supabase";
 import { logAudit, setAuditIdentity } from "./lib/audit";
+import {
+  SK, PK,
+  HOTEL_DEFAULT_CHECKIN, HOTEL_DEFAULT_CHECKOUT, HOTEL_TODOS_DEFAULT,
+  TEAM, ROLE_LABEL, GUEST_ME, resolveMe, TEAM_MEMBERS, TM_EMAILS,
+} from "./lib/constants";
 
 // DOS TOUR OPS v7.0 — Day of Show, LLC
 // Client-first · All dept advance lanes · Custom + editable items · Full settlement
 
-const SK={SHOWS:"dos-v7-shows",ROS:"dos-v7-ros",ADVANCES:"dos-v7-advances",FINANCE:"dos-v7-finance",SETTINGS:"dos-v7-settings",CREW:"dos-v7-crew",PRODUCTION:"dos-v7-production",FLIGHTS:"dos-v7-flights",LODGING:"dos-v7-lodging",GUESTLISTS:"dos-v7-guestlists",GL_TEMPLATES:"dos-v7-guestlist-templates",IMMIGRATION:"dos-v7-immigration"};
 const hhmmToMin=s=>{if(!s)return null;const[h,m]=s.split(":").map(Number);return isNaN(h)||isNaN(m)?null:h*60+m;};
 // Group same-day flight legs by itinerary (confirmNo / bookingRef / pax signature) and tag
 // each with role: final leg of a multi-leg chain = "arr", all prior legs = "dep". Single-leg
@@ -269,7 +273,6 @@ const findReturnLeg=(f,allFlightsObj)=>{
 // the separate lodging store; check-ins/outs on `date` become timeline entries.
 // Each entry: {kind, seg, label, start, end, from, to, gapBefore, warning}.
 // start/end are HH:MM strings; gapBefore is minutes since previous entry's end.
-const HOTEL_DEFAULT_CHECKIN="15:00",HOTEL_DEFAULT_CHECKOUT="11:00";
 const buildDayTimeline=(date,daySegs,lodging)=>{
   const entries=[];
   (daySegs||[]).forEach(s=>{
@@ -497,19 +500,8 @@ const CLIENTS=[
   {id:"elm",name:"Elements",type:"festival",status:"active",color:"var(--warn-fg)",short:"ELM"},
 ];
 const CM=CLIENTS.reduce((a,c)=>{a[c.id]=c;return a},{});
-// ── TEAM registry — single source of truth for user → role → client binding ──
-// email → {id, label, initials, role, clients[]: access, primary[]: ownership}
-// Shared across: client selector gating, audit metadata, owner inference.
-const TEAM={
-  "d.johnson@dayofshow.net":{id:"davon",label:"Davon",initials:"DJ",role:"tm_td",clients:["bbn","wkn","bwc","elm"],primary:["bbn"]},
-  "olivia@dayofshow.net":   {id:"olivia",label:"Olivia",initials:"OM",role:"transport_coord",clients:["bbn","wkn","bwc","elm"],primary:["elm","bwc","wkn"]},
-};
-const ROLE_LABEL={tm_td:"TM/TD",transport_coord:"Transport Coord",viewer:"Viewer"};
-const GUEST_ME={id:"guest",label:"Guest",initials:"··",role:"viewer",clients:["bbn"],primary:[]};
-const resolveMe=(email)=>TEAM[(email||"").toLowerCase()]||GUEST_ME;
 const isClientOwner=(me,clientId)=>!!(me?.primary||[]).includes(clientId);
 const ROLES=[{id:"tm",label:"TM",c:"var(--accent)"},{id:"production",label:"Prod",c:"var(--warn-fg)"}];
-const TM_EMAILS=new Set(["d.johnson@dayofshow.net","o.mims@dayofshow.net","advance@dayofshow.net"]);
 const TABS=[{id:"dash",label:"Dashboard",icon:"⊞"},{id:"advance",label:"Advance",icon:"◎"},{id:"guestlist",label:"Guest List",icon:"◉"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"}];
 const GL_DEFAULT_CATEGORIES=[
   {id:"artist_guest",name:"Artist Guest",side:"artist",zones:["FOH"],qty:6,walkOnQty:2},
@@ -689,13 +681,9 @@ const SC={
   escalate:{l:"Escalate",c:"var(--danger-fg)",b:"var(--danger-bg)"},
   confirmed:{l:"Confirmed",c:"var(--success-fg)",b:"var(--success-bg)"},
   na:{l:"N/A",c:"var(--text-mute)",b:"var(--card-2)"},
-  // Back-compat
+  // Stored rows written before "responded" was renamed to "in_progress"; render them the same.
   responded:{l:"In Progress",c:"var(--link)",b:"var(--info-bg)"},
 };
-const TEAM_MEMBERS=[
-  {id:"davon",label:"Davon",initials:"DJ"},
-  {id:"olivia",label:"Olivia",initials:"OM"},
-];
 const SC_CYCLE=["pending","in_progress","confirmed"];
 const SC_ORDER=["pending","in_progress","sent","received","respond","follow_up","escalate","confirmed","na"];
 // Immigration entity — country-scoped, spans multiple shows.
@@ -743,8 +731,8 @@ const dU=d=>Math.ceil((new Date(d+"T12:00:00")-new Date())/86400000);
 const fD=d=>new Date(d+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});
 const fW=d=>new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"});
 const fFull=d=>new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
-const sG=async k=>{try{const r=await window.storage.get(k);return r?JSON.parse(r.value):null}catch{return null}};
-const sS=async(k,v)=>{try{await window.storage.set(k,JSON.stringify(v));return true}catch{return false}};
+const sG=async k=>{try{const r=await window.storage.get(k);return r?JSON.parse(r.value):null}catch(e){console.error("[storage.get]",k,e?.message||e);return null}};
+const sS=async(k,v)=>{try{await window.storage.set(k,JSON.stringify(v));return true}catch(e){console.error("[storage.set]",k,e?.message||e);return false}};
 
 const ALL_SHOWS=[
   {date:"2026-04-16",clientId:"bbn",city:"Morrison",venue:"Red Rocks Amphitheatre",country:"US",region:"na",promoter:"AEG / Sasha Minkov",advance:[{name:"Sasha Minkov",email:"sminkov@aegpresents.com",role:"Promoter",dept:"venue"}],doors:toM(17,30),curfew:toM(23,30),busArrive:toM(7),crewCall:toM(8),venueAccess:toM(7),mgTime:toM(16,30),notes:"Hard curfew 11:30p. BNP vendor. w/ Oliver Tree.",customRos:true},
@@ -902,7 +890,6 @@ function useMobile(bp=640){
   return m;
 }
 
-const PK={NOTES_PRIV:"dos-v7-notes-private",CHECKLIST_PRIV:"dos-v7-checklist-private",INTEL:"dos-v7-intel"};
 const showIdFor=(s)=>`${s.venue}__${s.date}`.toLowerCase().replace(/\s+/g,"_");
 const gmailUrl=(tid)=>`https://mail.google.com/mail/u/0/#all/${tid}`;
 const STOP=new Set(["the","a","an","of","to","for","and","or","is","on","in","with","your","we","please","be","at","by","from","are","this","that"]);
@@ -956,8 +943,8 @@ function parseAllTimes(str){
 function parseTimeStr(s){const t=parseAllTimes(s);return t.length?t[0].minutes:null;}
 function fmtMin(m){if(m==null||m===0)return"—";const h=Math.floor(m/60),mm=m%60;const ap=h>=12?"PM":"AM";const h12=((h+11)%12)+1;return `${h12}:${String(mm).padStart(2,"0")} ${ap}`;}
 const fmtAudit=(iso)=>{if(!iso)return"";const d=new Date(iso);const M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];const h=d.getHours();const ap=h>=12?"pm":"am";const h12=((h+11)%12)+1;return `${M[d.getMonth()]} ${d.getDate()}, ${h12}:${String(d.getMinutes()).padStart(2,"0")}${ap}`;};
-const sGP=async k=>{try{const r=await window.storage.getPrivate(k);return r?JSON.parse(r.value):null}catch{return null}};
-const sSP=async(k,v)=>{try{await window.storage.setPrivate(k,JSON.stringify(v));return true}catch{return false}};
+const sGP=async k=>{try{const r=await window.storage.getPrivate(k);return r?JSON.parse(r.value):null}catch(e){console.error("[storage.getPrivate]",k,e?.message||e);return null}};
+const sSP=async(k,v)=>{try{await window.storage.setPrivate(k,JSON.stringify(v));return true}catch(e){console.error("[storage.setPrivate]",k,e?.message||e);return false}};
 
 function ContextBar(){
   const{sel,shows,advances,finance,setTab}=useContext(Ctx);
@@ -1409,7 +1396,7 @@ function StatusBtn({status,setStatus,mobile}){
   const cycle=()=>{const i=SC_CYCLE.indexOf(status);setStatus(SC_CYCLE[(i+1)%SC_CYCLE.length]||SC_CYCLE[0]);};
   const onClick=e=>{if(mobile){setOpen(true);return;}cycle();};
   const onCtx=e=>{e.preventDefault();setOpen(true);};
-  const onDown=e=>{if(mobile)return;lp.current=setTimeout(()=>setOpen(true),400);};
+  const onDown=e=>{if(mobile)return;if(lp.current)clearTimeout(lp.current);lp.current=setTimeout(()=>setOpen(true),400);};
   const onUp=()=>{if(lp.current){clearTimeout(lp.current);lp.current=null;}};
   const caretClick=e=>{e.stopPropagation();e.preventDefault();setOpen(v=>!v);};
   const tip=mobile?`${s.l} — tap to change`:`${s.l} — click to cycle, caret or right-click for all options`;
@@ -2208,7 +2195,7 @@ function ThemeToggle(){
 function SignOut(){
   const a=useAuth();const user=a?.user;if(!user)return null;
   const initial=(user.email||"?").trim()[0].toUpperCase();
-  return <button title={user.email} onClick={()=>supabase.auth.signOut()} style={{width:22,height:22,borderRadius:"50%",background:"var(--accent)",color:"#fff",fontSize:10,fontWeight:700,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{initial}</button>;
+  return <button title={user.email} onClick={()=>supabase.auth.signOut().catch(e=>console.warn("[signout]",e?.message||e))} style={{width:22,height:22,borderRadius:"50%",background:"var(--accent)",color:"#fff",fontSize:10,fontWeight:700,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{initial}</button>;
 }
 
 // ── NAV SIDEBAR ──────────────────────────────────────────────────────────────
@@ -4169,7 +4156,7 @@ function FlightsListView(){
       if(!resp.ok)return;
       const data=await resp.json();
       if(data.status)setLiveStatuses(p=>({...p,[f.id]:data.status}));
-    }catch{}
+    }catch(e){console.warn("[flight-status]",f.flightNo,e?.message||e);}
   };
 
   const refreshStatus=async(f)=>{
@@ -4192,7 +4179,7 @@ function FlightsListView(){
         toRefresh.forEach(f=>{const s=data.statuses?.[`${f.flightNo}__${f.depDate}`];if(s&&!s.error)next[f.id]=s;});
         setLiveStatuses(p=>({...p,...next}));
       }
-    }catch{}
+    }catch(e){console.warn("[flight-status] refreshAll",e?.message||e);}
     setRefreshingAll(false);
   };
 
@@ -5707,7 +5694,7 @@ function LifecyclePills({crewId,date,state,slots,onJump,compact}){
 }
 
 function CrewTab(){
-  const{sel,setSel,shows,tourDaysSorted,tourDays,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights,lodging,setTab,currentSplit,activeSplitPartyId,eventKey}=useContext(Ctx);
+  const{sel,setSel,shows,tourDaysSorted,tourDays,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights,lodging,setTab,currentSplit,activeSplitPartyId,activeSplitParty,eventKey}=useContext(Ctx);
   const[panel,setPanel]=useState(null);
   const[editMode,setEditMode]=useState(false);
   const[flightPicker,setFlightPicker]=useState(null); // {crewId, dir}
@@ -6510,7 +6497,6 @@ const ROOM_STATUS_META={
   occupied:{label:"Occupied",bg:"var(--info-bg)",c:"var(--link)"},
   released:{label:"Released",bg:"var(--card-2)",c:"var(--text-2)"},
 };
-const HOTEL_TODOS_DEFAULT=["Confirm room block","Collect confirmation #","Share room list with crew","Arrange early check-in (if needed)","Confirm late check-out","Collect receipt","Verify billing address"];
 
 function LodgingTab(){
   const{lodging,uLodging,crew,showCrew,finance,uFin,tourDaysSorted,mobile,sel,setSel,tourStart,tourEnd}=useContext(Ctx);
@@ -6799,7 +6785,7 @@ function HotelCard({hotel,date,onEdit,crew,uLodging,uFin,finance}){
 
 function HotelFormModal({date,hotel,onClose,onSave,existingHotels}){
   const isEdit=!!hotel;
-  const[form,setForm]=useState(hotel||{id:newHotelIdFn(),name:"",address:"",city:"",phone:"",stars:"",checkIn:date,checkOut:date,checkInTime:"15:00",checkOutTime:"12:00",confirmNo:"",bookingRef:"",status:"pending",currency:"USD",notes:"",rooms:[],todos:HOTEL_TODOS_DEFAULT.map(t=>({text:t,done:false}))});
+  const[form,setForm]=useState(hotel||{id:newHotelIdFn(),name:"",address:"",city:"",phone:"",stars:"",checkIn:date,checkOut:date,checkInTime:HOTEL_DEFAULT_CHECKIN,checkOutTime:HOTEL_DEFAULT_CHECKOUT,confirmNo:"",bookingRef:"",status:"pending",currency:"USD",notes:"",rooms:[],todos:HOTEL_TODOS_DEFAULT.map(t=>({text:t,done:false}))});
   function newHotelIdFn(){return`hotel_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;}
   const f=(k,v)=>setForm(p=>({...p,[k]:v}));
   return(
