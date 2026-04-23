@@ -3191,12 +3191,6 @@ function EventSwitcher({show,sel}){
     if(selEventId===id)setSelEventId(null);
     setDelId(null);
   };
-  if(subEvents.length===0&&!adding)return(
-    <div style={{...BAR,minHeight:40,padding:"0 20px",gap:6}}>
-      <span style={{fontSize:11,color:"var(--text-mute)",fontStyle:"italic"}}>Single event day</span>
-      <button onClick={()=>setAdding(true)} style={{fontSize:11,padding:"3px 10px",borderRadius:6,border:"1px dashed var(--text-mute)",background:"transparent",color:"var(--text-dim)",cursor:"pointer",fontWeight:600,marginLeft:"auto"}}>+ Add Event</button>
-    </div>
-  );
   const mainCrew=crewCount(sel);
   const mainSub=[show.city||show.venue||"Main",mainCrew?`${mainCrew} crew`:null].filter(Boolean).join(" · ");
   return(
