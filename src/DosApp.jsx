@@ -4076,7 +4076,7 @@ function TravelDayView(){
   const[travelNotes,setTravelNotes]=useState("");
   const curShow=shows?.[sel];
   const curDay=(tourDaysSorted||[]).find(d=>d.date===sel);
-  const title=curShow?.venue||curShow?.city||(curDay?.type==="travel"?"Travel Day":curDay?.type==="split"?(activeSplitParty?.label||"Split Day"):curDay?.type==="off"?"Off Day":"—");
+  const title=currentSplit?(activeSplitParty?.label||"Split Day"):curShow?.venue||curShow?.city||(curDay?.type==="travel"?"Travel Day":curDay?.type==="off"?"Off Day":"—");
   const subTitle=curShow?curShow.city:(curDay?.city||"");
 
   // Build a pax-name matcher for the active split party (if any). Segments are
