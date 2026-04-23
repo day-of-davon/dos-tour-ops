@@ -646,6 +646,22 @@ Confirmation codes (critical — extract all three as distinct fields, each to i
 Never duplicate the same code across fields. If only one alphanumeric code is
 present and it is exactly 6 chars, it is the pnr and confirmNo/ticketNo stay null.
 
+Sequencing fields (optional — fill when inferable from the email):
+- journeyRef     : the shared reference that ties all legs of ONE purchase together.
+                   Use the PNR if present, otherwise the booking/confirmation number.
+                   All legs of a round-trip or multi-city itinerary MUST share the same
+                   journeyRef. If only one leg appears in the email, still set it.
+- connectionOfId : when two legs chain geographically through an intermediate airport
+                   (A→B arr followed same-day by B→C dep), set this on the downstream
+                   leg. Use the tid suffixed with the leg index, e.g. "\${tid}#0" points
+                   at the first leg, "\${tid}#1" at the second. Null when not a connection.
+- returnOfId     : when the booking is a round-trip and this leg is the return half,
+                   set this to the outbound leg's synthetic id ("\${tid}#0"). Null on
+                   the outbound leg itself and on one-way bookings.
+- layoverMinutes : on a connecting (downstream) leg, the minutes between the prior
+                   leg's arr and this leg's dep at the interchange airport. Null when
+                   not a connection.
+
 Attached PDFs: when a PDF e-ticket, itinerary, or receipt is attached, trust
 the PDF over the body text for cost, dates, flight numbers, and the three
 confirmation-code fields above. E-ticket numbers almost always come from the PDF.
@@ -694,6 +710,7 @@ Return this exact JSON:
       "pnr": "CODGXZ", "confirmNo": null, "ticketNo": null,
       "cost": null, "currency": "USD",
       "payMethod": null,
+      "journeyRef": "CODGXZ", "connectionOfId": null, "returnOfId": null, "layoverMinutes": null,
       "tid": "${t.id}"
     }
   ]
@@ -730,6 +747,10 @@ Return this exact JSON:
       "cost": 648.50,
       "currency": "USD",
       "payMethod": "Amex 4567",
+      "journeyRef": "F9OCAU",
+      "connectionOfId": null,
+      "returnOfId": null,
+      "layoverMinutes": null,
       "tid": "<thread_id_from_above>"
     }
   ]
@@ -847,6 +868,7 @@ Return this exact JSON:
       "pnr": "CODGXZ", "confirmNo": null, "ticketNo": null,
       "cost": null, "currency": "USD",
       "payMethod": null,
+      "journeyRef": "CODGXZ", "connectionOfId": null, "returnOfId": null, "layoverMinutes": null,
       "tid": "${t.id}"
     }
   ]
@@ -924,6 +946,7 @@ Return this exact JSON:
       "pax": ["Davon Johnson"],
       "pnr": "F9OCAU", "confirmNo": "KL7X9M", "ticketNo": "006-1234567890",
       "cost": 648.50, "currency": "USD",
+      "journeyRef": "F9OCAU", "connectionOfId": null, "returnOfId": null, "layoverMinutes": null,
       "tid": "${t.id}"
     }
   ]

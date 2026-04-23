@@ -207,6 +207,63 @@ const findItineraryLegs=(f,allFlightsObj)=>{
     .sort((a,b)=>`${a.depDate||""} ${a.dep||""}`.localeCompare(`${b.depDate||""} ${b.dep||""}`));
 };
 
+// ── Journey sequencing helpers ───────────────────────────────────────────
+// Compute gap in minutes between prior leg's arr and next leg's dep.
+const legGapMinutes=(prev,next)=>{
+  if(!prev?.arrDate||!prev?.arr||!next?.depDate||!next?.dep)return null;
+  const a=new Date(`${prev.arrDate}T${prev.arr}:00`).getTime();
+  const d=new Date(`${next.depDate}T${next.dep}:00`).getTime();
+  if(isNaN(a)||isNaN(d))return null;
+  return Math.round((d-a)/60000);
+};
+// Annotate legs with connection warnings. Returns [{leg, layover, warning}].
+// warning ∈ {null, "tight-connection" (<60m same-airport), "missed-connection" (<0),
+//            "long-layover" (>6h at interchange)}
+const validateConnections=(legs)=>{
+  const rows=legs.map(l=>({leg:l,layover:null,warning:null}));
+  for(let i=1;i<rows.length;i++){
+    const prev=rows[i-1].leg,cur=rows[i].leg;
+    if(prev.to&&cur.from&&prev.to.toUpperCase()!==cur.from.toUpperCase())continue;
+    const gap=cur.layoverMinutes!=null?cur.layoverMinutes:legGapMinutes(prev,cur);
+    if(gap==null)continue;
+    rows[i].layover=gap;
+    if(gap<0)rows[i].warning="missed-connection";
+    else if(gap<60)rows[i].warning="tight-connection";
+    else if(gap>360)rows[i].warning="long-layover";
+  }
+  return rows;
+};
+// Find the return-half leg for a round-trip. Prefers explicit returnOfId, then
+// journeyRef grouping, then reverse-route + same-pax heuristic.
+const findReturnLeg=(f,allFlightsObj)=>{
+  if(!f)return null;
+  const all=Object.values(allFlightsObj||{});
+  if(f.returnOfId){
+    const back=all.find(x=>x.id===f.returnOfId||`${x.tid}#0`===f.returnOfId);
+    if(back)return back;
+  }
+  const byRet=all.find(x=>x.returnOfId&&(x.returnOfId===f.id||x.returnOfId===`${f.tid}#0`));
+  if(byRet)return byRet;
+  if(f.journeyRef){
+    const peers=all.filter(x=>x.id!==f.id&&x.journeyRef===f.journeyRef);
+    const reverse=peers.find(x=>
+      (x.from||"").toUpperCase()===(f.to||"").toUpperCase()&&
+      (x.to||"").toUpperCase()===(f.from||"").toUpperCase()&&
+      (x.depDate||"")>(f.depDate||"")
+    );
+    if(reverse)return reverse;
+  }
+  const paxKey=s=>(s.pax||[]).map(p=>String(p).toLowerCase()).sort().join("|");
+  const fp=paxKey(f);
+  if(!fp)return null;
+  return all.find(x=>
+    x.id!==f.id&&paxKey(x)===fp&&
+    (x.from||"").toUpperCase()===(f.to||"").toUpperCase()&&
+    (x.to||"").toUpperCase()===(f.from||"").toUpperCase()&&
+    (x.depDate||"")>(f.depDate||"")
+  )||null;
+};
+
 // ── Segment model (unified travel store) ───────────────────────────────────
 // The `flights` store widens into a generic segments store: each record has a `type`
 // ∈ {air, ground, bus, rail, sea, hotel}. Legacy records (no type) are implicitly "air".
@@ -3889,6 +3946,22 @@ function FlightsListView(){
                   const inShow=matchShowByAirport(lastLeg.to,lastLeg.toCity,lastLeg.arrDate||lastLeg.depDate,sorted||[],"inbound");
                   const outShow=matchShowByAirport(firstLeg.from,firstLeg.fromCity,firstLeg.depDate,sorted||[],"outbound");
                   const matchBadge=(show,label,bg,c)=>show?<button onClick={()=>goToSchedule(show.date)} title={`${label} match: ${show.venue}`} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:`1px solid ${c}40`,background:bg,color:c,cursor:"pointer",fontWeight:700,display:"inline-flex",alignItems:"center",gap:4}}><span style={{fontSize:8,letterSpacing:"0.06em"}}>{label}</span>{show.city}<span style={{fontFamily:MN,fontSize:8,opacity:.7}}>{fD(show.date)}</span></button>:null;
+                  // Connection warning — if this leg is a downstream leg in its itinerary, compute gap to prior leg.
+                  const legIdx=legs.findIndex(l=>l.id===f.id);
+                  const connRows=validateConnections(legs);
+                  const connRow=legIdx>=0?connRows[legIdx]:null;
+                  const connPill=connRow?.warning?(()=>{
+                    const m=connRow.layover;
+                    const label=m==null?connRow.warning:m<0?`✗ missed by ${Math.abs(m)}m`:m<60?`⚠ ${m}m layover`:`${Math.round(m/60*10)/10}h layover`;
+                    const col=connRow.warning==="missed-connection"?"var(--danger-fg)":connRow.warning==="tight-connection"?"var(--warn-fg)":"var(--text-dim)";
+                    const bg=connRow.warning==="missed-connection"?"var(--danger-bg)":connRow.warning==="tight-connection"?"var(--warn-bg)":"var(--card-soft,transparent)";
+                    return <span title={`Connection at ${(f.from||"").toUpperCase()}`} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:`1px solid ${col}40`,background:bg,color:col,fontWeight:700}}>{label}</span>;
+                  })():null;
+                  // Return-trip chip.
+                  const rtn=findReturnLeg(f,flights);
+                  const rtnChip=rtn?(
+                    <button onClick={()=>goToSchedule(rtn.depDate)} title={`Return leg ${(rtn.from||"").toUpperCase()}→${(rtn.to||"").toUpperCase()} ${rtn.depDate}`} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:"var(--text-dim)",cursor:"pointer",fontWeight:700}}>↔ return {fD(rtn.depDate)}</button>
+                  ):null;
                   return(
                     <FlightCard key={f.id} f={f}
                       crew={crew}
@@ -3899,6 +3972,8 @@ function FlightsListView(){
                       actions={<>
                         {matchBadge(outShow,"← OUT","var(--warn-bg)","var(--warn-fg)")}
                         {matchBadge(inShow,"IN →","var(--success-bg)","var(--success-fg)")}
+                        {connPill}
+                        {rtnChip}
                         {!inShow&&!outShow&&<span style={{fontSize:9,color:"var(--text-mute)",fontStyle:"italic"}}>No show match — add city to airport table to match.</span>}
                         <button onClick={()=>goToSchedule(f.depDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--info-bg)",background:"var(--info-bg)",color:"var(--link)",cursor:"pointer",fontWeight:700}}>→ Schedule {f.depDate?.slice(5)}</button>
                         {f.arrDate&&f.arrDate!==f.depDate&&<button onClick={()=>goToSchedule(f.arrDate)} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--info-bg)",background:"var(--info-bg)",color:"var(--link)",cursor:"pointer",fontWeight:700}}>→ Arr {f.arrDate?.slice(5)}</button>}
