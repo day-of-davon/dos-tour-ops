@@ -1046,6 +1046,7 @@ export default function App(){
         const dateVal=dir==="inbound"?(f.arrDate||dateKey):f.depDate;
         for(const crewId of f.suggestedCrewIds){
           const cur=(next[dateKey]||{})[crewId]||{};
+          if(cur.attending===false)continue;
           const existing=(cur[dir]||[]);
           if(existing.some(l=>l.flightId===f.id))continue;
           const modeKey=dir==="inbound"?"inboundMode":"outboundMode";
@@ -1065,7 +1066,8 @@ export default function App(){
       if(!session){setRefreshMsg("No active session");return;}
       const googleToken=session.provider_token;
       if(!googleToken){setRefreshMsg("Gmail token missing — sign out and back in");return;}
-      const resp=await fetch("/api/intel",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({show,googleToken,forceRefresh:force,userEmail:session.user?.email})});
+      const ac1=new AbortController();const t1=setTimeout(()=>ac1.abort(),30000);
+      let resp;try{resp=await fetch("/api/intel",{method:"POST",signal:ac1.signal,headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({show,googleToken,forceRefresh:force,userEmail:session.user?.email})});}finally{clearTimeout(t1);}
       if(!resp.ok){const err=await resp.json().catch(()=>({}));setRefreshMsg(err.error==="gmail_token_expired"?"Gmail token expired — re-sign in":`Error: ${resp.status}`);return;}
       const data=await resp.json();const ni=data.intel;
       if(!ni||!ni.threads){
@@ -1097,7 +1099,8 @@ export default function App(){
     const sid=showIdFor(show);
     const{data:{session}}=await supabase.auth.getSession();
     if(!session)return;
-    await fetch("/api/intel",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({action:"toggleShare",show,isShared:share})});
+    const ac2=new AbortController();const t2=setTimeout(()=>ac2.abort(),30000);
+    try{await fetch("/api/intel",{method:"POST",signal:ac2.signal,headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({action:"toggleShare",show,isShared:share})});}finally{clearTimeout(t2);}
     setIntel(p=>({...p,[sid]:{...(p[sid]||{}),isShared:share}}));
   },[]);
 
@@ -1107,7 +1110,8 @@ export default function App(){
       if(!session?.provider_token)return;
       const showsArr=Object.values(shows||{}).filter(s=>s.clientId===aC);
       const authHeaders={"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`};
-      const resp=await fetch("/api/intel",{method:"POST",headers:authHeaders,body:JSON.stringify({action:"bulkFetch",shows:showsArr,googleToken:session.provider_token,forceRefresh:force,userEmail:session.user?.email})});
+      const ac3=new AbortController();const t3=setTimeout(()=>ac3.abort(),30000);
+      let resp;try{resp=await fetch("/api/intel",{method:"POST",signal:ac3.signal,headers:authHeaders,body:JSON.stringify({action:"bulkFetch",shows:showsArr,googleToken:session.provider_token,forceRefresh:force,userEmail:session.user?.email})});}finally{clearTimeout(t3);}
       if(!resp.ok)return;
       const data=await resp.json();
       setLabelIntel(data);
@@ -1133,7 +1137,7 @@ export default function App(){
   const save=useCallback(()=>{
     if(!loaded)return;if(st.current)clearTimeout(st.current);
     st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging),sS(SK.GUESTLISTS,guestlists),sS(SK.GL_TEMPLATES,glTemplates),sS(SK.IMMIGRATION,immigration)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
-  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt]);
+  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,tabOrder,crew,showCrew,production,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt]);
   useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd]);
   useEffect(()=>{const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(v=>!v);}if(e.key==="Escape")setCmd(false);};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
   const labelScanFired=useRef(false);
@@ -1208,8 +1212,10 @@ export default function App(){
     (sorted||[]).forEach(s=>{
       m[s.date]={date:s.date,type:s.type||"show",show:s,bus:BUS_DATA_MAP[s.date]||null,split:SPLIT_DAYS[s.date]||null,synthetic:false,city:s.city,venue:s.venue,clientId:s.clientId};
     });
-    const end=new Date('2026-05-31T12:00:00');
-    for(let d=new Date('2026-04-16T12:00:00');d<=end;d.setDate(d.getDate()+1)){
+    if(!sorted.length)return m;
+    const start=new Date(sorted[0].date+'T12:00:00');
+    const end=new Date(sorted[sorted.length-1].date+'T12:00:00');
+    for(let d=new Date(start.getTime());d<=end;d.setDate(d.getDate()+1)){
       const iso=d.toISOString().slice(0,10);
       const bus=BUS_DATA_MAP[iso]||null;
       const split=SPLIT_DAYS[iso]||null;
@@ -2415,6 +2421,7 @@ function Dash(){
           <span style={{fontSize:9,fontWeight:800,color:"var(--danger-fg)",fontFamily:MN,flexShrink:0,marginTop:1}}>{i.category}</span>
           <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,fontWeight:600,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{i.from}{arShowLabel(i)?` · ${arShowLabel(i)}`:""}</div></div>
           <span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:bucketB(i.bucket),color:bucketC(i.bucket),fontWeight:700,flexShrink:0}}>{i.bucket}</span>
+          <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--danger-fg)",textDecoration:"none",flexShrink:0,opacity:0.8,paddingTop:1}}>↗</a>
         </div>)}
       </div>}
       <div style={{fontSize:9,fontWeight:800,color:client.color,letterSpacing:"0.1em",marginBottom:5}}>{client.name.toUpperCase()} — UPCOMING</div>
@@ -2436,7 +2443,10 @@ function Dash(){
             {allTodos.map(t=><div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:priB(t.priority),color:priC(t.priority),fontWeight:700,flexShrink:0,marginTop:1}}>{t.priority||"LOW"}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",lineHeight:1.4}}>{t.text}</div>{(t.owner||t.deadline)&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{t.owner}{t.deadline?` · due ${t.deadline}`:""}</div>}</div>
-              <div style={{fontSize:9,color:"var(--link)",fontFamily:MN,flexShrink:0,cursor:"pointer",textDecoration:"underline"}} onClick={()=>{setSel(t.show.date);setTab("advance");}}>{t.show.city} {fD(t.show.date)}</div>
+              <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                {t.threadTid&&<a href={gmailUrl(t.threadTid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none"}}>email ↗</a>}
+                <div style={{fontSize:9,color:"var(--link)",fontFamily:MN,cursor:"pointer",textDecoration:"underline"}} onClick={()=>{setSel(t.show.date);setTab("advance");}}>{t.show.city} {fD(t.show.date)}</div>
+              </div>
             </div>)}
           </div>
         </IntelSection>}
@@ -2445,7 +2455,10 @@ function Dash(){
             {allFollowUps.map((f,i)=><div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:priB(f.priority),color:priC(f.priority),fontWeight:700,flexShrink:0,marginTop:1}}>{f.priority||"LOW"}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",lineHeight:1.4}}>{f.action}</div>{(f.owner||f.deadline)&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{f.owner}{f.deadline?` · due ${f.deadline}`:""}</div>}</div>
-              <div style={{fontSize:9,color:"var(--link)",fontFamily:MN,flexShrink:0,cursor:"pointer",textDecoration:"underline"}} onClick={()=>{setSel(f.show.date);setTab("advance");}}>{f.show.city} {fD(f.show.date)}</div>
+              <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+                {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none"}}>email ↗</a>}
+                <div style={{fontSize:9,color:"var(--link)",fontFamily:MN,cursor:"pointer",textDecoration:"underline"}} onClick={()=>{setSel(f.show.date);setTab("advance");}}>{f.show.city} {fD(f.show.date)}</div>
+              </div>
             </div>)}
           </div>
         </IntelSection>}
@@ -2455,6 +2468,7 @@ function Dash(){
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:bucketB(i.bucket),color:bucketC(i.bucket),fontWeight:700,flexShrink:0,marginTop:1}}>{i.bucket}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{i.from}{arShowLabel(i)?` · ${arShowLabel(i)}`:""}</div></div>
               <span style={{fontSize:8,color:"var(--text-mute)",fontFamily:MN,flexShrink:0,paddingTop:2}}>{i.category}</span>
+              <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",flexShrink:0,paddingTop:1}}>↗</a>
             </div>)}
           </div>
         </IntelSection>}
@@ -2464,6 +2478,7 @@ function Dash(){
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,flexShrink:0,marginTop:1}}>{i.category}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{i.from}</div></div>
               {arShowLabel(i)&&<div style={{fontSize:9,color:"var(--link)",fontFamily:MN,flexShrink:0,cursor:"pointer",textDecoration:"underline"}} onClick={()=>{const s=showMap[i.showId];if(s){setSel(s.date);setTab("intel");}}}>{arShowLabel(i)}</div>}
+              <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:"var(--link)",textDecoration:"none",flexShrink:0,paddingTop:1}}>↗</a>
             </div>)}
           </div>
         </IntelSection>}
