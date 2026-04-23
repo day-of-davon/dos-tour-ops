@@ -2444,26 +2444,26 @@ function Dash(){
       <div style={{display:"flex",flexDirection:"column",gap:8}}>
         {allTodos.length>0&&<IntelSection title="TO-DOs (PRIVATE)" count={allTodos.length} defaultOpen={true}>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
-            {allTodos.map(t=><div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
+            {allTodos.map(t=>{const sid=showIdFor(t.show);const tid=t.threadTid||(intel[sid]?.threads||[]).find(x=>x.tid)?.tid||null;return(<div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:priB(t.priority),color:priC(t.priority),fontWeight:700,flexShrink:0,marginTop:1}}>{t.priority||"LOW"}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",lineHeight:1.4}}>{t.text}</div>{(t.owner||t.deadline)&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{t.owner}{t.deadline?` · due ${t.deadline}`:""}</div>}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                {t.threadTid&&<a href={gmailUrl(t.threadTid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email →</a>}
+                {tid&&<a href={gmailUrl(tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email →</a>}
                 <span style={{fontSize:9,color:"var(--text-dim)",fontFamily:MN}}>{t.show.city} {fD(t.show.date)}</span>
               </div>
-            </div>)}
+            </div>);})}
           </div>
         </IntelSection>}
         {allFollowUps.length>0&&<IntelSection title="FOLLOW-UPS" count={allFollowUps.length} defaultOpen={allTodos.length===0}>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
-            {allFollowUps.map((f,i)=><div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
+            {allFollowUps.map((f,i)=>{const sid=showIdFor(f.show);const tid=f.tid||(intel[sid]?.threads||[]).find(x=>x.tid)?.tid||null;return(<div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:priB(f.priority),color:priC(f.priority),fontWeight:700,flexShrink:0,marginTop:1}}>{f.priority||"LOW"}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:"var(--text)",lineHeight:1.4}}>{f.action}</div>{(f.owner||f.deadline)&&<div style={{fontSize:9,color:"var(--text-dim)"}}>{f.owner}{f.deadline?` · due ${f.deadline}`:""}</div>}</div>
               <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-                {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email →</a>}
+                {tid&&<a href={gmailUrl(tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:"var(--link)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email →</a>}
                 <span style={{fontSize:9,color:"var(--text-dim)",fontFamily:MN}}>{f.show.city} {fD(f.show.date)}</span>
               </div>
-            </div>)}
+            </div>);})}
           </div>
         </IntelSection>}
         {arItems.length>0&&<IntelSection title="ACTION REQUIRED" count={arItems.length} defaultOpen={false}>
