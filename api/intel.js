@@ -4,36 +4,10 @@ const { gmailSearch, gmailGetThread, decodeB64, extractBody, stripMarketingFoote
 const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL, HEAVY_MODEL } = require("./lib/anthropic");
 const { startScanRun, finishScanRun, bumpStopReason } = require("./lib/scanMemory");
 const { withTimeout } = require("./lib/utils");
+const { TOUR_CONTEXT, buildTourContextBlock } = require("./lib/tourContext");
+const { buildSynonymBlock, buildStopwordRule } = require("./lib/parsePrimitives");
 
 const CACHE_TTL_MINUTES = 60;
-
-// ── Tour context (injected into prompts for accurate owner routing + classification) ──
-const TOUR_CONTEXT = {
-  artist: "bbno$",
-  tour: "Internet Explorer Tour",
-  tm: "Davon Johnson (d.johnson@dayofshow.net)",
-  crew: [
-    "Davon Johnson — TM/TD",
-    "Mike Sheck — PM Advance (mikesheck@l7touring.com)",
-    "Dan Nudelman — PM On-site (dan@noodle.management)",
-    "Sam Alavi — Artist Relations (sam@rightclick.gg)",
-    "Matt Adler — Wasserman agent (madler@the.team)",
-    "Ruairi Matthews — FOH Audio (ruairim@magentasound.ca)",
-    "Alex Gumuchian — Headliner (bbno$)",
-    "Grace Offerdahl — Merch",
-    "Megan Putnam — Hospo/GL",
-    "Olivia Mims — Transport Coordinator",
-    "Tony Yacowar — CPA (tyacowar@dmcl.ca)",
-  ],
-  vendors: [
-    "Pieter Smit — EU nightliner bus (nightliner@pietersmit.com, contact: Toby Jansen)",
-    "Fly By Nite — EU truck/freight (job 56714, contact: Fiona Nolan)",
-    "Neg Earth — LX/VX production (contact: Alex Griffiths)",
-    "TSL Lighting — LX quote J38723 (contact: Gemma Jaques)",
-    "BNP — local production vendor (Red Rocks)",
-  ],
-  ownerMap: "DAVON=Davon Johnson, SHECK=Mike Sheck (advance/promoter comms), DAN=Dan Nudelman (on-site/production), MANAGEMENT=Sam Alavi/Matt Adler/Wasserman, VENDOR=external vendors, CREW=tour crew members, ACCOUNTANT=Tony Yacowar",
-};
 
 // Extended window to 90d — EU tour bookings made Jan/Feb are within this range.
 const EXTRA_QUERIES = [
@@ -62,14 +36,6 @@ const EXTRA_QUERIES = [
   `subject:(immigration OR "work permit" OR carnet) newer_than:90d`,
   `(DUB OR MAN OR GLA OR LHR OR ZRH OR AMS OR CDG OR PRG OR BER OR WAW) (confirmation OR receipt OR itinerary) newer_than:90d`,
 ];
-
-function buildTourContextBlock() {
-  return `Tour: ${TOUR_CONTEXT.tour} by ${TOUR_CONTEXT.artist}.
-TM: ${TOUR_CONTEXT.tm}.
-Crew: ${TOUR_CONTEXT.crew.join("; ")}.
-Vendors: ${TOUR_CONTEXT.vendors.join("; ")}.
-Owner routing: ${TOUR_CONTEXT.ownerMap}.`;
-}
 
 function extractHeaders(thread) {
   // Use first message for Subject/From — replies and forwards skew metadata.
@@ -587,6 +553,10 @@ module.exports = async function handler(req, res) {
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.
 
 ${buildTourContextBlock()}
+
+${buildSynonymBlock()}
+
+${buildStopwordRule()}
 
 Intent categories:
 - ADVANCE: advance checklist items, rider, stage plot, catering, production specs

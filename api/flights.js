@@ -13,6 +13,12 @@ const {
   collectThreadAttachments, dedupFolios,
   fetchAttachmentB64, attachmentFingerprint,
 } = require("./lib/attachments");
+const { TOUR_CONTEXT, buildTourContextBlock, crewDisplayList } = require("./lib/tourContext");
+const {
+  buildSynonymBlock, buildConfidenceRubric, buildStopwordRule,
+  validateCommon, normalizePerson, shortenAirport, hasStopword,
+  isPnr, isConfirmNo, isTicketNo, isInTourDateRange,
+} = require("./lib/parsePrimitives");
 
 // PDF attachment caps. Keep in sync with lodging-scan.js — both scanners share the
 // per-scan budget so one scan type can't starve the other on large mailboxes.
@@ -312,6 +318,160 @@ function isValidFlight(f) {
   return Boolean(hasPnr || hasCore);
 }
 
+// Post-dedup validation pass. Emits validationFlags[] per flight. Additive —
+// does not drop records (isValidFlight already does that). Also applies the
+// shortenAirport normalizer and common guards (UI-chrome / date-range / code-
+// format) from parsePrimitives. Cross-flight checks (short_layover,
+// pax_overlap, orphan_return, arr_before_dep) run as a second pass.
+function validateFlights(flights, { tourStart, tourEnd } = {}) {
+  if (!Array.isArray(flights)) return flights;
+
+  // Pass 1: per-flight common guards + airport IATA extraction
+  const out = flights.map(f => {
+    const fixed = { ...f };
+    if (fixed.from) fixed.from = shortenAirport(fixed.from);
+    if (fixed.to)   fixed.to   = shortenAirport(fixed.to);
+    const { flags, fixed: cleaned } = validateCommon(fixed, {
+      tourStart, tourEnd,
+      dateKeys: ["depDate", "arrDate"],
+      codeKeys: { pnr: "pnr", confirmNo: "confirmNo", ticketNo: "ticketNo" },
+      stopwordKeys: ["from", "to", "fromCity", "toCity", "pax"],
+    });
+    return {
+      ...cleaned,
+      validationFlags: Array.isArray(f.validationFlags) ? [...f.validationFlags, ...flags] : [...flags],
+    };
+  });
+
+  // Pass 2: cross-flight sanity
+  // arr_before_dep — fatal-ish timing bug from an OCR or timezone mishap
+  for (const f of out) {
+    if (f.depDate && f.dep && f.arrDate && f.arr) {
+      const dep = new Date(`${f.depDate}T${f.dep}:00`);
+      const arr = new Date(`${f.arrDate}T${f.arr}:00`);
+      if (!isNaN(dep.getTime()) && !isNaN(arr.getTime()) && arr < dep) {
+        f.validationFlags.push("arr_before_dep");
+      }
+    }
+  }
+
+  // short_layover — same-journey connection with <45 min at the interchange airport
+  const byJourney = {};
+  for (const f of out) {
+    const k = f.journeyRef || f.pnr;
+    if (!k) continue;
+    (byJourney[k] ||= []).push(f);
+  }
+  for (const legs of Object.values(byJourney)) {
+    if (legs.length < 2) continue;
+    legs.sort((a, b) => {
+      const da = `${a.depDate || ""}T${a.dep || "00:00"}`;
+      const db = `${b.depDate || ""}T${b.dep || "00:00"}`;
+      return da.localeCompare(db);
+    });
+    for (let i = 1; i < legs.length; i++) {
+      const prev = legs[i - 1];
+      const curr = legs[i];
+      if (!prev.arrDate || !prev.arr || !curr.depDate || !curr.dep) continue;
+      if (prev.to !== curr.from) continue;
+      const prevArr = new Date(`${prev.arrDate}T${prev.arr}:00`);
+      const currDep = new Date(`${curr.depDate}T${curr.dep}:00`);
+      const minutes = (currDep - prevArr) / 60000;
+      if (minutes >= 0 && minutes < 45) {
+        curr.validationFlags.push("short_layover");
+      }
+    }
+  }
+
+  // pax_overlap — same pax name on two flights whose [dep, arr] windows overlap
+  const windows = out.map(f => {
+    const dep = f.depDate && f.dep ? new Date(`${f.depDate}T${f.dep}:00`) : null;
+    const arr = f.arrDate && f.arr ? new Date(`${f.arrDate}T${f.arr}:00`) : null;
+    return { f, dep, arr, pax: new Set((f.pax || []).map(p => String(p).toLowerCase().trim())) };
+  });
+  for (let i = 0; i < windows.length; i++) {
+    for (let j = i + 1; j < windows.length; j++) {
+      const a = windows[i], b = windows[j];
+      if (!a.dep || !a.arr || !b.dep || !b.arr) continue;
+      const overlap = a.dep < b.arr && b.dep < a.arr;
+      if (!overlap) continue;
+      const shared = [...a.pax].some(p => p && b.pax.has(p));
+      if (shared) {
+        a.f.validationFlags.push("pax_overlap");
+        b.f.validationFlags.push("pax_overlap");
+      }
+    }
+  }
+
+  // orphan_return — returnOfId points to a tid#idx that isn't in the result set
+  const idSet = new Set();
+  out.forEach((f, i) => idSet.add(`${f.tid}#${i}`));
+  for (const f of out) {
+    if (f.returnOfId && !idSet.has(f.returnOfId)) {
+      f.validationFlags.push("orphan_return");
+    }
+  }
+
+  // Dedup flags array on each flight
+  for (const f of out) {
+    f.validationFlags = [...new Set(f.validationFlags)];
+  }
+  return out;
+}
+
+// ── Cancellation / rebooking supersede ───────────────────────────────────────
+// Detects when a newer email cancels or replaces an earlier booking with the
+// same PNR/confirmNo. Mutates in place; returns the same array.
+// Guard: only supersedes when flightNo or dep time/date actually differ —
+// avoids false-positives on seat-change and status update emails.
+function supersedeFlights(flights, threads) {
+  const CANCEL_RE = /cancel|changed|updated|rebooked|rebooking/i;
+  const tidMeta = new Map((threads || []).map(t => [
+    t.id,
+    { ms: t.lastMsgMs || 0, subject: (t.subject || "").toLowerCase() },
+  ]));
+
+  const groups = new Map();
+  for (const f of flights) {
+    const key = f.pnr || f.confirmNo
+      || (f.flightNo && f.from && f.to ? `${f.flightNo}|${f.from}|${f.to}` : null);
+    if (!key) continue;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(f);
+  }
+
+  for (const group of groups.values()) {
+    if (group.length < 2) continue;
+    group.sort((a, b) => (tidMeta.get(a.tid)?.ms || 0) - (tidMeta.get(b.tid)?.ms || 0));
+
+    for (let i = group.length - 1; i >= 1; i--) {
+      const newer = group[i];
+      const meta = tidMeta.get(newer.tid) || {};
+      const isCancelOrChange = CANCEL_RE.test(meta.subject || "")
+        || newer.status === "cancelled"
+        || newer.status === "changed";
+      if (!isCancelOrChange) continue;
+
+      for (let j = 0; j < i; j++) {
+        const older = group[j];
+        if (older.supersededBy) continue;
+        const sameRoute = older.from === newer.from && older.to === newer.to;
+        const detailsDiffer = older.flightNo !== newer.flightNo
+          || older.dep !== newer.dep
+          || older.depDate !== newer.depDate;
+        if (sameRoute && detailsDiffer) {
+          older.supersededBy = newer.tid;
+          if (!newer.supersedes) newer.supersedes = older.tid;
+          newer.status = (meta.subject || "").includes("cancel") || newer.status === "cancelled"
+            ? "cancelled" : "changed";
+        }
+      }
+    }
+  }
+
+  return flights;
+}
+
 // ── Query list ────────────────────────────────────────────────────────────────
 // High priority: subject sweeps + destination queries. Run first; fill the cap
 // before the low sweep. Catches forwarded receipts regardless of sender domain.
@@ -580,19 +740,23 @@ module.exports = async function handler(req, res) {
   // Known crew for this tour — used to disambiguate pax names extracted in airline format.
   // Airlines print "JOHNSON/DAVON" or "NUDELMAN/DANIEL". Knowing the roster prevents
   // Claude from guessing wrong capitalization or splitting compound surnames.
-  const CREW_ROSTER = [
-    "Davon Johnson (TM/TD)", "Mike Sheck (PM)", "Dan Nudelman (PM)",
-    "Alex Gumuchian (artist, bbno$)", "Julien Bruce (Jungle Bobby)",
-    "Mat Senechal (bass/keys)", "Taylor Madrigal (DJ Tip)", "Andrew Campbell (Bishu DJ)",
-    "Ruairi Matthews (FOH)", "Nick Foerster (monitors)", "Saad A. (audio/BNE)",
-    "Gabe Greenwood (LD)", "Cody Leggett (lasers)", "Michael Heid (visual/set)",
-    "Grace Offerdahl (merch)", "Nathan McCoy (merch dir)", "Megan Putnam (hospo/GL)",
-    "O'Len Davis (content)", "Guillaume Bessette (bus driver)",
-    "Olivia Mims (transport coordinator)",
-  ];
+  // Sourced from api/lib/tourContext.js so all scanners share one roster.
+  const CREW_ROSTER = crewDisplayList();
 
   const sysPrompt = `You are a flight itinerary parser for concert touring operations. Extract structured flight segment data from email bodies.
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.
+
+═══ TOUR CONTEXT ═══
+${buildTourContextBlock()}
+
+${buildStopwordRule()}
+
+${buildSynonymBlock()}
+
+${buildConfidenceRubric()}
+
+═══ AIRLINE-AGNOSTIC ═══
+Parse ANY carrier including unfamiliar ones. Do not skip a leg because the format is unusual. If fields are ambiguous, fill what's clear, null the rest, and lower confidence.
 
 MULTI-LEG IS THE DEFAULT, NOT THE EXCEPTION:
 - Most booking confirmations contain 2+ legs: round-trips (outbound + return), connections (e.g. BOS→JFK→LHR = 2 legs), or multi-city. You MUST enumerate EVERY leg as a separate object in flights[].
@@ -661,6 +825,29 @@ Attached PDFs: when a PDF e-ticket, itinerary, or receipt is attached, trust
 the PDF over the body text for cost, dates, flight numbers, and the three
 confirmation-code fields above. E-ticket numbers almost always come from the PDF.
 
+═══ FARE / SEAT / DURATION ═══
+- fareClass ∈ {"economy","premium_economy","business","first"} | null.
+  "Main Cabin"/"Economy"/"Basic Economy"/"Saver" → economy.
+  "Premium Economy"/"Premium Select" → premium_economy.
+  "Business"/"Club World"/"Polaris"/"BusinessFirst" → business.
+  "First"/"La Première"/"Suites" → first.
+- cabin: single-letter booking class (Y, W, J, F, I, D, C, etc.) if shown, else null.
+- seat: "14A" format if pre-assigned in this email, else null.
+- durationMinutes: integer total flight time if shown ("6h 45m" → 405), else null.
+- operator: the carrier printed in "operated by" or codeshare line, else null.
+- status ∈ {"confirmed","cancelled","changed","pending"}:
+    "cancelled" if subject/body contains: Cancelled, Canceled, Annullé, Annulliert, Cancelación.
+    "changed" if: Schedule Change, Itinerary Update, Rebooked, Flight Changed.
+    "pending" if: Hold, On Request, Waitlist, Pending Payment.
+    Otherwise "confirmed".
+
+═══ OUTPUT REQUIREMENTS ═══
+Every flight object MUST include these fields (null/empty when absent):
+- confidence: "high"|"med"|"low"
+- parseNotes: string|null (one sentence when med/low, else null)
+- validationFlags: [] (leave empty; the server fills this post-parse)
+- fareClass, cabin, seat, durationMinutes, operator, status
+
 Skip hotel, train, rental car confirmations — flights and private charters only.`;
 
   // Partition fresh Claude-bound threads: withPdf go one-at-a-time with
@@ -705,7 +892,10 @@ Return this exact JSON:
       "pnr": "CODGXZ", "confirmNo": null, "ticketNo": null,
       "cost": null, "currency": "USD",
       "payMethod": null,
+      "fareClass": "economy", "cabin": "Y", "seat": null, "durationMinutes": 395,
+      "operator": null, "status": "confirmed",
       "journeyRef": "CODGXZ", "connectionOfId": null, "returnOfId": null, "layoverMinutes": null,
+      "confidence": "high", "parseNotes": null, "validationFlags": [],
       "tid": "${t.id}"
     }
   ]
@@ -742,10 +932,19 @@ Return this exact JSON:
       "cost": 648.50,
       "currency": "USD",
       "payMethod": "Amex 4567",
+      "fareClass": "economy",
+      "cabin": "Y",
+      "seat": null,
+      "durationMinutes": 395,
+      "operator": null,
+      "status": "confirmed",
       "journeyRef": "F9OCAU",
       "connectionOfId": null,
       "returnOfId": null,
       "layoverMinutes": null,
+      "confidence": "high",
+      "parseNotes": null,
+      "validationFlags": [],
       "tid": "<thread_id_from_above>"
     }
   ]
@@ -865,7 +1064,10 @@ Return this exact JSON:
       "pnr": "CODGXZ", "confirmNo": null, "ticketNo": null,
       "cost": null, "currency": "USD",
       "payMethod": null,
+      "fareClass": "economy", "cabin": "Y", "seat": null, "durationMinutes": 395,
+      "operator": null, "status": "confirmed",
       "journeyRef": "CODGXZ", "connectionOfId": null, "returnOfId": null, "layoverMinutes": null,
+      "confidence": "high", "parseNotes": null, "validationFlags": [],
       "tid": "${t.id}"
     }
   ]
@@ -960,7 +1162,10 @@ Return this exact JSON:
       "pax": ["Davon Johnson"],
       "pnr": "F9OCAU", "confirmNo": "KL7X9M", "ticketNo": "006-1234567890",
       "cost": 648.50, "currency": "USD",
+      "fareClass": "economy", "cabin": "Y", "seat": null, "durationMinutes": 395,
+      "operator": null, "status": "confirmed",
       "journeyRef": "F9OCAU", "connectionOfId": null, "returnOfId": null, "layoverMinutes": null,
+      "confidence": "high", "parseNotes": null, "validationFlags": [],
       "tid": "${t.id}"
     }
   ]
@@ -1021,14 +1226,33 @@ Return this exact JSON:
   const validFlights = merged.filter(isValidFlight);
   const droppedCount = merged.length - validFlights.length;
 
-  console.log("[flights] threads:", threads.length, "| jsonld:", jsonLdFlights.length, "| claude:", claudeFlights.length, "| merged:", merged.length, "| dropped:", droppedCount, "| kept:", validFlights.length, "| after:", after);
+  // Post-parse validation pass: emits validationFlags[] per flight (additive,
+  // non-fatal) and normalizes airport strings. Runs on the kept set so flags
+  // reflect the final payload the UI sees.
+  const validatedFlights = validateFlights(validFlights, { tourStart, tourEnd });
 
-  const flights = validFlights.map(f => {
+  // Crew normalization: map raw pax strings to stable {crewId, displayName}
+  // against the shared TOUR_CONTEXT roster. Preserves raw pax[] intact.
+  const roster = TOUR_CONTEXT.crew;
+  for (const f of validatedFlights) {
+    const rawPax = Array.isArray(f.pax) ? f.pax : [];
+    f.paxNormalized = rawPax.map(raw => ({ raw, ...normalizePerson(raw, roster) }));
+  }
+
+  // Cancellation / rebooking supersede pass. Runs after crew normalization so
+  // paxNormalized is already populated. Mutates validatedFlights in place.
+  supersedeFlights(validatedFlights, threads);
+  const supersededCount = validatedFlights.filter(f => f.supersededBy).length;
+
+  const flaggedCount = validatedFlights.filter(f => (f.validationFlags || []).length).length;
+  console.log("[flights] threads:", threads.length, "| jsonld:", jsonLdFlights.length, "| claude:", claudeFlights.length, "| merged:", merged.length, "| dropped:", droppedCount, "| kept:", validFlights.length, "| flagged:", flaggedCount, "| superseded:", supersededCount, "| after:", after);
+
+  const flights = validatedFlights.map(f => {
     const showMatch = matchFlightToShow(f, shows);
     return {
       ...f,
       id: `fl_${(f.tid || "").slice(-6)}_${String(f.flightNo || "").replace(/\s/g, "") || Math.random().toString(36).slice(2, 6)}`,
-      status: "pending",
+      status: (f.status === "cancelled" || f.status === "changed") ? f.status : "pending",
       fresh48h: freshIds.has(f.tid) ? true : undefined,
       suggestedShowDate: showMatch?.showDate || null,
       suggestedRole: showMatch?.role || null,

@@ -13,6 +13,8 @@ const {
   collectThreadAttachments, dedupFolios,
   fetchAttachmentB64, attachmentFingerprint,
 } = require("./lib/attachments");
+const { buildTourContextBlock } = require("./lib/tourContext");
+const { buildSynonymBlock, buildConfidenceRubric, buildStopwordRule, validateCommon } = require("./lib/parsePrimitives");
 
 // PDF attachment caps.
 const PDF_MAX_PER_THREAD = 2;
@@ -187,6 +189,15 @@ module.exports = async function handler(req, res) {
 
   const sysPrompt = `You are a hotel/accommodation confirmation parser for concert touring operations. Extract structured lodging data from email bodies AND attached folio/receipt PDFs when present.
 IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.
+
+${buildTourContextBlock()}
+
+${buildSynonymBlock()}
+
+${buildConfidenceRubric()}
+
+${buildStopwordRule()}
+
 Rules:
 - Each object in lodgings[] represents one distinct hotel/property stay (not per-room)
 - Dates: YYYY-MM-DD format
@@ -194,7 +205,8 @@ Rules:
 - cost: total cost as number only, no currency symbol. null if not found. When a folio PDF is attached, prefer the PDF's final total (post-tax, post-incidentals) over body estimates.
 - pax: array of guest full names. Empty array if not found
 - When a PDF is attached: trust it over the body text for cost, dates, confirmation numbers, and room type. Body text often shows the initial reservation; folios show actual charges.
-- Skip flight, car rental, or non-accommodation confirmations`;
+- Skip flight, car rental, or non-accommodation confirmations
+- validationFlags: leave as [] — the server fills this post-parse`;
 
   const returnShape = `Return this exact JSON:
 {
@@ -214,7 +226,11 @@ Rules:
       "currency": "EUR",
       "pax": ["Davon Johnson"],
       "stars": 4,
+      "roomType": "King Deluxe",
       "notes": "Non-smoking, king bed requested",
+      "confidence": "high",
+      "parseNotes": null,
+      "validationFlags": [],
       "tid": "<thread_id_from_above>"
     }
   ]
@@ -389,13 +405,22 @@ ${returnShape}`;
 
   const lodgings = rawLodgings
     .filter(h => h.name && h.checkIn && h.checkOut)
-    .map(h => ({
-      ...h,
-      id: `hotel_${(h.tid || "").slice(-6)}_${(h.confirmNo || Math.random().toString(36).slice(2, 6)).replace(/\s/g, "").slice(0, 8)}`,
-      status: "pending",
-      rooms: [],
-      todos: [],
-    }));
+    .map(h => {
+      const { flags, fixed } = validateCommon(h, {
+        tourStart, tourEnd,
+        dateKeys: ["checkIn", "checkOut"],
+        stopwordKeys: ["name", "city", "pax"],
+        codeKeys: { confirmNo: "confirmNo" },
+      });
+      const merged = { ...fixed, validationFlags: [...new Set([...(h.validationFlags || []), ...flags])] };
+      return {
+        ...merged,
+        id: `hotel_${(h.tid || "").slice(-6)}_${(h.confirmNo || Math.random().toString(36).slice(2, 6)).replace(/\s/g, "").slice(0, 8)}`,
+        status: "pending",
+        rooms: [],
+        todos: [],
+      };
+    });
 
   await finishScanRun(runId, {
     threadsFound: threads.length,
