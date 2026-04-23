@@ -1711,17 +1711,27 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
         <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6}}>
           {onRefreshStatus&&<button onClick={e=>{e.stopPropagation();onRefreshStatus();}} disabled={refreshing} title="Refresh live status" style={{background:"none",border:"none",cursor:refreshing?"default":"pointer",fontSize:10,color:refreshing?"var(--text-mute)":"var(--accent)",padding:0,lineHeight:1}}>{refreshing?"⟳":"⟳"}</button>}
           {onUpdate&&!editing&&!collapsed&&<button onClick={e=>{e.stopPropagation();startEdit();}} title="Edit flight data" style={{fontSize:9,padding:"1px 7px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:T.textDim,cursor:"pointer",fontWeight:600}}>Edit</button>}
-          <div style={{fontSize:9,fontFamily:MN,color:T.text2,fontWeight:600}}>{f.depDate}</div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
+            <div style={{fontSize:9,fontFamily:MN,color:T.text2,fontWeight:600}}>{f.depDate}</div>
+            {collapsed&&f.pax?.length>0&&<div style={{fontSize:11,fontWeight:700,color:T.text,letterSpacing:"-0.01em"}}>{f.pax.map(p=>String(p).trim().split(/\s+/)[0]).filter(Boolean).join(", ")}</div>}
+          </div>
         </div>
       </div>
-      {collapsed&&<div style={{display:"flex",gap:12,flexWrap:"wrap",fontSize:9,color:T.textDim,paddingTop:2}}>
-        {f.dep&&<span style={{fontFamily:MN,color:T.text}}>{f.dep}{f.arr?`–${f.arr}`:""}</span>}
-        {f.fromCity&&<span>{f.fromCity}</span>}
-        {f.toCity&&<span style={{color:T.textMute}}>→ {f.toCity}</span>}
-        {f.pnr&&<span style={{fontFamily:MN,color:T.text2,fontWeight:700}}>{f.pnr}</span>}
-        {f.fareClass&&<span style={{textTransform:"capitalize"}}>{f.fareClass}</span>}
-        {f.pax?.length>0&&<span style={{color:T.textMute}}>{f.pax.length} pax: {f.pax.map(p=>String(p).trim().split(/\s+/)[0]).filter(Boolean).join(", ")}</span>}
-        {actions&&<div style={{marginLeft:"auto",display:"flex",gap:5}}>{actions}</div>}
+      {collapsed&&<div style={{display:"flex",alignItems:"flex-start",gap:16,paddingTop:2}}>
+        <div style={{display:"flex",flexDirection:"column",gap:3,minWidth:0}}>
+          <div style={{fontFamily:MN,fontSize:12,fontWeight:800,color:T.link,letterSpacing:"0.02em"}}>
+            {f.from}<span style={{color:T.textMute,fontWeight:400,padding:"0 5px"}}>→</span>{f.to}
+          </div>
+          {(f.dep||f.arr)&&<div style={{fontFamily:MN,fontSize:10,fontWeight:600,color:T.text}}>
+            {f.dep||"–"}<span style={{color:T.textMute,fontWeight:400,padding:"0 4px"}}>–</span>{f.arr||"–"}
+          </div>}
+        </div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",fontSize:9,color:T.textDim,alignItems:"center",flex:1,paddingTop:1}}>
+          {f.pnr&&<span style={{fontFamily:MN,color:T.text2,fontWeight:700}}>{f.pnr}</span>}
+          {f.fareClass&&<span style={{textTransform:"capitalize",color:T.textMute}}>{f.fareClass}</span>}
+          {f.pax?.length>0&&<span style={{color:T.textDim}}>{f.pax.length} pax</span>}
+        </div>
+        {actions&&<div style={{marginLeft:"auto",display:"flex",gap:5,flexShrink:0}}>{actions}</div>}
       </div>}
       {!collapsed&&liveStatus&&(
         <div style={{display:"flex",gap:12,padding:"5px 8px",background:st.bg,borderRadius:6,flexWrap:"wrap"}}>
