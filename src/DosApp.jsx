@@ -2441,6 +2441,10 @@ function DateDrawer({onClose}){
   const[newVenue,setNewVenue]=useState("");
   const[newCity,setNewCity]=useState("");
   const[filter,setFilter]=useState("all");
+  const[editingDay,setEditingDay]=useState(null);
+  const[editVal,setEditVal]=useState("");
+  const saveEdit=(date)=>{if(editVal.trim())uShow(date,{city:editVal.trim()});setEditingDay(null);};
+  const startEdit=(e,d)=>{e.stopPropagation();setEditingDay(d.date);setEditVal(d.city||"");};
   const add=()=>{
     if(!newDate||shows[newDate])return;
     const isShow=newType==="show";
@@ -2493,13 +2497,16 @@ function DateDrawer({onClose}){
         </div>
         <div style={{flex:1,overflow:"auto",padding:"6px 8px"}}>
           {rows.map(d=>{const isSel=d.date===sel;const ts=typeStyle(d.type);const isDim=d.type==="off";return(
-            <div key={d.date} onClick={()=>{setSel(d.date);onClose();}} className="rh" style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:6,cursor:"pointer",background:isSel?"var(--accent-pill-bg)":"transparent",borderLeft:isSel?"3px solid var(--accent)":"3px solid transparent",opacity:isDim?0.65:1}}>
+            <div key={d.date} onClick={()=>{if(editingDay===d.date)return;setSel(d.date);onClose();}} className="rh" style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:6,cursor:"pointer",background:isSel?"var(--accent-pill-bg)":"transparent",borderLeft:isSel?"3px solid var(--accent)":"3px solid transparent",opacity:isDim?0.65:1,position:"relative"}}>
               <div style={{fontFamily:MN,fontSize:10,fontWeight:700,color:isSel?"var(--accent)":"var(--text-2)",width:48,flexShrink:0}}>{fD(d.date)}</div>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:11,fontWeight:600,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.city||"—"}</div>
+                {editingDay===d.date
+                  ?<input autoFocus value={editVal} onChange={e=>setEditVal(e.target.value)} onBlur={()=>saveEdit(d.date)} onKeyDown={e=>{if(e.key==="Enter"){e.preventDefault();saveEdit(d.date);}if(e.key==="Escape"){setEditingDay(null);}}} onClick={e=>e.stopPropagation()} style={{...UI.input,fontSize:11,fontWeight:600,padding:"1px 4px",width:"100%",boxSizing:"border-box"}}/>
+                  :<div style={{fontSize:11,fontWeight:600,color:"var(--text)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.city||"—"}</div>}
                 <div style={{fontSize:9,color:"var(--text-dim)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{d.venue}{d.bus?.note?` · ${d.bus.note}`:""}</div>
               </div>
               {ts?<span style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:ts.bg,color:ts.c,fontWeight:700,flexShrink:0}}>{ts.l}</span>:null}
+              <button onClick={e=>startEdit(e,d)} style={{background:"none",border:"none",cursor:"pointer",fontSize:10,color:"var(--text-mute)",padding:"2px 3px",lineHeight:1,flexShrink:0,opacity:0.6}} title="Rename">✎</button>
             </div>);})}
         </div>
       </div>
@@ -4802,8 +4809,6 @@ function FinLedger(){
 
   const rows=useMemo(()=>{
     const out=[];
-    // Confirmed flights are the authoritative source — build a set of their IDs so
-    // finance.flightExpenses (written at confirm-time) are not double-counted.
     const confirmedFlightIds=new Set(
       Object.values(flights||{}).filter(f=>f.status==="confirmed").map(f=>f.id)
     );
@@ -4811,55 +4816,34 @@ function FinLedger(){
       if(!fin)return;
       const show=shows[date];
       const showLabel=show?`${show.city||""} — ${show.venue||""}`.replace(/^ — |—\s*$/,"").trim():fD(date);
-      // Flight expenses — skip any already covered by the flights store
       (fin.flightExpenses||[]).forEach(fe=>{
         if(confirmedFlightIds.has(fe.flightId))return;
         if(!fe.amount&&fe.amount!==0)return;
-        out.push({id:fe.flightId||`fe_${date}_${Math.random()}`,date,show:showLabel,cat:"Flight",desc:fe.label||"",payee:(fe.pax||[]).join(", ")||"—",amount:parseFloat(fe.amount||0),currency:fe.currency||"USD",status:"confirmed",ref:fe.carrier||"",payMethod:fe.payMethod||"",bookedDate:"",paidDate:"",_src:{type:"flightExpense",date,srcId:fe.flightId}});
+        out.push({id:fe.flightId||`fe_${date}_${Math.random()}`,date,show:showLabel,cat:"Flight",desc:fe.label||"",payee:(fe.pax||[]).join(", ")||"—",amount:parseFloat(fe.amount||0),currency:fe.currency||"USD",status:"confirmed",ref:fe.carrier||"",payMethod:fe.payMethod||"",bookedDate:fe.bookedDate||"",paidDate:fe.paidDate||"",_src:{type:"flightExpense",date,srcId:fe.flightId}});
       });
-      // Payouts
       (fin.payouts||[]).forEach(p=>{
         out.push({id:p.id||`po_${date}_${Math.random()}`,date,show:showLabel,cat:"Payout",desc:`${p.dept||""}${p.role?` · ${p.role}`:""}`,payee:p.name||"—",amount:parseFloat(p.amount||0),currency:p.currency||"USD",status:p.status||"pending",ref:p.method||"",payMethod:p.payMethod||p.method||"",bookedDate:p.bookedDate||"",paidDate:p.paidDate||"",_src:{type:"payout",date,srcId:p.id}});
       });
-      // Lodging expenses
       (fin.ledgerEntries||[]).forEach(le=>{
         if(!le.amount&&le.amount!==0)return;
         out.push({id:le.id||`le_${date}_${Math.random()}`,date:le.date||date,show:showLabel,cat:"Hotel",desc:le.description||"",payee:le.vendor||"—",amount:parseFloat(le.amount||0),currency:le.currency||"USD",status:"confirmed",ref:le.source||"",payMethod:le.payMethod||"",bookedDate:le.bookedDate||le.checkIn||"",paidDate:le.paidDate||"",_src:{type:"ledgerEntry",date,srcId:le.id}});
       });
-      // Settlement amount (legacy flat field — skip if events[] has a settlement/wire entry)
       const hasEventForLegacy=(fin.events||[]).some(e=>e.type==="settlement"||e.type==="wire");
       if(fin.settlementAmount&&parseFloat(fin.settlementAmount)>0&&!hasEventForLegacy){
         out.push({id:`sa_${date}`,date,show:showLabel,cat:"Settlement",desc:"Settlement payment",payee:"—",amount:parseFloat(fin.settlementAmount),currency:"USD",status:fin.stages?.payment_initiated?"confirmed":"pending",ref:fin.wireRef||"",payMethod:"",bookedDate:"",paidDate:fin.wireDate||"",_src:{type:"legacySettlement",date,srcId:null}});
       }
-      // Financial events — settlement, wire, withholding, merch, reconciliation
       (fin.events||[]).forEach(ev=>{
         if(!ev||!ev.amount)return;
         const cat=(FIN_EVENT_TYPES.find(t=>t.id===ev.type)?.l)||"Event";
         out.push({id:ev.id,date,show:showLabel,cat,desc:ev.note||cat,payee:"—",amount:parseFloat(ev.amount)||0,currency:ev.currency||"USD",status:ev.status||"pending",ref:ev.ref||"",payMethod:ev.payMethod||"",bookedDate:ev.expectedDate||"",paidDate:ev.actualDate||"",_src:{type:"event",date,srcId:ev.id}});
       });
     });
-    // Confirmed flights from flights store
     Object.values(flights||{}).forEach(f=>{
       if(f.status!=="confirmed")return;
       const showDate=f.suggestedShowDate||f.depDate||"";
       const show=shows[showDate];
       const showLabel=show?`${show.city||""} — ${show.venue||""}`.replace(/^ — |—\s*$/,"").trim():f.depDate||"";
-      out.push({
-        id:f.id,
-        date:f.depDate||"",
-        show:showLabel,
-        cat:"Flight",
-        desc:`${f.flightNo||f.carrier||"Flight"} · ${f.fromCity||f.from||""} → ${f.toCity||f.to||""}`,
-        payee:(f.pax||[]).join(", ")||"—",
-        amount:f.cost!=null?parseFloat(f.cost):null,
-        currency:f.currency||"USD",
-        status:"confirmed",
-        ref:f.carrier||f.flightNo||"",
-        payMethod:f.payMethod||"",
-        bookedDate:"",
-        paidDate:"",
-        _src:{type:"confirmedFlight",date:f.depDate||"",srcId:f.id},
-      });
+      out.push({id:f.id,date:f.depDate||"",show:showLabel,cat:"Flight",desc:`${f.flightNo||f.carrier||"Flight"} · ${f.fromCity||f.from||""} → ${f.toCity||f.to||""}`,payee:(f.pax||[]).join(", ")||"—",amount:f.cost!=null?parseFloat(f.cost):null,currency:f.currency||"USD",status:"confirmed",ref:f.carrier||f.flightNo||"",payMethod:f.payMethod||"",bookedDate:f.bookedDate||"",paidDate:f.paidDate||"",_src:{type:"confirmedFlight",date:f.depDate||"",srcId:f.id}});
     });
     // Deduplicate: id first, then per-category content hash (handles same entity
     // arriving from multiple sources with different synthetic ids).
