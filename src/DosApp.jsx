@@ -1604,6 +1604,10 @@ function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax
           {f.pnr&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>PNR</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.pnr}</div></div>}
           {f.confirmNo&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>CONF #</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.confirmNo}</div></div>}
           {f.ticketNo&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>TICKET #</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.ticketNo}</div></div>}
+          {f.fareClass&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>CABIN</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700,textTransform:"capitalize"}}>{f.fareClass}{f.cabin?` · ${f.cabin}`:""}</div></div>}
+          {f.seat&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>SEAT</div><div style={{fontFamily:MN,fontSize:10,color:"var(--text)",fontWeight:700}}>{f.seat}</div></div>}
+          {f.operator&&f.operator!==f.carrier&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>OPERATED BY</div><div style={{fontSize:9,color:"var(--text-dim)"}}>{f.operator}</div></div>}
+          {f.layoverMinutes>0&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>LAYOVER</div><div style={{fontFamily:MN,fontSize:10,color:"var(--warn-fg)",fontWeight:700}}>{Math.floor(f.layoverMinutes/60)}h{String(f.layoverMinutes%60).padStart(2,"0")}m</div></div>}
           {f.cost&&<div><div style={{fontSize:8,color:"var(--text-mute)",fontWeight:600}}>COST</div><div style={{fontFamily:MN,fontSize:10,color:"var(--success-fg)",fontWeight:700}}>{f.currency||"$"}{f.cost}</div></div>}
         </div>
       </div>}
