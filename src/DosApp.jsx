@@ -71,7 +71,7 @@ const describeScanError=body=>{
 };
 // Merge fresh scan data into an existing flight, filling empty fields and unioning pax.
 // Preserves user-set status/confirmedAt and non-empty suggestedCrewIds.
-const FLIGHT_ENRICH_FIELDS=["flightNo","carrier","from","fromCity","to","toCity","depDate","dep","arrDate","arr","cost","currency","pnr","confirmNo","ticketNo","bookingStatus"];
+const FLIGHT_ENRICH_FIELDS=["flightNo","carrier","from","fromCity","to","toCity","depDate","dep","arrDate","arr","cost","currency","pnr","confirmNo","ticketNo","bookingStatus","payMethod"];
 const enrichFlight=(existing,fresh)=>{
   if(existing.locked)return existing;
   const out={...existing};
@@ -1507,7 +1507,7 @@ function FlightsSection(){
       if(opts.reset){setFlights({});setPendingImport([]);}
       setScanning(true);setScanMsg(opts.reset?"Reset. Rescanning Gmail…":"Scanning Gmail for flight confirmations…");
       const showsArr=Object.values(shows||{}).filter(s=>s.clientId===aC).map(s=>({id:s.id||s.date,date:s.date,venue:s.venue,city:s.city,type:s.type}));
-      const flightBody=JSON.stringify({googleToken,tourStart,tourEnd,focus:FOCUS_CARRIERS,shows:showsArr,...(opts.force?{force:true}:{})});
+      const flightBody=JSON.stringify({googleToken,tourStart,tourEnd,focus:FOCUS_CARRIERS,shows:showsArr,...(opts.force?{force:true}:{}),...(opts.forcePayMethod?{forcePayMethod:true}:{})});
       const flightOpts={method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:flightBody};
       let resp=await fetch("/api/flights",flightOpts);
       for(let retry=0;resp.status===404&&retry<2;retry++){
@@ -1887,7 +1887,7 @@ function IntelPanel(){
     </IntelSection>
     <IntelSection title="TO-DOS (PRIVATE)" count={(data.todos||[]).length} defaultOpen={true} actions={<button onClick={addTodo} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Add</button>}>
       {(data.todos||[]).length===0?<div style={{fontSize:10,color:"var(--text-mute)",fontStyle:"italic"}}>No action items yet.</div>:
-        (data.todos||[]).map(t=><div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-3)"}}>
+        [...(data.todos||[])].sort((a,b)=>({CRITICAL:0,HIGH:1,MED:2,MEDIUM:2,LOW:3}[a.priority]??4)-({CRITICAL:0,HIGH:1,MED:2,MEDIUM:2,LOW:3}[b.priority]??4)).map(t=><div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid var(--card-3)"}}>
           <input type="checkbox" checked={!!t.done} onChange={()=>toggleTodo(t.id)}/>
           <span style={{fontSize:10,flex:1,color:t.done?"var(--text-mute)":"var(--text)",textDecoration:t.done?"line-through":"none"}}>{t.text}</span>
           {t.priority&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:t.priority==="CRITICAL"?"var(--danger-bg)":t.priority==="HIGH"?"var(--warn-bg)":"var(--card-2)",color:t.priority==="CRITICAL"?"var(--danger-fg)":t.priority==="HIGH"?"var(--warn-fg)":"var(--text-dim)",fontWeight:700}}>{t.priority}</span>}
