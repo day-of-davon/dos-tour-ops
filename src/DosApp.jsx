@@ -6005,7 +6005,7 @@ function CrewTab(){
             </div>
             {notAttending.length===0
               ?<div style={{padding:"14px",fontSize:10,color:"var(--text-dim)"}}>All roster members are already attending.</div>
-              :<div style={{display:"flex",flexDirection:"column"}}>
+              :<div style={{display:"flex",flexDirection:"column",maxHeight:260,overflowY:"auto"}}>
                 {notAttending.map(c=>{
                   const sel2=addPickerSel.includes(c.id);
                   return(
