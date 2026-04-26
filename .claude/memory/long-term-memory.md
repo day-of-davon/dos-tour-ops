@@ -98,6 +98,22 @@
 
 - [2026-04-23 00:00 UTC] https://vercel.com/changelog — v0 by Vercel became production-ready February 2026: added Git integration, VS Code-style editor, Snowflake/AWS database connectivity, and agentic workflow support — relevant if Dane uses v0 to accelerate dos-platform scaffold in Jun/Jul window; can generate and push production-grade Next.js 16 code directly to a repo.
 
+- [2026-04-26 04:00 UTC] https://supabase.com/changelog — Supabase dashboard AI-Powered Table Filters: describe in plain text what you want to find and the dashboard generates the correct Postgres filter — speeds Phase 0 schema exploration with Josh; not previously logged.
+
+- [2026-04-26 04:00 UTC] https://supabase.com/changelog — Supabase Edge Functions now support drag-and-drop zip upload to deploy entire function bundles and migrate them between projects — simplifies dos-platform multi-environment Edge Function deployment; not previously logged.
+
+- [2026-04-26 04:00 UTC] https://prism.fm/blog/insights/music-tour-planning-tools-that-unify-your-booking-workflow/ — Prism.fm: music tour planning platform targeting venues, promoters, and agencies; $3M ARR, $15M+ in funding; replaces spreadsheets for booking, financial tracking, and contract management — NEW competitor not in CLAUDE.md or prior memory; DOS differentiator is real-time ops + AI intel vs. Prism's booking/finance focus.
+
+- [2026-04-26 04:00 UTC] https://wifitalents.com/best/music-tour-management-software/ — GigFinesse: musician-side booking and management platform with rider builders, drag-and-drop calendar, automated contracts + e-signatures, and payment processing — NEW competitor not previously tracked; rider builder overlaps DOS Advance feature set; aimed at independent artists/smaller acts, not full-tour ops.
+
+- [2026-04-26 04:00 UTC] https://trpc.io/blog/announcing-trpc-v11 — tRPC v11 (already logged for breaking changes) adds Server-Sent Events (SSE) as a first-class subscription transport — NEW capability not in prior memory entry; relevant for dos-platform real-time advancing/ROS updates without WebSocket complexity.
+
+- [2026-04-26 04:00 UTC] https://trpc.io/blog/announcing-trpc-v11 — tRPC v11 supports non-JSON content types natively: FormData, Blob, File, Uint8Array — NEW capability not in prior memory entry; directly enables file upload flows (advancing rider attachments, contract PDFs) in dos-platform without workarounds.
+
+- [2026-04-26 04:00 UTC] https://trpc.io/docs/migrate-from-v10-to-v11 — tRPC v11 fifth breaking change not in prior memory: removed AbortControllerEsque ponyfill; apps targeting old browsers need abortcontroller-polyfill — low impact for dos-platform (modern browser targets), but flag for any server-side tRPC fetch calls.
+
+- [2026-04-26 04:00 UTC] https://railway.com/deploy/n8n — CONTRADICTS 2026-04-22 memory entry ($8-20/mo from thinkpeak.ai): Railway's own docs and multiple practitioner sources (Medium Mar 2026, Railway deploy page) consistently cite ~$5/mo Hobby plan for standard n8n load; $8-20 range appears to reflect burst/production-stack (worker + webhook + Redis) configurations, not bare n8n — use $5/mo for single-instance Phase 4 estimate, $15-20/mo for production queue-mode stack.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
