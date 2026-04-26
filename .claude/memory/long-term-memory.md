@@ -98,6 +98,16 @@
 
 - [2026-04-23 00:00 UTC] https://vercel.com/changelog — v0 by Vercel became production-ready February 2026: added Git integration, VS Code-style editor, Snowflake/AWS database connectivity, and agentic workflow support — relevant if Dane uses v0 to accelerate dos-platform scaffold in Jun/Jul window; can generate and push production-grade Next.js 16 code directly to a repo.
 
+- [2026-04-26 04:00 UTC] https://supabase.com/changelog — Supabase PrivateLink now available: connects Supabase database to AWS resources over private networks with no public internet exposure — relevant for dos-platform enterprise tier (Phase 9) where customers require private DB connectivity; no action for current v7.
+
+- [2026-04-26 04:00 UTC] https://github.com/supabase/supabase/releases — Supabase Storage object listing is up to 14.8x faster on datasets with 60M+ rows (hybrid skip-scan + cursor-based pagination replaces prefixes table + 6 triggers) — directly relevant to the team/private Supabase storage split decision; large buckets no longer a performance liability.
+
+- [2026-04-26 04:00 UTC] https://supabase.com/changelog — Supabase Index Advisor now live in Table Editor: detects missing indexes with one-click recommendations — use during Phase 0 schema audit with Josh to catch index gaps before dos-platform data volume grows.
+
+- [2026-04-26 04:00 UTC] https://github.com/supabase/supabase/releases — Supabase Edge Functions now support deploying legacy Node.js applications directly (not just Deno); CLI download of Edge Functions no longer requires Docker — removes Deno-only constraint for dos-platform agent layer; existing Node.js tooling can be deployed as Edge Functions.
+
+- [2026-04-26 04:00 UTC] https://topbusinesssoftware.com/categories/festival-management/ — Marcato Festival: festival management platform with scheduling, artist management, ticketing, and real-time updates — not previously tracked as competitor; focus overlaps with DOS festival advancing and scheduling features; monitor alongside BeatSwitch/Tourmanagement.com.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
