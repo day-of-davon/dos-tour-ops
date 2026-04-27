@@ -98,6 +98,20 @@
 
 - [2026-04-23 00:00 UTC] https://vercel.com/changelog — v0 by Vercel became production-ready February 2026: added Git integration, VS Code-style editor, Snowflake/AWS database connectivity, and agentic workflow support — relevant if Dane uses v0 to accelerate dos-platform scaffold in Jun/Jul window; can generate and push production-grade Next.js 16 code directly to a repo.
 
+- [2026-04-25 04:00 UTC] https://vercel.com/changelog — Vercel Workflows now GA: long-running, durable, reliable, observable agents and backends on Vercel infrastructure — alternative or complement to n8n on Railway for DOS Platform Phase 4 agent architecture; evaluate before Phase 4 scaffold decision.
+
+- [2026-04-25 04:00 UTC] https://vercel.com/blog/ai-sdk-6 — Vercel AI SDK 6 released: ToolLoopAgent composable agents, tool execution approval (needsApproval flag), full MCP support, DevTools, multi-provider zero-markup gateway (Anthropic, OpenAI, Google, Mistral, Bedrock) — relevant if Dane uses AI SDK for DOS Platform AI intelligence layer instead of direct Claude API calls; MCP support means n8n nodes reachable from SDK agents.
+
+- [2026-04-25 04:00 UTC] https://vercel.com/changelog — Vercel Observability Plus $10/mo base fee eliminated; billing now event-based only — update FINANCIALS.md monitoring cost estimate for dos-platform.
+
+- [2026-04-25 04:00 UTC] https://nextjs.org/blog/next-16 — Next.js 16.2 (March 18, 2026) performance gains: ~400% faster next dev startup, ~50% faster rendering, browser log forwarding to AI coding tools — supplements prior memory entry (date only); dev experience materially faster than v15 for Dane's Jun/Jul build window.
+
+- [2026-04-25 04:00 UTC] https://tech.eu/2026/01/21/tourmanagement-bv-acquires-beatswitch-in-live-music-software-deal/ — BeatSwitch post-acquisition scale clarified: 400 customers, ~10,000 users (Pukkelpop, Shambhala, Sziget, Pitch Music & Arts) — supplements prior memory entry; Tourmanagement.com+BeatSwitch combined is now the largest dedicated festival advancing platform by user count; DOS moat must differentiate on real-time ops + AI, not advancing workflow alone.
+
+- [2026-04-25 04:00 UTC] https://trpc.io/blog/announcing-trpc-v11 — tRPC v11 Next.js adapter fully rewritten for React Server Components and server actions natively — dos-platform can call tRPC procedures directly from RSCs without a separate fetch layer; not captured in prior memory entries on tRPC v11 breaking changes.
+
+- [2026-04-25 04:00 UTC] https://supabase.com/blog/realtime-broadcast-from-database — Supabase Realtime: Broadcast from Database stores DB-triggered messages in realtime.messages for 3 days enabling Broadcast Replay (private channels only); Supabase recommends Broadcast over Postgres Changes for scalable fan-out — relevant for DOS v7 real-time transport/runner tracking and Phase 4 platform ops feed at scale.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
