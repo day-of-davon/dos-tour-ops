@@ -114,6 +114,12 @@
 
 - [2026-04-26 04:00 UTC] https://railway.com/deploy/n8n — CONTRADICTS 2026-04-22 memory entry ($8-20/mo from thinkpeak.ai): Railway's own docs and multiple practitioner sources (Medium Mar 2026, Railway deploy page) consistently cite ~$5/mo Hobby plan for standard n8n load; $8-20 range appears to reflect burst/production-stack (worker + webhook + Redis) configurations, not bare n8n — use $5/mo for single-instance Phase 4 estimate, $15-20/mo for production queue-mode stack.
 
+- [2026-04-26 05:00 UTC] https://github.com/supabase/supabase/releases/tag/v1.26.04 — Supabase April 2026 update upgraded Data API to PostgREST v14: ~20% more RPS for GET requests per benchmarks — directly improves dos-platform read-heavy endpoints (advancing, ROS, transport views); no config change needed, automatic upgrade.
+
+- [2026-04-26 05:00 UTC] https://growthlist.co/list-of-funded-music-startups/ — Daysheets: touring software built by tour and production managers, current clients include Billie Eilish and John Legend — NEW competitor not in CLAUDE.md or prior memory; crew-first tooling aimed at same production manager persona DOS targets; monitor for feature overlap with ROS and day-sheet generation.
+
+- [2026-04-26 05:00 UTC] https://growthlist.co/list-of-funded-music-startups/ — Gigwell: vertical SaaS for touring artists, agencies, and management; 100K+ users, $5B+ in gigs facilitated; covers booking workflow, contracts, payments — NEW competitor not previously tracked; booking/contract focus overlaps advancing and rider features; larger installed base than any competitor logged so far.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
