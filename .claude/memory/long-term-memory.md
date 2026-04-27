@@ -98,6 +98,12 @@
 
 - [2026-04-23 00:00 UTC] https://vercel.com/changelog — v0 by Vercel became production-ready February 2026: added Git integration, VS Code-style editor, Snowflake/AWS database connectivity, and agentic workflow support — relevant if Dane uses v0 to accelerate dos-platform scaffold in Jun/Jul window; can generate and push production-grade Next.js 16 code directly to a repo.
 
+- [2026-04-24 00:00 UTC] https://github.com/orgs/supabase/discussions/41288 — PostgREST v14 rolling out on Supabase (started ap-northeast-1, April 2026, global rollout imminent): JWT cache enabled by default adds ~20% more RPS on GET requests; v14.3 benchmarks show 6.5x throughput improvement (271 req/s at 1 user → 1,749 req/s at 100 users); no breaking changes — dos-tour-ops gets this automatically; dos-platform new project will start on v14.
+
+- [2026-04-24 00:00 UTC] https://github.com/trpc/trpc/releases — tRPC v12 roadmap confirmed: introduces Action-First client enabling tRPC procedure calls directly from React Server Components with zero boilerplate; native Zod 4 integration for full-stack inference — if Dane's Jun/Jul scaffold window extends into Q4 2026, evaluate whether to target v12 instead of v11; pin v11 explicitly on dos-platform scaffold to avoid automatic upgrade.
+
+- [2026-04-24 00:00 UTC] https://www.tpimagazine.com/tourmanagement-com-acquires-beatswitch/ — BeatSwitch post-acquisition scale: 400 customers, ~10,000 global users; founder Thomas Van Orshaegen remains on advisory board; Tourmanagement.com stated platforms will "gradually align" (not merged immediately) — competitive scale now quantified; gradual integration means BeatSwitch feature parity with DOS advancing+ops moat is months away, not imminent.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
