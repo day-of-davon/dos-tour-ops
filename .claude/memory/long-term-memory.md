@@ -120,6 +120,16 @@
 
 - [2026-04-26 05:00 UTC] https://growthlist.co/list-of-funded-music-startups/ — Gigwell: vertical SaaS for touring artists, agencies, and management; 100K+ users, $5B+ in gigs facilitated; covers booking workflow, contracts, payments — NEW competitor not previously tracked; booking/contract focus overlaps advancing and rider features; larger installed base than any competitor logged so far.
 
+- [2026-04-27 04:00 UTC] https://vercel.com/changelog — Vercel Workflows became GA in April 2026: long-running, durable, reliable, observable agents and backends on Vercel infrastructure — alternative/complement to n8n on Railway for Phase 4 DOS agent workflows; no separate queue/worker infra needed if Vercel is already the deployment target.
+
+- [2026-04-27 04:00 UTC] https://vercel.com/kb/bulletin/vercel-april-2026-security-incident — Vercel disclosed a security incident in April 2026 (Vercel Knowledge Base bulletin exists, HN thread active) — details not fully public; adds infrastructure risk flag for dos-tour-ops (current) and dos-platform (future); monitor bulletin for scope and remediation guidance before next dos-platform scaffold decision.
+
+- [2026-04-27 04:00 UTC] https://toursync.co / https://tour-sync.app — CONTRADICTS prior memory entry [2026-04-21] which cited a personal blog describing "TourSync launched 2026: creator workflow tools + real-time ticketing analytics + fan discovery marketplace." Actual products named TourSync are: (1) a utility syncing Master Tour schedules to Apple/Google Calendar every 30 min, and (2) a ticket-purchaser CRM with SMS automation — neither matches the prior description; prior entry appears to be fabricated blog content. Discard as competitive threat.
+
+- [2026-04-27 04:00 UTC] https://www.crunchbase.com/organization/daysheets — Daysheets (competitor logged [2026-04-26]) has VC backing: Argon Ventures + Two Lanterns Venture Capital; founded 2020, Seattle WA — funded startup, not bootstrapped; competitive threat higher than the prior entry implied; monitor for product velocity and enterprise moves.
+
+- [2026-04-27 04:00 UTC] https://github.com/supabase/supabase/releases/tag/v1.26.04 — Supabase April 2026 Schema Visualiser upgrade: relation lines now clickable, tables/columns have context actions, popovers appear between connected tables; browser Studio tabs show exact navigation path — not in prior memory entries; directly speeds Phase 0 schema design sessions with Josh.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
