@@ -120,6 +120,18 @@
 
 - [2026-04-26 05:00 UTC] https://growthlist.co/list-of-funded-music-startups/ — Gigwell: vertical SaaS for touring artists, agencies, and management; 100K+ users, $5B+ in gigs facilitated; covers booking workflow, contracts, payments — NEW competitor not previously tracked; booking/contract focus overlaps advancing and rider features; larger installed base than any competitor logged so far.
 
+- [2026-04-27 04:00 UTC] https://nextjs.org/blog/next-16 — Next.js 16.2 delivers ~400% faster `next dev` startup and ~50% faster rendering (200+ Turbopack bug fixes); prior memory only noted 16.1 caching; dos-platform scaffold should target 16.2+, not 16.0.
+
+- [2026-04-27 04:00 UTC] https://nextjs.org/blog/next-16 — React Compiler 1.0 stable and built into Next.js 16 by default: automatic component memoization with zero manual code changes — not in prior memory; removes need for manual useMemo/useCallback optimization in dos-platform components.
+
+- [2026-04-27 04:00 UTC] https://vercel.com/pricing — CONTRADICTS 2026-04-23 memory entry: Vercel Turbo build machines are now DEFAULT for all new Pro projects since February 2026 at $0.126/min, not the $0.105/min ($0.0035/CPU/min) logged previously; prior "16% reduction" figure is not corroborated — update FINANCIALS.md build-cost projections upward.
+
+- [2026-04-27 04:00 UTC] https://tech.eu/2026/01/21/tourmanagement-bv-acquires-beatswitch-in-live-music-software-deal/ — BeatSwitch scale at acquisition (Jan 2026): 400+ customers, ~10,000 users globally — addendum to prior entry; sets competitive baseline for DOS Platform market penetration targets.
+
+- [2026-04-27 04:00 UTC] https://play.google.com/store/apps/details?id=com.daysheets.daysheets.android — Daysheets has a native Android app on Google Play in addition to web; prior memory entry omitted this — DOS v7 and dos-platform have no mobile app; Daysheets' mobile-first capability is a direct gap for on-site crew use.
+
+- [2026-04-27 04:00 UTC] https://gitnux.org/best/music-tour-management-software/ — TouringData: automates tour settlements, box office reconciliation, and financial reporting for live music tours — NEW competitor not previously tracked; directly overlaps DOS Finance tab; confirm funding and scale before treating as serious threat.
+
 - [2026-04-27 05:00 UTC] https://buttondown.com/waterandmusic/archive/music-tech-ownership-ouroboros-2026-edition/ — CONTRADICTS 2026-04-22 memory entry (antitrust trial "ongoing"): DOJ reached a surprise settlement with Live Nation in late April 2026 per Cherie Hu's 2026 Ouroboros — settlement removes near-term forced breakup/divestiture scenario; fragmentation tailwind for independent touring tech is reduced but not eliminated.
 
 - [2026-04-27 05:00 UTC] https://github.com/supabase/supabase/releases/tag/v1.26.03 — Supabase Storage March 2026 overhaul: object listing 14.8x faster on 60M+ row datasets (hybrid skip-scan + cursor pagination replacing 6-trigger prefixes table); path traversal vulnerability closed; orphan objects from direct SQL deletes blocked — affects dos-tour-ops and dos-platform storage reliability at scale.
