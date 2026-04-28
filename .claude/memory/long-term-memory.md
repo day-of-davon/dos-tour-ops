@@ -120,6 +120,16 @@
 
 - [2026-04-26 05:00 UTC] https://growthlist.co/list-of-funded-music-startups/ — Gigwell: vertical SaaS for touring artists, agencies, and management; 100K+ users, $5B+ in gigs facilitated; covers booking workflow, contracts, payments — NEW competitor not previously tracked; booking/contract focus overlaps advancing and rider features; larger installed base than any competitor logged so far.
 
+- [2026-04-27 05:00 UTC] https://buttondown.com/waterandmusic/archive/music-tech-ownership-ouroboros-2026-edition/ — CONTRADICTS 2026-04-22 memory entry (antitrust trial "ongoing"): DOJ reached a surprise settlement with Live Nation in late April 2026 per Cherie Hu's 2026 Ouroboros — settlement removes near-term forced breakup/divestiture scenario; fragmentation tailwind for independent touring tech is reduced but not eliminated.
+
+- [2026-04-27 05:00 UTC] https://github.com/supabase/supabase/releases/tag/v1.26.03 — Supabase Storage March 2026 overhaul: object listing 14.8x faster on 60M+ row datasets (hybrid skip-scan + cursor pagination replacing 6-trigger prefixes table); path traversal vulnerability closed; orphan objects from direct SQL deletes blocked — affects dos-tour-ops and dos-platform storage reliability at scale.
+
+- [2026-04-27 05:00 UTC] https://github.com/supabase/supabase/releases/tag/v1.26.04 — Supabase pg-delta experimental declarative schema CLI (April 2026): describe schema in pure SQL, generate migrations automatically, CI-friendly flags, debug support — distinct from GitHub integration already logged; reduces manual migration drift risk in Phase 0 schema work with Josh.
+
+- [2026-04-27 05:00 UTC] https://edmidentity.com/2025/10/22/blondish-gigwell-eco-rider-2-0/ — Gigwell launched Eco-Rider 2.0 (Oct 2025) with BLOND:ISH Foundation's Bye Bye Plastic, adding sustainability/green rider tooling to their platform across 100K+ users — adds differentiated positioning angle to Gigwell beyond booking/contracts; not a direct DOS threat but signals that eco-rider could become a baseline feature expectation.
+
+- [2026-04-27 05:00 UTC] https://starterpick.com/blog/t3-stack-2026 — Developer community consensus (Apr 2026): Midday.so is the recommended open-source reference architecture for T3 + Supabase without Prisma — Midday uses Next.js + tRPC + Supabase directly (no Prisma ORM layer), which matches the dos-platform target stack; use as scaffold reference before Dane's Jun/Jul build window.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
