@@ -4188,8 +4188,9 @@ function EventSwitcher({show,sel}){
 }
 
 function ROSTab(){
-  const{shows,uShow,gRos,uRos,ros,sel,setSel,eventKey,cShows,role,aC,selEventId,setSelEventId,currentSplit,flights,setTab}=useContext(Ctx);
+  const{shows,uShow,gRos,uRos,ros,sel,setSel,eventKey,cShows,role,aC,selEventId,setSelEventId,currentSplit,flights,setTab,busEdits}=useContext(Ctx);
   const[editB,setEditB]=useState(null);const[dOver,setDOver]=useState(null);
+  const[busDetailExp,setBusDetailExp]=useState({});
   const[editShow,setEditShow]=useState(false);
   const[editVenue,setEditVenue]=useState("");const[editCity,setEditCity]=useState("");const[editPromoter,setEditPromoter]=useState("");
   const dId=useRef(null);const client=CM[aC];const show=shows[sel];
@@ -4210,12 +4211,12 @@ function ROSTab(){
   const today=new Date().toISOString().slice(0,10);const upcoming=cShows.filter(s=>s.date>=today);
 
   const busCalTimes=useMemo(()=>{
-    const todayBus=BUS_DATA_MAP[sel];
+    const todayBus={...BUS_DATA_MAP[sel],...(busEdits?.[sel]||{})};
     const busArriveEff=(todayBus?.arr&&todayBus.arr!=="—")?pM(todayBus.arr):null;
-    let busDepartEff=null,busDepartRoute=null;
-    for(let d=1;d<=4;d++){const dt=new Date(sel+"T12:00:00");dt.setDate(dt.getDate()+d);const e=BUS_DATA_MAP[dt.toISOString().slice(0,10)];if(e?.dep&&e.dep!=="—"){const raw=pM(e.dep);busDepartEff=(raw!=null&&raw<8*60)?raw+1440:raw;busDepartRoute=e.route;break;}}
-    return{busArriveEff,busArriveRoute:todayBus?.route||null,busDepartEff,busDepartRoute};
-  },[sel]);
+    let busDepartEff=null,busDepartRoute=null,departBus=null;
+    for(let d=1;d<=4;d++){const dt=new Date(sel+"T12:00:00");dt.setDate(dt.getDate()+d);const iso=dt.toISOString().slice(0,10);const e={...BUS_DATA_MAP[iso],...(busEdits?.[iso]||{})};if(e?.dep&&e.dep!=="—"){const raw=pM(e.dep);busDepartEff=(raw!=null&&raw<8*60)?raw+1440:raw;busDepartRoute=e.route;departBus=e;break;}}
+    return{busArriveEff,busArriveRoute:todayBus?.route||null,busDepartEff,busDepartRoute,arriveBus:BUS_DATA_MAP[sel]?todayBus:null,departBus};
+  },[sel,busEdits]);// eslint-disable-line
 
   const times=useMemo(()=>{
     const t={};const{doors,curfew,busArrive,crewCall,venueAccess,mgTime}=effShow;
@@ -4270,6 +4271,28 @@ function ROSTab(){
 
   const isNonShowDay=(show.type==="off"||show.type==="travel")&&!subEvent;
 
+  const busForItem=id=>id==="bus_arrive"?busCalTimes.arriveBus:id==="bus_depart"?busCalTimes.departBus:null;
+  const renderBusDetail=(entry,label)=>{
+    if(!entry)return null;
+    const stops=entry.stops?entry.stops.split("·").map(s=>s.trim()).filter(Boolean):[];
+    const hasContent=entry.note||stops.length>0;
+    if(!hasContent)return null;
+    return(
+      <div style={{padding:"8px 14px 10px 38px",background:"var(--info-bg)",borderBottom:"1px solid var(--card-3)",fontSize:9}}>
+        <div style={{fontSize:7,fontWeight:800,color:"var(--info-fg)",letterSpacing:"0.1em",marginBottom:5,textTransform:"uppercase"}}>{label}</div>
+        {entry.note&&<div style={{fontStyle:"italic",color:T.text2,marginBottom:stops.length?5:0}}>{entry.note}</div>}
+        {stops.length>0&&(
+          <div style={{display:"flex",flexDirection:"column",gap:3}}>
+            <div style={{fontSize:7,fontWeight:800,color:T.textDim,letterSpacing:"0.08em",marginBottom:2}}>STOPS</div>
+            {stops.map((s,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:6,color:T.text2}}>
+              <span style={{color:"var(--info-fg)",fontSize:8,flexShrink:0}}>📍</span>{s}
+            </div>)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderB=b=>{
     let t=times[b.id];if(!t)return null;
     if(b.anchorStartAt!=null||b.anchorEndAt!=null)t={s:b.anchorStartAt!=null?b.anchorStartAt:t.s,e:b.anchorEndAt!=null?b.anchorEndAt:t.e};
@@ -4303,8 +4326,10 @@ function ROSTab(){
         {b.duration>0&&!isA&&b.id!=="mg_checkin"&&<div style={{fontFamily:MN,fontSize:10,color:T.text2,background:"var(--card-3)",padding:"3px 7px",borderRadius:4,flexShrink:0,border:"1px solid var(--border)",fontWeight:600}}>{`${b.duration}m`}</div>}
         {b.duration>0&&<div style={{width:46,fontFamily:MN,fontSize:9,color:T.textMute,textAlign:"right",flexShrink:0}}>{fmt(t.e)}</div>}
         {cK&&<button onClick={e=>{e.stopPropagation();uEffShow({[cK]:!isC});}} title={isC?"Confirmed":"Mark confirmed"} style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:isC?"var(--success-fg)":"var(--text-faint)",padding:"2px 4px",flexShrink:0}}>{isC?"✓":"○"}</button>}
+        {b.type==="bus"&&busForItem(b.id)&&(()=>{const hasDet=busForItem(b.id);const isOpen=busDetailExp[b.id];return hasDet&&(hasDet.note||hasDet.stops)?<button onClick={e=>{e.stopPropagation();setBusDetailExp(p=>({...p,[b.id]:!p[b.id]}));}} title="Drive session details" style={{background:"none",border:"none",cursor:"pointer",fontSize:11,color:isOpen?"var(--info-fg)":T.textMute,padding:"2px 4px",flexShrink:0,fontWeight:700}}>{isOpen?"▴":"▾"}</button>:null;})()}
         {canE&&<button onClick={e=>{e.stopPropagation();setEditB(isE?null:b.id);}} title="Edit" style={{background:"none",border:"none",cursor:"pointer",fontSize:13,color:isE?"var(--text)":"var(--text-mute)",padding:"2px 6px",flexShrink:0,fontWeight:700,letterSpacing:1}}>{isE?"×":"⋯"}</button>}
       </div>
+      {b.type==="bus"&&busDetailExp[b.id]&&renderBusDetail(busForItem(b.id),b.id==="bus_arrive"?"ARRIVING LEG — DRIVE SESSION":"DEPARTING LEG — DRIVE SESSION")}
       {isE&&canE&&(
         <div style={{...UI.expandPanel,borderLeftColor:b.color,marginTop:-2,marginBottom:4,borderRadius:"0 0 8px 8px"}} onClick={e=>e.stopPropagation()}>
           {isA&&b.anchorKey?(
@@ -5164,6 +5189,7 @@ function TravelDayView(){
   const{busEdits}=useContext(Ctx);
   const busDay=useMemo(()=>{const base=BUS_DATA_MAP[sel];if(!base)return null;return{...base,...(busEdits?.[sel]||{})};},// eslint-disable-next-line react-hooks/exhaustive-deps
   [sel,busEdits]);
+  const[busDetailExp,setBusDetailExp]=useState(false);
   const dayLabel=curDay?.type==="travel"?"Travel Day":curDay?.type==="split"?"Split Day":curDay?.type==="off"?"Off Day":"Show Day";
 
   return(
@@ -5185,7 +5211,7 @@ function TravelDayView(){
 
       {/* EU Bus Schedule context for selected date */}
       {busDay&&(
-        <div style={{background:busDay.show?"var(--success-bg)":"var(--info-bg)",border:`1px solid ${busDay.show?"var(--success-bg)":"var(--info-bg)"}`,borderRadius:10,padding:"10px 14px",display:"flex",gap:14,alignItems:"flex-start",flexWrap:"wrap"}}>
+        <div style={{background:busDay.show?"var(--success-bg)":"var(--info-bg)",border:`1px solid ${busDay.show?"var(--success-fg)":"var(--info-fg)"}30`,borderRadius:10,padding:"10px 14px",display:"flex",gap:14,alignItems:"flex-start",flexWrap:"wrap"}}>
           <div style={{display:"flex",flexDirection:"column",gap:2,flexShrink:0}}>
             <div style={{fontSize:8,fontWeight:800,color:busDay.show?"var(--success-fg)":"var(--info-fg)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{busDay.show?"Show Day":"Travel Day"} · EU Day {busDay.day}</div>
             <div style={{fontSize:13,fontWeight:800,color:busDay.show?"var(--success-fg)":"var(--info-fg)"}}>{busDay.show?(busDay.venue||busDay.route):busDay.route}</div>
@@ -5193,11 +5219,11 @@ function TravelDayView(){
           </div>
           {!busDay.show&&(
             <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
-              {busDay.dep!=="—"&&<div style={{background:"var(--card)",border:"1px solid var(--info-bg)",borderRadius:6,padding:"5px 10px",textAlign:"center"}}>
+              {busDay.dep!=="—"&&<div style={{background:"var(--card)",border:"1px solid var(--info-fg)20",borderRadius:6,padding:"5px 10px",textAlign:"center"}}>
                 <div style={{fontSize:8,color:T.textDim,fontWeight:700,letterSpacing:"0.06em"}}>DEP</div>
                 <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"var(--info-fg)"}}>{busDay.dep}</div>
               </div>}
-              {busDay.arr!=="—"&&<div style={{background:"var(--card)",border:"1px solid var(--info-bg)",borderRadius:6,padding:"5px 10px",textAlign:"center"}}>
+              {busDay.arr!=="—"&&<div style={{background:"var(--card)",border:"1px solid var(--info-fg)20",borderRadius:6,padding:"5px 10px",textAlign:"center"}}>
                 <div style={{fontSize:8,color:T.textDim,fontWeight:700,letterSpacing:"0.06em"}}>ARR</div>
                 <div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:"var(--info-fg)"}}>{busDay.arr}</div>
               </div>}
@@ -5211,8 +5237,27 @@ function TravelDayView(){
               </div>}
             </div>
           )}
-          {busDay.note&&<div style={{fontSize:9,color:T.text2,fontStyle:"italic",alignSelf:"center",maxWidth:240}}>{busDay.note}</div>}
-          <div style={{marginLeft:"auto",fontSize:8,color:T.textMute,fontFamily:MN,alignSelf:"flex-end",flexShrink:0}}>Pieter Smit T26-021201</div>
+          <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8,alignSelf:"flex-end",flexShrink:0}}>
+            {(busDay.stops||busDay.note)&&<button onClick={()=>setBusDetailExp(v=>!v)} style={{fontSize:8,padding:"2px 8px",borderRadius:4,border:`1px solid ${busDay.show?"var(--success-fg)":"var(--info-fg)"}50`,background:"transparent",color:busDay.show?"var(--success-fg)":"var(--info-fg)",cursor:"pointer",fontWeight:700}}>{busDetailExp?"▴ Hide":"▾ Drive details"}</button>}
+            <span style={{fontSize:8,color:T.textMute,fontFamily:MN}}>Pieter Smit T26-021201</span>
+          </div>
+          {busDetailExp&&(busDay.stops||busDay.note)&&(
+            <div style={{flexBasis:"100%",paddingTop:8,borderTop:`1px solid ${busDay.show?"var(--success-fg)":"var(--info-fg)"}20`,display:"flex",flexDirection:"column",gap:5}}>
+              {busDay.note&&<div style={{fontSize:9,color:T.text2,fontStyle:"italic"}}>{busDay.note}</div>}
+              {busDay.stops&&(
+                <div>
+                  <div style={{fontSize:7,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:4}}>DRIVE SESSION STOPS</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                    {busDay.stops.split("·").map((s,i)=>(
+                      <div key={i} style={{display:"flex",alignItems:"center",gap:6,fontSize:9,color:T.text2}}>
+                        <span style={{color:busDay.show?"var(--success-fg)":"var(--info-fg)",fontSize:8,flexShrink:0}}>📍</span>{s.trim()}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
