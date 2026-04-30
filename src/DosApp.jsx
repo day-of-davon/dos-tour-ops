@@ -4118,7 +4118,7 @@ function EventSwitcher({show,sel}){
 }
 
 function ROSTab(){
-  const{shows,uShow,gRos,uRos,ros,sel,setSel,eventKey,cShows,role,aC,selEventId,setSelEventId,currentSplit}=useContext(Ctx);
+  const{shows,uShow,gRos,uRos,ros,sel,setSel,eventKey,cShows,role,aC,selEventId,setSelEventId,currentSplit,flights,setTab}=useContext(Ctx);
   const[editB,setEditB]=useState(null);const[dOver,setDOver]=useState(null);
   const[editShow,setEditShow]=useState(false);
   const[editVenue,setEditVenue]=useState("");const[editCity,setEditCity]=useState("");const[editPromoter,setEditPromoter]=useState("");
@@ -4279,6 +4279,61 @@ function ROSTab(){
 
   const phases=[{k:"bus_in",l:"BUS ARRIVAL",s:"Anchor",pc:"var(--link)"},{k:"pre",l:"PRE-SHOW",s:"Forward from Crew Call",pc:"var(--warn-fg)"},{k:"mg",l:"MEET & GREET",s:"Anchor",pc:"var(--accent)"},{k:"doors",l:"DOORS",s:"Contract anchor",pc:"var(--success-fg)"},{k:"show",l:"SHOW",s:"Doors +60min",pc:"var(--danger-fg)"},{k:"curfew",l:"CURFEW",s:sel==="2026-04-16"?"HARD":"Contract anchor",pc:"var(--text-dim)"},{k:"post",l:"POST-SHOW",s:"Relative to set end",pc:"var(--info-fg)"}];
 
+  const transit=useMemo(()=>{
+    const segs=Object.values(flights||{}).filter(f=>f&&f.status!=="dismissed"&&["air","ground","bus","rail"].includes(f.type||"air")&&(f.depDate===sel||f.arrDate===sel));
+    const rows=[];
+    segs.forEach(s=>{
+      const t=s.type||"air";
+      // departures from this date
+      if(s.depDate===sel&&s.dep){
+        const m=pM(s.dep);if(m!=null)rows.push({id:`${s.id}__dep`,seg:s,kind:t,role:"dep",start:m,end:hhmmToMin(s.arr)??m,from:s.fromCity||s.from,to:s.toCity||s.to,label:t==="air"?(s.flightNo||s.carrier||"Flight"):t==="ground"?(s.mode||s.provider||"Ground"):t==="bus"?(s.carrier||"Bus"):(s.trainNo||s.carrier||"Rail")});
+      }
+      // arrivals on this date (different day from departure)
+      if(s.arrDate===sel&&s.arrDate!==s.depDate&&s.arr){
+        const m=pM(s.arr);if(m!=null)rows.push({id:`${s.id}__arr`,seg:s,kind:t,role:"arr",start:m,end:m,from:s.fromCity||s.from,to:s.toCity||s.to,label:t==="air"?(s.flightNo||s.carrier||"Flight"):t==="ground"?(s.mode||s.provider||"Ground"):t==="bus"?(s.carrier||"Bus"):(s.trainNo||s.carrier||"Rail")});
+      }
+    });
+    rows.sort((a,b)=>a.start-b.start);
+    return rows;
+  },[flights,sel]);
+
+  const showStart=times.crew_call?.s??times.bus_arrive?.s??(effShow.crewCall||0);
+  const showEnd=times.curfew?.e??(effShow.curfew||0);
+  const transitArr=transit.filter(r=>r.start<showStart||r.role==="arr");
+  const transitDep=transit.filter(r=>!(r.start<showStart||r.role==="arr"));
+
+  const renderTransit=r=>{
+    const meta=SEG_META[r.kind]||SEG_META.air;
+    const dur=Math.max(0,(r.end||r.start)-r.start);
+    return(
+      <div key={r.id} onClick={()=>setTab("transport")} className="br" style={{display:"flex",alignItems:"center",gap:8,padding:"7px 14px",background:"var(--card)",border:`1px solid ${meta.color}30`,borderRadius:8,borderLeft:`3px solid ${meta.color}`,cursor:"pointer"}}>
+        <div style={{width:16,flexShrink:0,textAlign:"center",fontSize:13}}>{meta.icon}</div>
+        <div style={{width:54,fontFamily:MN,fontSize:11,color:meta.color,fontWeight:700,textAlign:"right",flexShrink:0}}>{fmt(r.start)}</div>
+        <div style={{width:4,height:20,background:meta.color,borderRadius:4,flexShrink:0,opacity:0.5}}/>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:12,fontWeight:600,color:T.text,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+            <span>{r.label}</span>
+            <span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:meta.bg,color:meta.color,fontWeight:800,letterSpacing:"0.04em"}}>{meta.label.toUpperCase()}</span>
+            {r.role==="arr"&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--success-bg)",color:T.successFg,fontWeight:800}}>ARR</span>}
+            {r.role==="dep"&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--info-bg)",color:T.link,fontWeight:800}}>DEP</span>}
+            {r.seg?.status==="confirmed"&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--success-bg)",color:T.successFg,fontWeight:800}}>✓</span>}
+          </div>
+          {(r.from||r.to)&&<div style={{fontSize:9,color:T.textDim,marginTop:1,fontFamily:MN}}>{r.from||"—"} → {r.to||"—"}</div>}
+        </div>
+        {dur>0&&<div style={{fontFamily:MN,fontSize:10,color:T.text2,background:"var(--card-3)",padding:"3px 7px",borderRadius:4,flexShrink:0,border:"1px solid var(--border)",fontWeight:600}}>{`${dur}m`}</div>}
+        {r.end>r.start&&<div style={{width:46,fontFamily:MN,fontSize:9,color:T.textMute,textAlign:"right",flexShrink:0}}>{fmt(r.end)}</div>}
+      </div>
+    );
+  };
+  const transitHeader=(label,count)=>(
+    <div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0 3px"}}>
+      <div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",color:"var(--link)"}}>{label}</div>
+      <div style={{flex:1,height:1,background:"var(--border)"}}/>
+      <button onClick={()=>setTab("transport")} title="Manage in Logistics" style={{fontSize:8,color:T.textDim,background:"none",border:"1px dashed var(--text-faint)",borderRadius:6,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>Logistics ↗</button>
+      <div style={{fontSize:8,color:T.textMute,fontStyle:"italic"}}>{count} segment{count===1?"":"s"}</div>
+    </div>
+  );
+
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
       {isNonShowDay&&<DayScheduleView show={show} bus={BUS_DATA_MAP[sel]||null} split={currentSplit||null} sel={sel}/>}
@@ -4304,9 +4359,11 @@ function ROSTab(){
       </div>}
       <div style={{padding:"10px 20px 30px",background:"var(--bg)",flex:1,overflowY:"auto"}}>
         <FlightDayStrip sel={sel}/>
+        {transitArr.length>0&&<div style={{marginBottom:6}}>{transitHeader("ARRIVALS / INBOUND TRANSIT",transitArr.length)}<div style={{display:"flex",flexDirection:"column",gap:3}}>{transitArr.map(renderTransit)}</div></div>}
         {phases.filter(ph=>!(ph.k==="mg"&&effShow.mgSkip)&&!(ph.k==="bus_in"&&(effShow.busSkip||effShow.busPre))).map(ph=>{const pb=blocks.filter(b=>ph.k==="bus_in"?b.phase==="bus_in":ph.k==="curfew"?b.id==="curfew":ph.k==="doors"?b.phase==="doors":ph.k==="mg"?b.phase==="mg":b.phase===ph.k);const canAdd=!["bus_in","curfew","doors","mg"].includes(ph.k);
           return(<div key={ph.k} style={{marginBottom:6}}><div style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0 3px"}}><div style={{fontSize:9,fontWeight:800,letterSpacing:"0.1em",color:ph.pc||"var(--text-dim)"}}>{ph.l}</div><div style={{flex:1,height:1,background:"var(--border)"}}/><div style={{fontSize:8,color:T.textMute,fontStyle:"italic"}}>{ph.s}</div>{canAdd&&<button onClick={()=>addBlock(ph.k)} title="Add block" style={{background:"none",border:"1px dashed var(--text-faint)",borderRadius:6,color:T.textDim,fontSize:9,padding:"2px 8px",cursor:"pointer",fontWeight:700}}>+ Block</button>}</div><div style={{display:"flex",flexDirection:"column",gap:3}}>{pb.map(b=>renderB(b))}</div>{!pb.length&&canAdd&&<div style={{fontSize:9,color:T.textMute,fontStyle:"italic",padding:"4px 0"}}>No blocks — click + Block to add.</div>}</div>);
         })}
+        {transitDep.length>0&&<div style={{marginBottom:6}}>{transitHeader("DEPARTURES / OUTBOUND TRANSIT",transitDep.length)}<div style={{display:"flex",flexDirection:"column",gap:3}}>{transitDep.map(renderTransit)}</div></div>}
         <div style={{marginTop:12,padding:"12px 14px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,display:"flex",gap:12,flexWrap:"wrap"}}>
           {[...(effShow.busSkip?[]:[{l:effShow.busPre?"Bus":"Bus ETA",v:effShow.busPre?"On-site (prev)":fmt(effShow.busArrive),c:"var(--link)"}]),{l:"Crew Call",v:fmt(effShow.crewCall),c:"var(--warn-fg)"},{l:"M&G",v:fmt(effShow.mgTime),c:"var(--success-fg)",hide:effShow.mgSkip},{l:"Doors",v:fmt(effShow.doors),c:"var(--success-fg)"},{l:"Headline",v:times.bbno_set?`${fmt(times.bbno_set.s)}–${fmt(times.bbno_set.e)}`:"--",c:"var(--danger-fg)"},{l:"Settlement",v:times.settlement?fmt(times.settlement.s):"--",c:"var(--warn-fg)"},{l:"Curfew",v:fmt(effShow.curfew),c:"var(--danger-fg)"},{l:"Bus Out",v:times.bus_depart?fmt(times.bus_depart.s):"--",c:"var(--link)",hide:effShow.busSkip}].filter(s=>!s.hide).map((s,i)=><div key={i}><div style={{fontSize:8,color:T.textDim,marginBottom:1,fontWeight:600}}>{s.l}</div><div style={{fontFamily:MN,fontSize:11,color:s.c,fontWeight:800}}>{s.v}</div></div>)}
         </div>
