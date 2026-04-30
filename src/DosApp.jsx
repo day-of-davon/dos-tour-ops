@@ -4400,21 +4400,22 @@ function TourCalendar(){
         <button onClick={importBusLegs} style={{marginLeft:"auto",fontSize:9,padding:"3px 10px",borderRadius:6,border:"1px solid var(--accent)",background:"var(--accent-pill-bg)",color:T.accent,cursor:"pointer",fontWeight:700,fontFamily:MN}}>→ Import Legs to Travel Days</button>
       </div>
       <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"auto",maxHeight:380}}>
-        {days.map((d,i)=>{
-          const ts=TS[d.type]||TS.off;
-          const isOff=d.type==="off";
-          const isSplit=d.type==="split";
-          const isExp=expRows[d.iso];
-          const hasFlag=(d.bus?.flag==="⚠")||(d.show?.notes||"").includes("⚠");
-          const canExpand=isSplit||hasFlag;
-          const showTodayMarker=i>0&&days[i-1].iso<todayISO&&d.iso>=todayISO;
-          const driveH=parseDriveH(d.bus?.drive);
-          const drivePct=maxDriveH>0?Math.min(100,(driveH/maxDriveH)*100):0;
-          const driveC=driveH>5?"var(--danger-fg)":driveH>3?"var(--warn-fg)":"var(--success-fg)";
-          return(
-            <React.Fragment key={d.iso}>
-              {showTodayMarker&&<div style={{padding:"4px 12px",background:"var(--warn-bg)",borderTop:"1px solid var(--warn-fg)",borderBottom:"1px solid var(--warn-fg)",fontSize:8,fontWeight:800,color:T.warnFg,fontFamily:MN,letterSpacing:"0.1em"}}>▸ TODAY</div>}
-              <div style={{borderBottom:i<days.length-1?"1px solid var(--card-3)":"none"}}>
+        {(()=>{
+          const past=days.filter(d=>d.iso<todayISO);
+          const upcoming=days.filter(d=>d.iso>=todayISO);
+          const renderDay=(d,i,arr)=>{
+            const ts=TS[d.type]||TS.off;
+            const isOff=d.type==="off";
+            const isSplit=d.type==="split";
+            const isExp=expRows[d.iso];
+            const hasFlag=(d.bus?.flag==="⚠")||(d.show?.notes||"").includes("⚠");
+            const canExpand=isSplit||hasFlag;
+            const driveH=parseDriveH(d.bus?.drive);
+            const drivePct=maxDriveH>0?Math.min(100,(driveH/maxDriveH)*100):0;
+            const driveC=driveH>5?"var(--danger-fg)":driveH>3?"var(--warn-fg)":"var(--success-fg)";
+            return(
+              <React.Fragment key={d.iso}>
+              <div style={{borderBottom:i<arr.length-1?"1px solid var(--card-3)":"none"}}>
               <div
                 onClick={()=>openDay(d.iso)}
                 className="rh"
@@ -4487,8 +4488,19 @@ function TourCalendar(){
               )}
             </div>
             </React.Fragment>
-          );
-        })}
+            );
+          };
+          return(<>
+            {past.length>0&&(
+              <details style={{borderBottom:"1px solid var(--card-3)"}}>
+                <summary style={{padding:"6px 12px",fontSize:9,fontWeight:800,color:T.textMute,fontFamily:MN,letterSpacing:"0.1em",cursor:"pointer",userSelect:"none",background:"var(--card-2)",listStyle:"revert"}}>Past · {past.length} day{past.length===1?"":"s"}</summary>
+                {past.map((d,i)=>renderDay(d,i,past))}
+              </details>
+            )}
+            {upcoming.length>0&&past.length>0&&<div style={{padding:"4px 12px",background:"var(--warn-bg)",borderTop:"1px solid var(--warn-fg)",borderBottom:"1px solid var(--warn-fg)",fontSize:8,fontWeight:800,color:T.warnFg,fontFamily:MN,letterSpacing:"0.1em"}}>▸ TODAY</div>}
+            {upcoming.map((d,i)=>renderDay(d,i,upcoming))}
+          </>);
+        })()}
       </div>
       <div style={{marginTop:8,padding:"10px 14px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,display:"flex",gap:20,alignItems:"center"}}>
         <div style={{display:"flex",alignItems:"baseline",gap:4}}><span style={{fontFamily:MN,fontSize:13,fontWeight:800,color:T.link}}>{totalKm.toLocaleString()}km</span><span style={{fontSize:9,color:T.textDim,marginLeft:4}}>TOTAL DRIVE DIST</span></div>
