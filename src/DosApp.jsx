@@ -1021,6 +1021,39 @@ const parseDriveSessions=(note,stops)=>{
   return rows;
 };
 
+// Build a draft of the drive-session table from a calculated route result.
+// Splits driving time at EC561 boundaries (45min break after every 4.5h
+// driving) and includes a final ETA row. Distances are pro-rated by time.
+const fmt24=(mins)=>{const t=((mins%1440)+1440)%1440;const h=Math.floor(t/60);const m=Math.round(t%60);return`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;};
+const fmtDur=(mins)=>{if(mins<60)return`${mins}min`;const h=mins/60;const r=Math.round(h*2)/2;return`${r}h`;};
+const buildDraftSessions=(result,form)=>{
+  if(!result||result.error||result.duration_min==null)return null;
+  const total=result.duration_min;
+  const totalKm=result.distance_km||0;
+  const depMin=(form?.depTime||"").match(/^(\d{1,2}):(\d{2})$/);
+  if(!depMin)return null;
+  const start=parseInt(depMin[1],10)*60+parseInt(depMin[2],10);
+  const rows=[];
+  let cur=start;let remaining=total;let idx=1;
+  const maxSeg=270; // 4.5h
+  while(remaining>0){
+    const seg=Math.min(remaining,maxSeg);
+    const segKm=totalKm>0?Math.round((seg/total)*totalKm):0;
+    const isFirst=idx===1;
+    const isLast=remaining<=maxSeg;
+    const route=isFirst&&isLast?`${form.origin} → ${form.destination}`:isFirst?`${form.origin} → en route`:isLast?`en route → ${form.destination}`:"continued en route";
+    rows.push({kind:"session",label:`S${idx}`,time:`${fmt24(cur)}–${fmt24(cur+seg)}`,route,km:segKm?`${segKm} km`:null,dur:fmtDur(seg),note:isFirst&&isLast?null:isFirst?"first leg":isLast?"final leg":null});
+    cur+=seg;remaining-=seg;idx++;
+    if(remaining>0){
+      rows.push({kind:"break",label:"BREAK",time:`${fmt24(cur)}–${fmt24(cur+45)}`,route:"Service area / rest stop (TBD)",km:null,dur:"45min",note:"EC561 mandatory"});
+      cur+=45;
+    }
+  }
+  rows.push({kind:"eta",label:"ETA",time:fmt24(cur),route:form.destination,km:null,dur:null,note:result.eta&&result.eta!==fmt24(cur)?`Calculated ETA ${result.eta}`:null});
+  if(total>540){rows.unshift({kind:"note",label:"NOTE",time:null,route:`Total drive ${fmtDur(total)} exceeds EC561 9h daily limit — DD or split required`,km:null,dur:null,note:"REGULATORY"});}
+  return rows;
+};
+
 // Color theme per row kind
 const DRIVE_KIND_STYLE={
   session:{c:"var(--info-fg)",bg:"var(--info-bg)",label:"DRIVE"},
@@ -1166,11 +1199,13 @@ const sGP=async k=>{try{const r=await window.storage.getPrivate(k);return r?JSON
 const sSP=async(k,v)=>{try{await window.storage.setPrivate(k,JSON.stringify(v));return true}catch(e){console.error("[storage.setPrivate]",k,e?.message||e);return false}};
 
 // Tabular drive-session presentation. Used in both the ROS bus-row expansion
-// and the Logistics travel-day Bus Schedule context card.
-function BusDriveSessionTable({entry,label,compact}){
+// and the Logistics travel-day Bus Schedule context card. Optionally accepts
+// a pre-built `sessions` prop (e.g., a calculated draft) overriding the
+// parser; in that case the entry only needs route/km/drive/dep/arr.
+function BusDriveSessionTable({entry,label,compact,sessions:providedSessions}){
   if(!entry)return null;
-  const sessions=parseDriveSessions(entry.note,entry.stops);
-  const hasContent=!!entry.note||!!entry.stops;
+  const sessions=providedSessions||parseDriveSessions(entry.note,entry.stops);
+  const hasContent=!!providedSessions||!!entry.note||!!entry.stops;
   if(!hasContent)return null;
   const totalKm=entry.km||0;
   const totalDrive=entry.drive&&entry.drive!=="—"?entry.drive:null;
@@ -4848,6 +4883,11 @@ function TourCalendar(){
                       {cr?.geocoded&&!cr.error&&(
                         <div style={{marginTop:6,fontSize:8,color:T.textDim,fontFamily:MN}}>📍 {cr.geocoded.origin} → 📍 {cr.geocoded.destination}</div>
                       )}
+                      {(()=>{const draft=buildDraftSessions(cr,cf);if(!draft)return null;const draftEntry={route:`${cf.origin} → ${cf.destination}`,km:cr.distance_km,drive:cr.drive_label,dep:cf.depTime,arr:cr.eta,flag:cr.duration_min>540?"⚠":"",note:" ",stops:""};return(
+                        <div style={{marginTop:8,borderTop:"1px solid var(--info-fg)40",borderRadius:6,overflow:"hidden",background:"var(--card)"}}>
+                          <BusDriveSessionTable entry={draftEntry} label="DRAFT DRIVE SESSION TABLE — review before applying" sessions={draft} compact/>
+                        </div>
+                      );})()}
                     </div>
                   );})()}
                 </div>
