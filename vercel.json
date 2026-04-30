@@ -12,6 +12,7 @@
     "api/flights.js": { "maxDuration": 120 },
     "api/production.js": { "maxDuration": 60 },
     "api/lodging-scan.js": { "maxDuration": 60 },
-    "api/comms.js": { "maxDuration": 30 }
+    "api/comms.js": { "maxDuration": 30 },
+    "api/route.js": { "maxDuration": 30 }
   }
 }

@@ -4619,6 +4619,35 @@ function TourCalendar(){
   const[expRows,setExpRows]=useState({});
   const[editRows,setEditRows]=useState({});
   const[editForms,setEditForms]=useState({});
+  const[calcRows,setCalcRows]=useState({});
+  const[calcForms,setCalcForms]=useState({});
+  const[calcResults,setCalcResults]=useState({});
+  const[calcLoading,setCalcLoading]=useState({});
+  const splitRoute=(route)=>{const[a,b]=String(route||"").split("→").map(s=>s.trim());return{from:a||"",to:b||""};};
+  const toggleCalc=(iso,form)=>{
+    setCalcRows(p=>({...p,[iso]:!p[iso]}));
+    if(!calcRows[iso]){
+      const{from,to}=splitRoute(form?.route||editForms[iso]?.route||"");
+      setCalcForms(p=>({...p,[iso]:p[iso]||{origin:from,destination:to,depTime:form?.dep||editForms[iso]?.dep||"08:00"}}));
+    }
+  };
+  const calcRoute=async(iso)=>{
+    const f=calcForms[iso]||{};
+    if(!f.origin||!f.destination){setCalcResults(p=>({...p,[iso]:{error:"Provide origin and destination"}}));return;}
+    setCalcLoading(p=>({...p,[iso]:true}));
+    try{
+      const resp=await fetch("/api/route",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({origin:f.origin,destination:f.destination,departureTime:f.depTime||null,departureDate:iso})});
+      const data=await resp.json();
+      setCalcResults(p=>({...p,[iso]:data}));
+    }catch(e){setCalcResults(p=>({...p,[iso]:{error:e.message}}));}
+    setCalcLoading(p=>({...p,[iso]:false}));
+  };
+  const applyCalc=(iso)=>{
+    const r=calcResults[iso];const f=calcForms[iso]||{};
+    if(!r||r.error)return;
+    setEditForms(p=>({...p,[iso]:{...(p[iso]||{}),dep:f.depTime||(p[iso]?.dep||""),arr:r.eta||(p[iso]?.arr||""),km:r.distance_km!=null?String(r.distance_km):(p[iso]?.km||""),drive:r.drive_label||(p[iso]?.drive||""),route:`${f.origin} → ${f.destination}`}}));
+    setCalcRows(p=>({...p,[iso]:false}));
+  };
   const crewById=useMemo(()=>DEFAULT_CREW.reduce((a,c)=>{a[c.id]=c;return a},{}),[]);
   const openDay=iso=>{setSel(iso);if(allShows){setAllShows(false);}else{setTab("ros");}};
   const busMap=useMemo(()=>{
@@ -4780,11 +4809,47 @@ function TourCalendar(){
                       </div>
                     ))}
                   </div>
-                  <div style={{display:"flex",gap:6}}>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
                     <button onClick={()=>saveBusEdit(d.iso)} style={{fontSize:9,padding:"3px 10px",borderRadius:5,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>✓ Save</button>
                     <button onClick={()=>setEditRows(p=>({...p,[d.iso]:false}))} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:T.text2,cursor:"pointer"}}>Cancel</button>
+                    <button onClick={()=>toggleCalc(d.iso,d.bus)} style={{fontSize:9,padding:"3px 10px",borderRadius:5,border:`1px solid ${calcRows[d.iso]?"var(--accent)":"var(--info-fg)"}`,background:calcRows[d.iso]?"var(--accent-pill-bg)":"transparent",color:calcRows[d.iso]?"var(--accent)":"var(--info-fg)",cursor:"pointer",fontWeight:700}}>🧮 {calcRows[d.iso]?"Hide":"Calculate"} Route</button>
                     {busEdits[d.iso]&&<button onClick={()=>resetBusEdit(d.iso)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid var(--danger-fg)",background:"transparent",color:"var(--danger-fg)",cursor:"pointer",fontWeight:700,marginLeft:"auto"}}>↺ Reset to default</button>}
                   </div>
+                  {calcRows[d.iso]&&(()=>{const cf=calcForms[d.iso]||{};const cr=calcResults[d.iso];const loading=calcLoading[d.iso];return(
+                    <div style={{marginTop:8,padding:"10px 12px",background:"var(--info-bg)",borderRadius:6,border:"1px solid var(--info-fg)"}}>
+                      <div style={{fontSize:8,fontWeight:800,color:"var(--info-fg)",letterSpacing:"0.08em",marginBottom:6}}>ROUTE CALCULATOR · driving-hgv</div>
+                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 80px",gap:6,marginBottom:6}}>
+                        <div>
+                          <div style={{fontSize:7,fontWeight:700,color:T.textDim,marginBottom:2,letterSpacing:"0.06em"}}>ORIGIN ADDRESS</div>
+                          <input value={cf.origin||""} onChange={e=>setCalcForms(p=>({...p,[d.iso]:{...(p[d.iso]||{}),origin:e.target.value}}))} placeholder="e.g. Aarschot, BE" style={{fontSize:10,padding:"4px 6px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card)",color:T.text,width:"100%",outline:"none",boxSizing:"border-box"}}/>
+                        </div>
+                        <div>
+                          <div style={{fontSize:7,fontWeight:700,color:T.textDim,marginBottom:2,letterSpacing:"0.06em"}}>DESTINATION ADDRESS</div>
+                          <input value={cf.destination||""} onChange={e=>setCalcForms(p=>({...p,[d.iso]:{...(p[d.iso]||{}),destination:e.target.value}}))} placeholder="e.g. Neg Earth, London NW10" style={{fontSize:10,padding:"4px 6px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card)",color:T.text,width:"100%",outline:"none",boxSizing:"border-box"}}/>
+                        </div>
+                        <div>
+                          <div style={{fontSize:7,fontWeight:700,color:T.textDim,marginBottom:2,letterSpacing:"0.06em"}}>DEP TIME</div>
+                          <input type="time" value={cf.depTime||""} onChange={e=>setCalcForms(p=>({...p,[d.iso]:{...(p[d.iso]||{}),depTime:e.target.value}}))} style={{fontFamily:MN,fontSize:10,padding:"3px 6px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card)",color:T.text,width:"100%",outline:"none",boxSizing:"border-box"}}/>
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                        <button onClick={()=>calcRoute(d.iso)} disabled={loading} style={{fontSize:9,padding:"4px 12px",borderRadius:5,border:"none",background:loading?"var(--card-3)":"var(--info-fg)",color:loading?T.textDim:"#fff",cursor:loading?"default":"pointer",fontWeight:700}}>{loading?"Calculating…":"→ Calculate"}</button>
+                        {cr&&!cr.error&&(
+                          <>
+                            <span style={{fontFamily:MN,fontSize:10,fontWeight:800,color:T.text,padding:"2px 7px",borderRadius:99,background:"var(--card)",border:"1px solid var(--border)"}}>{cr.distance_km!=null?`${cr.distance_km} km`:"— km"}</span>
+                            <span style={{fontFamily:MN,fontSize:10,fontWeight:800,color:T.text,padding:"2px 7px",borderRadius:99,background:"var(--card)",border:"1px solid var(--border)"}}>{cr.drive_label||"— drive"}</span>
+                            {cr.eta&&<span style={{fontFamily:MN,fontSize:10,fontWeight:800,color:"var(--success-fg)",padding:"2px 7px",borderRadius:99,background:"var(--success-bg)",border:"1px solid var(--success-fg)"}}>ETA {cr.eta}</span>}
+                            <span style={{fontSize:8,color:T.textMute,fontFamily:MN}}>via {cr.provider}</span>
+                            <button onClick={()=>applyCalc(d.iso)} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"none",background:"var(--success-fg)",color:"#fff",cursor:"pointer",fontWeight:700,marginLeft:"auto"}}>↳ Apply to fields</button>
+                          </>
+                        )}
+                        {cr?.error&&<span style={{fontSize:9,color:"var(--danger-fg)",fontWeight:700}}>{cr.error==="no_routing_provider_configured"?"Set ORS_API_KEY or GOOGLE_MAPS_API_KEY in Vercel env to enable.":cr.error}</span>}
+                      </div>
+                      {cr?.geocoded&&!cr.error&&(
+                        <div style={{marginTop:6,fontSize:8,color:T.textDim,fontFamily:MN}}>📍 {cr.geocoded.origin} → 📍 {cr.geocoded.destination}</div>
+                      )}
+                    </div>
+                  );})()}
                 </div>
               )}
               {isSplit&&isExp&&(
