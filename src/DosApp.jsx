@@ -3500,7 +3500,6 @@ function Dash(){
   const[scanLastAt,setScanLastAt]=useState(null);
   const[todoSort,setTodoSort]=useState("priority");
   const[fuSort,setFuSort]=useState("priority");
-  if(!allShows&&sel)return<DashSingle/>;
   const client=CM[aC];const today=new Date().toISOString().slice(0,10);
   const runIntelScan=async()=>{if(scanning)return;setScanning(true);try{await refreshLabelIntel(true);setScanLastAt(new Date());}finally{setScanning(false);}};
   const upcoming=cShows.filter(s=>s.date>=today).slice(0,10);
@@ -3575,6 +3574,9 @@ function Dash(){
     if(i.suggestion==="action"&&i.suggestedAction)return<button onClick={()=>applySuggestion(i)} title={`${tip} — click to save as note`} style={{fontSize:8,padding:"2px 6px",borderRadius:4,border:"1px solid var(--accent)",background:"var(--accent-pill-bg)",color:T.accent,cursor:"pointer",fontWeight:700,opacity:dim,maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flexShrink:0}}>→ {i.suggestedAction}</button>;
     return null;
   };
+
+  // All hooks above must run unconditionally; route to DashSingle only after.
+  if(!allShows&&sel)return<DashSingle/>;
 
   return(
     <div className="fi" style={{padding:mobile?"10px 10px 24px":"14px 20px 30px",maxWidth:960,flex:1,overflowY:"auto",minHeight:0}}>
