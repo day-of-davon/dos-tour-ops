@@ -1473,7 +1473,40 @@ export default function App(){
           ...(existing.followUps||[]).filter(f=>!newFuTexts.has(f.action)).map(f=>({ts,type:"scan",section:"followup",showId:sid,action:"removed",label:f.action,from:"scan"})),
         ];
         const changelog=[...(p.__changelog||[]).slice(-Math.max(1,499-scanEntries.length)),...scanEntries];
-        const merged2=deduplicateIntel({threads,followUps:ni.followUps||[],showContacts:contacts,schedule:ni.schedule||existing.schedule||[],todos,matches:existing.matches||[],dismissedFlags:existing.dismissedFlags||[],arStatus:existing.arStatus||{},lastRefreshed:new Date().toISOString(),isShared:data.isShared||false,sharedByOthers:data.sharedByOthers||[],_partial:!!ni._partial});
+        // Merge follow-ups by action text — preserve done/ignored marks across scans.
+        // Reopen only when the source thread has new activity AND content has actually
+        // changed (subject diverged, or latest snippet differs from snapshot). Threads
+        // can carry many items; a "thanks!" reply on the same thread shouldn't reopen
+        // an unrelated dismissed action — we require substantive content change.
+        const newFuByAction=new Map((ni.followUps||[]).map(f=>[f.action,f]));
+        const threadFor=tid=>(ni.threads||[]).find(x=>x.tid===tid||x.id===tid)||null;
+        const computeReopenReason=(snap,t)=>{
+          if(!snap?.markedAt||!t)return null;
+          if(!t.date||!snap.markedThreadDate)return null;
+          if(new Date(t.date)<=new Date(snap.markedThreadDate))return null; // no new activity
+          if(snap.markedSubject&&t.subject&&snap.markedSubject!==t.subject)return "subject changed";
+          if(snap.markedSnippet&&t.snippet&&snap.markedSnippet!==t.snippet)return "new reply";
+          return null; // thread date moved but visible content unchanged → likely benign
+        };
+        const mergedFu=(existing.followUps||[]).map(f=>{
+          const fresh=newFuByAction.get(f.action);
+          if(!fresh)return f; // dismissed item that no longer surfaces — keep state as-is
+          const merged={...fresh,done:f.done||false,ignored:f.ignored||false,markedAt:f.markedAt||null,markedThreadDate:f.markedThreadDate||null,markedSnippet:f.markedSnippet||null,markedSubject:f.markedSubject||null,reopened:false,reopenReason:null};
+          if(f.done||f.ignored){
+            const reason=computeReopenReason(f,threadFor(merged.tid));
+            if(reason){merged.reopened=true;merged.reopenReason=reason;}
+          }
+          return merged;
+        });
+        const mergedFuActions=new Set(mergedFu.map(f=>f.action));
+        const finalFu=[...mergedFu,...(ni.followUps||[]).filter(f=>!mergedFuActions.has(f.action))];
+        // Same content-change protocol for todos backed by a Gmail thread.
+        const finalTodos=todos.map(t=>{
+          if(!(t.done||t.ignored)||!t.markedAt||!t.threadTid)return{...t,reopened:t.reopened||false,reopenReason:t.reopenReason||null};
+          const reason=computeReopenReason(t,threadFor(t.threadTid));
+          return reason?{...t,reopened:true,reopenReason:reason}:{...t,reopened:false,reopenReason:null};
+        });
+        const merged2=deduplicateIntel({threads,followUps:finalFu,showContacts:contacts,schedule:ni.schedule||existing.schedule||[],todos:finalTodos,matches:existing.matches||[],dismissedFlags:existing.dismissedFlags||[],arStatus:existing.arStatus||{},lastRefreshed:new Date().toISOString(),isShared:data.isShared||false,sharedByOthers:data.sharedByOthers||[],_partial:!!ni._partial});
         return{...p,__changelog:changelog,[sid]:merged2};
       });
       addActLog({module:"intel",action:"intel.scan.complete",target:{type:"show",id:sid,label:show.venue},payload:{threads:(ni.threads||[]).length,todos:(ni.followUps||[]).length,followUps:(ni.followUps||[]).length,actionRequired:0,durationMs:Date.now()-t0},context:{date:show.date,showId:sid,eventKey:sid}});
@@ -3316,9 +3349,12 @@ function DashSingle(){
 }
 
 function Dash(){
-  const{sorted,cShows,next,setTab,setSel,advances,finance,aC,mobile,intel,setIntel,addLog,addActLog,labelIntel,allShows,sel}=useContext(Ctx);
+  const{sorted,cShows,next,setTab,setSel,advances,finance,aC,mobile,intel,setIntel,addLog,addActLog,labelIntel,allShows,sel,refreshLabelIntel,refreshMsg}=useContext(Ctx);
+  const[scanning,setScanning]=useState(false);
+  const[scanLastAt,setScanLastAt]=useState(null);
   if(!allShows&&sel)return<DashSingle/>;
   const client=CM[aC];const today=new Date().toISOString().slice(0,10);
+  const runIntelScan=async()=>{if(scanning)return;setScanning(true);try{await refreshLabelIntel(true);setScanLastAt(new Date());}finally{setScanning(false);}};
   const upcoming=cShows.filter(s=>s.date>=today).slice(0,10);
   const PORD={CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3};
   const BORD={urgent:0,input:1,standing_by:2,fresh:3,active:4};
@@ -3338,12 +3374,36 @@ function Dash(){
   const urgentItems=useMemo(()=>arItems.filter(i=>i.bucket==="urgent"||i.category==="LEGAL"),[arItems]);
   const logisticsItems=useMemo(()=>(labelIntel?.advanceItems||[]).filter(i=>!arHidden.has(i.id)&&(i.category==="LOGISTICS"||i.category==="ADVANCE")).slice(0,20),[labelIntel,arHidden]);
 
-  const markTodo=(t,state)=>{const sid=showIdFor(t.show);setIntel(p=>({...p,[sid]:{...(p[sid]||{}),todos:(p[sid]?.todos||[]).map(x=>x.id===t.id?{...x,[state]:true}:x)}}));addLog({type:"user",section:"todo",showId:sid,action:state,label:t.text||t.subject,from:"dashboard"});addActLog({module:"intel",action:`intel.todo.${state}`,target:{type:"todo",id:t.id,label:t.text||t.subject},payload:{priority:t.priority,showId:sid},context:{date:t.show?.date||null,showId:sid,eventKey:sid}});};
-  const markFollowUp=(f,state)=>{const sid=showIdFor(f.show);setIntel(p=>{const fu=p[sid]?.followUps||[];const idx=fu.findIndex(x=>x.action===f.action&&(x.tid===f.tid||x.owner===f.owner||x.priority===f.priority));if(idx<0)return p;return{...p,[sid]:{...(p[sid]||{}),followUps:fu.map((x,j)=>j===idx?{...x,[state]:true}:x)}};});addLog({type:"user",section:"followup",showId:sid,action:state,label:f.action,from:"dashboard"});addActLog({module:"intel",action:`intel.followup.${state}`,target:{type:"followup",id:f.tid||null,label:f.action},payload:{priority:f.priority,owner:f.owner||null,showId:sid},context:{date:f.show?.date||null,showId:sid,eventKey:sid}});};
-  const markAr=(id,state,label)=>{setIntel(p=>{const prev=p.__arState||{};const next=state==="undone"?{...prev,done:(prev.done||[]).filter(x=>x!==id)}:{...prev,[state]:[...new Set([...(prev[state]||[]),id])]};return{...p,__arState:next};});addLog({type:"user",section:"ar",showId:null,action:state,label:label||id,from:"dashboard"});addActLog({module:"intel",action:`intel.ar.${state}`,target:{type:"ar_item",id,label:label||id},payload:{},context:{date:null,showId:null,eventKey:null}});};
+  // Snapshot what was visible in the source thread at dismissal time so future
+  // scans can detect actual content change, not just any new reply on the thread.
+  const threadSnapshotFor=(sid,tid)=>{if(!sid||!tid)return{};const t=(intel[sid]?.threads||[]).find(x=>x.tid===tid||x.id===tid);return t?{markedThreadDate:t.date||null,markedSnippet:t.snippet||null,markedSubject:t.subject||null}:{};};
+  const markTodo=(t,state)=>{const sid=showIdFor(t.show);const at=new Date().toISOString();const snap=threadSnapshotFor(sid,t.threadTid);setIntel(p=>({...p,[sid]:{...(p[sid]||{}),todos:(p[sid]?.todos||[]).map(x=>x.id===t.id?{...x,[state]:true,markedAt:at,...snap,reopened:false,reopenReason:null}:x)}}));addLog({type:"user",section:"todo",showId:sid,action:state,label:t.text||t.subject,from:"dashboard"});addActLog({module:"intel",action:`intel.todo.${state}`,target:{type:"todo",id:t.id,label:t.text||t.subject},payload:{priority:t.priority,showId:sid},context:{date:t.show?.date||null,showId:sid,eventKey:sid}});};
+  const markFollowUp=(f,state)=>{const sid=showIdFor(f.show);const at=new Date().toISOString();const snap=threadSnapshotFor(sid,f.tid);setIntel(p=>{const fu=p[sid]?.followUps||[];const idx=fu.findIndex(x=>x.action===f.action&&(x.tid===f.tid||x.owner===f.owner||x.priority===f.priority));if(idx<0)return p;return{...p,[sid]:{...(p[sid]||{}),followUps:fu.map((x,j)=>j===idx?{...x,[state]:true,markedAt:at,...snap,reopened:false,reopenReason:null}:x)}};});addLog({type:"user",section:"followup",showId:sid,action:state,label:f.action,from:"dashboard"});addActLog({module:"intel",action:`intel.followup.${state}`,target:{type:"followup",id:f.tid||null,label:f.action},payload:{priority:f.priority,owner:f.owner||null,showId:sid},context:{date:f.show?.date||null,showId:sid,eventKey:sid}});};
+  // markAr now accepts the full item so we can snapshot subject/snippet/bucket
+  // alongside the thread date — required by the content-change reopen protocol.
+  const markAr=(id,state,label,item)=>{const at=new Date().toISOString();setIntel(p=>{const prev=p.__arState||{};let next;if(state==="undone"){const snap={...(prev.snap||{})};delete snap[id];next={...prev,done:(prev.done||[]).filter(x=>x!==id),ignored:(prev.ignored||[]).filter(x=>x!==id),snap};}else{const snap={...(prev.snap||{}),[id]:{at,threadDate:item?.date||null,snippet:item?.snippet||null,subject:item?.subject||null,bucket:item?.bucket||null,state}};next={...prev,[state]:[...new Set([...(prev[state]||[]),id])],snap};}return{...p,__arState:next};});addLog({type:"user",section:"ar",showId:null,action:state,label:label||id,from:"dashboard"});addActLog({module:"intel",action:`intel.ar.${state}`,target:{type:"ar_item",id,label:label||id},payload:{},context:{date:null,showId:null,eventKey:null}});};
+
+  // Reopen reason for AR items: bucket escalation, subject change, or snippet
+  // change. Mere thread-date forward motion no longer triggers reopen.
+  const arSnap=intel.__arState?.snap||{};
+  const BUCKET_ORDER={urgent:0,input:1,standing_by:2,fresh:3,active:4};
+  const arReopenedItems=useMemo(()=>(labelIntel?.actionRequired||[]).map(i=>{
+    const s=arSnap[i.id];
+    if(!s||!i.date||!s.threadDate)return null;
+    if(new Date(i.date)<=new Date(s.threadDate))return null; // no new activity
+    let reason=null;
+    if(s.bucket&&i.bucket&&s.bucket!==i.bucket&&(BUCKET_ORDER[i.bucket]??5)<(BUCKET_ORDER[s.bucket]??5))reason=`escalated · ${s.bucket} → ${i.bucket}`;
+    if(!reason&&s.subject&&i.subject&&s.subject!==i.subject)reason="subject changed";
+    if(!reason&&s.snippet&&i.snippet&&s.snippet!==i.snippet)reason="new reply";
+    if(!reason)return null; // thread bumped but visible content unchanged — skip
+    return{...i,reopenReason:reason,priorState:s.state};
+  }).filter(Boolean),[labelIntel,arSnap]);
+  const arReopenedIds=useMemo(()=>new Set(arReopenedItems.map(i=>i.id)),[arReopenedItems]);
+  const allFollowUpsReopened=useMemo(()=>cShows.flatMap(s=>{const sid=showIdFor(s);return(intel[sid]?.followUps||[]).filter(f=>(f.done||f.ignored)&&f.reopened).map(f=>({...f,show:s}));}),[cShows,intel]);
+  const allTodosReopened=useMemo(()=>cShows.flatMap(s=>{const sid=showIdFor(s);return(intel[sid]?.todos||[]).filter(t=>(t.done||t.ignored)&&t.reopened).map(t=>({...t,show:s}));}),[cShows,intel]);
 
   const settlementHidden=useMemo(()=>new Set([...(intel.__settlementState?.done||[]),...(intel.__settlementState?.ignored||[])]),[intel.__settlementState]);
-  const markSettlement=(date,state)=>{setIntel(p=>{const prev=p.__settlementState||{};return{...p,__settlementState:{...prev,[state]:[...new Set([...(prev[state]||[]),date])]}};});addLog({type:"user",section:"settlement",showId:date,action:state,from:"dashboard"});};
+  const markSettlement=(date,state)=>{const at=new Date().toISOString();setIntel(p=>{const prev=p.__settlementState||{};const snap={...(prev.snap||{}),[date]:{at,state}};return{...p,__settlementState:{...prev,[state]:[...new Set([...(prev[state]||[]),date])],snap}};});addLog({type:"user",section:"settlement",showId:date,action:state,from:"dashboard"});};
   const updateSettlementNote=(date,note)=>{setIntel(p=>({...p,__settlementNotes:{...(p.__settlementNotes||{}),[date]:note}}));};
   const updateTodoNote=(t,note)=>{const sid=showIdFor(t.show);setIntel(p=>({...p,[sid]:{...(p[sid]||{}),todoNotes:{...(p[sid]?.todoNotes||{}),[t.id]:note}}}));};
 
@@ -3353,10 +3413,17 @@ function Dash(){
   return(
     <div className="fi" style={{padding:mobile?"10px 10px 24px":"14px 20px 30px",maxWidth:960,flex:1,overflowY:"auto",minHeight:0}}>
       {flags.slice(0,4).map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",background:f.type==="CRITICAL"?"var(--danger-bg)":"var(--warn-bg)",borderRadius:10,marginBottom:4,borderLeft:`3px solid ${f.type==="CRITICAL"?"var(--danger-fg)":"var(--warn-fg)"}`}}><span style={{fontSize:9,fontWeight:800,color:f.type==="CRITICAL"?"var(--danger-fg)":"var(--warn-fg)",fontFamily:MN}}>{f.type}</span><span style={{fontSize:11,color:T.text,fontWeight:600,flex:1}}>{f.msg}</span>{CM[f.cId]&&<span style={{fontSize:8,color:T.textDim,fontFamily:MN,flexShrink:0}}>{CM[f.cId].short}</span>}{f.days!=null&&<span style={{fontSize:10,fontFamily:MN,fontWeight:800,color:f.type==="CRITICAL"?"var(--danger-fg)":"var(--warn-fg)",flexShrink:0}}>{f.days}d</span>}</div>)}
-      {(()=>{const unsettledCount=(cShows||[]).filter(s=>s.date<today&&!isFullySettled(s.date)).length;const nextBus=next?BUS_DATA_MAP[next.date]?.dep:null;return(
-      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:10,margin:"10px 0 12px"}}>
+      {(()=>{const unsettledCount=(cShows||[]).filter(s=>s.date<today&&!isFullySettled(s.date)).length;const nextBus=next?BUS_DATA_MAP[next.date]?.dep:null;return(<>
+      <div style={{display:"flex",alignItems:"center",gap:8,margin:"10px 0 6px"}}>
+        <span style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em"}}>{client.name.toUpperCase()} OVERVIEW</span>
+        <span style={{flex:1}}/>
+        {scanLastAt&&!scanning&&<span style={{fontSize:9,color:T.textMute,fontFamily:MN}}>scanned {scanLastAt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
+        {scanning&&refreshMsg&&<span style={{fontSize:9,color:T.accent,fontFamily:MN}}>{refreshMsg}</span>}
+        <button onClick={runIntelScan} disabled={scanning} title={`Scan all Gmail threads labeled for ${client.name} across ${cShows.length} shows`} style={{fontSize:10,padding:"4px 11px",borderRadius:6,border:"none",background:scanning?"var(--border)":"var(--accent)",color:scanning?"var(--text-dim)":"var(--card)",cursor:scanning?"default":"pointer",fontWeight:700,whiteSpace:"nowrap"}}>{scanning?"Scanning…":"↻ Scan Intel"}</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:10,margin:"0 0 12px"}}>
         {[{l:"Next Show",v:next?.city||"--",s:next?nextBus?`${dU(next.date)}d · BUS ${nextBus}`:`${dU(next.date)}d`:"",c:client.color},{l:`${client.name} Shows`,v:cShows.length,s:"total",c:"var(--text)"},{l:"Open Advances",v:upcoming.filter(s=>pendingCount(s.date)>0).length,s:"shows w/ pending",c:upcoming.filter(s=>pendingCount(s.date)>0).length>0?"var(--warn-fg)":"var(--text-mute)"},{l:"Open To-Dos",v:allTodos.length,s:"private",c:allTodos.length>0?"var(--warn-fg)":"var(--text-mute)"},{l:"Follow-Ups",v:allFollowUps.length,s:"across shows",c:allFollowUps.length>0?"var(--link)":"var(--text-mute)"},{l:"Unsettled",v:unsettledCount,s:"past shows",c:unsettledCount>2?"var(--danger-fg)":unsettledCount>0?"var(--warn-fg)":"var(--text-mute)"}].map((s,i)=><div key={i} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}><div style={{fontSize:9,color:T.textDim,marginBottom:2,fontWeight:600}}>{s.l}</div><div style={{fontSize:20,fontWeight:800,color:s.c,fontFamily:MN}}>{s.v}</div><div style={{fontSize:9,color:T.textMute,fontFamily:MN,marginTop:1}}>{s.s}</div></div>)}
-      </div>);})()}
+      </div></>);})()}
       {(()=>{const pastShows=(cShows||[]).filter(s=>s.date<today&&!settlementHidden.has(s.date)).slice(-6);if(!pastShows.length)return null;return(
       <div style={{marginBottom:12}}>
         <div style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:5}}>SETTLEMENT PIPELINE</div>
@@ -3380,8 +3447,41 @@ function Dash(){
           );})}
         </div>
       </div>);})()}
+      {(arReopenedItems.length>0||allFollowUpsReopened.length>0||allTodosReopened.length>0)&&(
+        <div style={{marginBottom:10}}>
+          <div style={{fontSize:9,fontWeight:800,color:"var(--warn-fg)",letterSpacing:"0.1em",marginBottom:5,display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:8,padding:"2px 6px",borderRadius:4,background:"var(--warn-bg)",color:"var(--warn-fg)",fontWeight:800}}>REOPENED</span>
+            <span>CONTENT CHANGED SINCE YOU DISMISSED — {arReopenedItems.length+allFollowUpsReopened.length+allTodosReopened.length}</span>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:3}}>
+            {arReopenedItems.slice(0,5).map(i=><div key={"ar_"+i.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"6px 12px",background:"var(--warn-bg)",borderRadius:8,borderLeft:"3px solid var(--warn-fg)"}}>
+              <span style={{fontSize:8,fontWeight:800,color:"var(--warn-fg)",fontFamily:MN,flexShrink:0,marginTop:1}}>AR · {i.category||""}</span>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,fontWeight:600,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:T.textDim}}>{i.from}{arShowLabel(i)?` · ${arShowLabel(i)}`:""}</div></div>
+              <span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"var(--card-2)",color:T.warnFg,fontWeight:700,flexShrink:0,fontFamily:MN}} title={`Originally ${i.priorState}; reopened because ${i.reopenReason}`}>{i.reopenReason}</span>
+              <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--warn-fg)",color:"#fff",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>email →</a>
+              <button onClick={()=>markAr(i.id,"undone",i.subject)} style={BTN_DONE}>Re-open</button>
+              <button onClick={()=>markAr(i.id,i.priorState||"done",i.subject,i)} style={BTN_IGN}>Re-dismiss</button>
+            </div>)}
+            {allFollowUpsReopened.slice(0,5).map((f,idx)=>{const sid=showIdFor(f.show);const priorState=f.done?"done":"ignored";return(<div key={"fu_"+sid+"_"+idx} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"6px 12px",background:"var(--warn-bg)",borderRadius:8,borderLeft:"3px solid var(--warn-fg)"}}>
+              <span style={{fontSize:8,fontWeight:800,color:"var(--warn-fg)",fontFamily:MN,flexShrink:0,marginTop:1}}>FU · {f.priority||""}</span>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,fontWeight:600,color:T.text}}>{f.action}</div><div style={{fontSize:9,color:T.textDim}}>{f.show?.city} {fD(f.show?.date)}{f.owner?` · ${f.owner}`:""}</div></div>
+              <span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"var(--card-2)",color:T.warnFg,fontWeight:700,flexShrink:0,fontFamily:MN}} title={`Originally ${priorState}; reopened because ${f.reopenReason}`}>{f.reopenReason}</span>
+              {f.tid&&<a href={gmailUrl(f.tid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--warn-fg)",color:"#fff",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>email →</a>}
+              <button onClick={()=>setIntel(p=>({...p,[sid]:{...(p[sid]||{}),followUps:(p[sid]?.followUps||[]).map(x=>x.action===f.action?{...x,done:false,ignored:false,reopened:false,reopenReason:null,markedAt:null}:x)}}))} style={BTN_DONE}>Re-open</button>
+              <button onClick={()=>markFollowUp(f,priorState)} style={BTN_IGN}>Re-dismiss</button>
+            </div>);})}
+            {allTodosReopened.slice(0,5).map(t=>{const sid=showIdFor(t.show);const priorState=t.done?"done":"ignored";return(<div key={"td_"+t.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"6px 12px",background:"var(--warn-bg)",borderRadius:8,borderLeft:"3px solid var(--warn-fg)"}}>
+              <span style={{fontSize:8,fontWeight:800,color:"var(--warn-fg)",fontFamily:MN,flexShrink:0,marginTop:1}}>TODO · {t.priority||""}</span>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,fontWeight:600,color:T.text}}>{t.text}</div><div style={{fontSize:9,color:T.textDim}}>{t.show?.city} {fD(t.show?.date)}</div></div>
+              <span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:"var(--card-2)",color:T.warnFg,fontWeight:700,flexShrink:0,fontFamily:MN}} title={`Originally ${priorState}; reopened because ${t.reopenReason}`}>{t.reopenReason}</span>
+              <button onClick={()=>setIntel(p=>({...p,[sid]:{...(p[sid]||{}),todos:(p[sid]?.todos||[]).map(x=>x.id===t.id?{...x,done:false,ignored:false,reopened:false,reopenReason:null,markedAt:null}:x)}}))} style={BTN_DONE}>Re-open</button>
+              <button onClick={()=>markTodo(t,priorState)} style={BTN_IGN}>Re-dismiss</button>
+            </div>);})}
+          </div>
+        </div>
+      )}
       {urgentItems.length>0&&<div style={{marginBottom:10,display:"flex",flexDirection:"column",gap:3}}>
-        {urgentItems.slice(0,4).map(i=><div key={i.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"7px 12px",background:"var(--danger-bg)",borderRadius:10,borderLeft:"3px solid var(--danger-fg)"}}>
+        {urgentItems.filter(i=>!arReopenedIds.has(i.id)).slice(0,4).map(i=><div key={i.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"7px 12px",background:"var(--danger-bg)",borderRadius:10,borderLeft:"3px solid var(--danger-fg)"}}>
           <span style={{fontSize:9,fontWeight:800,color:"var(--danger-fg)",fontFamily:MN,flexShrink:0,marginTop:1}}>{i.category}</span>
           <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,fontWeight:600,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:T.textDim}}>{i.from}{arShowLabel(i)?` · ${arShowLabel(i)}`:""}</div></div>
           <span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:bucketB(i.bucket),color:bucketC(i.bucket),fontWeight:700,flexShrink:0}}>{i.bucket}</span>
@@ -3486,8 +3586,8 @@ function Dash(){
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:T.textDim}}>{i.from}{arShowLabel(i)?` · ${arShowLabel(i)}`:""}</div></div>
               <span style={{fontSize:8,color:T.textMute,fontFamily:MN,flexShrink:0,paddingTop:2}}>{i.category}</span>
               <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:T.link,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>email →</a>
-              <button onClick={()=>markAr(i.id,"done",i.subject)} style={BTN_DONE}>Done</button>
-              <button onClick={()=>markAr(i.id,"ignored",i.subject)} style={BTN_IGN}>Ignore</button>
+              <button onClick={()=>markAr(i.id,"done",i.subject,i)} style={BTN_DONE}>Done</button>
+              <button onClick={()=>markAr(i.id,"ignored",i.subject,i)} style={BTN_IGN}>Ignore</button>
             </div>)}
           </div>
         </div>}
@@ -3498,8 +3598,8 @@ function Dash(){
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:"var(--info-bg)",color:T.link,fontWeight:700,flexShrink:0,marginTop:1}}>{i.category}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:T.textDim}}>{i.from}</div></div>
               <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:T.link,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>email →</a>
-              <button onClick={()=>markAr(i.id,"done",i.subject)} style={BTN_DONE}>Done</button>
-              <button onClick={()=>markAr(i.id,"ignored",i.subject)} style={BTN_IGN}>Ignore</button>
+              <button onClick={()=>markAr(i.id,"done",i.subject,i)} style={BTN_DONE}>Done</button>
+              <button onClick={()=>markAr(i.id,"ignored",i.subject,i)} style={BTN_IGN}>Ignore</button>
             </div>)}
           </div>
         </div>}
@@ -6914,7 +7014,7 @@ function CrewAllShows(){
 }
 
 function CrewTab(){
-  const{sel,setSel,shows,tourDaysSorted,tourDays,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights,lodging,setTab,currentSplit,activeSplitPartyId,activeSplitParty,eventKey,allShows}=useContext(Ctx);
+  const{sel,setSel,shows,tourDaysSorted,tourDays,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights,lodging,setTab,currentSplit,activeSplitPartyId,activeSplitParty,eventKey,allShows,sorted}=useContext(Ctx);
   if(allShows)return<CrewAllShows/>;
   const[panel,setPanel]=useState(null);
   const[editMode,setEditMode]=useState(false);
@@ -6960,28 +7060,51 @@ function CrewTab(){
   const removeMember=(id)=>{const prev=crew;setCrew(p=>p.filter(c=>c.id!==id));pushUndo("Crew member removed.",()=>setCrew(prev));};
 
   const confirmedFlights=useMemo(()=>Object.values(flights||{}).filter(f=>f&&f.status==="confirmed"),[flights]);
+  // Suggest flights for the current date. Two match modes:
+  //   1. Show match — endpoint resolves to a show on `sel` via the IATA→city
+  //      table + temporal window (preferred when `sel` is a show date).
+  //   2. Travel-day match — flight's depDate/arrDate equals `sel`. Catches
+  //      multi-leg legs that don't terminate at the show city (e.g. the
+  //      LAX→JFK leg of LAX→JFK→DUB on its 5/2 departure day, when 5/2
+  //      isn't a show and so has no airport-resolved match).
+  // Either way, results dedupe by itinerary key so a multi-leg booking shows
+  // up as a single row that expands to the full chain on render and on assign.
   const flightsForDir=(dir)=>{
-    if(dir==="inbound") return confirmedFlights.filter(f=>f.arrDate===sel);
-    return confirmedFlights.filter(f=>f.depDate===sel);
+    const matched=confirmedFlights.filter(f=>{
+      if(dir==="inbound"){
+        if(matchShowByAirport(f.to,f.toCity,f.arrDate||f.depDate,sorted||[],"inbound")?.date===sel)return true;
+        return(f.arrDate||f.depDate)===sel;
+      }
+      if(matchShowByAirport(f.from,f.fromCity,f.depDate,sorted||[],"outbound")?.date===sel)return true;
+      return f.depDate===sel;
+    });
+    const byItin=new Map();
+    matched.forEach(f=>{const k=flightItinKey(f);if(!byItin.has(k))byItin.set(k,f);});
+    const rep=[...byItin.values()];
+    return rep.sort((a,b)=>{
+      const aLegs=findItineraryLegs(a,flights),bLegs=findItineraryLegs(b,flights);
+      const aD=dir==="inbound"?(aLegs[aLegs.length-1]?.arrDate||a.arrDate||a.depDate||""):(aLegs[0]?.depDate||a.depDate||"");
+      const bD=dir==="inbound"?(bLegs[bLegs.length-1]?.arrDate||b.arrDate||b.depDate||""):(bLegs[0]?.depDate||b.depDate||"");
+      const aT=dir==="inbound"?(aLegs[aLegs.length-1]?.arr||a.arr||""):(aLegs[0]?.dep||a.dep||"");
+      const bT=dir==="inbound"?(bLegs[bLegs.length-1]?.arr||b.arr||""):(bLegs[0]?.dep||b.dep||"");
+      return aD.localeCompare(bD)||aT.localeCompare(bT);
+    });
   };
-  const outboundNearby=useMemo(()=>{
-    const d1=new Date(sel+"T12:00:00");d1.setDate(d1.getDate()+1);
-    const d5=new Date(sel+"T12:00:00");d5.setDate(d5.getDate()+5);
-    const d1s=d1.toISOString().slice(0,10),d5s=d5.toISOString().slice(0,10);
-    return confirmedFlights.filter(f=>f.depDate&&f.depDate>=d1s&&f.depDate<=d5s)
-      .sort((a,b)=>a.depDate<b.depDate?-1:1);
-  },[confirmedFlights,sel]);
   const assignFlight=(crewId,dir,f)=>{
-    const leg={id:`leg_${f.id}`,flight:f.flightNo||"",carrier:f.carrier||"",from:f.from,fromCity:f.fromCity||f.from,to:f.to,toCity:f.toCity||f.to,depart:f.dep,arrive:f.arr,conf:f.confirmNo||f.bookingRef||"",status:"confirmed",flightId:f.id};
+    const allLegs=findItineraryLegs(f,flights);
+    const legs=allLegs.length?allLegs:[f];
+    const firstLeg=legs[0],lastLeg=legs[legs.length-1];
+    const allLegObjs=legs.map(flightToLeg);
+    const flightIds=new Set(allLegObjs.map(l=>l.flightId));
     const confKey=dir==="inbound"?"inboundConfirmed":"outboundConfirmed";
     const dateKey=dir==="inbound"?"inboundDate":"outboundDate";
     const timeKey=dir==="inbound"?"inboundTime":"outboundTime";
-    const timeVal=dir==="inbound"?f.arr:f.dep;
-    const dateVal=dir==="inbound"?(f.arrDate||sel):f.depDate;
+    const timeVal=dir==="inbound"?(lastLeg.arr||""):(firstLeg.dep||"");
+    const dateVal=dir==="inbound"?(lastLeg.arrDate||lastLeg.depDate||sel):(firstLeg.depDate||sel);
     setShowCrew(p=>{
       const cur=p[scKey]?.[crewId]||{};
-      const ex=(cur[dir]||[]).filter(l=>l.flightId!==f.id);
-      return{...p,[scKey]:{...p[scKey],[crewId]:{...cur,attending:true,inboundMode:dir==="inbound"?cur.inboundMode||"fly":cur.inboundMode,outboundMode:dir==="outbound"?cur.outboundMode||"fly":cur.outboundMode,[dir]:[...ex,leg],[confKey]:true,[dateKey]:dateVal,[timeKey]:timeVal||""}}};
+      const ex=(cur[dir]||[]).filter(l=>!flightIds.has(l.flightId));
+      return{...p,[scKey]:{...p[scKey],[crewId]:{...cur,attending:true,inboundMode:dir==="inbound"?cur.inboundMode||"fly":cur.inboundMode,outboundMode:dir==="outbound"?cur.outboundMode||"fly":cur.outboundMode,[dir]:[...ex,...allLegObjs],[confKey]:true,[dateKey]:dateVal,[timeKey]:timeVal}}};
     });
     setFlightPicker(null);
   };
@@ -7213,32 +7336,39 @@ function CrewTab(){
                                   <button onClick={()=>setFlightPicker(null)} style={{background:"none",border:"none",cursor:"pointer",color:T.textMute,fontSize:13,padding:0,lineHeight:1}}>×</button>
                                 </div>
                                 {(()=>{
-                                  const exact=flightsForDir(dir);
-                                  const nearby=dir==="outbound"?outboundNearby:[];
-                                  const renderRow=(f,badge)=>{const alreadyAssigned=(cd[dir]||[]).some(l=>l.flightId===f.id);return(
-                                    <div key={f.id} onClick={()=>!alreadyAssigned&&assignFlight(c.id,dir,f)} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderBottom:"1px solid var(--card-3)",cursor:alreadyAssigned?"default":"pointer",background:alreadyAssigned?"var(--card-3)":"var(--card)",opacity:alreadyAssigned?0.6:1,flexWrap:"wrap"}} className="rh">
-                                      <span style={{fontFamily:MN,fontSize:12,fontWeight:800,color:T.link,flexShrink:0}}>{f.from}<span style={{fontSize:9,color:T.textMute,fontWeight:400,padding:"0 4px"}}>→</span>{f.to}</span>
-                                      <span style={{fontSize:10,fontWeight:700,color:T.text,flexShrink:0}}>{f.flightNo||f.carrier}</span>
-                                      {f.carrier&&f.flightNo&&<span style={{fontSize:9,color:T.textDim,flexShrink:0}}>{f.carrier}</span>}
-                                      <span style={{fontFamily:MN,fontSize:9,color:T.text2,flexShrink:0}}>{f.dep}{f.arr?`–${f.arr}`:""}</span>
-                                      {(f.fromCity||f.toCity)&&<span style={{fontSize:9,color:T.textMute,flexShrink:0}}>{f.fromCity||f.from} → {f.toCity||f.to}</span>}
-                                      {f.depDate!==sel&&<span style={{fontFamily:MN,fontSize:8,color:T.textMute,flexShrink:0}}>{fD(f.depDate)}</span>}
-                                      {f.pnr&&<span style={{fontFamily:MN,fontSize:8,fontWeight:700,color:T.text2,flexShrink:0}}>{f.pnr}</span>}
-                                      {f.fareClass&&<span style={{fontSize:8,color:T.textMute,textTransform:"capitalize",flexShrink:0}}>{f.fareClass}</span>}
-                                      {f.pax?.length>0&&<span style={{fontSize:8,color:T.textMute,flexShrink:0}}>{f.pax.length} pax</span>}
-                                      <span style={{flex:1}}/>
-                                      {badge&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--warn-bg)",color:T.warnFg,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>{badge}</span>}
-                                      {alreadyAssigned?<span style={{fontSize:8,color:T.successFg,fontWeight:700,flexShrink:0}}>✓ Assigned</span>:<span style={{fontSize:9,color:T.accent,fontWeight:700,flexShrink:0}}>Assign →</span>}
-                                    </div>
-                                  );};
-                                  if(exact.length===0&&nearby.length===0)return <div style={{padding:"12px 10px",fontSize:10,color:T.textMute,textAlign:"center"}}>No confirmed {dir==="inbound"?"arrivals":"departures"} on {fD(sel)}.<br/><span style={{fontSize:9}}>Scan Gmail for flights in Transport tab.</span></div>;
-                                  return(<>
-                                    {exact.map(f=>renderRow(f,null))}
-                                    {nearby.length>0&&<>
-                                      <div style={{padding:"4px 10px",fontSize:8,fontWeight:800,letterSpacing:"0.07em",color:T.textMute,background:"var(--card-2)",borderTop:exact.length?"1px solid var(--border)":"none"}}>UPCOMING DEPARTURES</div>
-                                      {nearby.map(f=>renderRow(f,`D+${Math.round((new Date(f.depDate+"T12:00:00")-new Date(sel+"T12:00:00"))/86400000)}`))}
-                                    </>}
-                                  </>);
+                                  const matches=flightsForDir(dir);
+                                  if(matches.length===0)return <div style={{padding:"12px 10px",fontSize:10,color:T.textMute,textAlign:"center"}}>No confirmed flights match {show?.city||fD(sel)} for {dir}.<br/><span style={{fontSize:9}}>Scan Gmail for flights in Transport tab.</span></div>;
+                                  return matches.map(f=>{
+                                    const allLegs=findItineraryLegs(f,flights);
+                                    const legs=allLegs.length?allLegs:[f];
+                                    const firstLeg=legs[0],lastLeg=legs[legs.length-1];
+                                    const isMulti=legs.length>1;
+                                    const chain=[firstLeg.from,...legs.map(l=>l.to)].filter(Boolean);
+                                    const flightIds=new Set(legs.map(l=>l.id));
+                                    const alreadyAssigned=(cd[dir]||[]).some(l=>flightIds.has(l.flightId));
+                                    const anchorDate=dir==="inbound"?(lastLeg.arrDate||lastLeg.depDate):firstLeg.depDate;
+                                    const delta=anchorDate?Math.round((new Date(anchorDate+"T12:00:00")-new Date(sel+"T12:00:00"))/86400000):0;
+                                    const badge=delta===0?null:(delta>0?`+${delta}d`:`${delta}d`);
+                                    const carriers=[...new Set(legs.map(l=>l.carrier).filter(Boolean))];
+                                    const flightNos=legs.map(l=>l.flightNo).filter(Boolean).join(" · ");
+                                    const conf=firstLeg.confirmNo||firstLeg.bookingRef||firstLeg.pnr||"";
+                                    const paxCount=Math.max(...legs.map(l=>l.pax?.length||0),0);
+                                    return(
+                                      <div key={f.id} onClick={()=>!alreadyAssigned&&assignFlight(c.id,dir,f)} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderBottom:"1px solid var(--card-3)",cursor:alreadyAssigned?"default":"pointer",background:alreadyAssigned?"var(--card-3)":"var(--card)",opacity:alreadyAssigned?0.6:1,flexWrap:"wrap"}} className="rh">
+                                        <span style={{fontFamily:MN,fontSize:12,fontWeight:800,color:T.link,flexShrink:0}}>{chain.map((c,i)=>(<React.Fragment key={i}>{c}{i<chain.length-1&&<span style={{fontSize:9,color:T.textMute,fontWeight:400,padding:"0 4px"}}>→</span>}</React.Fragment>))}</span>
+                                        {isMulti&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--accent-pill-bg)",color:T.accent,fontWeight:700,letterSpacing:"0.04em",flexShrink:0}}>{legs.length} LEGS</span>}
+                                        {flightNos&&<span style={{fontSize:10,fontWeight:700,color:T.text,flexShrink:0}}>{flightNos}</span>}
+                                        {carriers.length>0&&<span style={{fontSize:9,color:T.textDim,flexShrink:0}}>{carriers.join(" / ")}</span>}
+                                        <span style={{fontFamily:MN,fontSize:9,color:T.text2,flexShrink:0}}>{firstLeg.dep||""}{lastLeg.arr?`–${lastLeg.arr}`:""}</span>
+                                        {(firstLeg.fromCity||lastLeg.toCity)&&<span style={{fontSize:9,color:T.textMute,flexShrink:0}}>{firstLeg.fromCity||firstLeg.from} → {lastLeg.toCity||lastLeg.to}</span>}
+                                        {conf&&<span style={{fontFamily:MN,fontSize:8,fontWeight:700,color:T.text2,flexShrink:0}}>{conf}</span>}
+                                        {paxCount>0&&<span style={{fontSize:8,color:T.textMute,flexShrink:0}}>{paxCount} pax</span>}
+                                        <span style={{flex:1}}/>
+                                        {badge&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--warn-bg)",color:T.warnFg,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>{badge}</span>}
+                                        {alreadyAssigned?<span style={{fontSize:8,color:T.successFg,fontWeight:700,flexShrink:0}}>✓ Assigned</span>:<span style={{fontSize:9,color:T.accent,fontWeight:700,flexShrink:0}}>Assign →</span>}
+                                      </div>
+                                    );
+                                  });
                                 })()}
                                 <div style={{padding:"6px 10px",borderTop:"1px solid var(--border)",background:"var(--card-3)"}}>
                                   <button onClick={()=>addLeg(c.id,dir)} style={{...btn("var(--text-dim)"),fontSize:8,padding:"2px 8px"}}>+ Enter manually</button>
