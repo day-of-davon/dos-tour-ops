@@ -247,23 +247,26 @@ async function classifyActionItems(items, threadPool) {
     return { id: it.id, subject: (it.subject || "").slice(0, 140), from: (it.from || "").slice(0, 80), category: it.category, bucket: it.bucket, signal: it.signal, date: it.date, body };
   });
 
-  const sysPrompt = `You triage tour-ops emails for an artist's tour manager. For each item, decide whether it still needs human action.
+  const sysPrompt = `You triage tour-ops emails for an artist's tour manager. For each item, classify and respond as compact JSON.
 
-Output exactly one classification per item:
-- "complete": the request was already answered / fulfilled / the deadline passed and is moot. Last reply in thread came from us OR the email confirms a closed loop.
-- "ignore": low-value, transactional, auto-reply, or duplicate of another live thread. No real action needed and no follow-up risk.
-- "action": still open. Provide a short imperative suggestedAction (<=80 chars), e.g. "Reply to confirm doors at 7pm", "Send signed carnet to Freya", "Forward W-9 to promoter".
+Classifications:
+- "complete": already resolved / answered / deadline moot
+- "ignore": auto-reply, transactional noise, duplicate
+- "action": still open — needs human attention
 
-Be conservative on LEGAL and FINANCE categories — default to "action" unless clearly resolved.
-Be aggressive on MISC auto-replies and bounce notifications — those are usually "ignore".
+Be conservative on LEGAL and FINANCE — default to "action" unless clearly resolved.
+Be aggressive on MISC auto-replies and bounces — usually "ignore".
 
-Confidence: "high" if you're certain; "medium" if context is ambiguous; "low" if you're guessing.`;
+Output rules (strict, to fit token budget):
+- suggestedAction: <=10 words, imperative, only when suggestion="action", else null
+- reason: <=8 words
+- confidence: "high" | "medium" | "low"`;
 
   const userPrompt = `Items:
 ${JSON.stringify(list)}
 
-Return this exact JSON, one entry per item:
-{"suggestions":[{"id":"<id>","suggestion":"complete|ignore|action","suggestedAction":"<short string or null>","confidence":"high|medium|low","reason":"<brief why, <=80 chars>"}]}`;
+Return JSON ONLY (no markdown fences), one entry per item:
+{"suggestions":[{"id":"<id>","suggestion":"complete|ignore|action","suggestedAction":"<=10 words or null>","confidence":"high|medium|low","reason":"<=8 words"}]}`;
 
   try {
     const FAST_MODEL = process.env.ANTHROPIC_MODEL_FAST || "claude-haiku-4-5";
@@ -271,7 +274,7 @@ Return this exact JSON, one entry per item:
       method: "POST", headers: ANTHROPIC_HEADERS,
       body: JSON.stringify({
         model: FAST_MODEL,
-        max_tokens: 3000,
+        max_tokens: 8000,
         system: [{ type: "text", text: sysPrompt, cache_control: { type: "ephemeral" } }],
         messages: [{ role: "user", content: userPrompt }],
       }),
