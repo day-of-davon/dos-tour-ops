@@ -266,15 +266,17 @@ Return this exact JSON, one entry per item:
 {"suggestions":[{"id":"<id>","suggestion":"complete|ignore|action","suggestedAction":"<short string or null>","confidence":"high|medium|low","reason":"<brief why, <=80 chars>"}]}`;
 
   try {
+    const FAST_MODEL = process.env.ANTHROPIC_MODEL_FAST || "claude-haiku-4-5";
     const resp = await withTimeout(fetch(ANTHROPIC_URL, {
       method: "POST", headers: ANTHROPIC_HEADERS,
       body: JSON.stringify({
-        model: DEFAULT_MODEL,
-        max_tokens: 4096,
+        model: FAST_MODEL,
+        max_tokens: 3000,
         system: [{ type: "text", text: sysPrompt, cache_control: { type: "ephemeral" } }],
         messages: [{ role: "user", content: userPrompt }],
       }),
     }), 60000);
+    debug.model = FAST_MODEL;
     if (!resp.ok) {
       let detail = ""; try { detail = await resp.text(); } catch {}
       const msg = `non-ok ${resp.status}: ${detail.slice(0, 300)}`;
