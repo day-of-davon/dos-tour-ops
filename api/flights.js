@@ -113,7 +113,11 @@ function isMarketingSubject(subject) {
 }
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
-function toGmailDate(d) { return d.replace(/-/g, "/"); }
+function toGmailDate(d) {
+  if (typeof d === "number") return String(d);
+  if (d instanceof Date) return d.toISOString().slice(0, 10).replace(/-/g, "/");
+  return String(d).replace(/-/g, "/");
+}
 function nDaysAgo(n) {
   const d = new Date(); d.setDate(d.getDate() - n);
   return toGmailDate(d.toISOString().slice(0, 10));

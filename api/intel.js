@@ -274,12 +274,20 @@ Return this exact JSON, one entry per item:
         messages: [{ role: "user", content: userPrompt }],
       }),
     }), 30000);
-    if (!resp.ok) { console.error("[intel.classify] non-ok:", resp.status); return new Map(); }
+    if (!resp.ok) {
+      let detail = ""; try { detail = await resp.text(); } catch {}
+      console.error(`[intel.classify] non-ok: ${resp.status} | ${detail.slice(0, 400)}`);
+      return new Map();
+    }
     const data = await resp.json();
     const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
     const parsed = extractJson(text);
+    if (!parsed?.suggestions) {
+      console.error(`[intel.classify] no suggestions in response. stop_reason=${data.stop_reason} text_len=${text.length} preview=${text.slice(0, 200)}`);
+      return new Map();
+    }
     const out = new Map();
-    for (const s of (parsed?.suggestions || [])) {
+    for (const s of parsed.suggestions) {
       if (!s?.id) continue;
       out.set(s.id, {
         suggestion: ["complete", "ignore", "action"].includes(s.suggestion) ? s.suggestion : "action",
@@ -288,10 +296,11 @@ Return this exact JSON, one entry per item:
         reason: (s.reason || "").slice(0, 120) || null,
       });
     }
-    console.log(`[intel.classify] ${out.size}/${list.length} classified`);
+    console.log(`[intel.classify] ${out.size}/${list.length} classified | input=${data.usage?.input_tokens||0} output=${data.usage?.output_tokens||0}`);
     return out;
   } catch (e) {
-    console.error("[intel.classify] failed:", e.message);
+    console.error(`[intel.classify] failed: ${e.name || "Error"}: ${e.message}`);
+    if (e.stack) console.error(`[intel.classify] stack: ${e.stack.split("\n").slice(0, 5).join(" | ")}`);
     return new Map();
   }
 }
