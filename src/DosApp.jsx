@@ -1204,8 +1204,9 @@ const sSP=async(k,v)=>{try{await window.storage.setPrivate(k,JSON.stringify(v));
 // parser; in that case the entry only needs route/km/drive/dep/arr.
 function BusDriveSessionTable({entry,label,compact,sessions:providedSessions}){
   if(!entry)return null;
-  const sessions=providedSessions||parseDriveSessions(entry.note,entry.stops);
-  const hasContent=!!providedSessions||!!entry.note||!!entry.stops;
+  const storedSessions=entry.sessions!=null&&entry.sessions.length>0?entry.sessions:null;
+  const sessions=providedSessions||storedSessions||parseDriveSessions(entry.note,entry.stops);
+  const hasContent=!!providedSessions||!!storedSessions||!!entry.note||!!entry.stops;
   if(!hasContent)return null;
   const totalKm=entry.km||0;
   const totalDrive=entry.drive&&entry.drive!=="—"?entry.drive:null;
@@ -5309,6 +5310,87 @@ function FlightsListView(){
   );
 }
 
+// Inline editor for a drive-session array. Manages local row state; calls
+// onSave(rows) on confirm, onCancel to discard, onReset to clear the override.
+function DriveSessionEditor({initialSessions,onSave,onCancel,onReset,hasOverride}){
+  const[rows,setRows]=useState(()=>initialSessions.map((r,i)=>({...r,_k:i})));
+  const[nk,setNk]=useState(initialSessions.length);
+  const upd=(k,f,v)=>setRows(p=>p.map(r=>r._k===k?{...r,[f]:v}:r));
+  const mv=(k,dir)=>setRows(p=>{const i=p.findIndex(r=>r._k===k);const j=i+dir;if(j<0||j>=p.length)return p;const n=[...p];[n[i],n[j]]=[n[j],n[i]];return n;});
+  const del=(k)=>setRows(p=>p.filter(r=>r._k!==k));
+  const addRow=()=>{const k=nk;setNk(n=>n+1);const sn=rows.filter(r=>r.kind==="session").length+1;setRows(p=>[...p,{kind:"session",label:`S${sn}`,time:"",route:"",km:null,dur:null,note:null,_k:k}]);};
+  const kinds=Object.keys(DRIVE_KIND_STYLE);
+  const inp={fontSize:9,padding:"2px 4px",borderRadius:3,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text,outline:"none",width:"100%",boxSizing:"border-box",fontFamily:"'Outfit',system-ui"};
+  return(
+    <div style={{padding:"8px 0 0"}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+        <span style={{fontSize:8,fontWeight:800,color:"var(--warn-fg)",letterSpacing:"0.1em",textTransform:"uppercase"}}>Edit Drive Sessions{hasOverride?" · Override active":""}</span>
+        <span style={{marginLeft:"auto",fontSize:8,color:T.textMute,fontStyle:"italic"}}>click any cell to edit</span>
+      </div>
+      <div style={{overflowX:"auto",borderRadius:6,border:"1px solid var(--border)"}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:9,fontFamily:"'Outfit',system-ui"}}>
+          <thead>
+            <tr style={{color:T.textDim,fontWeight:800,letterSpacing:"0.06em",fontSize:8,background:"var(--card-2)"}}>
+              <th style={{padding:"4px 5px",textAlign:"left",borderBottom:"1px solid var(--border)",whiteSpace:"nowrap"}}>KIND</th>
+              <th style={{padding:"4px 5px",textAlign:"left",borderBottom:"1px solid var(--border)",width:42}}>LABEL</th>
+              <th style={{padding:"4px 5px",textAlign:"left",borderBottom:"1px solid var(--border)",width:108}}>TIME</th>
+              <th style={{padding:"4px 5px",textAlign:"left",borderBottom:"1px solid var(--border)"}}>ROUTE / LOCATION</th>
+              <th style={{padding:"4px 5px",textAlign:"right",borderBottom:"1px solid var(--border)",width:56,fontFamily:MN}}>KM</th>
+              <th style={{padding:"4px 5px",textAlign:"right",borderBottom:"1px solid var(--border)",width:48,fontFamily:MN}}>DUR</th>
+              <th style={{padding:"4px 5px",textAlign:"left",borderBottom:"1px solid var(--border)",width:110}}>NOTES</th>
+              <th style={{padding:"4px 5px",borderBottom:"1px solid var(--border)",width:60}}></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r,i)=>{
+              const ks=DRIVE_KIND_STYLE[r.kind]||DRIVE_KIND_STYLE.other;
+              return(
+                <tr key={r._k} style={{background:i%2===0?"transparent":"rgba(255,255,255,0.025)"}}>
+                  <td style={{padding:"3px 4px",verticalAlign:"middle"}}>
+                    <select value={r.kind} onChange={e=>{const nk=e.target.value;const auto=DRIVE_KIND_STYLE[nk]?.label||r.label;setRows(p=>p.map(x=>x._k===r._k?{...x,kind:nk,label:auto}:x));}} style={{...inp,width:72,fontSize:8,padding:"2px 3px",background:ks.bg,color:ks.c,border:`1px solid ${ks.c}50`,fontWeight:800,fontFamily:MN}}>
+                      {kinds.map(k=><option key={k} value={k} style={{background:"var(--card)",color:T.text,fontWeight:400}}>{k}</option>)}
+                    </select>
+                  </td>
+                  <td style={{padding:"3px 4px",verticalAlign:"middle"}}>
+                    <input value={r.label||""} onChange={e=>upd(r._k,"label",e.target.value||null)} style={{...inp,width:42,fontFamily:MN,fontWeight:700,fontSize:9}}/>
+                  </td>
+                  <td style={{padding:"3px 4px",verticalAlign:"middle"}}>
+                    <input value={r.time||""} onChange={e=>upd(r._k,"time",e.target.value||null)} style={{...inp,width:108,fontFamily:MN,fontSize:9}} placeholder="HH:MM–HH:MM TZ"/>
+                  </td>
+                  <td style={{padding:"3px 4px",verticalAlign:"middle"}}>
+                    <input value={r.route||""} onChange={e=>upd(r._k,"route",e.target.value||null)} style={{...inp,fontSize:9}} placeholder="Route or location"/>
+                  </td>
+                  <td style={{padding:"3px 4px",verticalAlign:"middle"}}>
+                    <input value={r.km||""} onChange={e=>upd(r._k,"km",e.target.value||null)} style={{...inp,width:56,fontFamily:MN,textAlign:"right",fontSize:9}} placeholder="—"/>
+                  </td>
+                  <td style={{padding:"3px 4px",verticalAlign:"middle"}}>
+                    <input value={r.dur||""} onChange={e=>upd(r._k,"dur",e.target.value||null)} style={{...inp,width:48,fontFamily:MN,textAlign:"right",fontSize:9}} placeholder="—"/>
+                  </td>
+                  <td style={{padding:"3px 4px",verticalAlign:"middle"}}>
+                    <input value={r.note||""} onChange={e=>upd(r._k,"note",e.target.value||null)} style={{...inp,width:110,fontSize:9}} placeholder="—"/>
+                  </td>
+                  <td style={{padding:"3px 4px",verticalAlign:"middle",whiteSpace:"nowrap"}}>
+                    <button onClick={()=>mv(r._k,-1)} disabled={i===0} style={{fontSize:9,padding:"1px 4px",borderRadius:3,border:"1px solid var(--border)",background:"transparent",color:i===0?T.textMute:T.text2,cursor:i===0?"default":"pointer",marginRight:2,lineHeight:1}}>↑</button>
+                    <button onClick={()=>mv(r._k,1)} disabled={i===rows.length-1} style={{fontSize:9,padding:"1px 4px",borderRadius:3,border:"1px solid var(--border)",background:"transparent",color:i===rows.length-1?T.textMute:T.text2,cursor:i===rows.length-1?"default":"pointer",marginRight:2,lineHeight:1}}>↓</button>
+                    <button onClick={()=>del(r._k)} style={{fontSize:9,padding:"1px 4px",borderRadius:3,border:"1px solid var(--danger-fg)60",background:"transparent",color:"var(--danger-fg)",cursor:"pointer",lineHeight:1}}>✕</button>
+                  </td>
+                </tr>
+              );
+            })}
+            {rows.length===0&&<tr><td colSpan={8} style={{padding:"10px 8px",textAlign:"center",color:T.textMute,fontSize:9,fontStyle:"italic"}}>No rows — use + Add row below</td></tr>}
+          </tbody>
+        </table>
+      </div>
+      <div style={{marginTop:7,display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
+        <button onClick={addRow} style={{fontSize:9,padding:"3px 10px",borderRadius:5,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text2,cursor:"pointer",fontWeight:700}}>+ Add row</button>
+        <button onClick={()=>onSave(rows.map(({_k,...r})=>r))} style={{fontSize:9,padding:"3px 10px",borderRadius:5,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>✓ Save sessions</button>
+        <button onClick={onCancel} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:T.text2,cursor:"pointer"}}>Cancel</button>
+        {hasOverride&&<button onClick={onReset} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid var(--danger-fg)",background:"transparent",color:"var(--danger-fg)",cursor:"pointer",fontWeight:700,marginLeft:"auto"}}>↺ Reset to parsed</button>}
+      </div>
+    </div>
+  );
+}
+
 // Per-date aggregated view of all travel segments (flights + ground transfers + bus + rail + hotel check-ins).
 // Master Tour-style: chronological list on the left, editor drawer on the right. The currently-selected show
 // date (sel) drives what's displayed; header shows a prev/next stepper and jumps to the Travel Dates menu.
@@ -5425,10 +5507,11 @@ function TravelDayView(){
   const pax=(seg)=>(seg?.pax||[]).filter(Boolean);
   const paxMatch=name=>(crew||[]).find(c=>c.name&&c.name.toLowerCase().includes(String(name).split(" ")[0].toLowerCase()));
 
-  const{busEdits}=useContext(Ctx);
+  const{busEdits,uBusEdit}=useContext(Ctx);
   const busDay=useMemo(()=>{const base=BUS_DATA_MAP[sel];if(!base)return null;return{...base,...(busEdits?.[sel]||{})};},// eslint-disable-next-line react-hooks/exhaustive-deps
   [sel,busEdits]);
   const[busDetailExp,setBusDetailExp]=useState(false);
+  const[busSessionEdit,setBusSessionEdit]=useState(false);
   const dayLabel=curDay?.type==="travel"?"Travel Day":curDay?.type==="split"?"Split Day":curDay?.type==="off"?"Off Day":"Show Day";
 
   return(
@@ -5476,13 +5559,25 @@ function TravelDayView(){
               </div>}
             </div>
           )}
-          <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:8,alignSelf:"flex-end",flexShrink:0}}>
-            {(busDay.stops||busDay.note)&&<button onClick={()=>setBusDetailExp(v=>!v)} style={{fontSize:8,padding:"2px 8px",borderRadius:4,border:`1px solid ${busDay.show?"var(--success-fg)":"var(--info-fg)"}50`,background:"transparent",color:busDay.show?"var(--success-fg)":"var(--info-fg)",cursor:"pointer",fontWeight:700}}>{busDetailExp?"▴ Hide":"▾ Drive details"}</button>}
+          <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:6,alignSelf:"flex-end",flexShrink:0}}>
+            {(busDay.stops||busDay.note||busDay.sessions)&&<button onClick={()=>{setBusDetailExp(v=>!v);setBusSessionEdit(false);}} style={{fontSize:8,padding:"2px 8px",borderRadius:4,border:`1px solid ${busDay.show?"var(--success-fg)":"var(--info-fg)"}50`,background:busDetailExp&&!busSessionEdit?"rgba(255,255,255,0.1)":"transparent",color:busDay.show?"var(--success-fg)":"var(--info-fg)",cursor:"pointer",fontWeight:700}}>{busDetailExp&&!busSessionEdit?"▴ Hide":"▾ Drive details"}</button>}
+            <button onClick={()=>{setBusDetailExp(true);setBusSessionEdit(v=>!v);}} title="Edit drive sessions" style={{fontSize:8,padding:"2px 8px",borderRadius:4,border:`1px solid ${busSessionEdit?"var(--warn-fg)":"var(--border)"}`,background:busSessionEdit?"var(--warn-bg)":"transparent",color:busSessionEdit?"var(--warn-fg)":T.textDim,cursor:"pointer",fontWeight:700,fontFamily:MN}}>✎{busEdits[sel]?.sessions?" *":""}</button>
             <span style={{fontSize:8,color:T.textMute,fontFamily:MN}}>Pieter Smit T26-021201</span>
           </div>
-          {busDetailExp&&(busDay.stops||busDay.note)&&(
+          {busDetailExp&&!busSessionEdit&&(busDay.stops||busDay.note||busDay.sessions)&&(
             <div style={{flexBasis:"100%",marginTop:8,borderTop:`1px solid ${busDay.show?"var(--success-fg)":"var(--info-fg)"}20`}}>
               <BusDriveSessionTable entry={busDay} label={busDay.show?"SHOW DAY · LOCAL DRIVE":"DRIVE SESSION TABLE"} compact/>
+            </div>
+          )}
+          {busSessionEdit&&(
+            <div style={{flexBasis:"100%",marginTop:8,paddingTop:4,borderTop:"1px solid var(--warn-fg)30"}}>
+              <DriveSessionEditor
+                initialSessions={(busDay.sessions?.length>0?busDay.sessions:null)||parseDriveSessions(busDay.note,busDay.stops)}
+                hasOverride={!!(busEdits[sel]?.sessions)}
+                onSave={rows=>{uBusEdit(sel,{sessions:rows});setBusSessionEdit(false);setBusDetailExp(true);}}
+                onCancel={()=>setBusSessionEdit(false)}
+                onReset={()=>{uBusEdit(sel,{sessions:null});setBusSessionEdit(false);setBusDetailExp(false);}}
+              />
             </div>
           )}
         </div>
