@@ -914,34 +914,34 @@ const RRX_ROS=()=>[
 const CUSTOM_ROS_MAP={"2026-04-16":RRX_ROS};
 
 const BUS_DATA=[
-  {day:1,date:"May 02",dow:"Sat",route:"Aarschot → London",km:360,drive:"6h",dep:"08:00",arr:"15:00",show:false,flag:"",note:"Deadhead. Ferry Calais-Dover."},
-  {day:2,date:"May 03",dow:"Sun",route:"London → Dublin",km:450,drive:"7h",dep:"08:00",arr:"16:45",show:false,flag:"",note:"Ferry Holyhead-Dublin."},
+  {day:1,date:"May 02",dow:"Sat",route:"Aarschot → London",km:360,drive:"6h",dep:"08:00",arr:"15:00",show:false,flag:"",note:"Deadhead. Eurotunnel Calais→Folkestone.",stops:"Aire de Saint-Omer (A26)"},
+  {day:2,date:"May 03",dow:"Sun",route:"London → Dublin",km:450,drive:"7h",dep:"08:00",arr:"16:45",show:false,flag:"",note:"Ferry Holyhead-Dublin. Stena Line.",stops:"Corley Services (M6 J3-4)"},
   {day:3,date:"May 04",dow:"Mon",route:"Dublin",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"National Stadium",flag:""},
   {day:4,date:"May 05",dow:"Tue",route:"Dublin",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"National Stadium",flag:""},
-  {day:5,date:"May 06",dow:"Wed",route:"Dublin → Manchester",km:210,drive:"4h",dep:"02:00",arr:"07:30",show:false,flag:"",note:"Ferry IRE-UK."},
+  {day:5,date:"May 06",dow:"Wed",route:"Dublin → Manchester",km:210,drive:"4h",dep:"02:00",arr:"07:30",show:false,flag:"",note:"Ferry Dublin→Holyhead. Stena Line.",stops:"Dublin Port Ferryport"},
   {day:6,date:"May 07",dow:"Thu",route:"Manchester",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"O2 Victoria Warehouse",flag:""},
   {day:7,date:"May 08",dow:"Fri",route:"Manchester",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"O2 Victoria Warehouse",flag:""},
-  {day:8,date:"May 09",dow:"Sat",route:"Manchester → Glasgow",km:350,drive:"6h",dep:"02:45",arr:"09:30",show:false,flag:""},
+  {day:8,date:"May 09",dow:"Sat",route:"Manchester → Glasgow",km:350,drive:"6h",dep:"02:45",arr:"09:30",show:false,flag:"",stops:"Tebay Services (M6 N)"},
   {day:9,date:"May 10",dow:"Sun",route:"Glasgow",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"O2 Academy",flag:""},
   {day:10,date:"May 11",dow:"Mon",route:"Glasgow",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"O2 Academy",flag:""},
-  {day:11,date:"May 12",dow:"Tue",route:"Glasgow → London",km:650,drive:"10h",dep:"01:30",arr:"13:00",show:false,flag:"⚠",note:"10h exemption 1/2 W3."},
+  {day:11,date:"May 12",dow:"Tue",route:"Glasgow → London",km:650,drive:"10h",dep:"01:30",arr:"13:00",show:false,flag:"⚠",note:"10h exemption 1/2 W3.",stops:"Tebay Services (M6) · Newport Pagnell Services (M1)"},
   {day:12,date:"May 13",dow:"Wed",route:"London",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"O2 Brixton Academy",flag:""},
-  {day:13,date:"May 14",dow:"Thu",route:"London → Strasbourg",km:620,drive:"8h",dep:"02:00",arr:"11:45",show:false,flag:"",note:"Ferry Dover-Calais."},
+  {day:13,date:"May 14",dow:"Thu",route:"London → Strasbourg",km:620,drive:"8h",dep:"02:00",arr:"11:45",show:false,flag:"",note:"Eurotunnel Folkestone→Calais.",stops:"Aire de Wancourt (A1/A26)"},
   {day:14,date:"May 15",dow:"Fri",route:"Strasbourg → Zurich",km:200,drive:"2.5h",dep:"07:00",arr:"09:30",show:true,venue:"Halle 622",flag:""},
-  {day:15,date:"May 16",dow:"Sat",route:"Zurich → Cologne",km:580,drive:"8h",dep:"02:00",arr:"11:00",show:true,venue:"Palladium",flag:"",note:"Local crew handles AM load-in. Soundcheck 16:00."},
+  {day:15,date:"May 16",dow:"Sat",route:"Zurich → Cologne",km:580,drive:"8h",dep:"02:00",arr:"11:00",show:true,venue:"Palladium",flag:"",note:"Local crew handles AM load-in. Soundcheck 16:00.",stops:"Autohof Lahr (A5)"},
   {day:16,date:"May 17",dow:"Sun",route:"Cologne",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"Palladium",flag:""},
-  {day:17,date:"May 18",dow:"Mon",route:"Cologne → Amsterdam",km:265,drive:"5h",dep:"08:00",arr:"13:45",show:false,flag:"",note:"Day off transit."},
+  {day:17,date:"May 18",dow:"Mon",route:"Cologne → Amsterdam",km:265,drive:"5h",dep:"08:00",arr:"13:45",show:false,flag:"",note:"Day off transit.",stops:"Autohof Bottrop (A2)"},
   {day:18,date:"May 19",dow:"Tue",route:"Amsterdam",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"AFAS Live",flag:""},
-  {day:19,date:"May 20",dow:"Wed",route:"Amsterdam → Paris",km:515,drive:"8h",dep:"02:00",arr:"11:00",show:true,venue:"Le Bataclan",flag:"⚠",note:"Immigration outstanding."},
-  {day:20,date:"May 21",dow:"Thu",route:"Paris → Chambery",km:550,drive:"7h",dep:"02:00",arr:"10:30",show:false,flag:"",note:"Deadhead. Autohof parking overnight."},
+  {day:19,date:"May 20",dow:"Wed",route:"Amsterdam → Paris",km:515,drive:"8h",dep:"02:00",arr:"11:00",show:true,venue:"Le Bataclan",flag:"⚠",note:"Immigration outstanding.",stops:"Aire de Maubeuge (A2)"},
+  {day:20,date:"May 21",dow:"Thu",route:"Paris → Chambery",km:550,drive:"7h",dep:"02:00",arr:"10:30",show:false,flag:"",note:"Deadhead. Autohof parking overnight.",stops:"Aire de Macon-La-Salle (A6)"},
   {day:21,date:"May 22",dow:"Fri",route:"Chambery → Milan",km:300,drive:"4h",dep:"05:30",arr:"09:30",show:true,venue:"Fabrique",flag:"",note:"Frejus or Mont Blanc tunnel. Toll ~50 EUR."},
-  {day:22,date:"May 23",dow:"Sat",route:"Milan → Munich",km:500,drive:"8h",dep:"02:00",arr:"11:30",show:false,flag:"",note:"Deadhead. 45h RP on arrival."},
-  {day:23,date:"May 24",dow:"Sun",route:"Munich → Prague",km:405,drive:"6h",dep:"02:00",arr:"09:00",show:true,venue:"SaSaZu",flag:"",note:"DD joins. Full production day."},
-  {day:24,date:"May 25",dow:"Mon",route:"Prague → Berlin",km:355,drive:"6h",dep:"02:00",arr:"09:00",show:false,flag:"",note:"RD drives. MD resting."},
+  {day:22,date:"May 23",dow:"Sat",route:"Milan → Munich",km:500,drive:"8h",dep:"02:00",arr:"11:30",show:false,flag:"",note:"Deadhead. 45h RP on arrival.",stops:"Brennerpass Raststätte (A22/A13)"},
+  {day:23,date:"May 24",dow:"Sun",route:"Munich → Prague",km:405,drive:"6h",dep:"02:00",arr:"09:00",show:true,venue:"SaSaZu",flag:"",note:"DD joins. Full production day.",stops:"Autohof Plzen (D5)"},
+  {day:24,date:"May 25",dow:"Mon",route:"Prague → Berlin",km:355,drive:"6h",dep:"02:00",arr:"09:00",show:false,flag:"",note:"RD drives. MD resting.",stops:"Autohof Dresden-Hellerau (A4/A13)"},
   {day:25,date:"May 26",dow:"Tue",route:"Berlin",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"Columbiahalle",flag:""},
-  {day:26,date:"May 27",dow:"Wed",route:"Berlin → Bratislava",km:685,drive:"11h",dep:"02:00",arr:"14:45",show:false,flag:"⚠",note:"DD required. 11h drive. Overnight at Refinery Gallery."},
+  {day:26,date:"May 27",dow:"Wed",route:"Berlin → Bratislava",km:685,drive:"11h",dep:"02:00",arr:"14:45",show:false,flag:"⚠",note:"DD required. 11h drive. Overnight at Refinery Gallery.",stops:"Autohof Pilsen (D5) · Autohof Brno-Slatina (D1)"},
   {day:27,date:"May 28",dow:"Thu",route:"Bratislava",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"Majestic Music Club",flag:""},
-  {day:28,date:"May 29",dow:"Fri",route:"Bratislava → Warsaw",km:690,drive:"11h",dep:"02:00",arr:"14:45",show:false,flag:"⚠",note:"DD required. 11h drive."},
+  {day:28,date:"May 29",dow:"Fri",route:"Bratislava → Warsaw",km:690,drive:"11h",dep:"02:00",arr:"14:45",show:false,flag:"⚠",note:"DD required. 11h drive.",stops:"Autohof Brno-Slatina (D1) · Autohof Katowice (A4)"},
   {day:29,date:"May 30",dow:"Sat",route:"Warsaw",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"Orange Festival",flag:""},
   {day:30,date:"May 31",dow:"Sun",route:"Warsaw → Warsaw Chopin Airport (WAW)",km:25,drive:"1h",dep:"08:00",arr:"09:00",show:false,flag:"",note:"Airport drop-off."},
   {day:31,date:"Jun 01",dow:"Mon",route:"Warsaw → Aarschot",km:1260,drive:"20h",dep:"09:00",arr:"multi-day",show:false,flag:"",note:"Bus return. PS handles. Multi-day deadhead."},
@@ -2689,7 +2689,7 @@ function NavSidebar(){
             const dt=dateStr.getDate();
             const wd=dateStr.toLocaleString("en-US",{weekday:"short"});
             return(
-              <div key={d.date} ref={isSel?selRef:null} onClick={()=>{setSel(d.date);setAllShows(false);setSidebarOpen(false);}} className="rh" style={{display:"flex",alignItems:"center",gap:0,padding:"6px 10px 6px 0",cursor:"pointer",background:isSel?"rgba(91,33,182,0.16)":"transparent",borderLeft:isSel?"3px solid var(--accent-soft)":"3px solid transparent",opacity:isOff?0.65:1,boxShadow:isSel?"inset 0 0 0 1px rgba(124,58,237,0.18)":undefined}}>
+              <div key={d.date} ref={isSel?selRef:null} onClick={()=>{setSel(d.date);setAllShows(false);setTab("ros");setSidebarOpen(false);}} className="rh" style={{display:"flex",alignItems:"center",gap:0,padding:"6px 10px 6px 0",cursor:"pointer",background:isSel?"rgba(91,33,182,0.16)":"transparent",borderLeft:isSel?"3px solid var(--accent-soft)":"3px solid transparent",opacity:isOff?0.65:1,boxShadow:isSel?"inset 0 0 0 1px rgba(124,58,237,0.18)":undefined}}>
                 <div style={{width:46,flexShrink:0,textAlign:"center"}}>
                   <div style={{fontSize:8,fontWeight:700,color:isSel?"var(--link)":"var(--text-mute)",fontFamily:MN,letterSpacing:"0.04em"}}>{wd.toUpperCase()}</div>
                   <div style={{fontSize:13,fontWeight:800,color:isSel?"var(--accent-pill-border)":"var(--text)",lineHeight:1}}>{dt}</div>
@@ -3128,7 +3128,7 @@ function DashSingle(){
 }
 
 function Dash(){
-  const{sorted,cShows,next,setTab,setSel,advances,finance,aC,mobile,intel,setIntel,addLog,labelIntel,allShows,sel}=useContext(Ctx);
+  const{sorted,cShows,next,setTab,setSel,advances,finance,aC,mobile,intel,setIntel,addLog,addActLog,labelIntel,allShows,sel}=useContext(Ctx);
   if(!allShows&&sel)return<DashSingle/>;
   const client=CM[aC];const today=new Date().toISOString().slice(0,10);
   const upcoming=cShows.filter(s=>s.date>=today).slice(0,10);
@@ -3154,6 +3154,11 @@ function Dash(){
   const markFollowUp=(f,state)=>{const sid=showIdFor(f.show);setIntel(p=>{const fu=p[sid]?.followUps||[];const idx=fu.findIndex(x=>x.action===f.action&&(x.tid===f.tid||x.owner===f.owner||x.priority===f.priority));if(idx<0)return p;return{...p,[sid]:{...(p[sid]||{}),followUps:fu.map((x,j)=>j===idx?{...x,[state]:true}:x)}};});addLog({type:"user",section:"followup",showId:sid,action:state,label:f.action,from:"dashboard"});addActLog({module:"intel",action:`intel.followup.${state}`,target:{type:"followup",id:f.tid||null,label:f.action},payload:{priority:f.priority,owner:f.owner||null,showId:sid},context:{date:f.show?.date||null,showId:sid,eventKey:sid}});};
   const markAr=(id,state,label)=>{setIntel(p=>{const prev=p.__arState||{};const next=state==="undone"?{...prev,done:(prev.done||[]).filter(x=>x!==id)}:{...prev,[state]:[...new Set([...(prev[state]||[]),id])]};return{...p,__arState:next};});addLog({type:"user",section:"ar",showId:null,action:state,label:label||id,from:"dashboard"});addActLog({module:"intel",action:`intel.ar.${state}`,target:{type:"ar_item",id,label:label||id},payload:{},context:{date:null,showId:null,eventKey:null}});};
 
+  const settlementHidden=useMemo(()=>new Set([...(intel.__settlementState?.done||[]),...(intel.__settlementState?.ignored||[])]),[intel.__settlementState]);
+  const markSettlement=(date,state)=>{setIntel(p=>{const prev=p.__settlementState||{};return{...p,__settlementState:{...prev,[state]:[...new Set([...(prev[state]||[]),date])]}};});addLog({type:"user",section:"settlement",showId:date,action:state,from:"dashboard"});};
+  const updateSettlementNote=(date,note)=>{setIntel(p=>({...p,__settlementNotes:{...(p.__settlementNotes||{}),[date]:note}}));};
+  const updateTodoNote=(t,note)=>{const sid=showIdFor(t.show);setIntel(p=>({...p,[sid]:{...(p[sid]||{}),todoNotes:{...(p[sid]?.todoNotes||{}),[t.id]:note}}}));};
+
   const BTN_DONE={fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--success-bg)",color:T.successFg};
   const BTN_IGN={fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--card-2)",color:T.textMute};
 
@@ -3164,15 +3169,25 @@ function Dash(){
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:10,margin:"10px 0 12px"}}>
         {[{l:"Next Show",v:next?.city||"--",s:next?nextBus?`${dU(next.date)}d · BUS ${nextBus}`:`${dU(next.date)}d`:"",c:client.color},{l:`${client.name} Shows`,v:cShows.length,s:"total",c:"var(--text)"},{l:"Open Advances",v:upcoming.filter(s=>pendingCount(s.date)>0).length,s:"shows w/ pending",c:upcoming.filter(s=>pendingCount(s.date)>0).length>0?"var(--warn-fg)":"var(--text-mute)"},{l:"Open To-Dos",v:allTodos.length,s:"private",c:allTodos.length>0?"var(--warn-fg)":"var(--text-mute)"},{l:"Follow-Ups",v:allFollowUps.length,s:"across shows",c:allFollowUps.length>0?"var(--link)":"var(--text-mute)"},{l:"Unsettled",v:unsettledCount,s:"past shows",c:unsettledCount>2?"var(--danger-fg)":unsettledCount>0?"var(--warn-fg)":"var(--text-mute)"}].map((s,i)=><div key={i} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}><div style={{fontSize:9,color:T.textDim,marginBottom:2,fontWeight:600}}>{s.l}</div><div style={{fontSize:20,fontWeight:800,color:s.c,fontFamily:MN}}>{s.v}</div><div style={{fontSize:9,color:T.textMute,fontFamily:MN,marginTop:1}}>{s.s}</div></div>)}
       </div>);})()}
-      {(()=>{const pastShows=(cShows||[]).filter(s=>s.date<today).slice(-6);if(!pastShows.length)return null;return(
+      {(()=>{const pastShows=(cShows||[]).filter(s=>s.date<today&&!settlementHidden.has(s.date)).slice(-6);if(!pastShows.length)return null;return(
       <div style={{marginBottom:12}}>
         <div style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:5}}>SETTLEMENT PIPELINE</div>
-        <div style={{display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none",padding:"2px 0"}}>
-          {pastShows.map(s=>{const daysSince=Math.abs(dU(s.date));const settled=isFullySettled(s.date);const wired=(finance?.[s.date]?.stages||{})["payment_initiated"];const overdue=!settled&&daysSince>21;const warn=!settled&&daysSince>7&&!wired;return(
-            <div key={s.date} onClick={()=>{setSel(s.date);setTab("finance");}} className="rh" title={settled?"Settled":overdue?"Overdue":"Pending"} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:99,border:"1px solid var(--border)",background:settled?"var(--success-bg)":overdue?"var(--danger-bg)":warn?"var(--warn-bg)":"var(--card)",cursor:"pointer",flexShrink:0}}>
-              <div style={{width:6,height:6,borderRadius:99,background:settled?"var(--success-fg)":overdue?"var(--danger-fg)":warn?"var(--warn-fg)":"var(--card-3)",flexShrink:0}}/>
-              <span style={{fontSize:8,fontWeight:700,color:settled?"var(--success-fg)":overdue?"var(--danger-fg)":warn?"var(--warn-fg)":"var(--text-2)",whiteSpace:"nowrap",fontFamily:MN}}>{s.city} · {fD(s.date)}</span>
-              {overdue&&<span style={{fontSize:7,color:"var(--danger-fg)",fontFamily:MN,fontWeight:800}}>{daysSince}d</span>}
+        <div style={{display:"flex",flexDirection:"column",gap:2}}>
+          {pastShows.map(s=>{const daysSince=Math.abs(dU(s.date));const settled=isFullySettled(s.date);const wired=(finance?.[s.date]?.stages||{})["payment_initiated"];const overdue=!settled&&daysSince>21;const warn=!settled&&daysSince>7&&!wired;const noteVal=intel.__settlementNotes?.[s.date]||"";return(
+            <div key={s.date} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
+              <div style={{width:6,height:6,borderRadius:99,background:settled?"var(--success-fg)":overdue?"var(--danger-fg)":warn?"var(--warn-fg)":"var(--card-3)",flexShrink:0,marginTop:4}}/>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:4,cursor:"pointer"}} onClick={()=>{setSel(s.date);setTab("finance");}}>
+                  <span style={{fontSize:11,fontWeight:700,color:settled?"var(--success-fg)":overdue?"var(--danger-fg)":warn?"var(--warn-fg)":"var(--text-2)",fontFamily:MN}}>{s.city} · {fD(s.date)}</span>
+                  {overdue&&<span style={{fontSize:7,color:"var(--danger-fg)",fontFamily:MN,fontWeight:800}}>{daysSince}d overdue</span>}
+                  {settled&&<span style={{fontSize:7,color:"var(--success-fg)",fontFamily:MN,fontWeight:800}}>settled</span>}
+                </div>
+                <input type="text" placeholder="add note..." value={noteVal} onChange={e=>updateSettlementNote(s.date,e.target.value)} style={{marginTop:3,width:"100%",fontSize:9,padding:"2px 6px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text2,outline:"none",boxSizing:"border-box"}}/>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
+                <button onClick={()=>markSettlement(s.date,"done")} style={BTN_DONE}>Done</button>
+                <button onClick={()=>markSettlement(s.date,"ignored")} style={BTN_IGN}>Ignore</button>
+              </div>
             </div>
           );})}
         </div>
@@ -3245,7 +3260,7 @@ function Dash(){
               const confBg=matchConf==="high"?"var(--success-bg)":matchConf==="medium"?"var(--warn-bg)":"var(--info-bg)";
               return(<div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:priB(t.priority),color:priC(t.priority),fontWeight:700,flexShrink:0,marginTop:1}}>{t.priority||"LOW"}</span>
-              <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:T.text,lineHeight:1.4}}>{t.text}</div>{(t.owner||t.deadline)&&<div style={{fontSize:9,color:T.textDim}}>{t.owner}{t.deadline?` · due ${t.deadline}`:""}</div>}</div>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:T.text,lineHeight:1.4}}>{t.text}</div>{(t.owner||t.deadline)&&<div style={{fontSize:9,color:T.textDim}}>{t.owner}{t.deadline?` · due ${t.deadline}`:""}</div>}<input type="text" placeholder="add note..." value={intel[sid]?.todoNotes?.[t.id]||""} onChange={e=>updateTodoNote(t,e.target.value)} style={{marginTop:3,width:"100%",fontSize:9,padding:"2px 6px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text2,outline:"none",boxSizing:"border-box"}}/></div>
               <div style={{display:"flex",alignItems:"center",gap:4,flexShrink:0}}>
                 {matchedTid&&<a href={gmailUrl(matchedTid)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:confBg,color:confC,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>email · {matchConf} →</a>}
                 <button onClick={()=>markTodo(t,"done")} style={BTN_DONE}>Done</button>
