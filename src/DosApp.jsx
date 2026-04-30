@@ -1127,6 +1127,8 @@ export default function App(){
   const[showOffDays,setShowOffDays]=useState(true);
   const[sidebarOpen,setSidebarOpen]=useState(true);
   const[transView,setTransView]=useState("flights");
+  const[allShows,setAllShowsState]=useState(false);
+  const setAllShows=useCallback(v=>setAllShowsState(typeof v==="function"?v:!!v),[]);
   // Per-date active split-party id. Absent entries fall back to the first party.
   const[splitParty,setSplitPartyState]=useState({});
   const setSplitParty=useCallback((date,partyId)=>setSplitPartyState(p=>({...p,[date]:partyId})),[]);
@@ -1161,6 +1163,7 @@ export default function App(){
     if(Array.isArray(se?.tabOrder))setTabOrder(se.tabOrder);
     if(se?.showOffDays!==undefined)setShowOffDays(se.showOffDays);
     if(se?.sidebarOpen!==undefined)setSidebarOpen(se.sidebarOpen);
+    if(se?.allShows!==undefined)setAllShowsState(se.allShows);
     if(se?.tourStart)setTourStart(se.tourStart);if(se?.tourEnd)setTourEnd(se.tourEnd);
     if(se?.lastFlightScanAt)setLastFlightScanAt(se.lastFlightScanAt);
     if(cr?.crew)setCrew(cr.crew);if(cr?.showCrew)setShowCrew(cr.showCrew);
@@ -1339,9 +1342,9 @@ export default function App(){
 
   const save=useCallback(()=>{
     if(!loaded)return;if(st.current)clearTimeout(st.current);
-    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging),sS(SK.GUESTLISTS,guestlists),sS(SK.GL_TEMPLATES,glTemplates),sS(SK.IMMIGRATION,immigration),sS(SK.PERMISSIONS,perms)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
-  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,tabOrder,crew,showCrew,production,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt,perms]);
-  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,perms]);
+    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt,allShows}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging),sS(SK.GUESTLISTS,guestlists),sS(SK.GL_TEMPLATES,glTemplates),sS(SK.IMMIGRATION,immigration),sS(SK.PERMISSIONS,perms)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
+  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,tabOrder,crew,showCrew,production,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt,perms,allShows]);
+  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,perms,allShows]);
   useEffect(()=>{const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(v=>!v);}if(e.key==="Escape")setCmd(false);};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
   const labelScanFired=useRef(false);
   useEffect(()=>{if(loaded&&!labelScanFired.current){labelScanFired.current=true;refreshLabelIntel();}},[loaded]);// eslint-disable-line
@@ -1462,7 +1465,7 @@ export default function App(){
     if(currentSplit&&activeSplitPartyId)return `${sel}#${activeSplitPartyId}`;
     return sel;
   },[selEventId,sel,currentSplit,activeSplitPartyId]);
-  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,setTransView,perms,uPerms,actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,perms,actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen]);// eslint-disable-line
+  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,setTransView,perms,uPerms,actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,perms,actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:T.text,letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:T.textDim,marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
@@ -2552,7 +2555,7 @@ function SignOut(){
 // ── NAV SIDEBAR ──────────────────────────────────────────────────────────────
 
 function NavSidebar(){
-  const{sidebarOpen,tab,sel,setSel,sorted,tourDaysSorted,shows,uShow,advances,finance,aC,setTab,next,tourDays,showOffDays,setShowOffDays}=useContext(Ctx);
+  const{sidebarOpen,tab,sel,setSel,sorted,tourDaysSorted,shows,uShow,advances,finance,aC,setTab,next,tourDays,showOffDays,setShowOffDays,allShows,setAllShows}=useContext(Ctx);
   const[newDate,setNewDate]=useState("");
   const[newType,setNewType]=useState("off");
   const[newVenue,setNewVenue]=useState("");
@@ -2591,7 +2594,7 @@ function NavSidebar(){
       <div style={{padding:"10px 12px 8px",borderBottom:"1px solid var(--border)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,marginBottom:next?4:0}}>
           <div style={{fontSize:9,fontWeight:700,color:T.textMute,letterSpacing:"0.06em",textTransform:"uppercase"}}>{next?"Next Show":"Tour"}</div>
-          <button onClick={()=>setTab("dash")} title="Dashboard — all shows" style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,border:`1px solid ${tab==="dash"?"var(--accent)":"var(--border)"}`,background:tab==="dash"?"var(--accent-pill-bg)":"var(--card-2)",color:tab==="dash"?"var(--accent)":T.textDim,cursor:"pointer",letterSpacing:"0.04em",textTransform:"uppercase",lineHeight:1.2}}>All Shows</button>
+          <button onClick={()=>{setAllShows(true);setTab("dash");}} title="All shows aggregate view" style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,border:`1px solid ${allShows?"var(--accent)":"var(--border)"}`,background:allShows?"var(--accent-pill-bg)":"var(--card-2)",color:allShows?"var(--accent)":T.textDim,cursor:"pointer",letterSpacing:"0.04em",textTransform:"uppercase",lineHeight:1.2}}>All Shows</button>
         </div>
         {next&&<>
           <div style={{fontSize:11,fontWeight:800,color:T.text,lineHeight:1.2}}>{next.city}</div>
@@ -2620,7 +2623,7 @@ function NavSidebar(){
       <div ref={listRef} style={{flex:1,overflowY:"auto",padding:"4px 0"}}>
         {(()=>{
           const renderRow=d=>{
-            const isSel=d.date===sel;
+            const isSel=d.date===sel&&!allShows;
             const tc=typeColor(d.type);
             const isOff=d.type==="off"||d.type==="travel";
             const pc=d.type==="show"?pendingCount(d.date):0;
@@ -2631,7 +2634,7 @@ function NavSidebar(){
             const dt=dateStr.getDate();
             const wd=dateStr.toLocaleString("en-US",{weekday:"short"});
             return(
-              <div key={d.date} ref={isSel?selRef:null} onClick={()=>{setSel(d.date);if(tab==="dash")setTab("ros");}} className="rh" style={{display:"flex",alignItems:"center",gap:0,padding:"6px 10px 6px 0",cursor:"pointer",background:isSel?"rgba(91,33,182,0.16)":"transparent",borderLeft:isSel?"3px solid var(--accent-soft)":"3px solid transparent",opacity:isOff?0.65:1,boxShadow:isSel?"inset 0 0 0 1px rgba(124,58,237,0.18)":undefined}}>
+              <div key={d.date} ref={isSel?selRef:null} onClick={()=>{setSel(d.date);setAllShows(false);}} className="rh" style={{display:"flex",alignItems:"center",gap:0,padding:"6px 10px 6px 0",cursor:"pointer",background:isSel?"rgba(91,33,182,0.16)":"transparent",borderLeft:isSel?"3px solid var(--accent-soft)":"3px solid transparent",opacity:isOff?0.65:1,boxShadow:isSel?"inset 0 0 0 1px rgba(124,58,237,0.18)":undefined}}>
                 <div style={{width:46,flexShrink:0,textAlign:"center"}}>
                   <div style={{fontSize:8,fontWeight:700,color:isSel?"var(--link)":"var(--text-mute)",fontFamily:MN,letterSpacing:"0.04em"}}>{wd.toUpperCase()}</div>
                   <div style={{fontSize:13,fontWeight:800,color:isSel?"var(--accent-pill-border)":"var(--text)",lineHeight:1}}>{dt}</div>
@@ -2762,13 +2765,14 @@ function ShowPickerSheet(){
 }
 
 function TopBar({ss}){
-  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,setShowOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd,advances,finance,intel,cShows,currentSplit,activeSplitParty,perms,me,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen}=useContext(Ctx);
+  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,setShowOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd,advances,finance,intel,cShows,currentSplit,activeSplitParty,perms,me,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows}=useContext(Ctx);
   const[dragId,setDragId]=useState(null);
   const[overId,setOverId]=useState(null);
   const hasEvent=!!shows[sel]||(currentSplit&&activeSplitParty?.type==="show");
   const isAdmin=me?.id==="davon";
   const canAccessTab=(id)=>{if(id==="access")return isAdmin&&role==="tm_td";const rule=perms?.[`tab.${id}`];if(!rule)return true;return rule[role]??true;};
   useEffect(()=>{if(!hasEvent&&(tab==="advance"||tab==="production"))setTab("ros");},[hasEvent,tab,setTab]);
+  useEffect(()=>{if(allShows&&(tab==="ros"||tab==="advance"||tab==="production"))setTab("dash");},[allShows,tab,setTab]);
   useEffect(()=>{if(!canAccessTab(tab))setTab("dash");},[role]);
   const _auth=useAuth();const _email=_auth?.user?.email||"";
   const visibleRoles=ROLES.filter(r=>{if(r.id==="viewer"||r.id==="tm_td")return TM_EMAILS.has(_email);return true;});
@@ -2808,7 +2812,7 @@ function TopBar({ss}){
             setSidebarOpen(v=>!v);
           }} title="Navigation" style={{display:"flex",alignItems:"center",gap:6,padding:"5px 10px",borderRadius:8,background:sidebarOpen?"var(--accent-soft)":"var(--accent)",color:"#fff",border:"none",cursor:"pointer",fontWeight:700,fontSize:11,letterSpacing:"-0.01em",flexShrink:1,minWidth:0,maxWidth:240,lineHeight:1,transition:"background 150ms ease"}}>
             <span style={{fontSize:15,fontWeight:300,opacity:0.9,lineHeight:1,flexShrink:0}}>≡</span>
-            <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0}}>{(()=>{const s=shows[sel];const d=stepList.find(x=>x.date===sel);if(s)return`${s.city} · ${fD(sel)}`;if(d?.type==="travel")return`Travel · ${fD(sel)}`;if(d?.type==="off")return`Off · ${fD(sel)}`;return sel?fD(sel):"Select";})()}</span>
+            <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0}}>{(()=>{if(allShows)return"All Shows";const s=shows[sel];const d=stepList.find(x=>x.date===sel);if(s)return`${s.city} · ${fD(sel)}`;if(d?.type==="travel")return`Travel · ${fD(sel)}`;if(d?.type==="off")return`Off · ${fD(sel)}`;return sel?fD(sel):"Select";})()}</span>
           </button>
           <div style={{display:"flex",alignItems:"center",gap:0,flexShrink:0}}>
             <button onClick={()=>stepDate(-1)} disabled={!canPrev} title="Previous date" style={{fontSize:11,padding:"2px 7px",borderRadius:"5px 0 0 5px",border:"1px solid var(--border)",borderRight:"none",background:canPrev?"var(--card-3)":"var(--card-4)",color:canPrev?"var(--text)":"var(--text-mute)",cursor:canPrev?"pointer":"default"}}>‹</button>
@@ -2856,7 +2860,7 @@ function TopBar({ss}){
         </div>}
       </div>
       <div style={{display:"flex",padding:mobile?"0 12px":"0 20px",width:"100%",overflowX:"auto",overflowY:"hidden",scrollbarWidth:"thin",WebkitOverflowScrolling:"touch"}}>
-        {(orderedTabs||TABS).filter(t=>(hasEvent||t.id!=="advance"&&t.id!=="production")&&canAccessTab(t.id)).map(t=>{
+        {(orderedTabs||TABS).filter(t=>(hasEvent||t.id!=="advance"&&t.id!=="production")&&(!allShows||(t.id!=="advance"&&t.id!=="production"&&t.id!=="ros"))&&canAccessTab(t.id)).map(t=>{
           const isDrag=dragId===t.id;
           const isOver=overId===t.id&&dragId&&dragId!==t.id;
           return(
@@ -2960,8 +2964,117 @@ function DateDrawer({onClose}){
   );
 }
 
+function DashSingle(){
+  const{sel,shows,setTab,advances,finance,aC,mobile,intel,setIntel,addLog,addActLog,showCrew,crew,lodging,flights,eventKey,tourDays}=useContext(Ctx);
+  const today=new Date().toISOString().slice(0,10);
+  const show=shows[sel];
+  const td=tourDays?.[sel];
+  const dayType=show?.type||td?.type||"show";
+  const days=dU(sel);
+  const client=CM[aC];
+  const PORD={CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3};
+  const sid=showIdFor({date:sel,clientId:show?.clientId||aC});
+  const showIntel=intel[sid]||{};
+  const todos=(showIntel.todos||[]).filter(t=>!t.done&&!t.ignored).sort((a,b)=>(PORD[a.priority]??4)-(PORD[b.priority]??4));
+  const followUps=(showIntel.followUps||[]).filter(f=>!f.done&&!f.ignored).sort((a,b)=>(PORD[a.priority]??4)-(PORD[b.priority]??4));
+  const adv=advances[sel]||{};const advItems=adv.items||{};const customAdv=adv.customItems||[];
+  const advTotal=[...AT,...customAdv].length;
+  const advPending=[...AT,...customAdv].filter(t=>(advItems[t.id]?.status||"pending")==="pending").length;
+  const advConf=advTotal-advPending;
+  const fin=eventKey?finance[eventKey]||{}:{};
+  const finStages=fin.stages||{};
+  const settled=["wire_ref_confirmed","signed_sheet","payment_initiated"].every(k=>finStages[k]);
+  const wired=finStages["payment_initiated"];
+  const dayHotels=Object.values(lodging||{}).filter(h=>h.checkIn<=sel&&h.checkOut>=sel);
+  const sc=showCrew[eventKey]||{};
+  const attending=(crew||[]).filter(c=>sc[c.id]?.attending);
+  const inboundFlights=Object.values(flights||{}).filter(f=>f.status==="confirmed"&&f.arrDate===sel);
+  const outboundFlights=Object.values(flights||{}).filter(f=>f.status==="confirmed"&&f.depDate===sel);
+  const busEntry=BUS_DATA_MAP[sel];
+  const PB={CRITICAL:["var(--danger-bg)","var(--danger-fg)"],HIGH:["var(--warn-bg)","var(--warn-fg)"],MEDIUM:["var(--info-bg)","var(--link)"],LOW:["var(--card-2)","var(--text-mute)"]};
+  const markTodo=(t,state)=>{setIntel(p=>({...p,[sid]:{...(p[sid]||{}),todos:(p[sid]?.todos||[]).map(x=>x.id===t.id?{...x,[state]:true}:x)}}));addLog({type:"user",section:"todo",showId:sid,action:state,label:t.text||t.subject,from:"dashboard-single"});addActLog?.({module:"intel",action:`intel.todo.${state}`,target:{type:"todo",id:t.id,label:t.text||t.subject},payload:{priority:t.priority,showId:sid},context:{date:sel,showId:sid,eventKey:sid}});};
+  const markFu=(f,state)=>{setIntel(p=>{const fu=p[sid]?.followUps||[];const idx=fu.findIndex(x=>x.action===f.action&&(x.tid===f.tid||x.owner===f.owner||x.priority===f.priority));if(idx<0)return p;return{...p,[sid]:{...(p[sid]||{}),followUps:fu.map((x,j)=>j===idx?{...x,[state]:true}:x)}};});addLog({type:"user",section:"followup",showId:sid,action:state,label:f.action,from:"dashboard-single"});};
+  const BTN_DONE={fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--success-bg)",color:T.successFg};
+  const BTN_IGN={fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--card-2)",color:T.textMute};
+  const tile=(l,v,s,c,onClick)=>(
+    <div onClick={onClick} className={onClick?"rh":""} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px",cursor:onClick?"pointer":"default"}}>
+      <div style={{fontSize:9,color:T.textDim,marginBottom:2,fontWeight:600}}>{l}</div>
+      <div style={{fontSize:18,fontWeight:800,color:c||"var(--text)",fontFamily:MN}}>{v}</div>
+      {s&&<div style={{fontSize:9,color:T.textMute,fontFamily:MN,marginTop:1}}>{s}</div>}
+    </div>
+  );
+  const headerLabel=show?.city||td?.city||(dayType==="travel"?"Travel":dayType==="off"?"Off":fD(sel));
+  const headerSub=show?.venue||td?.venue||(dayType==="travel"?"Travel day":dayType==="off"?"Off day":"");
+  return(
+    <div className="fi" style={{padding:mobile?"10px 10px 24px":"14px 20px 30px",maxWidth:960,flex:1,overflowY:"auto",minHeight:0}}>
+      <div style={{background:client?`${client.color}10`:"var(--card)",border:`1px solid ${client?.color||"var(--border)"}`,borderRadius:12,padding:"12px 16px",marginBottom:10,borderLeft:`4px solid ${client?.color||"var(--accent)"}`}}>
+        <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8,flexWrap:"wrap"}}>
+          <div>
+            <div style={{fontSize:18,fontWeight:800,color:T.text,letterSpacing:"-0.02em"}}>{headerLabel}</div>
+            <div style={{fontSize:11,color:T.textDim,marginTop:2}}>{headerSub}{headerSub&&" · "}{fFull(sel)}</div>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+            {dayType==="show"&&show&&<>
+              <span style={{fontSize:10,fontFamily:MN,color:show.doorsConfirmed?"var(--success-fg)":T.warnFg,fontWeight:700}}>DOORS {fmt(show.doors)}{show.doorsConfirmed?" ✓":" ?"}</span>
+              <span style={{fontSize:10,fontFamily:MN,color:T.text2,fontWeight:700}}>CURFEW {fmt(show.curfew)}</span>
+            </>}
+            <span style={{fontSize:11,fontFamily:MN,fontWeight:800,color:days<=0?"var(--danger-fg)":days<=7?"var(--warn-fg)":days<=21?"var(--link)":T.textMute,padding:"3px 9px",borderRadius:99,background:"var(--card-2)"}}>{days===0?"TODAY":days<0?`${Math.abs(days)}d ago`:`${days}d`}</span>
+          </div>
+        </div>
+      </div>
+      {dayType==="show"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:12}}>
+        {tile("Advance",`${advConf}/${advTotal}`,advPending>0?`${advPending} pending`:"all clear",advPending===0?"var(--success-fg)":advPending>advTotal*0.5?"var(--danger-fg)":T.warnFg,()=>setTab("advance"))}
+        {tile("Settlement",settled?"Settled":wired?"Wired":"Pending",fin.settlementAmount?`$${Number(fin.settlementAmount).toLocaleString()}`:"—",settled?"var(--success-fg)":wired?T.warnFg:T.textMute,()=>setTab("finance"))}
+        {tile("Crew Attending",attending.length,(crew||[]).length?`of ${(crew||[]).length}`:"",attending.length>0?"var(--text)":T.textMute,()=>setTab("crew"))}
+        {tile("Hotels",dayHotels.length,dayHotels[0]?.name||"—",dayHotels.length>0?"var(--text)":T.textMute,()=>setTab("lodging"))}
+        {tile("Flights",inboundFlights.length+outboundFlights.length,`${inboundFlights.length} in · ${outboundFlights.length} out`,(inboundFlights.length+outboundFlights.length)>0?"var(--link)":T.textMute,()=>setTab("transport"))}
+        {tile("Open To-Dos",todos.length,todos[0]?todos[0].priority:"none",todos.length>0?T.warnFg:T.textMute)}
+      </div>}
+      {dayType!=="show"&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:12}}>
+        {tile("Hotels",dayHotels.length,dayHotels[0]?.name||"—",dayHotels.length>0?"var(--text)":T.textMute,()=>setTab("lodging"))}
+        {tile("Flights",inboundFlights.length+outboundFlights.length,`${inboundFlights.length} in · ${outboundFlights.length} out`,(inboundFlights.length+outboundFlights.length)>0?"var(--link)":T.textMute,()=>setTab("transport"))}
+        {busEntry&&tile("Bus",busEntry.dep||"—",busEntry.arr?`arr ${busEntry.arr}`:"",T.text)}
+      </div>}
+      {todos.length>0&&<div style={{marginBottom:12}}>
+        <div style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:5}}>OPEN TO-DOS · {todos.length}</div>
+        <div style={{display:"flex",flexDirection:"column",gap:3}}>
+          {todos.slice(0,8).map(t=>{const[bg,fg]=PB[t.priority]||PB.LOW;return(
+            <div key={t.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"7px 12px",background:bg,borderRadius:8,borderLeft:`3px solid ${fg}`}}>
+              <span style={{fontSize:8,fontWeight:800,color:fg,fontFamily:MN,flexShrink:0,marginTop:1}}>{t.priority||"LOW"}</span>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,fontWeight:600,color:T.text}}>{t.text||t.subject}</div>{t.context&&<div style={{fontSize:9,color:T.textDim}}>{t.context}</div>}</div>
+              <button onClick={()=>markTodo(t,"done")} style={BTN_DONE}>done</button>
+              <button onClick={()=>markTodo(t,"ignored")} style={BTN_IGN}>ignore</button>
+            </div>
+          );})}
+        </div>
+      </div>}
+      {followUps.length>0&&<div style={{marginBottom:12}}>
+        <div style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:5}}>FOLLOW-UPS · {followUps.length}</div>
+        <div style={{display:"flex",flexDirection:"column",gap:3}}>
+          {followUps.slice(0,6).map((f,i)=>{const[bg,fg]=PB[f.priority]||PB.LOW;return(
+            <div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"7px 12px",background:bg,borderRadius:8,borderLeft:`3px solid ${fg}`}}>
+              <span style={{fontSize:8,fontWeight:800,color:fg,fontFamily:MN,flexShrink:0,marginTop:1}}>{f.priority||"LOW"}</span>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,fontWeight:600,color:T.text}}>{f.action}</div>{f.owner&&<div style={{fontSize:9,color:T.textDim}}>owner: {f.owner}</div>}</div>
+              <button onClick={()=>markFu(f,"done")} style={BTN_DONE}>done</button>
+              <button onClick={()=>markFu(f,"ignored")} style={BTN_IGN}>ignore</button>
+            </div>
+          );})}
+        </div>
+      </div>}
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:6}}>
+        {dayType==="show"&&<button onClick={()=>setTab("ros")} style={{fontSize:10,padding:"6px 14px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text2,cursor:"pointer",fontWeight:700}}>→ Schedule</button>}
+        {dayType==="show"&&<button onClick={()=>setTab("advance")} style={{fontSize:10,padding:"6px 14px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text2,cursor:"pointer",fontWeight:700}}>→ Advance</button>}
+        <button onClick={()=>setTab("guestlist")} style={{fontSize:10,padding:"6px 14px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text2,cursor:"pointer",fontWeight:700}}>→ Guest List</button>
+        <button onClick={()=>setTab("crew")} style={{fontSize:10,padding:"6px 14px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text2,cursor:"pointer",fontWeight:700}}>→ Crew</button>
+        <button onClick={()=>setTab("finance")} style={{fontSize:10,padding:"6px 14px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text2,cursor:"pointer",fontWeight:700}}>→ Finance</button>
+      </div>
+    </div>
+  );
+}
+
 function Dash(){
-  const{sorted,cShows,next,setTab,setSel,advances,finance,aC,mobile,intel,setIntel,addLog,labelIntel}=useContext(Ctx);
+  const{sorted,cShows,next,setTab,setSel,advances,finance,aC,mobile,intel,setIntel,addLog,labelIntel,allShows,sel}=useContext(Ctx);
+  if(!allShows&&sel)return<DashSingle/>;
   const client=CM[aC];const today=new Date().toISOString().slice(0,10);
   const upcoming=cShows.filter(s=>s.date>=today).slice(0,10);
   const PORD={CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3};
@@ -5175,19 +5288,24 @@ function SegmentDrawer({seg,crew,sorted,onChange,onClose}){
 }
 
 function TransTab(){
-  const{flights,uFlight,sel,labelIntel,transView:view,setTransView:setView}=useContext(Ctx);
+  const{flights,uFlight,sel,labelIntel,transView:view,setTransView:setView,allShows}=useContext(Ctx);
   const[crewFlightsOpen,setCrewFlightsOpen]=useState(false);
   const confirmedCount=Object.values(flights).filter(f=>f.status==="confirmed").length;
   const daySegCount=Object.values(flights).filter(s=>s.status!=="dismissed"&&(s.depDate===sel||s.arrDate===sel)).length;
+  useEffect(()=>{if(allShows&&view==="travel")setView("calendar");},[allShows,view,setView]);
+  const subTabs=allShows
+    ?[["calendar","Tour Calendar"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`]]
+    :[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`]];
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
       <div style={{padding:"7px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"nowrap",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
-        {[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`]].map(([v,l])=>(
+        {subTabs.map(([v,l])=>(
           <button key={v} onClick={()=>setView(v)} style={{padding:"4px 12px",borderRadius:6,border:"1px solid var(--border)",background:view===v?"var(--accent)":"var(--card-3)",color:view===v?"var(--card)":"var(--text-dim)",fontSize:10,fontWeight:700,cursor:"pointer"}}>{l}</button>
         ))}
       </div>
       <div style={{flex:1,overflow:"auto",padding:"12px 20px 30px"}}>
-        {view==="travel"&&<><TravelDayView/><div style={{margin:"20px 0 8px",display:"flex",alignItems:"center",gap:10}}><div style={{flex:1,height:1,background:"var(--border)"}}></div><span style={{fontSize:8,fontWeight:800,color:T.textMute,letterSpacing:"0.1em",whiteSpace:"nowrap"}}>TOUR CALENDAR</span><div style={{flex:1,height:1,background:"var(--border)"}}></div></div><TourCalendar/></>}
+        {view==="calendar"&&<TourCalendar/>}
+        {view==="travel"&&!allShows&&<><TravelDayView/><div style={{margin:"20px 0 8px",display:"flex",alignItems:"center",gap:10}}><div style={{flex:1,height:1,background:"var(--border)"}}></div><span style={{fontSize:8,fontWeight:800,color:T.textMute,letterSpacing:"0.1em",whiteSpace:"nowrap"}}>TOUR CALENDAR</span><div style={{flex:1,height:1,background:"var(--border)"}}></div></div><TourCalendar/></>}
         {view==="flights"&&<>{labelIntel?.crewFlights?.length>0&&(
           <div style={{background:"var(--info-bg)",border:"1px solid var(--info-bg)",borderRadius:10,marginBottom:12,overflow:"hidden"}}>
             <div onClick={()=>setCrewFlightsOpen(v=>!v)} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",cursor:"pointer",userSelect:"none"}}>
@@ -5551,9 +5669,10 @@ function FinEventsPanel({selS,fin,uFin,pushUndo}){
 }
 
 function FinTab(){
-  const{shows,cShows,finance,uFin,pushUndo,labelIntel,sel,setSel,eventKey}=useContext(Ctx);
+  const{shows,cShows,finance,uFin,pushUndo,labelIntel,sel,setSel,eventKey,allShows}=useContext(Ctx);
   const today=new Date().toISOString().slice(0,10);
-  const[finView,setFinView]=useState("settlement");
+  const[finView,setFinView]=useState(allShows?"overview":"settlement");
+  useEffect(()=>{if(allShows&&finView==="settlement")setFinView("overview");},[allShows]);
   const[addP,setAddP]=useState(false);
   const[pForm,setPForm]=useState({name:"",role:"",dept:"Drivers",amount:"",currency:"USD",method:"Wire",payMethod:"",status:"pending"});
   const show=sel?shows[sel]:null;
@@ -5576,7 +5695,7 @@ function FinTab(){
     <div className="fi" style={{display:"flex",flexDirection:"column",flex:1,minHeight:0}}>
       {/* Sub-tab bar */}
       <div style={{display:"flex",gap:0,borderBottom:"1px solid var(--border)",background:"var(--card)",flexShrink:0,padding:"0 16px"}}>
-        {[["settlement","Settlement"],["ledger","Ledger"],["overview","All Shows"]].map(([v,l])=>(
+        {[["settlement","Settlement"],["ledger","Ledger"],["overview","All Shows"]].filter(([v])=>!allShows||v!=="settlement").map(([v,l])=>(
           <button key={v} onClick={()=>setFinView(v)} style={{padding:"8px 16px",fontSize:11,fontWeight:finView===v?700:500,color:finView===v?"var(--text)":"var(--text-dim)",border:"none",borderBottom:finView===v?"2px solid var(--text)":"2px solid transparent",background:"none",cursor:"pointer",letterSpacing:"0.01em"}}>{l}</button>
         ))}
       </div>
@@ -6118,8 +6237,87 @@ function LifecyclePills({crewId,date,state,slots,onJump,compact}){
   );
 }
 
+function CrewAllShows(){
+  const{sorted,shows,tourDaysSorted,crew,showCrew,setShowCrew,setSel,setAllShows,setTab,aC,mobile}=useContext(Ctx);
+  const dates=useMemo(()=>{
+    const tourIds=new Set((tourDaysSorted||[]).map(d=>d.date));
+    const extras=(sorted||[]).filter(s=>s.clientId===aC&&!tourIds.has(s.date)).map(s=>({date:s.date,type:s.type||"show",city:s.city}));
+    const all=[...(tourDaysSorted||[]).map(d=>({date:d.date,type:d.type,city:d.city})),...extras].sort((a,b)=>a.date.localeCompare(b.date));
+    return all.filter(d=>d.type==="show");
+  },[sorted,tourDaysSorted,aC]);
+  const getCD=(scKey,crewId)=>{const sc=showCrew[scKey]||{};const d=sc[crewId]||{};return{attending:false,inboundConfirmed:false,outboundConfirmed:false,inboundMode:"bus",outboundMode:"bus",...d,travelMode:undefined};};
+  const updateSC=(scKey,crewId,patch)=>setShowCrew(p=>({...p,[scKey]:{...p[scKey],[crewId]:{...getCD(scKey,crewId),...patch}}}));
+  const toggleAttend=(scKey,crewId)=>{const cd=getCD(scKey,crewId);updateSC(scKey,crewId,{attending:!cd.attending});};
+  const toggleConf=(scKey,crewId,dir)=>{const cd=getCD(scKey,crewId);const k=dir==="in"?"inboundConfirmed":"outboundConfirmed";updateSC(scKey,crewId,{[k]:!cd[k]});};
+  const goToShow=date=>{setSel(date);setAllShows(false);setTab("crew");};
+  const cell={padding:"4px 5px",fontSize:9,textAlign:"center",borderRight:"1px solid var(--border)",borderBottom:"1px solid var(--border)",whiteSpace:"nowrap"};
+  const headerCell={...cell,fontWeight:800,fontFamily:MN,color:T.textDim,background:"var(--card-2)",position:"sticky",top:0,zIndex:1};
+  const indicator=(active,confirmed,onClick,title)=>(
+    <button onClick={e=>{e.stopPropagation();onClick();}} title={title} style={{width:14,height:14,borderRadius:3,border:`1px solid ${confirmed?"var(--success-fg)":active?T.warnFg:"var(--border)"}`,background:confirmed?"var(--success-fg)":active?"var(--warn-bg)":"transparent",color:confirmed?"#fff":active?T.warnFg:"transparent",cursor:"pointer",padding:0,fontSize:9,fontWeight:800,lineHeight:"12px",display:"inline-flex",alignItems:"center",justifyContent:"center"}}>{confirmed?"✓":active?"·":""}</button>
+  );
+  const totals=dates.map(d=>{const sc=showCrew[d.date]||{};return(crew||[]).filter(c=>sc[c.id]?.attending).length;});
+  return(
+    <div className="fi" style={{padding:mobile?"10px 8px 24px":"14px 20px 30px",flex:1,overflowY:"auto",minHeight:0}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8,flexWrap:"wrap",gap:8}}>
+        <div>
+          <div style={{fontSize:13,fontWeight:800,color:T.text}}>Crew × Show Grid</div>
+          <div style={{fontSize:10,color:T.textDim,marginTop:1}}>Click ATT to toggle attending. Click ‹ / › to confirm inbound / outbound.</div>
+        </div>
+        <div style={{display:"flex",gap:10,fontSize:9,fontFamily:MN,color:T.textDim,alignItems:"center"}}>
+          <span><span style={{display:"inline-block",width:10,height:10,background:"var(--success-fg)",borderRadius:2,marginRight:4,verticalAlign:"middle"}}/>confirmed</span>
+          <span><span style={{display:"inline-block",width:10,height:10,background:"var(--warn-bg)",border:`1px solid ${T.warnFg}`,borderRadius:2,marginRight:4,verticalAlign:"middle"}}/>attending</span>
+          <span><span style={{display:"inline-block",width:10,height:10,border:"1px solid var(--border)",borderRadius:2,marginRight:4,verticalAlign:"middle"}}/>—</span>
+        </div>
+      </div>
+      {!crew?.length&&<div style={{padding:"30px 0",textAlign:"center",color:T.textDim,fontSize:11}}>No crew members yet. Add them from a specific show.</div>}
+      {crew?.length>0&&dates.length>0&&<div style={{overflowX:"auto",border:"1px solid var(--border)",borderRadius:8,background:"var(--card)"}}>
+        <table style={{borderCollapse:"collapse",fontFamily:"'Outfit',system-ui",width:"100%"}}>
+          <thead>
+            <tr>
+              <th style={{...headerCell,textAlign:"left",padding:"6px 10px",minWidth:140,position:"sticky",left:0,zIndex:2,background:"var(--card-2)"}}>Crew</th>
+              {dates.map(d=>(
+                <th key={d.date} style={{...headerCell,minWidth:74,cursor:"pointer"}} onClick={()=>goToShow(d.date)} title={d.city}>
+                  <div style={{fontSize:8,color:T.textMute}}>{fD(d.date)}</div>
+                  <div style={{fontSize:9,color:T.text,fontWeight:700,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",maxWidth:70}}>{d.city}</div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {(crew||[]).map(c=>(
+              <tr key={c.id}>
+                <td style={{padding:"6px 10px",fontSize:10,fontWeight:600,color:T.text,borderRight:"1px solid var(--border)",borderBottom:"1px solid var(--border)",position:"sticky",left:0,zIndex:1,background:"var(--card)",whiteSpace:"nowrap"}}>
+                  <div>{c.name||"—"}</div>
+                  {c.role&&<div style={{fontSize:8,color:T.textDim,fontFamily:MN}}>{c.role}</div>}
+                </td>
+                {dates.map(d=>{
+                  const cd=getCD(d.date,c.id);
+                  return(
+                    <td key={d.date} style={{...cell,background:cd.attending?"var(--card)":"var(--bg)"}}>
+                      <div style={{display:"flex",gap:2,alignItems:"center",justifyContent:"center"}}>
+                        <button onClick={()=>toggleAttend(d.date,c.id)} title="Toggle attending" style={{fontSize:7,fontWeight:800,padding:"1px 4px",borderRadius:3,border:`1px solid ${cd.attending?"var(--accent)":"var(--border)"}`,background:cd.attending?"var(--accent-pill-bg)":"transparent",color:cd.attending?"var(--accent)":T.textMute,cursor:"pointer",fontFamily:MN}}>ATT</button>
+                        {cd.attending&&indicator(cd.attending,cd.inboundConfirmed,()=>toggleConf(d.date,c.id,"in"),`Inbound ${cd.inboundMode||"bus"} ${cd.inboundConfirmed?"confirmed":"pending"}`)}
+                        {cd.attending&&indicator(cd.attending,cd.outboundConfirmed,()=>toggleConf(d.date,c.id,"out"),`Outbound ${cd.outboundMode||"bus"} ${cd.outboundConfirmed?"confirmed":"pending"}`)}
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+            <tr>
+              <td style={{padding:"6px 10px",fontSize:9,fontWeight:800,color:T.textDim,fontFamily:MN,borderRight:"1px solid var(--border)",borderTop:"2px solid var(--border)",position:"sticky",left:0,zIndex:1,background:"var(--card-2)",letterSpacing:"0.06em"}}>ATTENDING</td>
+              {totals.map((t,i)=>(<td key={i} style={{...cell,fontWeight:800,fontFamily:MN,color:t>0?T.text:T.textMute,borderTop:"2px solid var(--border)",background:"var(--card-2)"}}>{t||"—"}</td>))}
+            </tr>
+          </tbody>
+        </table>
+      </div>}
+    </div>
+  );
+}
+
 function CrewTab(){
-  const{sel,setSel,shows,tourDaysSorted,tourDays,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights,lodging,setTab,currentSplit,activeSplitPartyId,activeSplitParty,eventKey}=useContext(Ctx);
+  const{sel,setSel,shows,tourDaysSorted,tourDays,crew,setCrew,showCrew,setShowCrew,mobile,pushUndo,flights,lodging,setTab,currentSplit,activeSplitPartyId,activeSplitParty,eventKey,allShows}=useContext(Ctx);
+  if(allShows)return<CrewAllShows/>;
   const[panel,setPanel]=useState(null);
   const[editMode,setEditMode]=useState(false);
   const[flightPicker,setFlightPicker]=useState(null); // {crewId, dir}
@@ -6975,8 +7173,54 @@ const ROOM_STATUS_META={
   released:{label:"Released",bg:"var(--card-2)",c:"var(--text-2)"},
 };
 
+function LodgingAllShows(){
+  const{lodging,sorted,setSel,setTab,setAllShows,mobile,aC}=useContext(Ctx);
+  const hotels=useMemo(()=>Object.values(lodging||{}).sort((a,b)=>(a.checkIn||"").localeCompare(b.checkIn||"")),[lodging]);
+  const upcomingShows=(sorted||[]).filter(s=>s.clientId===aC&&s.type==="show");
+  const totalCost=hotels.reduce((sum,h)=>sum+(parseFloat(h.cost)||0),0);
+  const totalRooms=hotels.reduce((sum,h)=>sum+((h.rooms||[]).length||0),0);
+  const showsCovered=new Set();
+  hotels.forEach(h=>{upcomingShows.forEach(s=>{if(h.checkIn<=s.date&&h.checkOut>=s.date)showsCovered.add(s.date);});});
+  const goToShow=date=>{setSel(date);setAllShows(false);setTab("lodging");};
+  return(
+    <div className="fi" style={{padding:mobile?"10px 8px 24px":"14px 20px 30px",flex:1,overflowY:"auto",minHeight:0}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:14}}>
+        {[["Hotels",hotels.length,"booked"],["Rooms",totalRooms,"total"],["Shows Covered",`${showsCovered.size}/${upcomingShows.length}`,""],["Total Cost",`$${totalCost.toLocaleString(undefined,{maximumFractionDigits:0})}`,""]].map(([l,v,s])=>(
+          <div key={l} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
+            <div style={{fontSize:9,color:T.textDim,marginBottom:2,fontWeight:600}}>{l}</div>
+            <div style={{fontSize:18,fontWeight:800,color:"var(--text)",fontFamily:MN}}>{v}</div>
+            {s&&<div style={{fontSize:9,color:T.textMute,fontFamily:MN,marginTop:1}}>{s}</div>}
+          </div>
+        ))}
+      </div>
+      <div style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:6}}>ALL HOTELS</div>
+      {!hotels.length&&<div style={{padding:"40px 0",textAlign:"center",color:T.textDim,fontSize:11}}>No hotels yet. Open a specific show to add hotels.</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:4}}>
+        {hotels.map(h=>{
+          const nights=h.checkIn&&h.checkOut?Math.max(1,Math.round((new Date(h.checkOut)-new Date(h.checkIn))/86400000)):1;
+          const coveredShows=upcomingShows.filter(s=>h.checkIn<=s.date&&h.checkOut>=s.date);
+          return(
+            <div key={h.id} className="rh" onClick={()=>goToShow(h.checkIn)} style={{display:"grid",gridTemplateColumns:"1fr 80px 80px 90px 60px",gap:8,alignItems:"center",padding:"9px 12px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,cursor:"pointer"}}>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:11,fontWeight:700,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{h.name||"—"}</div>
+                <div style={{fontSize:9,color:T.textDim,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{h.city||""}{h.address?` · ${h.address}`:""}</div>
+                {coveredShows.length>0&&<div style={{fontSize:9,color:T.accent,fontFamily:MN,marginTop:2}}>{coveredShows.map(s=>s.city).join(" · ")}</div>}
+              </div>
+              <div style={{fontSize:10,fontFamily:MN,color:T.text2}}>{h.checkIn?fD(h.checkIn):"—"}<span style={{color:T.textMute}}> → </span>{h.checkOut?fD(h.checkOut):"—"}</div>
+              <div style={{fontSize:9,fontFamily:MN,color:T.textDim,textAlign:"right"}}>{nights}n · {(h.rooms||[]).length}rm</div>
+              <div style={{fontSize:10,fontFamily:MN,color:T.text2,textAlign:"right"}}>{h.cost?`$${Number(h.cost).toLocaleString()}`:"—"}{h.currency&&h.currency!=="USD"?` ${h.currency}`:""}</div>
+              <div style={{fontSize:8,padding:"2px 6px",borderRadius:99,background:h.status==="confirmed"?"var(--success-bg)":h.status==="pending"?"var(--warn-bg)":"var(--card-2)",color:h.status==="confirmed"?T.successFg:h.status==="pending"?T.warnFg:T.textMute,fontWeight:700,textAlign:"center",textTransform:"uppercase"}}>{h.status||"—"}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function LodgingTab(){
-  const{lodging,uLodging,crew,showCrew,finance,uFin,tourDaysSorted,mobile,sel,setSel,tourStart,tourEnd}=useContext(Ctx);
+  const{lodging,uLodging,crew,showCrew,finance,uFin,tourDaysSorted,mobile,sel,setSel,tourStart,tourEnd,allShows}=useContext(Ctx);
+  if(allShows)return<LodgingAllShows/>;
   const[addOpen,setAddOpen]=useState(false);
   const[editId,setEditId]=useState(null);
   const[scanning,setScanning]=useState(false);
@@ -7725,8 +7969,55 @@ function ProdTab(){
   );
 }
 
+function GuestListAllShows(){
+  const{guestlists,sorted,shows,setSel,setAllShows,setTab,aC,mobile}=useContext(Ctx);
+  const showRows=useMemo(()=>(sorted||[]).filter(s=>s.clientId===aC&&s.type==="show").map(s=>{
+    const gl=guestlists[s.date];
+    if(!gl){return{date:s.date,city:s.city,venue:s.venue,init:false,allot:0,used:0,checkedIn:0,parties:0};}
+    let allot=0,used=0,checkedIn=0;
+    (gl.categories||[]).forEach(c=>{allot+=(c.qty||0);});
+    Object.values(gl.parties||{}).forEach(p=>{(p.entries||[]).forEach(e=>{const seats=1+(e.plusOne?1:0);used+=seats;if(e.status==="checked_in")checkedIn+=seats;});});
+    return{date:s.date,city:s.city,venue:s.venue,init:true,allot,used,checkedIn,parties:Object.keys(gl.parties||{}).length,status:gl.status};
+  }),[sorted,guestlists,aC]);
+  const totals=showRows.reduce((acc,r)=>{acc.allot+=r.allot;acc.used+=r.used;acc.checkedIn+=r.checkedIn;acc.parties+=r.parties;acc.initShows+=r.init?1:0;return acc;},{allot:0,used:0,checkedIn:0,parties:0,initShows:0});
+  const goToShow=date=>{setSel(date);setAllShows(false);setTab("guestlist");};
+  return(
+    <div className="fi" style={{padding:mobile?"10px 8px 24px":"14px 20px 30px",flex:1,overflowY:"auto",minHeight:0}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:10,marginBottom:14}}>
+        {[["Allotments",totals.allot.toLocaleString(),`${totals.initShows}/${showRows.length} shows`],["Used",totals.used.toLocaleString(),totals.allot>0?`${Math.round(totals.used/totals.allot*100)}% utilization`:""],["Checked-in",totals.checkedIn.toLocaleString(),totals.used>0?`${Math.round(totals.checkedIn/totals.used*100)}% of seats`:""],["Parties",totals.parties.toLocaleString(),"across tour"]].map(([l,v,s])=>(
+          <div key={l} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
+            <div style={{fontSize:9,color:T.textDim,marginBottom:2,fontWeight:600}}>{l}</div>
+            <div style={{fontSize:18,fontWeight:800,color:"var(--text)",fontFamily:MN}}>{v}</div>
+            {s&&<div style={{fontSize:9,color:T.textMute,fontFamily:MN,marginTop:1}}>{s}</div>}
+          </div>
+        ))}
+      </div>
+      <div style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:6}}>BY SHOW</div>
+      <div style={{display:"flex",flexDirection:"column",gap:4}}>
+        {showRows.map(r=>{
+          const pct=r.allot>0?Math.round(r.used/r.allot*100):0;
+          return(
+            <div key={r.date} className="rh" onClick={()=>goToShow(r.date)} style={{display:"grid",gridTemplateColumns:"58px 1fr 70px 70px 70px 80px",gap:8,alignItems:"center",padding:"9px 12px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,cursor:"pointer"}}>
+              <div style={{fontFamily:MN,fontSize:9,color:T.accent,fontWeight:700}}>{fD(r.date)}</div>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:11,fontWeight:700,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.city}</div>
+                <div style={{fontSize:9,color:T.textDim,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{r.venue}</div>
+              </div>
+              <div style={{fontSize:10,fontFamily:MN,color:T.text2,textAlign:"right"}}>{r.init?`${r.used}/${r.allot}`:<span style={{color:T.textMute}}>—</span>}</div>
+              <div style={{fontSize:9,fontFamily:MN,color:T.textDim,textAlign:"right"}}>{r.parties} parties</div>
+              <div style={{fontSize:10,fontFamily:MN,color:T.text2,textAlign:"right"}}>{r.init?`${r.checkedIn} in`:""}</div>
+              <div style={{fontSize:8,padding:"2px 6px",borderRadius:99,background:r.init?(pct>=90?"var(--danger-bg)":pct>=50?"var(--warn-bg)":"var(--success-bg)"):"var(--card-2)",color:r.init?(pct>=90?T.dangerFg:pct>=50?T.warnFg:T.successFg):T.textMute,fontWeight:700,textAlign:"center"}}>{r.init?`${pct}%`:"not started"}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function GuestListTab(){
-  const{guestlists,uGuestlist,glTemplates,setGlTemplates,sel,setSel,eventKey,sorted,shows,mobile,crew,role}=useContext(Ctx);
+  const{guestlists,uGuestlist,glTemplates,setGlTemplates,sel,setSel,eventKey,sorted,shows,mobile,crew,role,allShows}=useContext(Ctx);
+  if(allShows)return<GuestListAllShows/>;
   const a=useAuth();
   const by=(a?.user?.email||"unknown").toLowerCase();
   const allTemplates=useMemo(()=>[glBuiltinTemplate(),...Object.values(glTemplates||{}).sort((a,b)=>(a.name||"").localeCompare(b.name||""))],[glTemplates]);
