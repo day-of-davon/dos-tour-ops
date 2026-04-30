@@ -915,7 +915,7 @@ const CUSTOM_ROS_MAP={"2026-04-16":RRX_ROS};
 
 const BUS_DATA=[
   {day:1,date:"May 02",dow:"Sat",route:"Aarschot → London",km:360,drive:"6h",dep:"08:00",arr:"15:00",show:false,flag:"",note:"Deadhead. Eurotunnel Calais→Folkestone.",stops:"Aire de Saint-Omer (A26)"},
-  {day:2,date:"May 03",dow:"Sun",route:"London → Dublin",km:450,drive:"7h",dep:"08:00",arr:"16:45",show:false,flag:"",note:"Ferry Holyhead-Dublin. Stena Line.",stops:"Corley Services (M6 J3-4)"},
+  {day:2,date:"May 03",dow:"Sun",route:"London → Dublin",km:450,drive:"7h",dep:"00:00",arr:"08:45",show:false,flag:"",note:"Bus loads from Neg Earth. Ferry Holyhead→Dublin. Stena Line.",stops:"Corley Services (M6 J3-4)"},
   {day:3,date:"May 04",dow:"Mon",route:"Dublin",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"National Stadium",flag:""},
   {day:4,date:"May 05",dow:"Tue",route:"Dublin",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"National Stadium",flag:""},
   {day:5,date:"May 06",dow:"Wed",route:"Dublin → Manchester",km:210,drive:"4h",dep:"02:00",arr:"07:30",show:false,flag:"",note:"Ferry Dublin→Holyhead. Stena Line.",stops:"Dublin Port Ferryport"},
@@ -1173,13 +1173,15 @@ export default function App(){
   const uPerms=useCallback((permId,roleId,val)=>setPerms(p=>({...p,[permId]:{...p[permId],[roleId]:val}})),[]);
   const[commentMode,setCommentMode]=useState(false);
   const[showPickerOpen,setShowPickerOpen]=useState(false);
+  const[busEdits,setBusEdits]=useState({});
+  const uBusEdit=useCallback((iso,fields)=>setBusEdits(p=>{if(fields===null){const n={...p};delete n[iso];return n;}return{...p,[iso]:{...(p[iso]||{}),...fields}};}),[]);
   const[actLog,setActLog]=useState([]);
   const addActLog=useCallback((event)=>setActLog(p=>{const next=[...p,{...event,ts:new Date().toISOString(),session:SESSION_ID}];return next.length>2000?next.slice(-2000):next;}),[]);
   const mobile=useMobile();
   const st=useRef(null);const stp=useRef(null);
 
   useEffect(()=>{(async()=>{
-    const[s,r,a,f,se,cr,pr,fl,lo,gl,glt,im,pe]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW),sG(SK.PRODUCTION),sG(SK.FLIGHTS),sG(SK.LODGING),sG(SK.GUESTLISTS),sG(SK.GL_TEMPLATES),sG(SK.IMMIGRATION),sG(SK.PERMISSIONS)]);
+    const[s,r,a,f,se,cr,pr,fl,lo,gl,glt,im,pe,be]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW),sG(SK.PRODUCTION),sG(SK.FLIGHTS),sG(SK.LODGING),sG(SK.GUESTLISTS),sG(SK.GL_TEMPLATES),sG(SK.IMMIGRATION),sG(SK.PERMISSIONS),sG(SK.BUS_EDITS)]);
     const init=ALL_SHOWS.reduce((acc,sh)=>{acc[sh.date]={...sh,doorsConfirmed:false,curfewConfirmed:false,busArriveConfirmed:false,crewCallConfirmed:false,venueAccessConfirmed:false,mgTimeConfirmed:false,etaSource:"schedule",lastModified:Date.now()};return acc;},{});
     const merged={...init};if(s)Object.keys(s).forEach(k=>{merged[k]=merged[k]?{...merged[k],...s[k]}:{...s[k]};});
     setShows(merged);setRos(r||{});setAdvances(a||{});setFinance(f||{});
@@ -1191,7 +1193,7 @@ export default function App(){
     if(se?.tourStart)setTourStart(se.tourStart);if(se?.tourEnd)setTourEnd(se.tourEnd);
     if(se?.lastFlightScanAt)setLastFlightScanAt(se.lastFlightScanAt);
     if(cr?.crew)setCrew(cr.crew);if(cr?.showCrew)setShowCrew(cr.showCrew);
-    setProduction(pr||{});setFlights(fl||{});setLodging(lo||{});setGuestlists(gl||{});setGlTemplates(glt||{});setImmigration(im||{});if(pe)setPerms(p=>({...DEFAULT_PERMS,...pe,...Object.fromEntries(Object.entries(DEFAULT_PERMS).map(([k,v])=>([k,{...v,...(pe[k]||{})}])))}));
+    setProduction(pr||{});setFlights(fl||{});setLodging(lo||{});setGuestlists(gl||{});setGlTemplates(glt||{});setImmigration(im||{});if(be)setBusEdits(be);if(pe)setPerms(p=>({...DEFAULT_PERMS,...pe,...Object.fromEntries(Object.entries(DEFAULT_PERMS).map(([k,v])=>([k,{...v,...(pe[k]||{})}])))}));
     const[np,cp,it,al]=await Promise.all([sGP(PK.NOTES_PRIV),sGP(PK.CHECKLIST_PRIV),sGP(PK.INTEL),sGP(PK.ACTLOG)]);
     setNotesPriv(np||{});setCheckPriv(cp||{});setIntel(it||{});if(Array.isArray(al))setActLog(al);
     setLoaded(true);
@@ -1366,9 +1368,9 @@ export default function App(){
 
   const save=useCallback(()=>{
     if(!loaded)return;if(st.current)clearTimeout(st.current);
-    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt,allShows}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging),sS(SK.GUESTLISTS,guestlists),sS(SK.GL_TEMPLATES,glTemplates),sS(SK.IMMIGRATION,immigration),sS(SK.PERMISSIONS,perms)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
-  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,tabOrder,crew,showCrew,production,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt,perms,allShows]);
-  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,perms,allShows]);
+    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt,allShows}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging),sS(SK.GUESTLISTS,guestlists),sS(SK.GL_TEMPLATES,glTemplates),sS(SK.IMMIGRATION,immigration),sS(SK.PERMISSIONS,perms),sS(SK.BUS_EDITS,busEdits)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
+  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,tabOrder,crew,showCrew,production,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt,perms,allShows,busEdits]);
+  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,perms,allShows,busEdits]);
   useEffect(()=>{const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(v=>!v);}if(e.key==="Escape")setCmd(false);};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
   const labelScanFired=useRef(false);
   useEffect(()=>{if(loaded&&!labelScanFired.current){labelScanFired.current=true;refreshLabelIntel();}},[loaded]);// eslint-disable-line
@@ -1489,7 +1491,7 @@ export default function App(){
     if(currentSplit&&activeSplitPartyId)return `${sel}#${activeSplitPartyId}`;
     return sel;
   },[selEventId,sel,currentSplit,activeSplitPartyId]);
-  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,setTransView,perms,uPerms,actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,perms,actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows]);// eslint-disable-line
+  const ctxValue=useMemo(()=>({shows,uShow,ros,uRos,gRos,advances,uAdv,finance,uFin,sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv,checkPriv,uCheckPriv,mobile,setExp,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew,showCrew,setShowCrew,dateMenu,setDateMenu,production,uProd,tourDays,tourDaysSorted,orderedTabs,reorderTabs,selEventId,setSelEventId,flights,uFlight,setFlights,uploadOpen,setUploadOpen,lodging,uLodging,guestlists,uGuestlist,glTemplates,setGlTemplates,showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart,setTourEnd,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,setTransView,perms,uPerms,actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows,busEdits,uBusEdit}),[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,perms,actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows,busEdits,uBusEdit]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:T.text,letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:T.textDim,marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
@@ -4442,7 +4444,7 @@ function ROSTab(){
 }
 
 function TourCalendar(){
-  const{setSel,setTab,flights,uFlight,effectiveSplitDays,allShows,setAllShows}=useContext(Ctx);
+  const{setSel,setTab,flights,uFlight,effectiveSplitDays,allShows,setAllShows,busEdits,uBusEdit}=useContext(Ctx);
   const importBusLegs=()=>{
     const base=new Date('2026-05-02T12:00:00');
     BUS_DATA.forEach(d=>{
@@ -4456,6 +4458,8 @@ function TourCalendar(){
     });
   };
   const[expRows,setExpRows]=useState({});
+  const[editRows,setEditRows]=useState({});
+  const[editForms,setEditForms]=useState({});
   const crewById=useMemo(()=>DEFAULT_CREW.reduce((a,c)=>{a[c.id]=c;return a},{}),[]);
   const openDay=iso=>{setSel(iso);if(allShows){setAllShows(false);}else{setTab("ros");}};
   const busMap=useMemo(()=>{
@@ -4463,10 +4467,22 @@ function TourCalendar(){
     BUS_DATA.forEach(d=>{
       const base=new Date('2026-05-02T12:00:00');
       base.setDate(base.getDate()+d.day-1);
-      m[base.toISOString().slice(0,10)]=d;
+      const iso=base.toISOString().slice(0,10);
+      m[iso]={...d,...(busEdits[iso]||{})};
     });
     return m;
-  },[]);
+  },[busEdits]);
+  const toggleBusEdit=(iso,bus)=>{
+    const wasOpen=editRows[iso];
+    setEditRows(p=>({...p,[iso]:!p[iso]}));
+    if(!wasOpen)setEditForms(p=>({...p,[iso]:{dep:bus.dep||"",arr:bus.arr||"",km:String(bus.km||0),drive:bus.drive||"",route:bus.route||"",note:bus.note||"",stops:bus.stops||""}}));
+  };
+  const saveBusEdit=(iso)=>{
+    const f=editForms[iso]||{};
+    uBusEdit(iso,{...f,km:parseInt(f.km)||0});
+    setEditRows(p=>({...p,[iso]:false}));
+  };
+  const resetBusEdit=(iso)=>{uBusEdit(iso,null);setEditRows(p=>({...p,[iso]:false}));};
   const showMap=useMemo(()=>{
     const m={};
     ALL_SHOWS.filter(s=>s.clientId==="bbn"&&s.date>="2026-04-16"&&s.date<="2026-05-31").forEach(s=>{m[s.date]=s;});
@@ -4582,9 +4598,36 @@ function TourCalendar(){
                 <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
                   {hasFlag&&<span style={{fontSize:11}}>⚠</span>}
                   {canExpand&&<span onClick={e=>{e.stopPropagation();setExpRows(p=>({...p,[d.iso]:!p[d.iso]}));}} style={{fontSize:9,color:ts.c,fontWeight:700,padding:"2px 6px",borderRadius:4,cursor:"pointer"}}>{isExp?"▴":"▾"}</span>}
+                  {d.type==="travel"&&<span onClick={e=>{e.stopPropagation();toggleBusEdit(d.iso,d.bus);}} title="Edit bus entry" style={{fontSize:10,color:editRows[d.iso]?"var(--accent)":T.textMute,cursor:"pointer",padding:"2px 4px",borderRadius:4,border:`1px solid ${editRows[d.iso]?"var(--accent)":"var(--border)"}`,lineHeight:1,background:editRows[d.iso]?"var(--accent-pill-bg)":"transparent"}}>{busEdits[d.iso]?"✎*":"✎"}</span>}
                 </div>
               </div>
               {d.type==="travel"&&driveH>0&&<div style={{height:3,background:"var(--card-2)"}}><div style={{width:`${drivePct}%`,height:"100%",background:driveC,transition:"width 0.3s"}}/></div>}
+              {d.type==="travel"&&editRows[d.iso]&&(
+                <div onClick={e=>e.stopPropagation()} style={{padding:"10px 12px",background:"var(--card)",borderTop:"1px solid var(--border)"}}>
+                  <div style={{fontSize:8,fontWeight:800,color:T.textDim,letterSpacing:"0.08em",marginBottom:6}}>EDIT BUS ENTRY{busEdits[d.iso]?" · OVERRIDDEN":""}</div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"flex-end",marginBottom:6}}>
+                    {[["DEP","dep"],["ARR","arr"],["KM","km"],["DRIVE","drive"],["ROUTE","route"]].map(([l,k])=>(
+                      <div key={k}>
+                        <div style={{fontSize:7,fontWeight:700,color:T.textDim,marginBottom:2,letterSpacing:"0.06em"}}>{l}</div>
+                        <input value={(editForms[d.iso]||{})[k]||""} onChange={e=>setEditForms(p=>({...p,[d.iso]:{...(p[d.iso]||{}),[k]:e.target.value}}))} style={{fontFamily:MN,fontSize:10,padding:"3px 6px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text,width:k==="route"?140:k==="drive"?48:k==="km"?48:56,outline:"none"}}/>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"flex-end",marginBottom:8}}>
+                    {[["NOTE","note"],["STOPS","stops"]].map(([l,k])=>(
+                      <div key={k} style={{flex:k==="note"?1:2,minWidth:120}}>
+                        <div style={{fontSize:7,fontWeight:700,color:T.textDim,marginBottom:2,letterSpacing:"0.06em"}}>{l}</div>
+                        <input value={(editForms[d.iso]||{})[k]||""} onChange={e=>setEditForms(p=>({...p,[d.iso]:{...(p[d.iso]||{}),[k]:e.target.value}}))} style={{fontSize:9,padding:"3px 6px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text,width:"100%",outline:"none",boxSizing:"border-box"}}/>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{display:"flex",gap:6}}>
+                    <button onClick={()=>saveBusEdit(d.iso)} style={{fontSize:9,padding:"3px 10px",borderRadius:5,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>✓ Save</button>
+                    <button onClick={()=>setEditRows(p=>({...p,[d.iso]:false}))} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid var(--border)",background:"transparent",color:T.text2,cursor:"pointer"}}>Cancel</button>
+                    {busEdits[d.iso]&&<button onClick={()=>resetBusEdit(d.iso)} style={{fontSize:9,padding:"3px 8px",borderRadius:5,border:"1px solid var(--danger-fg)",background:"transparent",color:"var(--danger-fg)",cursor:"pointer",fontWeight:700,marginLeft:"auto"}}>↺ Reset to default</button>}
+                  </div>
+                </div>
+              )}
               {isSplit&&isExp&&(
                 <div style={{padding:"0 12px 10px",background:"var(--warn-bg)",borderTop:"1px solid var(--warn-bg)"}}>
                   {d.split.parties.map(p=>(
@@ -5118,7 +5161,9 @@ function TravelDayView(){
   const pax=(seg)=>(seg?.pax||[]).filter(Boolean);
   const paxMatch=name=>(crew||[]).find(c=>c.name&&c.name.toLowerCase().includes(String(name).split(" ")[0].toLowerCase()));
 
-  const busDay=BUS_DATA_MAP[sel]||null;
+  const{busEdits}=useContext(Ctx);
+  const busDay=useMemo(()=>{const base=BUS_DATA_MAP[sel];if(!base)return null;return{...base,...(busEdits?.[sel]||{})};},// eslint-disable-next-line react-hooks/exhaustive-deps
+  [sel,busEdits]);
   const dayLabel=curDay?.type==="travel"?"Travel Day":curDay?.type==="split"?"Split Day":curDay?.type==="off"?"Off Day":"Show Day";
 
   return(

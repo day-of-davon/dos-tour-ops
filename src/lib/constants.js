@@ -24,6 +24,7 @@ export const SK = Object.freeze({
   GL_TEMPLATES: "dos-v7-guestlist-templates",
   IMMIGRATION:  "dos-v7-immigration",
   PERMISSIONS:  "dos-v7-permissions",
+  BUS_EDITS:    "dos-v7-bus-edits",
 });
 
 export const PK = Object.freeze({
