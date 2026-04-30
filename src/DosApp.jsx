@@ -2587,7 +2587,11 @@ function IntelPanel(){
           {BUCKETS.filter(b=>grouped[b.key].length>0).map(b=>(
             <div key={b.key} style={{background:b.bg,border:`1px solid ${b.col}30`,borderRadius:10,padding:"8px 12px"}}>
               <div style={{fontSize:8,fontWeight:800,color:b.col,letterSpacing:"0.08em",marginBottom:5}}>{b.label} ({grouped[b.key].length})</div>
-              {grouped[b.key].map(item=>{const done=arDone.has(item.id);const noteOpen=arNoteOpen[item.id];const note=arNotes[item.id]||"";return(
+              {grouped[b.key].map(item=>{const done=arDone.has(item.id);const noteOpen=arNoteOpen[item.id];const note=arNotes[item.id]||"";
+                const sug=item.suggestion;const sugConf=item.suggestionConfidence||"medium";const sugDim=sugConf==="low"?0.55:1;
+                const applySug=()=>{if(sug==="complete")markArIntel(item.id,"done",item.subject);else if(sug==="ignore")markArIntel(item.id,"ignored",item.subject);else if(sug==="action"&&item.suggestedAction)saveArNote(item.id,item.suggestedAction);};
+                const sugTip=`${sug?sug.toUpperCase():""} (${sugConf})${item.suggestionReason?` — ${item.suggestionReason}`:""}`;
+                return(
                 <React.Fragment key={item.id}>
                 <div style={{padding:"6px 0",borderBottom:`1px solid ${b.col}18`}}>
                   <div style={{marginBottom:4,opacity:done?0.5:1}}>
@@ -2596,6 +2600,9 @@ function IntelPanel(){
                   </div>
                   <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
                     <a href={gmailUrl(item.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,padding:"2px 9px",borderRadius:4,border:`1px solid ${b.col}70`,background:"var(--card)",color:b.col,textDecoration:"none",fontWeight:700,flexShrink:0}}>email · {item.signal||item.bucket} →</a>
+                    {sug==="complete"&&!done&&<button onClick={applySug} title={sugTip} style={{fontSize:9,padding:"2px 9px",borderRadius:4,border:"1px solid var(--success-fg)",background:"var(--success-bg)",color:"var(--success-fg)",cursor:"pointer",fontWeight:700,opacity:sugDim,flexShrink:0}}>✓ Suggest Done</button>}
+                    {sug==="ignore"&&!done&&<button onClick={applySug} title={sugTip} style={{fontSize:9,padding:"2px 9px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:T.textMute,cursor:"pointer",fontWeight:700,opacity:sugDim,flexShrink:0}}>× Suggest Ignore</button>}
+                    {sug==="action"&&item.suggestedAction&&!done&&<button onClick={applySug} title={`${sugTip} — click to save as note`} style={{fontSize:9,padding:"2px 9px",borderRadius:4,border:"1px solid var(--accent)",background:"var(--accent-pill-bg)",color:T.accent,cursor:"pointer",fontWeight:700,opacity:sugDim,maxWidth:240,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flexShrink:0}}>→ {item.suggestedAction}</button>}
                     <button onClick={()=>markArIntel(item.id,done?"undone":"done",item.subject)} style={{fontSize:9,padding:"2px 9px",borderRadius:4,border:done?"1px solid var(--success-fg)":"1px solid var(--border)",background:done?"var(--success-bg)":"var(--card-2)",color:done?"var(--success-fg)":"var(--text-2)",cursor:"pointer",fontWeight:700,flexShrink:0}}>{done?"↩ Restore":"Done"}</button>
                     {!done&&<button onClick={()=>markArIntel(item.id,"ignored",item.subject)} style={{fontSize:9,padding:"2px 9px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:T.textMute,cursor:"pointer",fontWeight:600,flexShrink:0}}>Ignore</button>}
                     <button onClick={()=>toggleArNote(item.id)} style={{fontSize:9,padding:"2px 9px",borderRadius:4,border:`1px solid ${note&&!noteOpen?"var(--accent)":"var(--border)"}`,background:noteOpen?"var(--card-3)":"var(--card-2)",color:note&&!noteOpen?T.accent:T.textMute,cursor:"pointer",fontWeight:600,flexShrink:0}}>{note&&!noteOpen?"note ✎":"note"}</button>
@@ -3464,6 +3471,22 @@ function Dash(){
   const BTN_DONE={fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--success-bg)",color:T.successFg};
   const BTN_IGN={fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--card-2)",color:T.textMute};
 
+  const applySuggestion=(i)=>{
+    if(i.suggestion==="complete")markAr(i.id,"done",i.subject,i);
+    else if(i.suggestion==="ignore")markAr(i.id,"ignored",i.subject,i);
+    else if(i.suggestion==="action"&&i.suggestedAction)updateArNote(i.id,i.suggestedAction);
+  };
+  const renderSuggest=(i)=>{
+    if(!i?.suggestion)return null;
+    const conf=i.suggestionConfidence||"medium";
+    const dim=conf==="low"?0.55:1;
+    const tip=`${i.suggestion.toUpperCase()} (${conf})${i.suggestionReason?` — ${i.suggestionReason}`:""}`;
+    if(i.suggestion==="complete")return<button onClick={()=>applySuggestion(i)} title={tip} style={{fontSize:8,padding:"2px 6px",borderRadius:4,border:"1px solid var(--success-fg)",background:"var(--success-bg)",color:"var(--success-fg)",cursor:"pointer",fontWeight:700,opacity:dim,whiteSpace:"nowrap",flexShrink:0}}>✓ Suggest Done</button>;
+    if(i.suggestion==="ignore")return<button onClick={()=>applySuggestion(i)} title={tip} style={{fontSize:8,padding:"2px 6px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:T.textMute,cursor:"pointer",fontWeight:700,opacity:dim,whiteSpace:"nowrap",flexShrink:0}}>× Suggest Ignore</button>;
+    if(i.suggestion==="action"&&i.suggestedAction)return<button onClick={()=>applySuggestion(i)} title={`${tip} — click to save as note`} style={{fontSize:8,padding:"2px 6px",borderRadius:4,border:"1px solid var(--accent)",background:"var(--accent-pill-bg)",color:T.accent,cursor:"pointer",fontWeight:700,opacity:dim,maxWidth:200,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flexShrink:0}}>→ {i.suggestedAction}</button>;
+    return null;
+  };
+
   return(
     <div className="fi" style={{padding:mobile?"10px 10px 24px":"14px 20px 30px",maxWidth:960,flex:1,overflowY:"auto",minHeight:0}}>
       {flags.slice(0,4).map((f,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",background:f.type==="CRITICAL"?"var(--danger-bg)":"var(--warn-bg)",borderRadius:10,marginBottom:4,borderLeft:`3px solid ${f.type==="CRITICAL"?"var(--danger-fg)":"var(--warn-fg)"}`}}><span style={{fontSize:9,fontWeight:800,color:f.type==="CRITICAL"?"var(--danger-fg)":"var(--warn-fg)",fontFamily:MN}}>{f.type}</span><span style={{fontSize:11,color:T.text,fontWeight:600,flex:1}}>{f.msg}</span>{CM[f.cId]&&<span style={{fontSize:8,color:T.textDim,fontFamily:MN,flexShrink:0}}>{CM[f.cId].short}</span>}{f.days!=null&&<span style={{fontSize:10,fontFamily:MN,fontWeight:800,color:f.type==="CRITICAL"?"var(--danger-fg)":"var(--warn-fg)",flexShrink:0}}>{f.days}d</span>}</div>)}
@@ -3543,6 +3566,7 @@ function Dash(){
             <input type="text" placeholder="add note..." value={intel.__arNotes?.[i.id]||""} onChange={e=>updateArNote(i.id,e.target.value)} style={{marginTop:3,width:"100%",fontSize:9,padding:"2px 6px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text2,outline:"none",boxSizing:"border-box"}}/>
           </div>
           <span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:bucketB(i.bucket),color:bucketC(i.bucket),fontWeight:700,flexShrink:0}}>{i.bucket}</span>
+          {renderSuggest(i)}
           <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--danger-bg)",color:"var(--danger-fg)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0,border:"1px solid var(--danger-fg)"}}>email →</a>
           <button onClick={()=>markAr(i.id,"done",i.subject,i)} style={BTN_DONE}>Done</button>
           <button onClick={()=>markAr(i.id,"ignored",i.subject,i)} style={BTN_IGN}>Ignore</button>
@@ -3657,6 +3681,7 @@ function Dash(){
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:bucketB(i.bucket),color:bucketC(i.bucket),fontWeight:700,flexShrink:0,marginTop:1}}>{i.bucket}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:T.textDim}}>{i.from}{arShowLabel(i)?` · ${arShowLabel(i)}`:""}</div></div>
               <span style={{fontSize:8,color:T.textMute,fontFamily:MN,flexShrink:0,paddingTop:2}}>{i.category}</span>
+              {renderSuggest(i)}
               <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:T.link,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>email →</a>
               <button onClick={()=>markAr(i.id,"done",i.subject,i)} style={BTN_DONE}>Done</button>
               <button onClick={()=>markAr(i.id,"ignored",i.subject,i)} style={BTN_IGN}>Ignore</button>
@@ -3669,6 +3694,7 @@ function Dash(){
             {logisticsItems.map((i,idx)=><div key={idx} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:"var(--info-bg)",color:T.link,fontWeight:700,flexShrink:0,marginTop:1}}>{i.category}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:T.textDim}}>{i.from}</div></div>
+              {renderSuggest(i)}
               <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--info-bg)",color:T.link,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>email →</a>
               <button onClick={()=>markAr(i.id,"done",i.subject,i)} style={BTN_DONE}>Done</button>
               <button onClick={()=>markAr(i.id,"ignored",i.subject,i)} style={BTN_IGN}>Ignore</button>

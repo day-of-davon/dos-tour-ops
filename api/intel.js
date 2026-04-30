@@ -231,6 +231,79 @@ function matchShow(thread, shows) {
   return bestScore >= 4 ? best : null;
 }
 
+// ── Action-required suggestion layer ─────────────────────────────────────────
+// Sends the actionRequired list (subject + sender + thread snippet + signal)
+// to Claude in a single batch and asks it to classify each item as
+// "complete" | "ignore" | "action", with a one-line suggested action when
+// applicable. Annotations are merged onto each item; failures are non-fatal.
+async function classifyActionItems(items, threadPool) {
+  if (!items?.length) return new Map();
+  const ITEM_CAP = 60;
+  const list = items.slice(0, ITEM_CAP).map(it => {
+    const t = threadPool?.[it.id];
+    const body = (t?.bodySnippet || it.snippet || "").slice(0, 600);
+    const ageDays = it.date ? Math.round((Date.now() - new Date(it.date).getTime()) / 86400000) : null;
+    return { id: it.id, subject: it.subject || "", from: it.from || "", category: it.category, bucket: it.bucket, signal: it.signal, ageDays, body };
+  });
+
+  const sysPrompt = `You triage tour-ops emails for an artist's tour manager. For each item, decide whether it still needs human action.
+
+Output exactly one classification per item:
+- "complete": the request was already answered / fulfilled / the deadline passed and is moot. Last reply in thread came from us OR the email confirms a closed loop.
+- "ignore": low-value, transactional, auto-reply, or duplicate of another live thread. No real action needed and no follow-up risk.
+- "action": still open. Provide a short imperative suggestedAction (<=80 chars), e.g. "Reply to confirm doors at 7pm", "Send signed carnet to Freya", "Forward W-9 to promoter".
+
+Be conservative on LEGAL and FINANCE categories — default to "action" unless clearly resolved.
+Be aggressive on MISC auto-replies and bounce notifications — those are usually "ignore".
+
+Confidence: "high" if you're certain; "medium" if context is ambiguous; "low" if you're guessing.`;
+
+  const userPrompt = `Items:
+${JSON.stringify(list)}
+
+Return this exact JSON, one entry per item:
+{"suggestions":[{"id":"<id>","suggestion":"complete|ignore|action","suggestedAction":"<short string or null>","confidence":"high|medium|low","reason":"<brief why, <=80 chars>"}]}`;
+
+  try {
+    const resp = await withTimeout(fetch(ANTHROPIC_URL, {
+      method: "POST", headers: ANTHROPIC_HEADERS,
+      body: JSON.stringify({
+        model: DEFAULT_MODEL,
+        max_tokens: 4096,
+        system: [{ type: "text", text: sysPrompt, cache_control: { type: "ephemeral" } }],
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    }), 30000);
+    if (!resp.ok) { console.error("[intel.classify] non-ok:", resp.status); return new Map(); }
+    const data = await resp.json();
+    const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+    const parsed = extractJson(text);
+    const out = new Map();
+    for (const s of (parsed?.suggestions || [])) {
+      if (!s?.id) continue;
+      out.set(s.id, {
+        suggestion: ["complete", "ignore", "action"].includes(s.suggestion) ? s.suggestion : "action",
+        suggestedAction: s.suggestedAction || null,
+        confidence: ["high", "medium", "low"].includes(s.confidence) ? s.confidence : "medium",
+        reason: (s.reason || "").slice(0, 120) || null,
+      });
+    }
+    console.log(`[intel.classify] ${out.size}/${list.length} classified`);
+    return out;
+  } catch (e) {
+    console.error("[intel.classify] failed:", e.message);
+    return new Map();
+  }
+}
+
+function applySuggestions(items, suggestions) {
+  if (!suggestions?.size) return items;
+  return items.map(it => {
+    const s = suggestions.get(it.id);
+    return s ? { ...it, suggestion: s.suggestion, suggestedAction: s.suggestedAction, suggestionConfidence: s.confidence, suggestionReason: s.reason } : it;
+  });
+}
+
 async function handleBulkFetch(req, res, user, supabase) {
   const { googleToken, forceRefresh, shows: showsArr, userEmail } = req.body || {};
   if (!googleToken) return res.status(400).json({ error: "Missing googleToken" });
@@ -315,7 +388,10 @@ async function handleBulkFetch(req, res, user, supabase) {
     return new Date(b.date) - new Date(a.date);
   });
 
-  const payload = { byShow, threadPool, settlements, crewFlights: crewFlightsRaw, advanceItems, actionRequired, threadCount: threadIds.length, labelThreadsFound: threadIds.length, scannedAt: new Date().toISOString() };
+  const suggestions = await classifyActionItems(actionRequired, threadPool);
+  const annotatedActionRequired = applySuggestions(actionRequired, suggestions);
+
+  const payload = { byShow, threadPool, settlements, crewFlights: crewFlightsRaw, advanceItems, actionRequired: annotatedActionRequired, threadCount: threadIds.length, labelThreadsFound: threadIds.length, scannedAt: new Date().toISOString() };
 
   await supabase.from("intel_cache").upsert(
     { user_id: user.id, show_id: BULK_ID, intel: payload, gmail_threads_found: threadIds.length, cached_at: new Date().toISOString(), is_shared: false, user_email: userEmail || null },
@@ -402,7 +478,11 @@ async function handleLabelScan(req, res, user, supabase) {
     return new Date(b.date) - new Date(a.date);
   });
 
-  const payload = { byShow, settlements, crewFlights: crewFlightsRaw, advanceItems, actionRequired, labelThreadsFound: threadIds.length, scannedAt: new Date().toISOString() };
+  const labelThreadPool = Object.fromEntries(classified.map(t => [t.id, t]));
+  const suggestions = await classifyActionItems(actionRequired, labelThreadPool);
+  const annotatedActionRequired = applySuggestions(actionRequired, suggestions);
+
+  const payload = { byShow, settlements, crewFlights: crewFlightsRaw, advanceItems, actionRequired: annotatedActionRequired, labelThreadsFound: threadIds.length, scannedAt: new Date().toISOString() };
 
   await supabase.from("intel_cache").upsert(
     { user_id: user.id, show_id: LABEL_SCAN_ID, intel: payload, gmail_threads_found: threadIds.length, cached_at: new Date().toISOString(), is_shared: false, user_email: userEmail || null },
