@@ -9,7 +9,7 @@
 
 - **Next show:** Worcester, WPI — May 1 (Pretty Polly / Dan Saldarini, Tori Pacheco).
 - **EU kicks off:** Dublin, National Stadium — May 4. Fly in Apr 29 London.
-- **EU:** 17 shows, May 4–30, Dublin → Warsaw. Bus between all shows. Fly out Warsaw.
+- **EU:** 17 shows, May 4–30, Dublin → Warsaw. Bus between all shows + 1260km return deadhead Jun 1. Fly out Warsaw May 31.
 
 ## Logistics
 
