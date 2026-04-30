@@ -3771,18 +3771,18 @@ function FlightDayStrip({sel}){
 
   const hasAny=deps.length||arrs.length;
   return(
-    <div style={{background:"var(--info-bg)",border:"1px solid var(--info-bg)",borderRadius:10,marginBottom:10,overflow:"hidden"}}>
-      <div onClick={()=>setOpen(v=>!v)} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",cursor:"pointer",userSelect:"none"}}>
+    <details style={{background:"var(--info-bg)",border:"1px solid var(--info-bg)",borderRadius:10,marginBottom:10,overflow:"hidden"}}>
+      <summary style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",cursor:"pointer",userSelect:"none",listStyle:"revert"}}>
         <span style={{fontSize:10,fontWeight:800,color:T.link,letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
         {deps.length>0&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:"var(--info-bg)",color:T.link,fontWeight:700}}>{deps.length} DEP</span>}
         {arrs.length>0&&<span style={{fontSize:8,padding:"2px 6px",borderRadius:10,background:"var(--success-bg)",color:T.successFg,fontWeight:700}}>{arrs.length} ARR</span>}
+        {!hasAny&&<span style={{fontSize:9,color:T.textMute,fontStyle:"italic"}}>none on this date</span>}
         {stripMsg&&<span style={{fontSize:9,color:T.textDim,fontFamily:MN,marginLeft:4}}>{stripMsg}</span>}
-        <div style={{marginLeft:"auto",display:"flex",gap:5,alignItems:"center"}} onClick={e=>e.stopPropagation()}>
+        <span style={{marginLeft:"auto",display:"flex",gap:5,alignItems:"center"}} onClick={e=>{e.stopPropagation();e.preventDefault();}}>
           {hasAny>0&&<button onClick={refreshTimes} disabled={refreshing} style={{fontSize:9,padding:"2px 8px",borderRadius:6,border:"1px solid var(--info-fg)",background:refreshing?"var(--info-bg)":"var(--card)",color:T.link,cursor:refreshing?"default":"pointer",fontWeight:700,flexShrink:0}}>{refreshing?"…":"↻ Times"}</button>}
           <button onClick={scanFlights} disabled={scanning} style={{fontSize:9,padding:"2px 8px",borderRadius:6,border:"none",background:scanning?"var(--info-bg)":"var(--link)",color:scanning?"var(--link)":"var(--card)",cursor:scanning?"default":"pointer",fontWeight:700,flexShrink:0}}>{scanning?"Scanning…":"Scan Gmail"}</button>
-        </div>
-        <span style={{fontSize:10,color:"var(--info-fg)",flexShrink:0}}>{open?"▾":"▸"}</span>
-      </div>
+        </span>
+      </summary>
       {/* Lodging summary row (always visible) */}
       {(()=>{const checkIns=Object.values(lodging||{}).filter(h=>h.checkIn===sel);const checkOuts=Object.values(lodging||{}).filter(h=>h.checkOut===sel);const staying=Object.values(lodging||{}).filter(h=>h.checkIn<sel&&h.checkOut>sel);const all=[...checkIns,...checkOuts,...staying];if(!all.length)return null;return(
         <div onClick={()=>setTab("lodging")} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 12px",borderTop:"1px solid var(--success-bg)",background:"var(--success-bg)",cursor:"pointer",flexWrap:"wrap"}}>
@@ -3792,22 +3792,20 @@ function FlightDayStrip({sel}){
           {staying.map(h=><span key={h.id} style={{fontSize:9,padding:"1px 6px",borderRadius:10,background:"var(--success-bg)",color:T.successFg,fontWeight:600,border:"1px solid var(--success-bg)"}}>● {h.name}</span>)}
         </div>
       );})()}
-      {open&&(
-        <div style={{borderTop:"1px solid var(--info-bg)",display:"flex",flexDirection:"column",gap:0}}>
-          <div style={{display:"flex",flexDirection:"column",gap:6,padding:"8px 10px"}}>
-          {tagFlightRoles(deps,arrs).map(({f,role})=>(
-            <FlightCard key={f.id} f={f}
-              legLabel={role==="dep"?"DEP":"ARR"}
-              defaultCollapsed={true}
-              liveStatus={liveStatuses[f.id]||null}
-              refreshing={false}
-              onRefreshStatus={null}
-            />
-          ))}
-          </div>
+      <div style={{borderTop:"1px solid var(--info-bg)",display:"flex",flexDirection:"column",gap:0}}>
+        <div style={{display:"flex",flexDirection:"column",gap:6,padding:"8px 10px"}}>
+        {tagFlightRoles(deps,arrs).map(({f,role})=>(
+          <FlightCard key={f.id} f={f}
+            legLabel={role==="dep"?"DEP":"ARR"}
+            defaultCollapsed={true}
+            liveStatus={liveStatuses[f.id]||null}
+            refreshing={false}
+            onRefreshStatus={null}
+          />
+        ))}
         </div>
-      )}
-    </div>
+      </div>
+    </details>
   );
 }
 
@@ -5158,36 +5156,6 @@ function TravelDayView(){
         </div>
       )}
 
-      {/* Travel Day Timeline — chronological strip with gaps + warnings */}
-      {timeline.length>0&&(
-        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 14px"}}>
-          <div style={{fontSize:8,fontWeight:800,color:T.textDim,letterSpacing:"0.08em",marginBottom:6}}>TIMELINE</div>
-          <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",fontFamily:MN,fontSize:10}}>
-            {timeline.map((e,i)=>{
-              const icon=e.kind==="air"?"✈":e.kind==="ground"?"🚗":e.kind==="bus"?"🚌":e.kind==="rail"?"🚆":e.kind==="hotel"||e.kind==="hotel_in"||e.kind==="hotel_out"?"🏨":"◆";
-              const m=e.kind==="hotel_in"||e.kind==="hotel_out"?SEG_META.hotel:SEG_META[e.kind]||SEG_META.air;
-              const warnColor=e.warning==="missed-connection"?"var(--danger-fg)":(e.warning==="tight-connection"||e.warning==="unbridged")?"var(--warn-fg)":"var(--text-dim)";
-              const warnBg=e.warning==="missed-connection"?"var(--danger-bg)":(e.warning==="tight-connection"||e.warning==="unbridged")?"var(--warn-bg)":"transparent";
-              const gapLabel=e.gapBefore!=null?(e.gapBefore<60?`${e.gapBefore}m`:`${Math.round(e.gapBefore/60*10)/10}h`):null;
-              return(
-                <React.Fragment key={i}>
-                  {i>0&&gapLabel&&(
-                    <span title={e.warning||""} style={{fontSize:9,padding:"2px 7px",borderRadius:10,background:warnBg,color:warnColor,border:e.warning?`1px solid ${warnColor}40`:"1px dashed var(--border)",fontWeight:700}}>
-                      {e.warning==="unbridged"?`⚠ ${gapLabel} unbridged`:e.warning==="tight-connection"?`⚠ ${gapLabel} layover`:e.warning==="missed-connection"?`✗ missed`:gapLabel}
-                    </span>
-                  )}
-                  <span style={{display:"inline-flex",alignItems:"center",gap:5,padding:"3px 8px",borderRadius:6,background:m.bg,color:m.color,fontWeight:700,border:`1px solid ${m.border}`}}>
-                    <span>{icon}</span>
-                    <span>{e.start}</span>
-                    <span style={{opacity:.8}}>{e.kind==="hotel_in"?"check-in":e.kind==="hotel_out"?"check-out":e.label}</span>
-                  </span>
-                </React.Fragment>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       {/* Add bar */}
       <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
         <span style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.06em"}}>ADD SEGMENT</span>
@@ -5200,72 +5168,140 @@ function TravelDayView(){
       {/* Day list + drawer */}
       <div style={{display:"flex",gap:12,flexWrap:mobile?"wrap":"nowrap",minHeight:0}}>
         {/* Left: day list */}
-        <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",gap:6}}>
-          {daySegs.length===0&&(
-            <div style={{padding:"28px 0",textAlign:"center",background:"var(--card)",border:"1px dashed var(--border)",borderRadius:10}}>
-              <div style={{fontSize:20,marginBottom:6,opacity:0.25}}>◌</div>
-              <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:3}}>No travel on this day</div>
-              <div style={{fontSize:10,color:T.textMute}}>Use the buttons above to add a flight, ground transfer, or hotel check-in.</div>
-            </div>
-          )}
-          {daySegs.map(s=>{
-            const m=segMeta(s);const isActive=s.id===activeId;
-            const timeLabel=s._role==="arr"?`Arr ${s.arr||"—"}`:`${s.dep||"—"}${s.arr?` – ${s.arr}`:""}`;
-            const routeLabel=segType(s)==="hotel"?(s.hotelName||s.to||"Hotel"):`${s.from||"—"}${s.to?` → ${s.to}`:""}`;
-            const needsGround=unbridgedAirIds.has(s.id);
-            const addGroundBridge=()=>{
-              const id=`seg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
-              const arrMin=hhmmToMin(s.arr)??0;
-              const depMin=arrMin+20; // 20m customs buffer
-              const pad=n=>String(n).padStart(2,"0");
-              const dep=`${pad(Math.floor(depMin/60)%24)}:${pad(depMin%60)}`;
-              const toLabel=destHotel?(destHotel.hotelName||destHotel.city||""):"";
-              const seed={id,type:"ground",status:"confirmed",mode:"uber",depDate:sel,arrDate:sel,dep,arr:"",from:s.to||"",fromCity:s.toCity||"",to:toLabel,toCity:destHotel?.city||s.toCity||"",pax:[...(s.pax||[])],...(currentSplit&&activeSplitPartyId?{partyId:activeSplitPartyId}:{})};
-              uFlight(id,seed);setActiveId(id);
+        <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",gap:10}}>
+          {(()=>{
+            const flightSegs=daySegs.filter(s=>segType(s)==="air");
+            const otherSegs=daySegs.filter(s=>segType(s)!=="air");
+            const inbound=flightSegs.filter(s=>s.arrDate===sel);
+            const outbound=flightSegs.filter(s=>s.depDate===sel);
+            const groupByCrew=(flights,timeKey)=>{
+              const groups=new Map();
+              flights.forEach(f=>{
+                const list=(f.pax||[]).filter(Boolean);
+                const keys=list.length?list.map(p=>String(p).trim()):["__unassigned__"];
+                keys.forEach(k=>{
+                  if(!groups.has(k))groups.set(k,{name:k==="__unassigned__"?"Unassigned":k,flights:[],earliest:Infinity});
+                  const g=groups.get(k);g.flights.push(f);
+                  const t=hhmmToMin(f[timeKey])??Infinity;
+                  if(t<g.earliest)g.earliest=t;
+                });
+              });
+              groups.forEach(g=>{g.flights.sort((a,b)=>(hhmmToMin(a[timeKey])??0)-(hhmmToMin(b[timeKey])??0));});
+              return [...groups.values()].sort((a,b)=>a.earliest-b.earliest);
             };
-            const detail=segType(s)==="air"?`${s.flightNo||""} ${s.carrier||""}`.trim():segType(s)==="ground"?`${s.mode||"drive"}${s.provider?` · ${s.provider}`:""}`:segType(s)==="hotel"?(s.hotelName||""):(s.carrier||s.mode||"");
-            const paxList=pax(s);
-            return(
-              <React.Fragment key={s.id}>
-              <div onClick={()=>setActiveId(s.id)} className="rh" style={{display:"grid",gridTemplateColumns:"20px auto 1fr auto",gap:10,padding:"9px 12px",background:"var(--card)",border:`1px solid ${isActive?m.border:"var(--border)"}`,borderLeft:`3px solid ${m.color}`,borderRadius:10,cursor:"pointer",boxShadow:isActive?"0 0 0 2px var(--accent-pill-bg)":undefined}}>
-                <div style={{fontSize:13,lineHeight:1,paddingTop:2}}>{m.icon}</div>
-                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:2,flexShrink:0,minWidth:90}}>
-                  {paxList.length>0&&<div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
-                    {paxList.slice(0,3).map((n,i)=>{const mch=paxMatch(n);return(
-                      <span key={i} style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:mch?"var(--success-bg)":"var(--card-2)",color:mch?"var(--success-fg)":"var(--text-2)",fontWeight:700,letterSpacing:"0.02em"}}>{String(n).split(" ")[0].toUpperCase()}</span>
-                    );})}
-                    {paxList.length>3&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--card-2)",color:T.textDim,fontWeight:700}}>+{paxList.length-3}</span>}
-                  </div>}
-                  <div style={{fontFamily:MN,fontSize:10,fontWeight:700,color:m.color}}>{timeLabel}</div>
+            const inboundByCrew=groupByCrew(inbound,"arr");
+            const outboundByCrew=groupByCrew(outbound,"dep");
+
+            const renderSeg=s=>{
+              const m=segMeta(s);const isActive=s.id===activeId;
+              const timeLabel=s._role==="arr"?`Arr ${s.arr||"—"}`:`${s.dep||"—"}${s.arr?` – ${s.arr}`:""}`;
+              const routeLabel=segType(s)==="hotel"?(s.hotelName||s.to||"Hotel"):`${s.from||"—"}${s.to?` → ${s.to}`:""}`;
+              const needsGround=unbridgedAirIds.has(s.id);
+              const addGroundBridge=()=>{
+                const id=`seg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
+                const arrMin=hhmmToMin(s.arr)??0;
+                const depMin=arrMin+20;
+                const pad=n=>String(n).padStart(2,"0");
+                const dep=`${pad(Math.floor(depMin/60)%24)}:${pad(depMin%60)}`;
+                const toLabel=destHotel?(destHotel.hotelName||destHotel.city||""):"";
+                const seed={id,type:"ground",status:"confirmed",mode:"uber",depDate:sel,arrDate:sel,dep,arr:"",from:s.to||"",fromCity:s.toCity||"",to:toLabel,toCity:destHotel?.city||s.toCity||"",pax:[...(s.pax||[])],...(currentSplit&&activeSplitPartyId?{partyId:activeSplitPartyId}:{})};
+                uFlight(id,seed);setActiveId(id);
+              };
+              const detail=segType(s)==="air"?`${s.flightNo||""} ${s.carrier||""}`.trim():segType(s)==="ground"?`${s.mode||"drive"}${s.provider?` · ${s.provider}`:""}`:segType(s)==="hotel"?(s.hotelName||""):(s.carrier||s.mode||"");
+              const paxList=pax(s);
+              return(
+                <React.Fragment key={s.id}>
+                <div onClick={()=>setActiveId(s.id)} className="rh" style={{display:"grid",gridTemplateColumns:"20px auto 1fr auto",gap:10,padding:"9px 12px",background:"var(--card)",border:`1px solid ${isActive?m.border:"var(--border)"}`,borderLeft:`3px solid ${m.color}`,borderRadius:10,cursor:"pointer",boxShadow:isActive?"0 0 0 2px var(--accent-pill-bg)":undefined}}>
+                  <div style={{fontSize:13,lineHeight:1,paddingTop:2}}>{m.icon}</div>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:2,flexShrink:0,minWidth:90}}>
+                    {paxList.length>0&&<div style={{display:"flex",gap:3,flexWrap:"wrap"}}>
+                      {paxList.slice(0,3).map((n,i)=>{const mch=paxMatch(n);return(
+                        <span key={i} style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:mch?"var(--success-bg)":"var(--card-2)",color:mch?"var(--success-fg)":"var(--text-2)",fontWeight:700,letterSpacing:"0.02em"}}>{String(n).split(" ")[0].toUpperCase()}</span>
+                      );})}
+                      {paxList.length>3&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--card-2)",color:T.textDim,fontWeight:700}}>+{paxList.length-3}</span>}
+                    </div>}
+                    <div style={{fontFamily:MN,fontSize:10,fontWeight:700,color:m.color}}>{timeLabel}</div>
+                  </div>
+                  <div style={{minWidth:0}}>
+                    <div style={{fontSize:11,fontWeight:700,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{routeLabel}</div>
+                    {detail&&<div style={{fontSize:9,color:T.textDim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{detail}</div>}
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
+                    {s._role==="arr"&&<span style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--success-bg)",color:T.successFg,fontWeight:800,letterSpacing:"0.06em"}}>ARR</span>}
+                    {s.fresh48h&&s.status!=="confirmed"&&<span style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--accent-pill-bg)",color:T.accent,fontWeight:800,letterSpacing:"0.06em"}}>NEW</span>}
+                    {partyMatch&&s.partyId!==partyMatch.partyId&&<button onClick={e=>{e.stopPropagation();
+                      const excl=(s.excludedParties||[]).filter(p=>p!==partyMatch.partyId);
+                      uFlight(s.id,{...s,partyId:partyMatch.partyId,excludedParties:excl});
+                    }} title={`Scope to ${activeSplitParty?.label||"this event"}`} style={{fontSize:8,padding:"2px 6px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-3)",color:T.textDim,cursor:"pointer",fontWeight:700,letterSpacing:"0.04em"}}>↳ {(activeSplitParty?.label||"SCOPE").toUpperCase()}</button>}
+                    <button onClick={e=>{e.stopPropagation();if(confirm(`Delete this ${m.label.toLowerCase()}?`)){const prev={...s};let next;
+                      if(partyMatch&&!(s.partyId&&s.partyId===partyMatch.partyId)){
+                        const excl=new Set(s.excludedParties||[]);excl.add(partyMatch.partyId);
+                        next={...s,excludedParties:[...excl]};
+                      }else{next={...s,status:"dismissed"};}
+                      uFlight(s.id,next);pushUndo(`${m.label} deleted.`,()=>uFlight(s.id,prev));if(activeId===s.id)setActiveId(null);}}} title="Delete segment" style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:13,lineHeight:1,padding:"0 4px"}}>×</button>
+                  </div>
                 </div>
-                <div style={{minWidth:0}}>
-                  <div style={{fontSize:11,fontWeight:700,color:T.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{routeLabel}</div>
-                  {detail&&<div style={{fontSize:9,color:T.textDim,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{detail}</div>}
+                {needsGround&&(
+                  <button onClick={addGroundBridge} title="Add ground bridge from airport to hotel" style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",background:"transparent",border:"1px dashed var(--warn-fg)",borderLeft:"3px solid var(--warn-fg)",borderRadius:10,color:T.warnFg,cursor:"pointer",textAlign:"left",fontSize:10,fontWeight:700,letterSpacing:"0.02em"}}>
+                    <span style={{fontSize:13}}>＋</span>
+                    <span>Add ground: {s.to||s.toCity||"airport"} → {destHotel?.hotelName||destHotel?.city||"hotel"} · ~20m buffer · Uber</span>
+                  </button>
+                )}
+                </React.Fragment>
+              );
+            };
+
+            const renderCrewGroup=(g,kind)=>(
+              <div key={`${kind}-${g.name}`} style={{background:"var(--card-2)",border:"1px solid var(--border)",borderRadius:10,padding:"8px 10px",display:"flex",flexDirection:"column",gap:6}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                  <span style={{fontSize:11,fontWeight:800,color:T.text,letterSpacing:"-0.01em"}}>{g.name}</span>
+                  {(()=>{const c=paxMatch(g.name);return c?.role&&<span style={{fontSize:9,color:T.textDim}}>· {c.role}</span>;})()}
+                  <span style={{marginLeft:"auto",fontFamily:MN,fontSize:9,color:T.textMute,fontWeight:700}}>{g.flights.length} {g.flights.length===1?"flight":"flights"}</span>
                 </div>
-                <div style={{display:"flex",alignItems:"center",gap:5,flexShrink:0}}>
-                  {s._role==="arr"&&<span style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--success-bg)",color:T.successFg,fontWeight:800,letterSpacing:"0.06em"}}>ARR</span>}
-                  {s.fresh48h&&s.status!=="confirmed"&&<span style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--accent-pill-bg)",color:T.accent,fontWeight:800,letterSpacing:"0.06em"}}>NEW</span>}
-                  {partyMatch&&s.partyId!==partyMatch.partyId&&<button onClick={e=>{e.stopPropagation();
-                    const excl=(s.excludedParties||[]).filter(p=>p!==partyMatch.partyId);
-                    uFlight(s.id,{...s,partyId:partyMatch.partyId,excludedParties:excl});
-                  }} title={`Scope to ${activeSplitParty?.label||"this event"}`} style={{fontSize:8,padding:"2px 6px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-3)",color:T.textDim,cursor:"pointer",fontWeight:700,letterSpacing:"0.04em"}}>↳ {(activeSplitParty?.label||"SCOPE").toUpperCase()}</button>}
-                  <button onClick={e=>{e.stopPropagation();if(confirm(`Delete this ${m.label.toLowerCase()}?`)){const prev={...s};let next;
-                    if(partyMatch&&!(s.partyId&&s.partyId===partyMatch.partyId)){
-                      const excl=new Set(s.excludedParties||[]);excl.add(partyMatch.partyId);
-                      next={...s,excludedParties:[...excl]};
-                    }else{next={...s,status:"dismissed"};}
-                    uFlight(s.id,next);pushUndo(`${m.label} deleted.`,()=>uFlight(s.id,prev));if(activeId===s.id)setActiveId(null);}}} title="Delete segment" style={{background:"none",border:"none",cursor:"pointer",color:"var(--danger-fg)",fontSize:13,lineHeight:1,padding:"0 4px"}}>×</button>
-                </div>
+                {g.flights.map(renderSeg)}
               </div>
-              {needsGround&&(
-                <button onClick={addGroundBridge} title="Add ground bridge from airport to hotel" style={{display:"flex",alignItems:"center",gap:8,padding:"7px 12px",background:"transparent",border:"1px dashed var(--warn-fg)",borderLeft:"3px solid var(--warn-fg)",borderRadius:10,color:T.warnFg,cursor:"pointer",textAlign:"left",fontSize:10,fontWeight:700,letterSpacing:"0.02em"}}>
-                  <span style={{fontSize:13}}>＋</span>
-                  <span>Add ground: {s.to||s.toCity||"airport"} → {destHotel?.hotelName||destHotel?.city||"hotel"} · ~20m buffer · Uber</span>
-                </button>
-              )}
-              </React.Fragment>
             );
-          })}
+
+            const empty=daySegs.length===0;
+            return(<>
+              {empty&&(
+                <div style={{padding:"28px 0",textAlign:"center",background:"var(--card)",border:"1px dashed var(--border)",borderRadius:10}}>
+                  <div style={{fontSize:20,marginBottom:6,opacity:0.25}}>◌</div>
+                  <div style={{fontSize:11,fontWeight:600,color:T.text,marginBottom:3}}>No travel on this day</div>
+                  <div style={{fontSize:10,color:T.textMute}}>Use the buttons above to add a flight, ground transfer, or hotel check-in.</div>
+                </div>
+              )}
+              {inboundByCrew.length>0&&(
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  <div style={{fontSize:9,fontWeight:800,color:T.successFg,letterSpacing:"0.1em",display:"flex",alignItems:"center",gap:8}}>
+                    <span>↓ INBOUND FLIGHTS</span>
+                    <div style={{flex:1,height:1,background:"var(--border)"}}/>
+                    <span style={{fontFamily:MN,fontSize:8,color:T.textMute,fontWeight:700}}>{inbound.length} flight{inbound.length===1?"":"s"} · {inboundByCrew.length} crew</span>
+                  </div>
+                  {inboundByCrew.map(g=>renderCrewGroup(g,"in"))}
+                </div>
+              )}
+              {outboundByCrew.length>0&&(
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  <div style={{fontSize:9,fontWeight:800,color:T.link,letterSpacing:"0.1em",display:"flex",alignItems:"center",gap:8}}>
+                    <span>↑ OUTBOUND FLIGHTS</span>
+                    <div style={{flex:1,height:1,background:"var(--border)"}}/>
+                    <span style={{fontFamily:MN,fontSize:8,color:T.textMute,fontWeight:700}}>{outbound.length} flight{outbound.length===1?"":"s"} · {outboundByCrew.length} crew</span>
+                  </div>
+                  {outboundByCrew.map(g=>renderCrewGroup(g,"out"))}
+                </div>
+              )}
+              {otherSegs.length>0&&(
+                <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                  <div style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",display:"flex",alignItems:"center",gap:8}}>
+                    <span>GROUND, BUS, RAIL & HOTELS</span>
+                    <div style={{flex:1,height:1,background:"var(--border)"}}/>
+                  </div>
+                  {otherSegs.map(renderSeg)}
+                </div>
+              )}
+            </>);
+          })()}
         </div>
         {/* Right: editor drawer */}
         {active&&<SegmentDrawer key={active.id} seg={active} crew={crew||[]} sorted={sorted||[]} onChange={patch=>uFlight(active.id,{...active,...patch})} onClose={()=>setActiveId(null)}/>}
