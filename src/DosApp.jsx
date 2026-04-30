@@ -2447,6 +2447,7 @@ function IntelPanel(){
   const threadHref=(tid)=>tid?gmailUrl(tid):null;
   const[drafts,setDrafts]=useState({});
   const[showCompleted,setShowCompleted]=useState(false);
+  const[intelSort,setIntelSort]=useState("priority");
   const draftReply=async(tid)=>{
     setDrafts(p=>({...p,[tid]:{status:"loading"}}));
     const{data:{session}}=await supabase.auth.getSession();
@@ -2680,16 +2681,24 @@ function IntelPanel(){
       );
       const totalCount=(data.threads||[]).filter(t=>t.manual||t.subject).length;
       const itemCount=activeTodos.length+activeFu.length;
+      const sortItems=arr=>arr.slice().sort((a,b)=>{
+        if(intelSort==="due"){const ad=a.deadline||"9999-12-31";const bd=b.deadline||"9999-12-31";return ad.localeCompare(bd);}
+        return(PRI[a.priority]??4)-(PRI[b.priority]??4);
+      });
       return(
-      <IntelSection title="INTEL BY THREAD" count={totalCount} defaultOpen={true} actions={<div style={{display:"flex",gap:4}}>
+      <IntelSection title="INTEL BY THREAD" count={totalCount} defaultOpen={true} actions={<div style={{display:"flex",gap:4,alignItems:"center"}}>
+        <div style={{display:"flex",border:"1px solid var(--border)",borderRadius:6,overflow:"hidden"}}>
+          <button onClick={()=>setIntelSort("priority")} style={{fontSize:8,padding:"2px 7px",border:"none",background:intelSort==="priority"?"var(--accent)":"var(--card-2)",color:intelSort==="priority"?"var(--card)":T.textMute,cursor:"pointer",fontWeight:700}}>Priority</button>
+          <button onClick={()=>setIntelSort("due")} style={{fontSize:8,padding:"2px 7px",border:"none",borderLeft:"1px solid var(--border)",background:intelSort==="due"?"var(--accent)":"var(--card-2)",color:intelSort==="due"?"var(--card)":T.textMute,cursor:"pointer",fontWeight:700}}>Due date</button>
+        </div>
         <button onClick={addTodo} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Todo</button>
         <button onClick={addThread} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Thread</button>
         <button onClick={addFollowUp} style={{...UI.expandBtn(false,"var(--accent)"),fontSize:9}}>+ Follow-up</button>
       </div>}>
         {totalCount===0&&itemCount===0&&<div style={{fontSize:10,color:T.textMute,fontStyle:"italic"}}>No intel yet. Run a scan.</div>}
         {groups.map(({thread,tid})=>{
-          const gTodos=(todosByTid[tid]||[]).sort((a,b)=>(PRI[a.priority]??4)-(PRI[b.priority]??4));
-          const gFus=fuByTid[tid]||[];
+          const gTodos=sortItems(todosByTid[tid]||[]);
+          const gFus=sortItems(fuByTid[tid]||[]);
           if(!thread&&!gTodos.length&&!gFus.length)return null;
           return(
             <div key={tid} style={{marginBottom:6,borderLeft:"2px solid var(--border)",paddingLeft:8}}>
@@ -2716,8 +2725,8 @@ function IntelPanel(){
         {(unlinkedTodos.length>0||unlinkedFu.length>0)&&(
           <div style={{marginBottom:6,borderLeft:"2px solid var(--card-3)",paddingLeft:8}}>
             <div style={{fontSize:8,fontWeight:700,color:T.textMute,letterSpacing:"0.06em",padding:"3px 0"}}>MANUAL / NO THREAD</div>
-            {[...unlinkedTodos].sort((a,b)=>(PRI[a.priority]??4)-(PRI[b.priority]??4)).map(renderTodo)}
-            {unlinkedFu.map(f=>renderFu(f,(data.followUps||[]).findIndex(x=>x===f)))}
+            {sortItems(unlinkedTodos).map(renderTodo)}
+            {sortItems(unlinkedFu).map(f=>renderFu(f,(data.followUps||[]).findIndex(x=>x===f)))}
           </div>
         )}
         {(completedTodos.length>0||completedFu.length>0)&&(
@@ -3393,6 +3402,8 @@ function Dash(){
   const{sorted,cShows,next,setTab,setSel,advances,finance,aC,mobile,intel,setIntel,addLog,addActLog,labelIntel,allShows,sel,refreshLabelIntel,refreshMsg}=useContext(Ctx);
   const[scanning,setScanning]=useState(false);
   const[scanLastAt,setScanLastAt]=useState(null);
+  const[todoSort,setTodoSort]=useState("priority");
+  const[fuSort,setFuSort]=useState("priority");
   if(!allShows&&sel)return<DashSingle/>;
   const client=CM[aC];const today=new Date().toISOString().slice(0,10);
   const runIntelScan=async()=>{if(scanning)return;setScanning(true);try{await refreshLabelIntel(true);setScanLastAt(new Date());}finally{setScanning(false);}};
@@ -3409,8 +3420,9 @@ function Dash(){
   const showMap=useMemo(()=>{const m={};cShows.forEach(s=>m[showIdFor(s)]=s);return m;},[cShows]);
   const arShowLabel=item=>{const s=showMap[item.showId];return s?`${s.city} ${fD(s.date)}`:"";}
   const arHidden=useMemo(()=>new Set([...(intel.__arState?.done||[]),...(intel.__arState?.ignored||[])]),[intel.__arState]);
-  const allTodos=useMemo(()=>cShows.flatMap(s=>{const sid=showIdFor(s);return(intel[sid]?.todos||[]).filter(t=>!t.done&&!t.ignored).map(t=>({...t,show:s}));}).sort((a,b)=>{const d=(PORD[a.priority]??4)-(PORD[b.priority]??4);return d!==0?d:a.show.date.localeCompare(b.show.date);}),[cShows,intel]);
-  const allFollowUps=useMemo(()=>cShows.flatMap(s=>{const sid=showIdFor(s);return(intel[sid]?.followUps||[]).filter(f=>!f.done&&!f.ignored).map(f=>({...f,show:s}));}).sort((a,b)=>(PORD[a.priority]??4)-(PORD[b.priority]??4)),[cShows,intel]);
+  const sortByDue=(a,b)=>{const ad=a.deadline||a.show?.date||"9999-12-31";const bd=b.deadline||b.show?.date||"9999-12-31";return ad.localeCompare(bd);};
+  const allTodos=useMemo(()=>cShows.flatMap(s=>{const sid=showIdFor(s);return(intel[sid]?.todos||[]).filter(t=>!t.done&&!t.ignored).map(t=>({...t,show:s}));}).sort((a,b)=>{if(todoSort==="due")return sortByDue(a,b);const d=(PORD[a.priority]??4)-(PORD[b.priority]??4);return d!==0?d:a.show.date.localeCompare(b.show.date);}),[cShows,intel,todoSort]);
+  const allFollowUps=useMemo(()=>cShows.flatMap(s=>{const sid=showIdFor(s);return(intel[sid]?.followUps||[]).filter(f=>!f.done&&!f.ignored).map(f=>({...f,show:s}));}).sort((a,b)=>{if(fuSort==="due")return sortByDue(a,b);return(PORD[a.priority]??4)-(PORD[b.priority]??4);}),[cShows,intel,fuSort]);
   const arItems=useMemo(()=>(labelIntel?.actionRequired||[]).filter(i=>!arHidden.has(i.id)).sort((a,b)=>{const d=(BORD[a.bucket]??5)-(BORD[b.bucket]??5);return d!==0?d:new Date(b.date)-new Date(a.date);}),[labelIntel,arHidden]);
   const urgentItems=useMemo(()=>arItems.filter(i=>i.bucket==="urgent"||i.category==="LEGAL"),[arItems]);
   const logisticsItems=useMemo(()=>(labelIntel?.advanceItems||[]).filter(i=>!arHidden.has(i.id)&&(i.category==="LOGISTICS"||i.category==="ADVANCE")).slice(0,20),[labelIntel,arHidden]);
@@ -3447,6 +3459,7 @@ function Dash(){
   const markSettlement=(date,state)=>{const at=new Date().toISOString();setIntel(p=>{const prev=p.__settlementState||{};const snap={...(prev.snap||{}),[date]:{at,state}};return{...p,__settlementState:{...prev,[state]:[...new Set([...(prev[state]||[]),date])],snap}};});addLog({type:"user",section:"settlement",showId:date,action:state,from:"dashboard"});};
   const updateSettlementNote=(date,note)=>{setIntel(p=>({...p,__settlementNotes:{...(p.__settlementNotes||{}),[date]:note}}));};
   const updateTodoNote=(t,note)=>{const sid=showIdFor(t.show);setIntel(p=>({...p,[sid]:{...(p[sid]||{}),todoNotes:{...(p[sid]?.todoNotes||{}),[t.id]:note}}}));};
+  const updateArNote=(id,note)=>{setIntel(p=>({...p,__arNotes:{...(p.__arNotes||{}),[id]:note}}));};
 
   const BTN_DONE={fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--success-bg)",color:T.successFg};
   const BTN_IGN={fontSize:8,padding:"2px 6px",borderRadius:4,border:"none",cursor:"pointer",fontWeight:700,whiteSpace:"nowrap",background:"var(--card-2)",color:T.textMute};
@@ -3524,9 +3537,15 @@ function Dash(){
       {urgentItems.length>0&&<div style={{marginBottom:10,display:"flex",flexDirection:"column",gap:3}}>
         {urgentItems.filter(i=>!arReopenedIds.has(i.id)).slice(0,4).map(i=><div key={i.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"7px 12px",background:"var(--danger-bg)",borderRadius:10,borderLeft:"3px solid var(--danger-fg)"}}>
           <span style={{fontSize:9,fontWeight:800,color:"var(--danger-fg)",fontFamily:MN,flexShrink:0,marginTop:1}}>{i.category}</span>
-          <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,fontWeight:600,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:T.textDim}}>{i.from}{arShowLabel(i)?` · ${arShowLabel(i)}`:""}</div></div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:11,fontWeight:600,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div>
+            <div style={{fontSize:9,color:T.textDim}}>{i.from}{arShowLabel(i)?` · ${arShowLabel(i)}`:""}</div>
+            <input type="text" placeholder="add note..." value={intel.__arNotes?.[i.id]||""} onChange={e=>updateArNote(i.id,e.target.value)} style={{marginTop:3,width:"100%",fontSize:9,padding:"2px 6px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text2,outline:"none",boxSizing:"border-box"}}/>
+          </div>
           <span style={{fontSize:8,padding:"2px 6px",borderRadius:8,background:bucketB(i.bucket),color:bucketC(i.bucket),fontWeight:700,flexShrink:0}}>{i.bucket}</span>
           <a href={gmailUrl(i.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:8,padding:"2px 5px",borderRadius:4,background:"var(--danger-bg)",color:"var(--danger-fg)",fontWeight:700,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0,border:"1px solid var(--danger-fg)"}}>email →</a>
+          <button onClick={()=>markAr(i.id,"done",i.subject,i)} style={BTN_DONE}>Done</button>
+          <button onClick={()=>markAr(i.id,"ignored",i.subject,i)} style={BTN_IGN}>Ignore</button>
         </div>)}
       </div>}
       {(()=>{
@@ -3578,7 +3597,13 @@ function Dash(){
       })()}
       <div style={{display:"flex",flexDirection:"column",gap:12}}>
         {allTodos.length>0&&<div>
-          <div style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:5}}>TO-DOs (PRIVATE) ({allTodos.length})</div>
+          <div style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:5,display:"flex",alignItems:"center",gap:8}}>
+            <span>TO-DOs (PRIVATE) ({allTodos.length})</span>
+            <div style={{marginLeft:"auto",display:"flex",border:"1px solid var(--border)",borderRadius:6,overflow:"hidden"}}>
+              <button onClick={()=>setTodoSort("priority")} style={{fontSize:8,padding:"2px 7px",border:"none",background:todoSort==="priority"?"var(--accent)":"var(--card-2)",color:todoSort==="priority"?"var(--card)":T.textMute,cursor:"pointer",fontWeight:700}}>Priority</button>
+              <button onClick={()=>setTodoSort("due")} style={{fontSize:8,padding:"2px 7px",border:"none",borderLeft:"1px solid var(--border)",background:todoSort==="due"?"var(--accent)":"var(--card-2)",color:todoSort==="due"?"var(--card)":T.textMute,cursor:"pointer",fontWeight:700}}>Due date</button>
+            </div>
+          </div>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
             {allTodos.map(t=>{
               const sid=showIdFor(t.show);
@@ -3599,7 +3624,13 @@ function Dash(){
           </div>
         </div>}
         {allFollowUps.length>0&&<div>
-          <div style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:5}}>FOLLOW-UPS ({allFollowUps.length})</div>
+          <div style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:5,display:"flex",alignItems:"center",gap:8}}>
+            <span>FOLLOW-UPS ({allFollowUps.length})</span>
+            <div style={{marginLeft:"auto",display:"flex",border:"1px solid var(--border)",borderRadius:6,overflow:"hidden"}}>
+              <button onClick={()=>setFuSort("priority")} style={{fontSize:8,padding:"2px 7px",border:"none",background:fuSort==="priority"?"var(--accent)":"var(--card-2)",color:fuSort==="priority"?"var(--card)":T.textMute,cursor:"pointer",fontWeight:700}}>Priority</button>
+              <button onClick={()=>setFuSort("due")} style={{fontSize:8,padding:"2px 7px",border:"none",borderLeft:"1px solid var(--border)",background:fuSort==="due"?"var(--accent)":"var(--card-2)",color:fuSort==="due"?"var(--card)":T.textMute,cursor:"pointer",fontWeight:700}}>Due date</button>
+            </div>
+          </div>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
             {allFollowUps.map((f,i)=>{
               const sid=showIdFor(f.show);
