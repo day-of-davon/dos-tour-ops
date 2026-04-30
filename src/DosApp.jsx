@@ -4429,7 +4429,7 @@ function ROSTab(){
 }
 
 function TourCalendar(){
-  const{setSel,setTab,flights,uFlight,effectiveSplitDays}=useContext(Ctx);
+  const{setSel,setTab,flights,uFlight,effectiveSplitDays,allShows,setAllShows}=useContext(Ctx);
   const importBusLegs=()=>{
     const base=new Date('2026-05-02T12:00:00');
     BUS_DATA.forEach(d=>{
@@ -4444,7 +4444,7 @@ function TourCalendar(){
   };
   const[expRows,setExpRows]=useState({});
   const crewById=useMemo(()=>DEFAULT_CREW.reduce((a,c)=>{a[c.id]=c;return a},{}),[]);
-  const openDay=iso=>{setSel(iso);setTab("ros");};
+  const openDay=iso=>{setSel(iso);if(allShows){setAllShows(false);}else{setTab("ros");}};
   const busMap=useMemo(()=>{
     const m={};
     BUS_DATA.forEach(d=>{
