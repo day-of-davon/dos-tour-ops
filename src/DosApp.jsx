@@ -1198,6 +1198,56 @@ const fmtAudit=(iso)=>{if(!iso)return"";const d=new Date(iso);const M=["Jan","Fe
 const sGP=async k=>{try{const r=await window.storage.getPrivate(k);return r?JSON.parse(r.value):null}catch(e){console.error("[storage.getPrivate]",k,e?.message||e);return null}};
 const sSP=async(k,v)=>{try{await window.storage.setPrivate(k,JSON.stringify(v));return true}catch(e){console.error("[storage.setPrivate]",k,e?.message||e);return false}};
 
+// Operational flags computed from a bus-day entry. Pure derivation from
+// existing fields (entry.flag, entry.note, entry.drive, entry.show) — no data
+// model change. Promote to first-class fields on busEdits[iso] later if a
+// flag becomes a mutation point.
+const DRIVE_FLAG_STYLE={
+  danger:{c:"var(--danger-fg)",bg:"var(--danger-bg)"},
+  warn:{c:"var(--warn-fg)",bg:"var(--warn-bg)"},
+  info:{c:"var(--info-fg)",bg:"var(--info-bg)"},
+  accent:{c:"var(--accent)",bg:"var(--accent-pill-bg)"},
+  mute:{c:T.textDim,bg:"var(--card-2)"},
+};
+function computeDriveFlags(entry){
+  if(!entry)return [];
+  const out=[];
+  const note=String(entry.note||"");
+  const route=String(entry.route||"");
+  const arr=String(entry.arr||"");
+  const driveStr=String(entry.drive||"");
+  const driveH=parseFloat(driveStr.replace(/[^0-9.]/g,""));
+  if(entry.flag==="⚠")out.push({id:"warn",label:"FLAGGED",sev:"danger"});
+  if(!isNaN(driveH)&&driveH>0){
+    if(driveH>=11)out.push({id:"drv",label:`${driveH}h DRIVE`,sev:"danger"});
+    else if(driveH>=10)out.push({id:"drv",label:`${driveH}h DRIVE`,sev:"warn"});
+    else if(driveH>=8)out.push({id:"drv",label:`${driveH}h DRIVE`,sev:"info"});
+  }
+  if(/\bDD\b/.test(note))out.push({id:"dd",label:"DD REQUIRED",sev:"warn"});
+  if(/EC561/.test(note))out.push({id:"ec",label:"EC561 BREAK",sev:"info"});
+  if(/Le Shuttle|ferry/i.test(note)||/ferry/i.test(route))out.push({id:"fy",label:"FERRY",sev:"accent"});
+  if(/CRITICAL/.test(note))out.push({id:"cr",label:"CRITICAL",sev:"danger"});
+  if(/Immigration/i.test(note))out.push({id:"im",label:"IMMIGRATION",sev:"danger"});
+  if(/Deadhead/i.test(note)||/multi-day/i.test(arr))out.push({id:"dh",label:"DEADHEAD",sev:"mute"});
+  const rp=note.match(/(\d+)h RP\b/);
+  if(rp&&parseInt(rp[1])<=9)out.push({id:"rp",label:`${rp[1]}h RP`,sev:"warn"});
+  if(entry.show&&!isNaN(driveH)&&driveH>0)out.push({id:"sd",label:"SHOW-DAY ARR",sev:"warn"});
+  return out;
+}
+function DriveFlagChips({entry,size:sz="sm"}){
+  const flags=useMemo(()=>computeDriveFlags(entry),[entry]);
+  if(flags.length===0)return null;
+  const fs=sz==="lg"?9:8;
+  const pad=sz==="lg"?"3px 9px":"2px 7px";
+  return(
+    <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+      {flags.map(f=>{const s=DRIVE_FLAG_STYLE[f.sev]||DRIVE_FLAG_STYLE.mute;return(
+        <span key={f.id} style={{fontSize:fs,fontWeight:800,padding:pad,borderRadius:99,background:s.bg,color:s.c,letterSpacing:"0.06em",fontFamily:MN,whiteSpace:"nowrap",border:`1px solid ${s.c}30`}}>{f.label}</span>
+      );})}
+    </div>
+  );
+}
+
 // Tabular drive-session presentation. Used in both the ROS bus-row expansion
 // and the Logistics travel-day Bus Schedule context card. Optionally accepts
 // a pre-built `sessions` prop (e.g., a calculated draft) overriding the
@@ -6111,6 +6161,140 @@ function SegmentDrawer({seg,crew,sorted,onChange,onClose}){
   );
 }
 
+// Per-day Drive Sessions view (Logistics → Drive Sessions when a date is selected).
+// Focused subset of TravelDayView: just the drive day's flag chips + session
+// table + inline editor. Use when running the day with the bus driver.
+function DailyDriveSessionsView(){
+  const{sel,busEdits,uBusEdit,setSel,setDateMenu}=useContext(Ctx);
+  const busDay=useMemo(()=>{const base=BUS_DATA_MAP[sel];if(!base)return null;return{...base,...(busEdits?.[sel]||{})};},[sel,busEdits]);
+  const[edit,setEdit]=useState(false);
+  const driveDates=useMemo(()=>BUS_DATA.filter(d=>d.km>0).map((d,_,arr)=>{const base=new Date('2026-05-02T12:00:00');base.setDate(base.getDate()+d.day-1);return base.toISOString().slice(0,10);}),[]);
+  const idx=driveDates.indexOf(sel);
+  const prevDriveDate=idx>0?driveDates[idx-1]:(driveDates.length>0&&!driveDates.includes(sel)?driveDates.filter(d=>d<sel).pop():null);
+  const nextDriveDate=idx>=0&&idx<driveDates.length-1?driveDates[idx+1]:(driveDates.length>0&&!driveDates.includes(sel)?driveDates.find(d=>d>sel):null);
+  if(!busDay)return(
+    <div style={{padding:"40px 20px",textAlign:"center",color:T.textDim}}>
+      <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>No drive session for {fD(sel)}</div>
+      <div style={{fontSize:10,color:T.textMute,marginBottom:12}}>Pick a tour day with a bus movement.</div>
+      {(prevDriveDate||nextDriveDate)&&<div style={{display:"flex",gap:8,justifyContent:"center"}}>
+        {prevDriveDate&&<button onClick={()=>setSel(prevDriveDate)} style={{fontSize:10,padding:"4px 11px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text2,cursor:"pointer",fontWeight:700}}>← {fD(prevDriveDate)}</button>}
+        <button onClick={()=>setDateMenu(true)} style={{fontSize:10,padding:"4px 11px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text2,cursor:"pointer",fontWeight:700}}>☰ Pick day</button>
+        {nextDriveDate&&<button onClick={()=>setSel(nextDriveDate)} style={{fontSize:10,padding:"4px 11px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text2,cursor:"pointer",fontWeight:700}}>{fD(nextDriveDate)} →</button>}
+      </div>}
+    </div>
+  );
+  const isRest=!(busDay.km>0);
+  const flags=computeDriveFlags(busDay);
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+      <div style={{background:busDay.show?"var(--success-bg)":"var(--info-bg)",border:`1px solid ${busDay.show?"var(--success-fg)":"var(--info-fg)"}30`,borderRadius:10,padding:"12px 16px"}}>
+        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,flexWrap:"wrap",marginBottom:flags.length>0?10:0}}>
+          <div style={{minWidth:0}}>
+            <div style={{fontSize:8,fontWeight:800,color:busDay.show?"var(--success-fg)":"var(--info-fg)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{busDay.show?"Show Day":"Travel Day"} · EU Day {busDay.day}</div>
+            <div style={{fontSize:15,fontWeight:800,color:T.text,marginTop:2}}>{busDay.route}</div>
+            <div style={{fontSize:9,color:T.textDim,fontFamily:MN,marginTop:2}}>{busDay.date} · {busDay.dow} · {fFull(sel)}</div>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+            {busDay.dep&&busDay.dep!=="—"&&<div style={{textAlign:"center"}}><div style={{fontSize:8,color:T.textDim,fontWeight:700,letterSpacing:"0.06em"}}>DEP</div><div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:T.text}}>{busDay.dep}</div></div>}
+            {busDay.arr&&busDay.arr!=="—"&&<div style={{textAlign:"center"}}><div style={{fontSize:8,color:T.textDim,fontWeight:700,letterSpacing:"0.06em"}}>ARR</div><div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:T.text}}>{busDay.arr}</div></div>}
+            {busDay.km>0&&<div style={{textAlign:"center"}}><div style={{fontSize:8,color:T.textDim,fontWeight:700,letterSpacing:"0.06em"}}>KM</div><div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:T.text}}>{busDay.km}</div></div>}
+            {busDay.drive&&busDay.drive!=="—"&&<div style={{textAlign:"center"}}><div style={{fontSize:8,color:T.textDim,fontWeight:700,letterSpacing:"0.06em"}}>DRIVE</div><div style={{fontFamily:MN,fontSize:13,fontWeight:800,color:busDay.flag==="⚠"?"var(--danger-fg)":T.text}}>{busDay.drive}</div></div>}
+            <button onClick={()=>setEdit(v=>!v)} title="Edit drive sessions" style={{fontSize:9,padding:"4px 10px",borderRadius:5,border:`1px solid ${edit?"var(--warn-fg)":"var(--border)"}`,background:edit?"var(--warn-bg)":"var(--card-2)",color:edit?"var(--warn-fg)":T.text2,cursor:"pointer",fontWeight:700,fontFamily:MN}}>✎ Edit{busEdits[sel]?.sessions?" *":""}</button>
+          </div>
+        </div>
+        {flags.length>0&&<DriveFlagChips entry={busDay} size="lg"/>}
+      </div>
+      {!edit&&!isRest&&<BusDriveSessionTable entry={busDay} label={busDay.show?"SHOW DAY · LOCAL DRIVE":"DRIVE SESSION TABLE"}/>}
+      {!edit&&isRest&&<div style={{padding:"24px",textAlign:"center",fontSize:11,color:T.textMute,fontStyle:"italic",background:"var(--card)",border:"1px solid var(--border)",borderRadius:10}}>Rest day — no drive scheduled.</div>}
+      {edit&&<div style={{background:"var(--card)",border:"1px solid var(--warn-fg)40",borderRadius:10,padding:"10px 14px"}}>
+        <DriveSessionEditor
+          initialSessions={(busDay.sessions?.length>0?busDay.sessions:null)||parseDriveSessions(busDay.note,busDay.stops)}
+          hasOverride={!!(busEdits[sel]?.sessions)}
+          onSave={rows=>{uBusEdit(sel,{sessions:rows});setEdit(false);}}
+          onCancel={()=>setEdit(false)}
+          onReset={()=>{uBusEdit(sel,{sessions:null});setEdit(false);}}
+        />
+      </div>}
+      <div style={{display:"flex",gap:6,alignItems:"center",justifyContent:"space-between",fontSize:9,color:T.textMute,fontFamily:MN,padding:"4px 4px"}}>
+        <button onClick={()=>prevDriveDate&&setSel(prevDriveDate)} disabled={!prevDriveDate} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid var(--border)",background:"var(--card-2)",color:prevDriveDate?T.text2:T.textMute,cursor:prevDriveDate?"pointer":"default",fontWeight:700}}>← Prev drive {prevDriveDate?fD(prevDriveDate):""}</button>
+        <span>Pieter Smit T26-021201</span>
+        <button onClick={()=>nextDriveDate&&setSel(nextDriveDate)} disabled={!nextDriveDate} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid var(--border)",background:"var(--card-2)",color:nextDriveDate?T.text2:T.textMute,cursor:nextDriveDate?"pointer":"default",fontWeight:700}}>Next drive {nextDriveDate?fD(nextDriveDate):""} →</button>
+      </div>
+    </div>
+  );
+}
+
+// Tour-wide Drive Sessions view (Logistics → Drive Sessions in All Shows mode).
+// Lists every drive day in chronological order with flag chips + session table.
+// Filter bar narrows to flagged / long / ferry / show-day arrival days.
+function AllShowsDriveSessionsView(){
+  const{busEdits,setSel,setAllShows,setTransView}=useContext(Ctx);
+  const[filter,setFilter]=useState("all");
+  const days=useMemo(()=>BUS_DATA.map(d=>{
+    const base=new Date('2026-05-02T12:00:00');base.setDate(base.getDate()+d.day-1);
+    const iso=base.toISOString().slice(0,10);
+    const merged={...d,...(busEdits?.[iso]||{})};
+    return{iso,entry:merged,flags:computeDriveFlags(merged)};
+  }).filter(x=>x.entry.km>0),[busEdits]);
+  const filtered=useMemo(()=>{
+    if(filter==="all")return days;
+    return days.filter(d=>{
+      const ids=d.flags.map(f=>f.id);
+      if(filter==="flagged")return d.flags.some(f=>f.sev==="danger"||f.sev==="warn");
+      if(filter==="long")return ids.includes("drv")&&d.flags.some(f=>f.id==="drv"&&(f.sev==="warn"||f.sev==="danger"));
+      if(filter==="ferry")return ids.includes("fy");
+      if(filter==="sda")return ids.includes("sd");
+      if(filter==="dd")return ids.includes("dd");
+      return true;
+    });
+  },[days,filter]);
+  const totalKm=filtered.reduce((s,d)=>s+(parseFloat(d.entry.km)||0),0);
+  const totalDriveH=filtered.reduce((s,d)=>{const h=parseFloat(String(d.entry.drive||"").replace(/[^0-9.]/g,""));return s+(isNaN(h)?0:h);},0);
+  const filters=[["all",`All (${days.length})`],["flagged","Flagged"],["long","Long drives"],["dd","DD required"],["ferry","Ferry"],["sda","Show-day arr"]];
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",padding:"8px 12px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:8}}>
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          {filters.map(([v,l])=>(
+            <button key={v} onClick={()=>setFilter(v)} style={{fontSize:9,padding:"3px 10px",borderRadius:99,border:`1px solid ${filter===v?"var(--accent)":"var(--border)"}`,background:filter===v?"var(--accent-pill-bg)":"var(--card-2)",color:filter===v?T.accent:T.textDim,cursor:"pointer",fontWeight:700,letterSpacing:"0.04em",textTransform:"uppercase"}}>{l}</button>
+          ))}
+        </div>
+        <div style={{marginLeft:"auto",display:"flex",gap:10,fontSize:9,fontFamily:MN,color:T.textDim}}>
+          <span><span style={{fontWeight:800,color:T.text2}}>{filtered.length}</span> drive day{filtered.length===1?"":"s"}</span>
+          <span><span style={{fontWeight:800,color:T.text2}}>{totalKm.toLocaleString()}</span> km</span>
+          <span><span style={{fontWeight:800,color:T.text2}}>{totalDriveH.toFixed(1)}</span> h drive</span>
+        </div>
+      </div>
+      {filtered.length===0&&<div style={{padding:"40px 20px",textAlign:"center",color:T.textMute,fontSize:11,fontStyle:"italic"}}>No drive days match this filter.</div>}
+      {filtered.map(({iso,entry,flags})=>(
+        <div key={iso} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
+          <div style={{padding:"10px 14px",display:"flex",alignItems:"flex-start",gap:12,flexWrap:"wrap",borderBottom:flags.length>0||entry.note||entry.sessions?"1px solid var(--card-2)":"none"}}>
+            <div style={{minWidth:0,flex:"1 1 220px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
+                <span style={{fontSize:8,fontWeight:800,color:T.textDim,fontFamily:MN,letterSpacing:"0.08em"}}>EU{String(entry.day).padStart(2,"0")}</span>
+                <span style={{fontSize:8,fontWeight:800,padding:"1px 7px",borderRadius:99,background:entry.show?"var(--success-bg)":"var(--info-bg)",color:entry.show?"var(--success-fg)":"var(--info-fg)",letterSpacing:"0.06em"}}>{entry.show?"SHOW":"TRAVEL"}</span>
+                <span style={{fontSize:9,color:T.textDim,fontFamily:MN}}>{entry.date} · {entry.dow}</span>
+              </div>
+              <div style={{fontSize:13,fontWeight:800,color:T.text,letterSpacing:"-0.01em"}}>{entry.route}</div>
+            </div>
+            <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
+              {entry.dep&&entry.dep!=="—"&&<span style={{fontSize:9,fontFamily:MN,color:T.textDim}}>↑ {entry.dep}</span>}
+              {entry.arr&&entry.arr!=="—"&&<span style={{fontSize:9,fontFamily:MN,color:T.textDim}}>↓ {entry.arr}</span>}
+              {entry.km>0&&<span style={{fontSize:9,fontFamily:MN,fontWeight:700,color:T.text2,padding:"2px 8px",borderRadius:99,background:"var(--card-2)",border:"1px solid var(--border)"}}>{entry.km} km</span>}
+              {entry.drive&&entry.drive!=="—"&&<span style={{fontSize:9,fontFamily:MN,fontWeight:700,color:entry.flag==="⚠"?"var(--danger-fg)":T.text2,padding:"2px 8px",borderRadius:99,background:entry.flag==="⚠"?"var(--danger-bg)":"var(--card-2)",border:`1px solid ${entry.flag==="⚠"?"var(--danger-fg)":"var(--border)"}`}}>{entry.drive}</span>}
+              <button onClick={()=>{setAllShows(false);setSel(iso);setTransView("drive");}} title="Open this day's drive sessions" style={{fontSize:9,padding:"3px 10px",borderRadius:5,border:"1px solid var(--accent-pill-border)",background:"var(--accent-pill-bg)",color:T.accent,cursor:"pointer",fontWeight:700,fontFamily:MN}}>Open →</button>
+            </div>
+          </div>
+          {flags.length>0&&<div style={{padding:"8px 14px",background:"var(--card-2)",borderBottom:entry.note||entry.sessions?"1px solid var(--card-2)":"none"}}>
+            <DriveFlagChips entry={entry}/>
+          </div>}
+          <BusDriveSessionTable entry={entry} label={null} compact/>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function TransTab(){
   const{flights,uFlight,sel,labelIntel,transView:view,setTransView:setView,allShows}=useContext(Ctx);
   const[crewFlightsOpen,setCrewFlightsOpen]=useState(false);
@@ -6118,8 +6302,8 @@ function TransTab(){
   const daySegCount=Object.values(flights).filter(s=>s.status!=="dismissed"&&(s.depDate===sel||s.arrDate===sel)).length;
   useEffect(()=>{if(allShows&&view==="travel")setView("calendar");},[allShows,view,setView]);
   const subTabs=allShows
-    ?[["calendar","Tour Calendar"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`]]
-    :[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`]];
+    ?[["calendar","Tour Calendar"],["drive","Drive Sessions"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`]]
+    :[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["drive","Drive Sessions"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`]];
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
       <div style={{padding:"7px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"nowrap",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
@@ -6129,6 +6313,7 @@ function TransTab(){
       </div>
       <div style={{flex:1,overflow:"auto",padding:"12px 20px 30px"}}>
         {view==="calendar"&&<TourCalendar/>}
+        {view==="drive"&&(allShows?<AllShowsDriveSessionsView/>:<DailyDriveSessionsView/>)}
         {view==="travel"&&!allShows&&<><TravelDayView/><div style={{margin:"20px 0 8px",display:"flex",alignItems:"center",gap:10}}><div style={{flex:1,height:1,background:"var(--border)"}}></div><span style={{fontSize:8,fontWeight:800,color:T.textMute,letterSpacing:"0.1em",whiteSpace:"nowrap"}}>TOUR CALENDAR</span><div style={{flex:1,height:1,background:"var(--border)"}}></div></div><TourCalendar/></>}
         {view==="flights"&&<>{labelIntel?.crewFlights?.length>0&&(
           <div style={{background:"var(--info-bg)",border:"1px solid var(--info-bg)",borderRadius:10,marginBottom:12,overflow:"hidden"}}>
