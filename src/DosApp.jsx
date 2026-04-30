@@ -2555,7 +2555,7 @@ function SignOut(){
 // ── NAV SIDEBAR ──────────────────────────────────────────────────────────────
 
 function NavSidebar(){
-  const{sidebarOpen,tab,sel,setSel,sorted,tourDaysSorted,shows,uShow,advances,finance,aC,setTab,next,tourDays,showOffDays,setShowOffDays,allShows,setAllShows}=useContext(Ctx);
+  const{sidebarOpen,setSidebarOpen,tab,sel,setSel,sorted,tourDaysSorted,shows,uShow,advances,finance,aC,setTab,next,tourDays,showOffDays,setShowOffDays,allShows,setAllShows}=useContext(Ctx);
   const[newDate,setNewDate]=useState("");
   const[newType,setNewType]=useState("off");
   const[newVenue,setNewVenue]=useState("");
@@ -2594,7 +2594,7 @@ function NavSidebar(){
       <div style={{padding:"10px 12px 8px",borderBottom:"1px solid var(--border)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,marginBottom:next?4:0}}>
           <div style={{fontSize:9,fontWeight:700,color:T.textMute,letterSpacing:"0.06em",textTransform:"uppercase"}}>{next?"Next Show":"Tour"}</div>
-          <button onClick={()=>{setAllShows(true);setTab("dash");}} title="All shows aggregate view" style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,border:`1px solid ${allShows?"var(--accent)":"var(--border)"}`,background:allShows?"var(--accent-pill-bg)":"var(--card-2)",color:allShows?"var(--accent)":T.textDim,cursor:"pointer",letterSpacing:"0.04em",textTransform:"uppercase",lineHeight:1.2}}>All Shows</button>
+          <button onClick={()=>{setAllShows(true);setTab("dash");setSidebarOpen(false);}} title="All shows aggregate view" style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,border:`1px solid ${allShows?"var(--accent)":"var(--border)"}`,background:allShows?"var(--accent-pill-bg)":"var(--card-2)",color:allShows?"var(--accent)":T.textDim,cursor:"pointer",letterSpacing:"0.04em",textTransform:"uppercase",lineHeight:1.2}}>All Shows</button>
         </div>
         {next&&<>
           <div style={{fontSize:11,fontWeight:800,color:T.text,lineHeight:1.2}}>{next.city}</div>
@@ -2634,7 +2634,7 @@ function NavSidebar(){
             const dt=dateStr.getDate();
             const wd=dateStr.toLocaleString("en-US",{weekday:"short"});
             return(
-              <div key={d.date} ref={isSel?selRef:null} onClick={()=>{setSel(d.date);setAllShows(false);}} className="rh" style={{display:"flex",alignItems:"center",gap:0,padding:"6px 10px 6px 0",cursor:"pointer",background:isSel?"rgba(91,33,182,0.16)":"transparent",borderLeft:isSel?"3px solid var(--accent-soft)":"3px solid transparent",opacity:isOff?0.65:1,boxShadow:isSel?"inset 0 0 0 1px rgba(124,58,237,0.18)":undefined}}>
+              <div key={d.date} ref={isSel?selRef:null} onClick={()=>{setSel(d.date);setAllShows(false);setSidebarOpen(false);}} className="rh" style={{display:"flex",alignItems:"center",gap:0,padding:"6px 10px 6px 0",cursor:"pointer",background:isSel?"rgba(91,33,182,0.16)":"transparent",borderLeft:isSel?"3px solid var(--accent-soft)":"3px solid transparent",opacity:isOff?0.65:1,boxShadow:isSel?"inset 0 0 0 1px rgba(124,58,237,0.18)":undefined}}>
                 <div style={{width:46,flexShrink:0,textAlign:"center"}}>
                   <div style={{fontSize:8,fontWeight:700,color:isSel?"var(--link)":"var(--text-mute)",fontFamily:MN,letterSpacing:"0.04em"}}>{wd.toUpperCase()}</div>
                   <div style={{fontSize:13,fontWeight:800,color:isSel?"var(--accent-pill-border)":"var(--text)",lineHeight:1}}>{dt}</div>
