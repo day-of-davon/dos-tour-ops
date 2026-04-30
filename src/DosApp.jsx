@@ -2446,6 +2446,7 @@ function IntelPanel(){
   const primaryTid=(data.threads||[]).find(t=>t.tid)?.tid||null;
   const threadHref=(tid)=>tid?gmailUrl(tid):null;
   const[drafts,setDrafts]=useState({});
+  const[showCompleted,setShowCompleted]=useState(false);
   const draftReply=async(tid)=>{
     setDrafts(p=>({...p,[tid]:{status:"loading"}}));
     const{data:{session}}=await supabase.auth.getSession();
@@ -2498,6 +2499,7 @@ function IntelPanel(){
   const delThread=tid=>upd({threads:(data.threads||[]).filter(t=>t.tid!==tid)});
   const addFollowUp=()=>upd({followUps:[...(data.followUps||[]),{action:"New follow-up",owner:"",priority:"MED",deadline:"",manual:true}]});
   const delFollowUp=i=>upd({followUps:(data.followUps||[]).filter((_,idx)=>idx!==i)});
+  const restoreFollowUp=i=>{upd({followUps:(data.followUps||[]).map((x,idx)=>idx===i?{...x,done:false}:x)});addLog({type:"user",section:"followup",showId:sid,action:"restored",label:(data.followUps||[])[i]?.action||"",from:"intel_panel"});};
   const addManualFlag=()=>upd({manualFlags:[...(data.manualFlags||[]),{key:`m${Date.now()}`,label:"New inconsistency",severity:"UNCONFIRMED",platform:"",emailVal:"",snippet:""}]});
   const delManualFlag=k=>upd({manualFlags:(data.manualFlags||[]).filter(f=>f.key!==k)});
   const updManualFlag=(k,patch)=>upd({manualFlags:(data.manualFlags||[]).map(f=>f.key===k?{...f,...patch}:f)});
@@ -2636,8 +2638,10 @@ function IntelPanel(){
     {(()=>{
       const PRI={CRITICAL:0,HIGH:1,MED:2,MEDIUM:2,LOW:3};
       const threadMap=new Map((data.threads||[]).map(t=>[t.tid,t]));
-      const activeTodos=(data.todos||[]).filter(t=>!t.ignored);
+      const activeTodos=(data.todos||[]).filter(t=>!t.done&&!t.ignored);
       const activeFu=(data.followUps||[]).filter(f=>!f.done&&!f.ignored);
+      const completedTodos=(data.todos||[]).filter(t=>t.done&&!t.ignored);
+      const completedFu=(data.followUps||[]).reduce((acc,f,i)=>{if(f.done&&!f.ignored)acc.push({...f,_i:i});return acc;},[]);
       const todosByTid={};for(const t of activeTodos)(todosByTid[t.threadTid||"__none__"]||=[]).push(t);
       const fuByTid={};for(const f of activeFu)(fuByTid[f.tid||"__none__"]||=[]).push(f);
       const seenTid=new Set();
@@ -2706,6 +2710,35 @@ function IntelPanel(){
             <div style={{fontSize:8,fontWeight:700,color:T.textMute,letterSpacing:"0.06em",padding:"3px 0"}}>MANUAL / NO THREAD</div>
             {[...unlinkedTodos].sort((a,b)=>(PRI[a.priority]??4)-(PRI[b.priority]??4)).map(renderTodo)}
             {unlinkedFu.map(f=>renderFu(f,(data.followUps||[]).findIndex(x=>x===f)))}
+          </div>
+        )}
+        {(completedTodos.length>0||completedFu.length>0)&&(
+          <div style={{marginTop:4,borderLeft:"2px solid var(--success-fg)40",paddingLeft:8}}>
+            <div onClick={()=>setShowCompleted(v=>!v)} style={{display:"flex",alignItems:"center",gap:6,padding:"4px 0",cursor:"pointer",userSelect:"none"}}>
+              <span style={{fontSize:8,fontWeight:700,color:"var(--success-fg)",letterSpacing:"0.06em"}}>COMPLETED ({completedTodos.length+completedFu.length})</span>
+              <span style={{fontSize:9,color:T.textMute}}>{showCompleted?"▴":"▾"}</span>
+            </div>
+            {showCompleted&&<>
+              {completedTodos.map(t=>(
+                <div key={t.id} style={{display:"flex",alignItems:"center",gap:8,padding:"3px 0 3px 10px",borderTop:"1px solid var(--card-3)"}}>
+                  <span style={{fontSize:10,flex:1,color:T.textMute,textDecoration:"line-through",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{t.text}</span>
+                  {t.threadTid&&<a href={gmailUrl(t.threadTid)} target="_blank" rel="noopener noreferrer" title="Open thread" style={{color:T.textMute,fontSize:9,textDecoration:"none",flexShrink:0}}>✉</a>}
+                  {t.priority&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--card-2)",color:T.textDim,fontWeight:700,flexShrink:0}}>{t.priority}</span>}
+                  <button onClick={()=>toggleTodo(t.id,true,t.text)} title="Restore to active" style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"1px solid var(--border)",background:"transparent",color:"var(--success-fg)",cursor:"pointer",fontWeight:700,flexShrink:0}}>↩</button>
+                  <button onClick={()=>delTodo(t.id)} style={{background:"none",border:"none",cursor:"pointer",color:T.textMute,fontSize:11,flexShrink:0}}>×</button>
+                </div>
+              ))}
+              {completedFu.map(f=>(
+                <div key={f._i} style={{display:"flex",alignItems:"center",gap:8,padding:"3px 0 3px 10px",borderTop:"1px solid var(--card-3)"}}>
+                  <span style={{fontSize:10,flex:1,color:T.textMute,textDecoration:"line-through",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.action}</span>
+                  {f.owner&&<span style={{fontSize:8,color:T.textDim,flexShrink:0}}>{f.owner}</span>}
+                  {f.priority&&<span style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:"var(--card-2)",color:T.textDim,fontWeight:700,flexShrink:0}}>{f.priority}</span>}
+                  {f.deadline&&<span style={{fontSize:8,color:T.textMute,fontFamily:MN,flexShrink:0}}>{f.deadline}</span>}
+                  <button onClick={()=>restoreFollowUp(f._i)} title="Restore to follow-ups" style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"1px solid var(--border)",background:"transparent",color:"var(--success-fg)",cursor:"pointer",fontWeight:700,flexShrink:0}}>↩</button>
+                  <button onClick={()=>delFollowUp(f._i)} style={{background:"none",border:"none",cursor:"pointer",color:T.textMute,fontSize:11,flexShrink:0}}>×</button>
+                </div>
+              ))}
+            </>}
           </div>
         )}
       </IntelSection>
