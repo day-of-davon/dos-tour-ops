@@ -2587,14 +2587,17 @@ function NavSidebar(){
   return(<>
     <div onClick={()=>setSidebarOpen(false)} style={{position:"absolute",inset:0,background:"rgba(0,0,0,0.45)",zIndex:79,opacity:sidebarOpen?1:0,pointerEvents:sidebarOpen?"auto":"none",transition:"opacity 220ms ease"}}/>
     <div style={{position:"absolute",top:0,left:0,bottom:0,width:220,background:"var(--card)",borderRight:"1px solid var(--border)",zIndex:80,transform:sidebarOpen?"translateX(0)":"translateX(-220px)",transition:"transform 220ms cubic-bezier(0.25,0,0.1,1)",display:"flex",flexDirection:"column",overflow:"hidden"}}>
-      {/* Mini stats */}
-      {next&&(
-        <div style={{padding:"10px 12px 8px",borderBottom:"1px solid var(--border)"}}>
-          <div style={{fontSize:9,fontWeight:700,color:T.textMute,letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4}}>Next Show</div>
+      {/* Mini stats + All Shows */}
+      <div style={{padding:"10px 12px 8px",borderBottom:"1px solid var(--border)"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,marginBottom:next?4:0}}>
+          <div style={{fontSize:9,fontWeight:700,color:T.textMute,letterSpacing:"0.06em",textTransform:"uppercase"}}>{next?"Next Show":"Tour"}</div>
+          <button onClick={()=>setTab("dash")} title="Dashboard — all shows" style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,border:`1px solid ${tab==="dash"?"var(--accent)":"var(--border)"}`,background:tab==="dash"?"var(--accent-pill-bg)":"var(--card-2)",color:tab==="dash"?"var(--accent)":T.textDim,cursor:"pointer",letterSpacing:"0.04em",textTransform:"uppercase",lineHeight:1.2}}>All Shows</button>
+        </div>
+        {next&&<>
           <div style={{fontSize:11,fontWeight:800,color:T.text,lineHeight:1.2}}>{next.city}</div>
           <div style={{fontSize:9,color:T.textDim,marginTop:1}}>{fD(next.date)} · <span style={{color:T.accent,fontWeight:700,fontFamily:MN}}>{dU(next.date)}d</span></div>
-        </div>
-      )}
+        </>}
+      </div>
       {/* Flags */}
       {flags.length>0&&(
         <div style={{padding:"6px 10px",borderBottom:"1px solid var(--border)",display:"flex",flexDirection:"column",gap:3}}>
@@ -2615,48 +2618,62 @@ function NavSidebar(){
       </div>
       {/* Date list */}
       <div ref={listRef} style={{flex:1,overflowY:"auto",padding:"4px 0"}}>
-        {rows.map(d=>{
-          const isSel=d.date===sel;
-          const tc=typeColor(d.type);
-          const isOff=d.type==="off"||d.type==="travel";
-          const pc=d.type==="show"?pendingCount(d.date):0;
-          const days=dU(d.date);
-          const urgColor=days<=7?"var(--danger-fg)":days<=14?"var(--warn-fg)":days<=21?"var(--link)":"var(--text-mute)";
-          const dateStr=new Date(d.date+"T12:00:00");
-          const mo=dateStr.toLocaleString("en-US",{month:"short"});
-          const dt=dateStr.getDate();
-          const wd=dateStr.toLocaleString("en-US",{weekday:"short"});
-          return(
-            <div key={d.date} ref={isSel?selRef:null} onClick={()=>{setSel(d.date);if(tab==="dash")setTab("ros");}} className="rh" style={{display:"flex",alignItems:"center",gap:0,padding:"6px 10px 6px 0",cursor:"pointer",background:isSel?"rgba(91,33,182,0.16)":"transparent",borderLeft:isSel?"3px solid var(--accent-soft)":"3px solid transparent",opacity:isOff?0.65:1,boxShadow:isSel?"inset 0 0 0 1px rgba(124,58,237,0.18)":undefined}}>
-              <div style={{width:46,flexShrink:0,textAlign:"center"}}>
-                <div style={{fontSize:8,fontWeight:700,color:isSel?"var(--link)":"var(--text-mute)",fontFamily:MN,letterSpacing:"0.04em"}}>{wd.toUpperCase()}</div>
-                <div style={{fontSize:13,fontWeight:800,color:isSel?"var(--accent-pill-border)":"var(--text)",lineHeight:1}}>{dt}</div>
-                <div style={{fontSize:8,color:isSel?"var(--accent)":"var(--text-mute)"}}>{mo}</div>
-              </div>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:1}}>
-                  <span style={{fontSize:10,fontWeight:600,color:isSel?"var(--accent-pill-border)":"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.city||d.venue||"—"}</span>
-                  {!isOff&&<span style={{fontSize:8,padding:"1px 4px",borderRadius:99,fontWeight:700,...tc,flexShrink:0}}>{d.type==="show"?"▶":"⇢"}</span>}
+        {(()=>{
+          const renderRow=d=>{
+            const isSel=d.date===sel;
+            const tc=typeColor(d.type);
+            const isOff=d.type==="off"||d.type==="travel";
+            const pc=d.type==="show"?pendingCount(d.date):0;
+            const days=dU(d.date);
+            const urgColor=days<=7?"var(--danger-fg)":days<=14?"var(--warn-fg)":days<=21?"var(--link)":"var(--text-mute)";
+            const dateStr=new Date(d.date+"T12:00:00");
+            const mo=dateStr.toLocaleString("en-US",{month:"short"});
+            const dt=dateStr.getDate();
+            const wd=dateStr.toLocaleString("en-US",{weekday:"short"});
+            return(
+              <div key={d.date} ref={isSel?selRef:null} onClick={()=>{setSel(d.date);if(tab==="dash")setTab("ros");}} className="rh" style={{display:"flex",alignItems:"center",gap:0,padding:"6px 10px 6px 0",cursor:"pointer",background:isSel?"rgba(91,33,182,0.16)":"transparent",borderLeft:isSel?"3px solid var(--accent-soft)":"3px solid transparent",opacity:isOff?0.65:1,boxShadow:isSel?"inset 0 0 0 1px rgba(124,58,237,0.18)":undefined}}>
+                <div style={{width:46,flexShrink:0,textAlign:"center"}}>
+                  <div style={{fontSize:8,fontWeight:700,color:isSel?"var(--link)":"var(--text-mute)",fontFamily:MN,letterSpacing:"0.04em"}}>{wd.toUpperCase()}</div>
+                  <div style={{fontSize:13,fontWeight:800,color:isSel?"var(--accent-pill-border)":"var(--text)",lineHeight:1}}>{dt}</div>
+                  <div style={{fontSize:8,color:isSel?"var(--accent)":"var(--text-mute)"}}>{mo}</div>
                 </div>
-                <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
-                  {pc>0&&<span style={{fontSize:8,fontFamily:MN,color:T.warnFg,fontWeight:700}}>{pc} open</span>}
-                  {d.type==="show"&&days>=0&&<span style={{fontSize:8,fontFamily:MN,color:urgColor,fontWeight:700}}>{days}d</span>}
-                  {d.type==="show"&&(()=>{const fStages=finance[d.date]?.stages||{};const settled=["wire_ref_confirmed","signed_sheet","payment_initiated"].every(k=>fStages[k]);const wired=fStages["payment_initiated"];return <span style={{width:6,height:6,borderRadius:99,background:settled?"var(--success-fg)":wired?"var(--warn-fg)":"var(--card-3)",flexShrink:0,display:"inline-block"}} title={settled?"Settled":wired?"Wire initiated":"Settlement pending"}/>;})()}
-                  {isOff&&<span style={{fontSize:8,color:T.textMute,fontStyle:"italic"}}>{d.type}</span>}
-                  {d.type==="split"&&d.split?.parties?.map(p=>(
-                    <span key={p.id} style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:p.bg,color:p.color,fontWeight:700,fontFamily:MN,whiteSpace:"nowrap"}}>{p.label}</span>
-                  ))}
-                </div>
-                {d.type==="show"&&(()=>{const total=AT.length;const confirmed=total-pc;const pct=total>0?(confirmed/total)*100:100;const busEff=BUS_DATA_MAP[d.date]?.arr;return(<>
-                  <div style={{width:"100%",height:2,background:"var(--card-2)",borderRadius:99,marginTop:2}}>
-                    <div style={{width:`${pct}%`,height:"100%",background:pct===100?"var(--success-fg)":pct>60?"var(--warn-fg)":"var(--danger-fg)",borderRadius:99,transition:"width 0.3s ease"}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:1}}>
+                    <span style={{fontSize:10,fontWeight:600,color:isSel?"var(--accent-pill-border)":"var(--text)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{d.city||d.venue||"—"}</span>
+                    {!isOff&&<span style={{fontSize:8,padding:"1px 4px",borderRadius:99,fontWeight:700,...tc,flexShrink:0}}>{d.type==="show"?"▶":"⇢"}</span>}
                   </div>
-                  {busEff&&busEff!=="—"&&<span style={{fontSize:7,fontFamily:MN,color:"var(--text-faint)",marginTop:1,display:"block"}}>BUS {busEff}</span>}
-                </>);})()}
+                  <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
+                    {pc>0&&<span style={{fontSize:8,fontFamily:MN,color:T.warnFg,fontWeight:700}}>{pc} open</span>}
+                    {d.type==="show"&&days>=0&&<span style={{fontSize:8,fontFamily:MN,color:urgColor,fontWeight:700}}>{days}d</span>}
+                    {d.type==="show"&&(()=>{const fStages=finance[d.date]?.stages||{};const settled=["wire_ref_confirmed","signed_sheet","payment_initiated"].every(k=>fStages[k]);const wired=fStages["payment_initiated"];return <span style={{width:6,height:6,borderRadius:99,background:settled?"var(--success-fg)":wired?"var(--warn-fg)":"var(--card-3)",flexShrink:0,display:"inline-block"}} title={settled?"Settled":wired?"Wire initiated":"Settlement pending"}/>;})()}
+                    {isOff&&<span style={{fontSize:8,color:T.textMute,fontStyle:"italic"}}>{d.type}</span>}
+                    {d.type==="split"&&d.split?.parties?.map(p=>(
+                      <span key={p.id} style={{fontSize:8,padding:"1px 5px",borderRadius:4,background:p.bg,color:p.color,fontWeight:700,fontFamily:MN,whiteSpace:"nowrap"}}>{p.label}</span>
+                    ))}
+                  </div>
+                  {d.type==="show"&&(()=>{const total=AT.length;const confirmed=total-pc;const pct=total>0?(confirmed/total)*100:100;const busEff=BUS_DATA_MAP[d.date]?.arr;return(<>
+                    <div style={{width:"100%",height:2,background:"var(--card-2)",borderRadius:99,marginTop:2}}>
+                      <div style={{width:`${pct}%`,height:"100%",background:pct===100?"var(--success-fg)":pct>60?"var(--warn-fg)":"var(--danger-fg)",borderRadius:99,transition:"width 0.3s ease"}}/>
+                    </div>
+                    {busEff&&busEff!=="—"&&<span style={{fontSize:7,fontFamily:MN,color:"var(--text-faint)",marginTop:1,display:"block"}}>BUS {busEff}</span>}
+                  </>);})()}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          };
+          const past=rows.filter(d=>d.date<today);
+          const upcoming=rows.filter(d=>d.date>=today);
+          const hasSelInPast=past.some(d=>d.date===sel);
+          return(<>
+            {past.length>0&&(
+              <details open={hasSelInPast} style={{borderBottom:"1px solid var(--border)"}}>
+                <summary style={{fontSize:9,fontWeight:700,color:T.textMute,letterSpacing:"0.06em",textTransform:"uppercase",padding:"6px 12px",cursor:"pointer",userSelect:"none",listStyle:"revert"}}>Past ({past.length})</summary>
+                {past.map(renderRow)}
+              </details>
+            )}
+            {upcoming.map(renderRow)}
+          </>);
+        })()}
       </div>
       {/* Add date */}
       <div style={{padding:"8px 10px",borderTop:"1px solid var(--border)",display:"flex",flexDirection:"column",gap:5}}>
@@ -2782,15 +2799,16 @@ function TopBar({ss}){
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 20px 5px",minWidth:0,gap:8,width:"100%"}}>
         <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flexShrink:1,overflow:"hidden"}}>
           <button onClick={()=>{
-            if(!sidebarOpen){
+            if(!sidebarOpen&&!sel){
               const today=new Date().toISOString().slice(0,10);
               const allDates=[...new Set([...(sorted||[]).map(s=>s.date),...(tourDaysSorted||[]).map(d=>d.date)])].sort();
               const target=allDates.find(d=>d>=today);
               if(target)setSel(target);
             }
             setSidebarOpen(v=>!v);
-          }} title="Navigation" style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:8,background:sidebarOpen?"var(--accent-soft)":"var(--accent)",color:"#fff",border:"none",cursor:"pointer",fontWeight:800,fontSize:13,letterSpacing:"-0.02em",flexShrink:0,lineHeight:1,transition:"background 150ms ease"}}>
-            <span>DOS</span><span style={{fontSize:15,fontWeight:300,opacity:0.8,lineHeight:1}}>≡</span>
+          }} title="Navigation" style={{display:"flex",alignItems:"center",gap:6,padding:"5px 10px",borderRadius:8,background:sidebarOpen?"var(--accent-soft)":"var(--accent)",color:"#fff",border:"none",cursor:"pointer",fontWeight:700,fontSize:11,letterSpacing:"-0.01em",flexShrink:1,minWidth:0,maxWidth:240,lineHeight:1,transition:"background 150ms ease"}}>
+            <span style={{fontSize:15,fontWeight:300,opacity:0.9,lineHeight:1,flexShrink:0}}>≡</span>
+            <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0}}>{(()=>{const s=shows[sel];const d=stepList.find(x=>x.date===sel);if(s)return`${s.city} · ${fD(sel)}`;if(d?.type==="travel")return`Travel · ${fD(sel)}`;if(d?.type==="off")return`Off · ${fD(sel)}`;return sel?fD(sel):"Select";})()}</span>
           </button>
           <div style={{display:"flex",alignItems:"center",gap:0,flexShrink:0}}>
             <button onClick={()=>stepDate(-1)} disabled={!canPrev} title="Previous date" style={{fontSize:11,padding:"2px 7px",borderRadius:"5px 0 0 5px",border:"1px solid var(--border)",borderRight:"none",background:canPrev?"var(--card-3)":"var(--card-4)",color:canPrev?"var(--text)":"var(--text-mute)",cursor:canPrev?"pointer":"default"}}>‹</button>
@@ -2815,11 +2833,6 @@ function TopBar({ss}){
         </div>
       </div>
       <div style={{padding:mobile?"3px 12px 5px":"3px 20px 5px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-        <button onClick={()=>setShowPickerOpen(true)} style={{display:"flex",alignItems:"center",gap:6,padding:mobile?"5px 12px":"4px 11px",borderRadius:99,border:`1.5px solid ${curClient?.color||"var(--border)"}`,background:curClient?`${curClient.color}18`:"var(--card)",color:curClient?.color||T.text2,fontFamily:"'Outfit',system-ui",fontWeight:700,fontSize:mobile?11:10,cursor:"pointer",minHeight:mobile?30:undefined,flexShrink:0,transition:"background 120ms ease"}}>
-          <span style={{width:6,height:6,borderRadius:"50%",background:curClient?.color||T.accent,display:"inline-block",flexShrink:0}}/>
-          <span>{(()=>{const s=shows[sel];const d=stepList.find(x=>x.date===sel);if(s)return`${s.city} · ${fD(sel)}`;if(d?.type==="travel")return`Travel · ${fD(sel)}`;if(d?.type==="off")return`Off · ${fD(sel)}`;return sel?fD(sel):"Select show";})()}</span>
-          <span style={{fontSize:8,color:T.textDim,marginLeft:1}}>▾</span>
-        </button>
         <button onClick={()=>setShowOffDays(v=>!v)} title={showOffDays?"Hide off/travel days":"Show off/travel days"} style={{display:"flex",alignItems:"center",gap:6,padding:mobile?"5px 10px":"3px 9px",borderRadius:99,border:"1px solid var(--border)",background:showOffDays?"var(--accent-pill-bg)":"var(--card-2)",cursor:"pointer",flexShrink:0,minHeight:mobile?30:undefined,transition:"background 150ms ease"}}>
           <span style={{fontSize:mobile?10:9,fontWeight:600,color:showOffDays?T.accentSoft:T.textDim,whiteSpace:"nowrap"}}>off / travel</span>
           <div style={{position:"relative",width:24,height:14,borderRadius:99,background:showOffDays?"var(--accent)":"var(--card-3)",transition:"background 150ms ease",flexShrink:0}}>
