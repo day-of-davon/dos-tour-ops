@@ -1,28 +1,32 @@
 // api/parse-doc.js — Unified document triage + extraction
-// Handles PDF (Claude native), DOCX (mammoth), XLSX (xlsx→CSV)
+// Handles PDF (pdf-parse text extraction), DOCX (mammoth), XLSX (xlsx→CSV)
 // Returns { docType, confidence, summary, receipt, flights, show, contacts, techPack, expenses }
-const { createClient } = require("@supabase/supabase-js");
+const { authenticate } = require("./lib/auth");
+const { extractJson } = require("./lib/gmail");
+const { DEFAULT_MODEL, HEAVY_MODEL, postMessages } = require("./lib/anthropic");
 
-let mammoth, xlsxLib;
+let mammoth, xlsxLib, pdfParse;
 try { mammoth = require("mammoth"); } catch {}
 try { xlsxLib = require("xlsx"); } catch {}
+try { pdfParse = require("pdf-parse"); } catch {}
 
-function extractJson(text) {
-  try { return JSON.parse(text.trim()); } catch {}
-  const fenced = text.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-  try { return JSON.parse(fenced); } catch {}
-  let depth = 0, start = -1;
-  for (let i = 0; i < text.length; i++) {
-    if (text[i] === "{") { if (start === -1) start = i; depth++; }
-    else if (text[i] === "}") {
-      depth--;
-      if (depth === 0 && start !== -1) {
-        try { return JSON.parse(text.slice(start, i + 1)); } catch {}
-        start = -1;
-      }
-    }
-  }
-  return null;
+function buildVerifyPrompt(parsed, sourceExcerpt) {
+  const sourceBlock = sourceExcerpt
+    ? `\n\nSOURCE EXCERPT (first 2000 chars):\n${sourceExcerpt}`
+    : "";
+  return `Verify this extracted touring-operations data for internal consistency and obvious errors.${sourceBlock}
+
+EXTRACTED DATA:
+${JSON.stringify(parsed)}
+
+Return this exact JSON:
+{
+  "ok": true,
+  "note": null,
+  "corrections": {}
+}
+
+If any fields are wrong, set ok=false, describe the issue in note, and put corrected values in corrections using the same structure as the extracted data (e.g. corrections.receipt.amount, corrections.flights[0].from, corrections.show.date). Only include fields that need correction.`;
 }
 
 const SYS = `You are a touring industry document parser for Davon Johnson, Tour Manager at Day of Show, LLC.
@@ -126,12 +130,8 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Missing auth token" });
-
-  const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: "Invalid token" });
+  const { user, error: authErr } = await authenticate(req);
+  if (authErr) return res.status(authErr.status).json({ error: authErr.message });
 
   const { fileBase64, mimeType = "", filename = "", contextDate } = req.body || {};
   if (!fileBase64) return res.status(400).json({ error: "Missing fileBase64" });
@@ -140,13 +140,31 @@ module.exports = async function handler(req, res) {
   const isPdf = mimeType === "application/pdf" || name.endsWith(".pdf");
   const isDocx = mimeType.includes("wordprocessingml") || name.endsWith(".docx");
   const isXlsx = mimeType.includes("spreadsheetml") || name.endsWith(".xlsx") || name.endsWith(".xls");
+  const imgExts = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic", ".heif"];
+  const isImage = mimeType.startsWith("image/") || imgExts.some(ext => name.endsWith(ext));
+
+  // Claude vision supports jpeg, png, gif, webp. Map common variants (and heic → jpeg hint).
+  const visionMediaType = (() => {
+    if (!isImage) return null;
+    if (mimeType === "image/jpeg" || mimeType === "image/jpg" || name.endsWith(".jpg") || name.endsWith(".jpeg")) return "image/jpeg";
+    if (mimeType === "image/png" || name.endsWith(".png")) return "image/png";
+    if (mimeType === "image/webp" || name.endsWith(".webp")) return "image/webp";
+    if (mimeType === "image/gif" || name.endsWith(".gif")) return "image/gif";
+    return mimeType || "image/jpeg";
+  })();
 
   let extractedText = null;
-  let usePdfNative = false;
 
   try {
-    if (isPdf) {
-      usePdfNative = true;
+    if (isImage) {
+      // Vision path — no text extraction; Claude reads the image directly.
+      extractedText = null;
+    } else if (isPdf && pdfParse) {
+      const buf = Buffer.from(fileBase64, "base64");
+      const result = await pdfParse(buf);
+      extractedText = result.text.slice(0, 14000);
+    } else if (isPdf) {
+      extractedText = "[PDF extraction unavailable — pdf-parse not loaded]";
     } else if (isDocx && mammoth) {
       const buf = Buffer.from(fileBase64, "base64");
       const result = await mammoth.extractRawText({ buffer: buf });
@@ -166,34 +184,68 @@ module.exports = async function handler(req, res) {
 
   const userPromptText = PROMPT(filename, contextDate);
 
-  const messages = usePdfNative
-    ? [{ role: "user", content: [
-        { type: "document", source: { type: "base64", media_type: "application/pdf", data: fileBase64 } },
-        { type: "text", text: userPromptText },
-      ] }]
+  const messages = isImage
+    ? [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: visionMediaType, data: fileBase64 } },
+          { type: "text", text: `${userPromptText}\n\nThe document is the attached photo. Read it directly.` },
+        ],
+      }]
     : [{ role: "user", content: `${userPromptText}\n\nDOCUMENT CONTENT:\n${extractedText}` }];
 
-  const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 4096, system: SYS, messages }),
-  });
+  let inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheCreationTokens = 0;
+  const callClaude = async (sys, msgs, maxTokens = 4096, model = DEFAULT_MODEL) => {
+    const { text, stopReason, usage } = await postMessages({ model, maxTokens, system: sys, messages: msgs });
+    inputTokens         += usage.inputTokens;
+    outputTokens        += usage.outputTokens;
+    cacheReadTokens     += usage.cacheReadTokens;
+    cacheCreationTokens += usage.cacheCreationTokens;
+    console.log(`[parse-doc] stop=${stopReason} in=${usage.inputTokens} out=${usage.outputTokens} cache_read=${usage.cacheReadTokens}`);
+    return text;
+  };
 
-  if (!anthropicResp.ok) {
-    const err = await anthropicResp.text();
-    return res.status(502).json({ error: `Anthropic error: ${anthropicResp.status}`, detail: err });
+  let rawText;
+  try {
+    rawText = await callClaude(SYS, messages);
+  } catch (e) {
+    return res.status(502).json({ error: `Anthropic error: ${e.message}`, detail: e.detail });
   }
-
-  const anthropicData = await anthropicResp.json();
-  const rawText = (anthropicData.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
-  console.log("[parse-doc] stop_reason:", anthropicData.stop_reason, "| docType extracted from:", filename);
 
   const parsed = extractJson(rawText);
   if (!parsed) return res.status(422).json({ error: "Could not parse response", raw: rawText.slice(0, 600) });
 
-  return res.json({ ...parsed, filename });
+  // Verification pass — re-check extracted fields against source document
+  const VERIFY_SYS = `You are a document data verifier. You check extracted structured data against the source document for accuracy.
+IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no preamble.`;
+
+  // Verification uses extracted JSON + a brief source excerpt only — no full document re-send.
+  const sourceExcerpt = isImage
+    ? `[photo upload: ${filename}]`
+    : (extractedText || "").slice(0, 2000);
+  const verifyMsgs = [{ role: "user", content: buildVerifyPrompt(parsed, sourceExcerpt) }];
+
+  let verified = parsed;
+  try {
+    const verifyText = await callClaude(VERIFY_SYS, verifyMsgs, 2048, HEAVY_MODEL);
+    const verifyResult = extractJson(verifyText);
+    if (verifyResult) {
+      // Apply field-level corrections
+      if (verifyResult.corrections) {
+        if (verifyResult.corrections.receipt && parsed.receipt)
+          verified = { ...verified, receipt: { ...parsed.receipt, ...verifyResult.corrections.receipt } };
+        if (verifyResult.corrections.flights && Array.isArray(verifyResult.corrections.flights))
+          verified = { ...verified, flights: verifyResult.corrections.flights };
+        if (verifyResult.corrections.show && parsed.show)
+          verified = { ...verified, show: { ...parsed.show, ...verifyResult.corrections.show } };
+      }
+      verified = { ...verified, parseVerified: verifyResult.ok !== false, parseNote: verifyResult.note || null };
+    }
+  } catch (e) {
+    console.warn("[parse-doc] verify error:", e.message);
+    verified = { ...parsed, parseVerified: null };
+  }
+
+  console.log(`[parse-doc] total tokens: in=${inputTokens} out=${outputTokens} cache_read=${cacheReadTokens} cache_create=${cacheCreationTokens}`);
+  return res.json({ ...verified, filename, tokensUsed: inputTokens + outputTokens });
 };

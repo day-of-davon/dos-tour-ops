@@ -2,7 +2,9 @@
 // Parses vendor quote PDFs + design drawings via Claude API
 // Returns enriched manifest items + discrepancy analysis
 
-const { createClient } = require("@supabase/supabase-js");
+const { authenticate } = require("./lib/auth");
+const { extractJson } = require("./lib/gmail");
+const { HEAVY_MODEL, postMessages } = require("./lib/anthropic");
 
 const QUOTE_PROMPT = `Extract equipment line items from this vendor production quote PDF.
 Return ONLY a JSON array. No preamble, no markdown fences.
@@ -192,14 +194,6 @@ function calcWeightLedger(items) {
   };
 }
 
-function extractJson(text) {
-  const clean = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-  try { return JSON.parse(clean); } catch {}
-  const m = clean.match(/\[[\s\S]*\]/);
-  if (m) { try { return JSON.parse(m[0]); } catch {} }
-  return null;
-}
-
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -207,12 +201,8 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Missing auth token" });
-
-  const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: "Invalid token" });
+  const { user, error: authErr } = await authenticate(req);
+  if (authErr) return res.status(authErr.status).json({ error: authErr.message });
 
   const { action, pdfBase64, docType, vendorName, quoteRef, existingItems, designItems } = req.body || {};
 
@@ -258,16 +248,11 @@ module.exports = async function handler(req, res) {
 
   const prompt = docType === "vendor_quote" ? QUOTE_PROMPT : DESIGN_PROMPT;
 
-  const anthropicResp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-6",
-      max_tokens: 8192,
+  let textContent, usage, stopReason;
+  try {
+    ({ text: textContent, stopReason, usage } = await postMessages({
+      model: HEAVY_MODEL,
+      maxTokens: 2048,
       system: "You are a production document parser for concert touring. Return ONLY valid JSON arrays. No markdown, no backticks, no preamble.",
       messages: [{
         role: "user",
@@ -276,16 +261,12 @@ module.exports = async function handler(req, res) {
           { type: "text", text: prompt },
         ],
       }],
-    }),
-  });
-
-  if (!anthropicResp.ok) {
-    const err = await anthropicResp.text();
-    return res.status(502).json({ error: `Claude API error ${anthropicResp.status}`, detail: err });
+    }));
+  } catch (e) {
+    return res.status(502).json({ error: `Claude API error ${e.status}`, detail: e.detail });
   }
-
-  const anthropicData = await anthropicResp.json();
-  const textContent = (anthropicData.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+  const { inputTokens, outputTokens, cacheReadTokens, cacheCreationTokens } = usage;
+  console.log(`[production] tokens: in=${inputTokens} out=${outputTokens} cache_read=${cacheReadTokens} cache_create=${cacheCreationTokens} stop=${stopReason}`);
   const parsed = extractJson(textContent);
 
   if (!Array.isArray(parsed)) {
@@ -325,5 +306,5 @@ module.exports = async function handler(req, res) {
       };
     });
 
-  return res.json({ items: enriched, docType, vendorName, quoteRef, count: enriched.length });
+  return res.json({ items: enriched, docType, vendorName, quoteRef, count: enriched.length, tokensUsed: inputTokens + outputTokens });
 };

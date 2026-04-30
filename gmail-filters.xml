@@ -1,0 +1,191 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<feed xmlns='http://www.w3.org/2005/Atom' xmlns:apps='http://schemas.google.com/apps/2006'>
+  <title>Mail Filters</title>
+
+  <!-- ═══════════════════════════════════════════════════
+       bbno$ — Tour team domains (rightclick, L7, Noodle,
+       vendors, accountants, bus, freight, merch, venues)
+  ═══════════════════════════════════════════════════ -->
+  <entry>
+    <category term='filter'></category>
+    <title>bbno$ - tour team domains</title>
+    <apps:property name='hasTheWord' value='from:(rightclick.gg OR l7touring.com OR noodle.management OR bandwagonrentals.com OR freightminds.com OR vitalmanagement.com OR photon7.com OR negearth.co.uk OR sonalyst.co.uk OR pksound.ca OR pietersmit.com OR magentasound.ca OR a3merch.com OR tunedhospitality.nl OR dmcl.ca OR rmbllp.com OR mojo.nl OR alterart.pl OR productionservice.ch OR anotherbackline.com)'/>
+    <apps:property name='label' value='bbno$'/>
+    <apps:property name='shouldNeverSpam' value='true'/>
+  </entry>
+
+  <!-- bbno$ — Subject keyword catch-all (settlements, advances,
+       venue contacts, day-of threads that don't come from
+       known domains) -->
+  <entry>
+    <category term='filter'></category>
+    <title>bbno$ - subject keyword</title>
+    <apps:property name='hasTheWord' value='subject:(bbno$ OR "BBNO$" OR "BBNO" OR "Internet Explorer Tour")'/>
+    <apps:property name='label' value='bbno$'/>
+    <apps:property name='shouldNeverSpam' value='true'/>
+  </entry>
+
+  <!-- bbno$ AEG / promoter settlement & box-office threads -->
+  <entry>
+    <category term='filter'></category>
+    <title>bbno$ - AEG promoter</title>
+    <apps:property name='hasTheWord' value='from:aegpresents.com subject:(bbno$ OR "BBNO$" OR "Red Rocks" OR SETTLEMENT OR "Guest List" OR "Box Office")'/>
+    <apps:property name='label' value='bbno$'/>
+    <apps:property name='shouldNeverSpam' value='true'/>
+  </entry>
+
+  <!-- ═══════════════════════════════════════════════════
+       Of The Trees
+  ═══════════════════════════════════════════════════ -->
+  <entry>
+    <category term='filter'></category>
+    <title>Of The Trees - subject</title>
+    <apps:property name='hasTheWord' value='subject:("Of The Trees" OR "Of the Trees" OR "OF THE TREES")'/>
+    <apps:property name='label' value='Of The Trees'/>
+    <apps:property name='shouldNeverSpam' value='true'/>
+  </entry>
+
+  <!-- Of The Trees — management + production team domains
+       (Kompass, Third Coast, All Of Us Creative, Antics) -->
+  <entry>
+    <category term='filter'></category>
+    <title>Of The Trees - team domains</title>
+    <apps:property name='hasTheWord' value='from:(kompassmg.com OR thirdcoasttouring.com OR allofuscreative.com OR anticstudios.com OR somethinggood.world OR ohwowcompany.com) subject:("Of The Trees" OR "Of the Trees" OR "OTT")'/>
+    <apps:property name='label' value='Of The Trees'/>
+    <apps:property name='shouldNeverSpam' value='true'/>
+  </entry>
+
+  <!-- ═══════════════════════════════════════════════════
+       G Jones
+  ═══════════════════════════════════════════════════ -->
+  <entry>
+    <category term='filter'></category>
+    <title>G Jones - subject</title>
+    <apps:property name='hasTheWord' value='subject:("G Jones" OR "G JONES" OR "EPROM X G JONES" OR "G Jones B2B" OR "EPROM" OR "b2b")'/>
+    <apps:property name='label' value='G Jones'/>
+    <apps:property name='shouldNeverSpam' value='true'/>
+  </entry>
+
+  <entry>
+    <category term='filter'></category>
+    <title>G Jones - EPROM email</title>
+    <apps:property name='from' value='eprombeats@gmail.com'/>
+    <apps:property name='label' value='G Jones'/>
+    <apps:property name='shouldNeverSpam' value='true'/>
+  </entry>
+
+  <!-- ═══════════════════════════════════════════════════
+       Deep Tropics
+  ═══════════════════════════════════════════════════ -->
+  <entry>
+    <category term='filter'></category>
+    <title>Deep Tropics</title>
+    <apps:property name='hasTheWord' value='from:deeptropics.org OR subject:"Deep Tropics"'/>
+    <apps:property name='label' value='Deep Tropics'/>
+    <apps:property name='shouldNeverSpam' value='true'/>
+  </entry>
+
+  <!-- ═══════════════════════════════════════════════════
+       Logistics — flight confirmations & receipts
+       (Delta, Air Canada, American, Alaska, United)
+  ═══════════════════════════════════════════════════ -->
+  <entry>
+    <category term='filter'></category>
+    <title>Logistics - flight confirmations</title>
+    <apps:property name='hasTheWord' value='from:(t.delta.com OR delta.com OR confirmation@aircanada.ca OR notification@notification.aircanada.ca OR email.aa.com OR notifications.alaskaair.com OR transactions.email.alaskaair.com OR Receipts@united.com) subject:("Flight Receipt" OR "trip confirmation" OR "Booking Confirmation" OR "Booking Reference" OR "Upgraded Seat" OR "Check In" OR "Thanks for your purchase" OR "Your booking" OR "Your seats")'/>
+    <apps:property name='label' value='Logistics'/>
+    <apps:property name='shouldNeverSpam' value='true'/>
+  </entry>
+
+  <!-- Uber receipts -->
+  <entry>
+    <category term='filter'></category>
+    <title>Logistics - Uber</title>
+    <apps:property name='from' value='uber.com'/>
+    <apps:property name='label' value='Logistics'/>
+    <apps:property name='shouldNeverSpam' value='true'/>
+  </entry>
+
+  <!-- Wise payments (invoices / wire receipts) -->
+  <entry>
+    <category term='filter'></category>
+    <title>Logistics - Wise payments</title>
+    <apps:property name='from' value='wise.com'/>
+    <apps:property name='label' value='Logistics'/>
+    <apps:property name='shouldNeverSpam' value='true'/>
+  </entry>
+
+  <!-- ═══════════════════════════════════════════════════
+       Taxes
+  ═══════════════════════════════════════════════════ -->
+  <entry>
+    <category term='filter'></category>
+    <title>Taxes - TurboTax</title>
+    <apps:property name='from' value='turbotax.intuit.com'/>
+    <apps:property name='label' value='Taxes'/>
+  </entry>
+
+  <entry>
+    <category term='filter'></category>
+    <title>Taxes - Tax1099</title>
+    <apps:property name='hasTheWord' value='from:(tax1099.com OR tax1099.pro)'/>
+    <apps:property name='label' value='Taxes'/>
+  </entry>
+
+  <!-- ═══════════════════════════════════════════════════
+       Software Development — dev tools & platforms
+  ═══════════════════════════════════════════════════ -->
+  <entry>
+    <category term='filter'></category>
+    <title>Software Development - dev tools</title>
+    <apps:property name='hasTheWord' value='from:(vercel.com OR github.com OR supabase.com OR figma.com OR openai.com OR engage.canva.com OR canvacreate@engage.canva.com OR notion.so)'/>
+    <apps:property name='label' value='Software Development'/>
+  </entry>
+
+  <!-- ═══════════════════════════════════════════════════
+       Hosting / Domain — GoDaddy, Cloudflare
+  ═══════════════════════════════════════════════════ -->
+  <entry>
+    <category term='filter'></category>
+    <title>Hosting/Domain</title>
+    <apps:property name='hasTheWord' value='from:(e.godaddy.com OR em1.cloudflare.com OR cloudflare.com)'/>
+    <apps:property name='label' value='Hosting/Domain'/>
+  </entry>
+
+  <!-- ═══════════════════════════════════════════════════
+       Jobs — Giggs job board alerts
+  ═══════════════════════════════════════════════════ -->
+  <entry>
+    <category term='filter'></category>
+    <title>Jobs - Giggs</title>
+    <apps:property name='from' value='app@giggs.live'/>
+    <apps:property name='label' value='Jobs'/>
+    <apps:property name='shouldArchive' value='true'/>
+    <apps:property name='shouldMarkAsRead' value='true'/>
+  </entry>
+
+  <!-- ═══════════════════════════════════════════════════
+       Marketing / noise — skip inbox, mark read
+       (Yelp, Thesis, Restore, Base Case, Wave, BILL,
+       airline promo, air miles marketing, wellness spam)
+  ═══════════════════════════════════════════════════ -->
+  <entry>
+    <category term='filter'></category>
+    <title>Marketing - auto-archive</title>
+    <apps:property name='hasTheWord' value='from:(no-reply@mail.yelp.com OR hello@takethesis.com OR HyperWellness@hello.restore.com OR arthur@mail.getbasecase.com OR marketing@comms.waveapps.com OR marketing@hello.bill.com OR info@bigtoe.yoga OR communications@mail.aircanada.com)'/>
+    <apps:property name='shouldArchive' value='true'/>
+    <apps:property name='shouldMarkAsRead' value='true'/>
+    <apps:property name='shouldNeverMarkAsImportant' value='true'/>
+  </entry>
+
+  <!-- Delta SkyMiles marketing (separate from booking confirms) -->
+  <entry>
+    <category term='filter'></category>
+    <title>Marketing - Delta promo</title>
+    <apps:property name='hasTheWord' value='from:(Ranjan@delta.com) subject:(survey OR experience OR "Keep Climbing" OR feedback)'/>
+    <apps:property name='shouldArchive' value='true'/>
+    <apps:property name='shouldMarkAsRead' value='true'/>
+    <apps:property name='shouldNeverMarkAsImportant' value='true'/>
+  </entry>
+
+</feed>
