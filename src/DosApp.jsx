@@ -2491,6 +2491,10 @@ function IntelPanel(){
     addLog({type:"user",section:"ar",showId:sid,action:state,label,from:"intel_panel"});
     addActLog({module:"intel",action:`intel.ar.${state}`,target:{type:"ar_item",id,label:label||id},payload:{showId:sid},context:{date:sel,showId:sid,eventKey:sid}});
   };
+  const arNotes=useMemo(()=>intel.__arState?.notes||{},[intel.__arState]);
+  const saveArNote=(id,text)=>setIntel(p=>{const prev=p.__arState||{};const notes={...(prev.notes||{})};if(text)notes[id]=text;else delete notes[id];return{...p,__arState:{...prev,notes}};});
+  const[arNoteOpen,setArNoteOpen]=useState({});
+  const toggleArNote=id=>setArNoteOpen(p=>({...p,[id]:!p[id]}));
   const toggleTodo=(id,currentDone,label)=>{upd({todos:(data.todos||[]).map(t=>t.id===id?{...t,done:!t.done}:t)});addLog({type:"user",section:"todo",showId:sid,action:currentDone?"undone":"done",label,from:"intel_panel"});};
   const delTodo=id=>upd({todos:(data.todos||[]).filter(t=>t.id!==id)});
   const dismissFlag=k=>upd({dismissedFlags:[...(data.dismissedFlags||[]),k]});
@@ -2582,17 +2586,21 @@ function IntelPanel(){
           {BUCKETS.filter(b=>grouped[b.key].length>0).map(b=>(
             <div key={b.key} style={{background:b.bg,border:`1px solid ${b.col}30`,borderRadius:10,padding:"8px 12px"}}>
               <div style={{fontSize:8,fontWeight:800,color:b.col,letterSpacing:"0.08em",marginBottom:5}}>{b.label} ({grouped[b.key].length})</div>
-              {grouped[b.key].map(item=>{const done=arDone.has(item.id);return(
+              {grouped[b.key].map(item=>{const done=arDone.has(item.id);const noteOpen=arNoteOpen[item.id];const note=arNotes[item.id]||"";return(
                 <React.Fragment key={item.id}>
-                <div style={{display:"flex",gap:8,padding:"4px 0",borderBottom:`1px solid ${b.col}18`,alignItems:"center",opacity:done?0.45:1}}>
-                  <div style={{flex:1,minWidth:0}}>
+                <div style={{padding:"6px 0",borderBottom:`1px solid ${b.col}18`}}>
+                  <div style={{marginBottom:4,opacity:done?0.5:1}}>
                     <div style={{fontSize:10,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",textDecoration:done?"line-through":"none"}}>{item.subject}</div>
                     <div style={{fontSize:9,color:b.col,opacity:0.85}}>{item.category&&item.category!=="MISC"?`${item.category} · `:""}{item.signal} · {item.from}</div>
                   </div>
-                  <a href={gmailUrl(item.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:T.link,textDecoration:"none",flexShrink:0}}>↗</a>
-                  <button onClick={()=>draftReply(item.id)} disabled={drafts[item.id]?.status==="loading"} title="Draft reply-all" style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"1px solid var(--accent)",background:"var(--card)",color:T.accent,cursor:"pointer",fontWeight:700,flexShrink:0,opacity:drafts[item.id]?.status==="loading"?0.5:1}}>✉</button>
-                  <button onClick={()=>markArIntel(item.id,done?"undone":"done",item.subject)} title={done?"Mark open":"Mark done"} style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"none",background:done?"var(--success-bg)":"var(--card-2)",color:done?"var(--success-fg)":"var(--text-2)",cursor:"pointer",fontWeight:700,flexShrink:0}}>✓</button>
-                  <button onClick={()=>markArIntel(item.id,"ignored",item.subject)} title="Ignore" style={{fontSize:9,padding:"2px 7px",borderRadius:4,border:"none",background:"var(--card-2)",color:T.textMute,cursor:"pointer",fontWeight:700,flexShrink:0}}>✕</button>
+                  <div style={{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}}>
+                    <a href={gmailUrl(item.id)} target="_blank" rel="noopener noreferrer" style={{fontSize:9,padding:"2px 9px",borderRadius:4,border:`1px solid ${b.col}70`,background:"var(--card)",color:b.col,textDecoration:"none",fontWeight:700,flexShrink:0}}>email · {item.signal||item.bucket} →</a>
+                    <button onClick={()=>markArIntel(item.id,done?"undone":"done",item.subject)} style={{fontSize:9,padding:"2px 9px",borderRadius:4,border:done?"1px solid var(--success-fg)":"1px solid var(--border)",background:done?"var(--success-bg)":"var(--card-2)",color:done?"var(--success-fg)":"var(--text-2)",cursor:"pointer",fontWeight:700,flexShrink:0}}>{done?"↩ Restore":"Done"}</button>
+                    {!done&&<button onClick={()=>markArIntel(item.id,"ignored",item.subject)} style={{fontSize:9,padding:"2px 9px",borderRadius:4,border:"1px solid var(--border)",background:"var(--card-2)",color:T.textMute,cursor:"pointer",fontWeight:600,flexShrink:0}}>Ignore</button>}
+                    <button onClick={()=>toggleArNote(item.id)} style={{fontSize:9,padding:"2px 9px",borderRadius:4,border:`1px solid ${note&&!noteOpen?"var(--accent)":"var(--border)"}`,background:noteOpen?"var(--card-3)":"var(--card-2)",color:note&&!noteOpen?T.accent:T.textMute,cursor:"pointer",fontWeight:600,flexShrink:0}}>{note&&!noteOpen?"note ✎":"note"}</button>
+                  </div>
+                  {!noteOpen&&note&&<div style={{fontSize:9,color:T.textDim,fontStyle:"italic",marginTop:3,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{note}</div>}
+                  {noteOpen&&<textarea value={note} onChange={e=>saveArNote(item.id,e.target.value)} placeholder="Add a note…" rows={2} style={{marginTop:5,width:"100%",fontFamily:MN,fontSize:9,padding:"5px 7px",border:"1px solid var(--border)",borderRadius:4,resize:"vertical",background:"var(--card)",color:T.text,lineHeight:1.5,boxSizing:"border-box"}}/>}
                 </div>
                 <DraftPanel tid={item.id}/>
                 </React.Fragment>
