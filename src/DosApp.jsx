@@ -1342,7 +1342,7 @@ export default function App(){
   const me=useMemo(()=>resolveMe(auth?.user?.email),[auth?.user?.email]);
   useEffect(()=>{setAuditIdentity({role:me.role,userKey:me.id});},[me.role,me.id]);
   const[tab,setTab]=useState("advance");
-  const[role,setRole]=useState("tm");
+  const[role,setRole]=useState("viewer");
   const[aC,setAC]=useState("bbn");
   const[shows,setShows]=useState(null);
   const[ros,setRos]=useState({});
@@ -1452,6 +1452,7 @@ export default function App(){
     const myEmail=(auth?.user?.email||"").toLowerCase();
     const assignedRole=ut?.assignments?.[myEmail];
     if(assignedRole)setRole(assignedRole);
+    else if(me.id==="guest"&&!TM_EMAILS.has(myEmail))setRole("viewer");
     const[np,cp,it,al]=await Promise.all([sGP(PK.NOTES_PRIV),sGP(PK.CHECKLIST_PRIV),sGP(PK.INTEL),sGP(PK.ACTLOG)]);
     setNotesPriv(np||{});setCheckPriv(cp||{});setIntel(it||{});if(Array.isArray(al))setActLog(al);
     setLoaded(true);
@@ -3197,7 +3198,7 @@ function TopBar({ss}){
     ?_allRoleOptions
     :_assignedRole
       ?_allRoleOptions.filter(r=>r.id===_assignedRole)
-      :ROLES.filter(r=>r.id!=="viewer"&&r.id!=="tm_td");
+      :ROLES.filter(r=>r.id==="viewer");
   const curClient=CM[aC];
   const activeClients=CLIENTS.filter(c=>c.status==="active"&&me.clients.includes(c.id)&&(role!=="viewer"||c.id==="bbn"));
   React.useEffect(()=>{if(!activeClients.find(c=>c.id===aC))setAC(activeClients[0]?.id||"bbn");},[me.clients.join(","),role]);
