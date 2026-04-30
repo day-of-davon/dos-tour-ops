@@ -9621,7 +9621,7 @@ function AccessTab(){
   const sectionHeader={fontSize:13,fontWeight:800,color:T.text,marginBottom:8};
   const sectionHint={fontSize:9,color:T.textDim,marginBottom:10};
   return(
-    <div style={{padding:"16px 20px",maxWidth:820}}>
+    <div className="fi" style={{padding:"16px 20px",maxWidth:820,width:"100%",height:"calc(100vh - 115px)",overflowY:"auto"}}>
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
         <span style={{fontSize:13,fontWeight:800,color:T.text}}>Access Control</span>
         <span style={{fontSize:9,color:T.textDim}}>Permissions apply to all non-admin users on next load.</span>
