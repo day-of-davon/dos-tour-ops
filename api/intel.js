@@ -240,12 +240,11 @@ function matchShow(thread, shows) {
 async function classifyActionItems(items, threadPool) {
   const debug = { itemCount: items?.length || 0, status: "skipped" };
   if (!items?.length) return { suggestions: new Map(), debug };
-  const ITEM_CAP = 60;
+  const ITEM_CAP = 50;
   const list = items.slice(0, ITEM_CAP).map(it => {
     const t = threadPool?.[it.id];
-    const body = (t?.bodySnippet || it.snippet || "").slice(0, 600);
-    const ageDays = it.date ? Math.round((Date.now() - new Date(it.date).getTime()) / 86400000) : null;
-    return { id: it.id, subject: it.subject || "", from: it.from || "", category: it.category, bucket: it.bucket, signal: it.signal, ageDays, body };
+    const body = (t?.bodySnippet || it.snippet || "").slice(0, 250);
+    return { id: it.id, subject: (it.subject || "").slice(0, 140), from: (it.from || "").slice(0, 80), category: it.category, bucket: it.bucket, signal: it.signal, date: it.date, body };
   });
 
   const sysPrompt = `You triage tour-ops emails for an artist's tour manager. For each item, decide whether it still needs human action.
@@ -275,7 +274,7 @@ Return this exact JSON, one entry per item:
         system: [{ type: "text", text: sysPrompt, cache_control: { type: "ephemeral" } }],
         messages: [{ role: "user", content: userPrompt }],
       }),
-    }), 30000);
+    }), 60000);
     if (!resp.ok) {
       let detail = ""; try { detail = await resp.text(); } catch {}
       const msg = `non-ok ${resp.status}: ${detail.slice(0, 300)}`;
