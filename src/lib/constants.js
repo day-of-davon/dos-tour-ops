@@ -25,6 +25,7 @@ export const SK = Object.freeze({
   IMMIGRATION:  "dos-v7-immigration",
   PERMISSIONS:  "dos-v7-permissions",
   BUS_EDITS:    "dos-v7-bus-edits",
+  USER_TYPES:   "dos-v7-user-types",
 });
 
 export const PK = Object.freeze({

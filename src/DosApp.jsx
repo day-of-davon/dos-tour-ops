@@ -1348,6 +1348,32 @@ export default function App(){
   const[lastFlightScanAt,setLastFlightScanAt]=useState(null);
   const[perms,setPerms]=useState(DEFAULT_PERMS);
   const uPerms=useCallback((permId,roleId,val)=>setPerms(p=>({...p,[permId]:{...p[permId],[roleId]:val}})),[]);
+  const[userTypes,setUserTypes]=useState([]);
+  const[userAssignments,setUserAssignments]=useState({});
+  const addUserType=useCallback((label)=>{
+    const trimmed=(label||"").trim();if(!trimmed)return null;
+    const id=`u_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,5)}`;
+    setUserTypes(p=>[...p,{id,label:trimmed}]);
+    setPerms(p=>{const n={...p};Object.keys(n).forEach(k=>{n[k]={...n[k],[id]:true};});return n;});
+    return id;
+  },[]);
+  const renameUserType=useCallback((id,label)=>{
+    const trimmed=(label||"").trim();if(!trimmed)return;
+    setUserTypes(p=>p.map(t=>t.id===id?{...t,label:trimmed}:t));
+  },[]);
+  const removeUserType=useCallback((id)=>{
+    setUserTypes(p=>p.filter(t=>t.id!==id));
+    setPerms(p=>{const n={};Object.entries(p).forEach(([k,v])=>{const{[id]:_,...rest}=v;n[k]=rest;});return n;});
+    setUserAssignments(p=>{const n={};Object.entries(p).forEach(([k,v])=>{if(v!==id)n[k]=v;});return n;});
+  },[]);
+  const setUserAssignment=useCallback((email,roleId)=>{
+    const e=(email||"").trim().toLowerCase();if(!e)return;
+    setUserAssignments(p=>({...p,[e]:roleId}));
+  },[]);
+  const removeUserAssignment=useCallback((email)=>{
+    const e=(email||"").trim().toLowerCase();if(!e)return;
+    setUserAssignments(p=>{const{[e]:_,...rest}=p;return rest;});
+  },[]);
   const[commentMode,setCommentMode]=useState(false);
   const[showPickerOpen,setShowPickerOpen]=useState(false);
   const[busEdits,setBusEdits]=useState({});
@@ -1358,7 +1384,7 @@ export default function App(){
   const st=useRef(null);const stp=useRef(null);
 
   useEffect(()=>{(async()=>{
-    const[s,r,a,f,se,cr,pr,fl,lo,gl,glt,im,pe,be]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW),sG(SK.PRODUCTION),sG(SK.FLIGHTS),sG(SK.LODGING),sG(SK.GUESTLISTS),sG(SK.GL_TEMPLATES),sG(SK.IMMIGRATION),sG(SK.PERMISSIONS),sG(SK.BUS_EDITS)]);
+    const[s,r,a,f,se,cr,pr,fl,lo,gl,glt,im,pe,be,ut]=await Promise.all([sG(SK.SHOWS),sG(SK.ROS),sG(SK.ADVANCES),sG(SK.FINANCE),sG(SK.SETTINGS),sG(SK.CREW),sG(SK.PRODUCTION),sG(SK.FLIGHTS),sG(SK.LODGING),sG(SK.GUESTLISTS),sG(SK.GL_TEMPLATES),sG(SK.IMMIGRATION),sG(SK.PERMISSIONS),sG(SK.BUS_EDITS),sG(SK.USER_TYPES)]);
     const init=ALL_SHOWS.reduce((acc,sh)=>{acc[sh.date]={...sh,doorsConfirmed:false,curfewConfirmed:false,busArriveConfirmed:false,crewCallConfirmed:false,venueAccessConfirmed:false,mgTimeConfirmed:false,etaSource:"schedule",lastModified:Date.now()};return acc;},{});
     const merged={...init};if(s)Object.keys(s).forEach(k=>{merged[k]=merged[k]?{...merged[k],...s[k]}:{...s[k]};});
     setShows(merged);setRos(r||{});setAdvances(a||{});setFinance(f||{});
@@ -1371,6 +1397,11 @@ export default function App(){
     if(se?.lastFlightScanAt)setLastFlightScanAt(se.lastFlightScanAt);
     if(cr?.crew)setCrew(cr.crew);if(cr?.showCrew)setShowCrew(cr.showCrew);
     setProduction(pr||{});setFlights(fl||{});setLodging(lo||{});setGuestlists(gl||{});setGlTemplates(glt||{});setImmigration(im||{});if(be)setBusEdits(be);if(pe)setPerms(p=>({...DEFAULT_PERMS,...pe,...Object.fromEntries(Object.entries(DEFAULT_PERMS).map(([k,v])=>([k,{...v,...(pe[k]||{})}])))}));
+    if(ut?.userTypes)setUserTypes(ut.userTypes);
+    if(ut?.assignments)setUserAssignments(ut.assignments);
+    const myEmail=(auth?.user?.email||"").toLowerCase();
+    const assignedRole=ut?.assignments?.[myEmail];
+    if(assignedRole)setRole(assignedRole);
     const[np,cp,it,al]=await Promise.all([sGP(PK.NOTES_PRIV),sGP(PK.CHECKLIST_PRIV),sGP(PK.INTEL),sGP(PK.ACTLOG)]);
     setNotesPriv(np||{});setCheckPriv(cp||{});setIntel(it||{});if(Array.isArray(al))setActLog(al);
     setLoaded(true);
@@ -1578,9 +1609,9 @@ export default function App(){
 
   const save=useCallback(()=>{
     if(!loaded)return;if(st.current)clearTimeout(st.current);
-    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt,allShows}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging),sS(SK.GUESTLISTS,guestlists),sS(SK.GL_TEMPLATES,glTemplates),sS(SK.IMMIGRATION,immigration),sS(SK.PERMISSIONS,perms),sS(SK.BUS_EDITS,busEdits)]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
-  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,tabOrder,crew,showCrew,production,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt,perms,allShows,busEdits]);
-  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,perms,allShows,busEdits]);
+    st.current=setTimeout(async()=>{setSs("saving");await Promise.all([sS(SK.SHOWS,shows),sS(SK.ROS,ros),sS(SK.ADVANCES,advances),sS(SK.FINANCE,finance),sS(SK.SETTINGS,{role,tab,sel,aC,tabOrder,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt,allShows}),sS(SK.CREW,{crew,showCrew}),sS(SK.PRODUCTION,production),sS(SK.FLIGHTS,flights),sS(SK.LODGING,lodging),sS(SK.GUESTLISTS,guestlists),sS(SK.GL_TEMPLATES,glTemplates),sS(SK.IMMIGRATION,immigration),sS(SK.PERMISSIONS,perms),sS(SK.BUS_EDITS,busEdits),sS(SK.USER_TYPES,{userTypes,assignments:userAssignments})]);setSs("saved");setTimeout(()=>setSs(""),1500);},600);
+  },[loaded,shows,ros,advances,finance,role,tab,sel,aC,tabOrder,crew,showCrew,production,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,lastFlightScanAt,perms,allShows,busEdits,userTypes,userAssignments]);
+  useEffect(()=>{save();},[shows,ros,advances,finance,role,tab,sel,aC,crew,showCrew,production,tabOrder,flights,lodging,guestlists,glTemplates,immigration,showOffDays,sidebarOpen,tourStart,tourEnd,perms,allShows,busEdits,userTypes,userAssignments]);
   useEffect(()=>{const h=e=>{if((e.metaKey||e.ctrlKey)&&e.key==="k"){e.preventDefault();setCmd(v=>!v);}if(e.key==="Escape")setCmd(false);};window.addEventListener("keydown",h);return()=>window.removeEventListener("keydown",h);},[]);
   const labelScanFired=useRef(false);
   useEffect(()=>{if(loaded&&!labelScanFired.current){labelScanFired.current=true;refreshLabelIntel();}},[loaded]);// eslint-disable-line
@@ -1705,8 +1736,8 @@ export default function App(){
     const isViewer=role==="viewer";
     const noop=()=>{};
     const g=fn=>isViewer?noop:fn;
-    return{shows,uShow:g(uShow),ros,uRos:g(uRos),gRos,advances,uAdv:g(uAdv),finance,uFin:g(uFin),sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv:g(uNotesPriv),checkPriv,uCheckPriv:g(uCheckPriv),mobile,setExp,intel,setIntel:g(setIntel),addLog,refreshIntel,toggleIntelShare:g(toggleIntelShare),refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew:g(setCrew),showCrew,setShowCrew:g(setShowCrew),dateMenu,setDateMenu,production,uProd:g(uProd),tourDays,tourDaysSorted,orderedTabs,reorderTabs:g(reorderTabs),selEventId,setSelEventId,flights,uFlight:g(uFlight),setFlights:g(setFlights),uploadOpen,setUploadOpen:g(setUploadOpen),lodging,uLodging:g(uLodging),guestlists,uGuestlist:g(uGuestlist),glTemplates,setGlTemplates:g(setGlTemplates),showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart:g(setTourStart),setTourEnd:g(setTourEnd),splitParty,setSplitParty:g(setSplitParty),currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration:g(uImmigration),me,transView,setTransView,perms,uPerms:g(uPerms),actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows,busEdits,uBusEdit:g(uBusEdit),isViewer};
-  },[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,perms,actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows,busEdits,uBusEdit]);// eslint-disable-line
+    return{shows,uShow:g(uShow),ros,uRos:g(uRos),gRos,advances,uAdv:g(uAdv),finance,uFin:g(uFin),sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv:g(uNotesPriv),checkPriv,uCheckPriv:g(uCheckPriv),mobile,setExp,intel,setIntel:g(setIntel),addLog,refreshIntel,toggleIntelShare:g(toggleIntelShare),refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew:g(setCrew),showCrew,setShowCrew:g(setShowCrew),dateMenu,setDateMenu,production,uProd:g(uProd),tourDays,tourDaysSorted,orderedTabs,reorderTabs:g(reorderTabs),selEventId,setSelEventId,flights,uFlight:g(uFlight),setFlights:g(setFlights),uploadOpen,setUploadOpen:g(setUploadOpen),lodging,uLodging:g(uLodging),guestlists,uGuestlist:g(uGuestlist),glTemplates,setGlTemplates:g(setGlTemplates),showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart:g(setTourStart),setTourEnd:g(setTourEnd),splitParty,setSplitParty:g(setSplitParty),currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration:g(uImmigration),me,transView,setTransView,perms,uPerms:g(uPerms),actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows,busEdits,uBusEdit:g(uBusEdit),isViewer,userTypes,addUserType,renameUserType,removeUserType,userAssignments,setUserAssignment,removeUserAssignment};
+  },[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,perms,actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows,busEdits,uBusEdit,userTypes,addUserType,renameUserType,removeUserType,userAssignments,setUserAssignment,removeUserAssignment]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:T.text,letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:T.textDim,marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
@@ -3098,7 +3129,7 @@ function ShowPickerSheet(){
 }
 
 function TopBar({ss}){
-  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,setShowOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd,advances,finance,intel,cShows,currentSplit,activeSplitParty,perms,me,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows}=useContext(Ctx);
+  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,setShowOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd,advances,finance,intel,cShows,currentSplit,activeSplitParty,perms,me,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows,userTypes,userAssignments}=useContext(Ctx);
   const[dragId,setDragId]=useState(null);
   const[overId,setOverId]=useState(null);
   const hasEvent=!!shows[sel]||(currentSplit&&activeSplitParty?.type==="show");
@@ -3107,8 +3138,15 @@ function TopBar({ss}){
   useEffect(()=>{if(!hasEvent&&(tab==="advance"||tab==="production"))setTab("ros");},[hasEvent,tab,setTab]);
   useEffect(()=>{if(allShows&&(tab==="ros"||tab==="advance"||tab==="production"))setTab("dash");},[allShows,tab,setTab]);
   useEffect(()=>{if(!canAccessTab(tab))setTab("dash");},[role]);
-  const _auth=useAuth();const _email=_auth?.user?.email||"";
-  const visibleRoles=ROLES.filter(r=>{if(r.id==="viewer"||r.id==="tm_td")return TM_EMAILS.has(_email);return true;});
+  const _auth=useAuth();const _email=(_auth?.user?.email||"").toLowerCase();
+  const _customRolePills=(userTypes||[]).map(t=>({id:t.id,label:t.label,c:"var(--text-2)"}));
+  const _allRoleOptions=[...ROLES,..._customRolePills];
+  const _assignedRole=userAssignments?.[_email];
+  const visibleRoles=isAdmin||TM_EMAILS.has(_email)
+    ?_allRoleOptions
+    :_assignedRole
+      ?_allRoleOptions.filter(r=>r.id===_assignedRole)
+      :ROLES.filter(r=>r.id!=="viewer"&&r.id!=="tm_td");
   const curClient=CM[aC];
   const activeClients=CLIENTS.filter(c=>c.status==="active"&&me.clients.includes(c.id)&&(role!=="viewer"||c.id==="bbn"));
   React.useEffect(()=>{if(!activeClients.find(c=>c.id===aC))setAC(activeClients[0]?.id||"bbn");},[me.clients.join(","),role]);
@@ -9366,36 +9404,115 @@ function CommentsReview(){
 }
 
 function AccessTab(){
-  const{perms,uPerms,me}=useContext(Ctx);
+  const{perms,uPerms,me,userTypes,addUserType,renameUserType,removeUserType,userAssignments,setUserAssignment,removeUserAssignment}=useContext(Ctx);
+  const[newTypeLabel,setNewTypeLabel]=useState("");
+  const[newAssignEmail,setNewAssignEmail]=useState("");
+  const[newAssignRole,setNewAssignRole]=useState("");
+  const[editingTypeId,setEditingTypeId]=useState(null);
+  const[editingTypeLabel,setEditingTypeLabel]=useState("");
   if(me?.id!=="davon")return<div style={{padding:40,textAlign:"center",fontSize:11,color:T.textDim}}>Access denied.</div>;
+  const allRoles=[...PERM_ROLES,...(userTypes||[]).map(t=>({id:t.id,label:t.label,custom:true}))];
   const cell={display:"flex",alignItems:"center",justifyContent:"center"};
-  const colW=`repeat(${PERM_ROLES.length},80px)`;
+  const colW=`repeat(${allRoles.length},80px)`;
   const gridCols=`1fr ${colW}`;
   const hdr={fontSize:8,fontWeight:800,letterSpacing:"0.08em",color:T.textDim,padding:"8px 16px",textTransform:"uppercase"};
   const resetAll=()=>{
-    const fresh={};
-    PERM_SCHEMA.forEach(s=>s.items.forEach(item=>{
-      fresh[item.id]={};PERM_ROLES.forEach(r=>{fresh[item.id][r.id]=true;});
-    }));
-    PERM_ROLES.forEach(r=>{
+    allRoles.forEach(r=>{
       PERM_SCHEMA.forEach(s=>s.items.forEach(item=>{uPerms(item.id,r.id,true);}));
     });
   };
+  const onAddType=()=>{const id=addUserType(newTypeLabel);if(id)setNewTypeLabel("");};
+  const onAddAssign=()=>{
+    const email=newAssignEmail.trim().toLowerCase();
+    if(!email||!newAssignRole)return;
+    setUserAssignment(email,newAssignRole);
+    setNewAssignEmail("");setNewAssignRole("");
+  };
+  const assignmentEntries=Object.entries(userAssignments||{}).sort((a,b)=>a[0].localeCompare(b[0]));
+  const inputStyle={fontSize:11,padding:"5px 9px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-2)",color:T.text,fontFamily:"inherit"};
+  const sectionHeader={fontSize:13,fontWeight:800,color:T.text,marginBottom:8};
+  const sectionHint={fontSize:9,color:T.textDim,marginBottom:10};
   return(
-    <div style={{padding:"16px 20px",maxWidth:800}}>
+    <div style={{padding:"16px 20px",maxWidth:820}}>
       <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
         <span style={{fontSize:13,fontWeight:800,color:T.text}}>Access Control</span>
         <span style={{fontSize:9,color:T.textDim}}>Permissions apply to all non-admin users on next load.</span>
         <button onClick={resetAll} style={{marginLeft:"auto",fontSize:9,padding:"4px 10px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-2)",color:T.textDim,cursor:"pointer"}}>Reset All</button>
       </div>
-      <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:12,overflow:"hidden"}}>
-        {/* Column header */}
+      {/* User Types */}
+      <div style={{marginBottom:24}}>
+        <div style={sectionHeader}>User Types</div>
+        <div style={sectionHint}>Built-in types are fixed. Add custom types to grant the same permission columns to additional roles.</div>
+        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
+          {PERM_ROLES.map((r,i)=>(
+            <div key={r.id} style={{display:"grid",gridTemplateColumns:"1fr 90px 90px",alignItems:"center",padding:"7px 14px",borderBottom:"1px solid var(--card-3)",fontSize:11}}>
+              <span style={{color:T.text2,fontWeight:600}}>{r.label}</span>
+              <span style={{fontSize:9,color:T.textMute,fontFamily:MN}}>{r.id}</span>
+              <span style={{fontSize:8,color:T.textDim,justifySelf:"end",letterSpacing:"0.06em"}}>BUILT-IN</span>
+            </div>
+          ))}
+          {(userTypes||[]).map(t=>{
+            const isEditing=editingTypeId===t.id;
+            return(
+              <div key={t.id} style={{display:"grid",gridTemplateColumns:"1fr 90px 90px",alignItems:"center",padding:"7px 14px",borderBottom:"1px solid var(--card-3)",fontSize:11}}>
+                {isEditing?(
+                  <input value={editingTypeLabel} onChange={e=>setEditingTypeLabel(e.target.value)}
+                    onBlur={()=>{renameUserType(t.id,editingTypeLabel);setEditingTypeId(null);}}
+                    onKeyDown={e=>{if(e.key==="Enter"){renameUserType(t.id,editingTypeLabel);setEditingTypeId(null);}if(e.key==="Escape")setEditingTypeId(null);}}
+                    autoFocus style={{...inputStyle,fontSize:11,padding:"3px 7px"}}/>
+                ):(
+                  <span onClick={()=>{setEditingTypeId(t.id);setEditingTypeLabel(t.label);}} title="Click to rename" style={{color:T.text2,fontWeight:600,cursor:"pointer"}}>{t.label}</span>
+                )}
+                <span style={{fontSize:9,color:T.textMute,fontFamily:MN}}>{t.id.slice(0,10)}…</span>
+                <button onClick={()=>{if(confirm(`Delete user type "${t.label}"? Assignments using it will be removed.`))removeUserType(t.id);}} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid var(--border)",background:"var(--card-2)",color:T.dangerFg,cursor:"pointer",justifySelf:"end"}}>Remove</button>
+              </div>
+            );
+          })}
+          <div style={{display:"flex",alignItems:"center",gap:8,padding:"9px 14px",background:"var(--card-2)"}}>
+            <input value={newTypeLabel} onChange={e=>setNewTypeLabel(e.target.value)} placeholder="New user type label (e.g. Promoter, Crew)" onKeyDown={e=>{if(e.key==="Enter")onAddType();}} style={{...inputStyle,flex:1}}/>
+            <button onClick={onAddType} disabled={!newTypeLabel.trim()} style={{fontSize:10,padding:"5px 14px",borderRadius:6,border:"none",background:newTypeLabel.trim()?"var(--accent)":"var(--border)",color:newTypeLabel.trim()?"#fff":T.textDim,fontWeight:700,cursor:newTypeLabel.trim()?"pointer":"default"}}>Add Type</button>
+          </div>
+        </div>
+      </div>
+      {/* User Assignments */}
+      <div style={{marginBottom:24}}>
+        <div style={sectionHeader}>User Assignments</div>
+        <div style={sectionHint}>Map an OAuth login email to a user type. Takes effect on the user's next load.</div>
+        <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden"}}>
+          {assignmentEntries.length===0&&<div style={{fontSize:11,color:T.textDim,padding:"12px 14px"}}>No email assignments yet.</div>}
+          {assignmentEntries.map(([email,roleId])=>{
+            const r=allRoles.find(x=>x.id===roleId);
+            return(
+              <div key={email} style={{display:"grid",gridTemplateColumns:"1fr 180px 80px",alignItems:"center",gap:8,padding:"7px 14px",borderBottom:"1px solid var(--card-3)",fontSize:11}}>
+                <span style={{color:T.text2,fontFamily:MN,fontSize:10,wordBreak:"break-all"}}>{email}</span>
+                <select value={roleId} onChange={e=>setUserAssignment(email,e.target.value)} style={{...inputStyle,fontSize:10,padding:"4px 7px",cursor:"pointer"}}>
+                  {allRoles.map(rr=><option key={rr.id} value={rr.id}>{rr.label}{rr.custom?" (custom)":""}</option>)}
+                  {!r&&<option value={roleId}>(unknown: {roleId})</option>}
+                </select>
+                <button onClick={()=>{if(confirm(`Remove assignment for ${email}?`))removeUserAssignment(email);}} style={{fontSize:9,padding:"3px 9px",borderRadius:5,border:"1px solid var(--border)",background:"var(--card-2)",color:T.dangerFg,cursor:"pointer",justifySelf:"end"}}>Remove</button>
+              </div>
+            );
+          })}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 180px 80px",alignItems:"center",gap:8,padding:"9px 14px",background:"var(--card-2)"}}>
+            <input value={newAssignEmail} onChange={e=>setNewAssignEmail(e.target.value)} placeholder="email@domain.com" type="email" style={{...inputStyle,fontFamily:MN,fontSize:10}}/>
+            <select value={newAssignRole} onChange={e=>setNewAssignRole(e.target.value)} style={{...inputStyle,fontSize:10,padding:"5px 7px",cursor:"pointer"}}>
+              <option value="">— select user type —</option>
+              {allRoles.map(rr=><option key={rr.id} value={rr.id}>{rr.label}{rr.custom?" (custom)":""}</option>)}
+            </select>
+            <button onClick={onAddAssign} disabled={!newAssignEmail.trim()||!newAssignRole} style={{fontSize:10,padding:"5px 0",borderRadius:6,border:"none",background:(newAssignEmail.trim()&&newAssignRole)?"var(--accent)":"var(--border)",color:(newAssignEmail.trim()&&newAssignRole)?"#fff":T.textDim,fontWeight:700,cursor:(newAssignEmail.trim()&&newAssignRole)?"pointer":"default",justifySelf:"end",width:"100%"}}>Assign</button>
+          </div>
+        </div>
+      </div>
+      {/* Permissions Matrix */}
+      <div style={sectionHeader}>Permissions</div>
+      <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:12,overflow:"hidden",overflowX:"auto"}}>
         <div style={{display:"grid",gridTemplateColumns:gridCols,borderBottom:"1px solid var(--border)",background:"var(--card-2)"}}>
           <div style={hdr}>Permission</div>
-          {PERM_ROLES.map(r=>(
+          {allRoles.map(r=>(
             <div key={r.id} style={{...hdr,...cell,textAlign:"center",borderLeft:"1px solid var(--border)"}}>
               {r.label}
               {r.id==="tm_td"&&<span style={{marginLeft:4,fontSize:7,color:T.accent}}>admin</span>}
+              {r.custom&&<span style={{marginLeft:4,fontSize:7,color:T.textMute}}>custom</span>}
             </div>
           ))}
         </div>
@@ -9403,14 +9520,14 @@ function AccessTab(){
           <React.Fragment key={section.section}>
             <div style={{display:"grid",gridTemplateColumns:gridCols,background:"var(--card-3)",borderTop:si>0?"1px solid var(--border)":undefined}}>
               <div style={{...hdr,color:T.textMute,paddingTop:6,paddingBottom:6}}>{section.section}</div>
-              {PERM_ROLES.map(r=><div key={r.id} style={{borderLeft:"1px solid var(--border)"}}/>)}
+              {allRoles.map(r=><div key={r.id} style={{borderLeft:"1px solid var(--border)"}}/>)}
             </div>
             {section.items.map((item,ii)=>{
               const isLast=ii===section.items.length-1;
               return(
                 <div key={item.id} style={{display:"grid",gridTemplateColumns:gridCols,borderTop:"1px solid var(--card-3)",borderBottom:isLast?"1px solid var(--border)":undefined}}>
                   <div style={{padding:"8px 16px",fontSize:11,color:T.text2}}>{item.label}</div>
-                  {PERM_ROLES.map(r=>{
+                  {allRoles.map(r=>{
                     const isAdmin=r.id==="tm_td";
                     const val=isAdmin?true:(perms?.[item.id]?.[r.id]??true);
                     return(

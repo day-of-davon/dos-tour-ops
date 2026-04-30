@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "dos-tour-ops",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "${PORT}", "--strictPort"],
       "port": 3000,
       "autoPort": true
     }
