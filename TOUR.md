@@ -9,7 +9,7 @@
 
 - **Next show:** Worcester, WPI — May 1 (Pretty Polly / Dan Saldarini, Tori Pacheco).
 - **EU kicks off:** Dublin, National Stadium — May 4. Fly in Apr 29 London.
-- **EU:** 17 shows, May 4–30, Dublin → Warsaw. Bus between all shows. Fly out Warsaw.
+- **EU:** 17 shows, May 4–30, Dublin → Warsaw. Bus between all shows + 1260km return deadhead Jun 1. Fly out Warsaw May 31.
 
 ## Logistics
 
@@ -31,7 +31,7 @@
 | May 11 | Glasgow | O2 Academy | DF Concerts | Charmaine Hardman | Same thread |
 | May 13 | London | O2 Brixton Academy | LN UK | Tyrone (tyrone84@gmail.com) | Initiated Apr 10, awaiting reply |
 | May 15 | Zurich | Halle 622 | Gadget / Stefan Wyss | Sarah Blum (sarah.blum@gadget.ch) | Initiated Apr 10 — **attachment resend requested, pending** |
-| May 16 | Cologne | E-Werk | LN DE | Oli Zimmermann (oliver.zimmermann@livenation-production.de) | Initiated Apr 10 — ⚠ shows app says E-Werk, intel says Palladium — confirm venue |
+| May 16 | Cologne | Palladium | LN DE | Oli Zimmermann (oliver.zimmermann@livenation-production.de) | Initiated Apr 10, awaiting reply |
 | May 17 | Cologne | Palladium | LN DE | Oli Zimmermann | Same thread |
 | May 19 | Amsterdam | AFAS Live | MOJO | John Cameron (j.cameron@mojo.nl) | **Not in intel — advance not yet sent** |
 | May 20 | Paris | Le Bataclan | LN FR | Cyril Legauffey (c.legauffey@gmail.com) | Initiated Apr 10, awaiting reply — ⚠ immigration forms outstanding |
@@ -48,7 +48,6 @@
 - [ ] Berlin May 26 — send advance to Oli Zimmermann (oliver.zimmermann@livenation-production.de).
 - [ ] Warsaw May 30 — find AlterArt production contact, initiate advance.
 - [ ] Zurich — follow up: Sarah Blum didn't receive original attachment.
-- [ ] Cologne May 16 — confirm venue: E-Werk or Palladium?
 
 ---
 
