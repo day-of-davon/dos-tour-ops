@@ -796,6 +796,30 @@ const dU=d=>Math.ceil((new Date(d+"T12:00:00")-new Date())/86400000);
 const fD=d=>new Date(d+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});
 const fW=d=>new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"});
 const fFull=d=>new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
+// iCalendar export: build a VCALENDAR with all-day VEVENTs for each tour day.
+const icsEsc=s=>String(s||"").replace(/\\/g,"\\\\").replace(/\n/g,"\\n").replace(/,/g,"\\,").replace(/;/g,"\\;");
+const icsDate=iso=>iso.replace(/-/g,"");
+const icsAddDay=iso=>{const d=new Date(iso+"T12:00:00");d.setDate(d.getDate()+1);return d.toISOString().slice(0,10).replace(/-/g,"");};
+const buildICS=(events,calName)=>{
+  const stamp=new Date().toISOString().replace(/[-:]/g,"").replace(/\.\d+/,"");
+  const lines=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Day of Show//Tour Ops//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH",`X-WR-CALNAME:${icsEsc(calName||"Tour")}`];
+  events.forEach(ev=>{
+    if(!ev?.date)return;
+    lines.push("BEGIN:VEVENT",`UID:dos-${ev.date}-${(ev.uidSuffix||ev.kind||"day")}@dayofshow`,`DTSTAMP:${stamp}`,`DTSTART;VALUE=DATE:${icsDate(ev.date)}`,`DTEND;VALUE=DATE:${icsAddDay(ev.date)}`,`SUMMARY:${icsEsc(ev.summary||ev.date)}`);
+    if(ev.location)lines.push(`LOCATION:${icsEsc(ev.location)}`);
+    if(ev.description)lines.push(`DESCRIPTION:${icsEsc(ev.description)}`);
+    if(ev.url)lines.push(`URL:${icsEsc(ev.url)}`);
+    lines.push("TRANSP:TRANSPARENT","END:VEVENT");
+  });
+  lines.push("END:VCALENDAR");
+  return lines.join("\r\n");
+};
+const downloadICS=(filename,content)=>{
+  const blob=new Blob([content],{type:"text/calendar;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
 const sG=async k=>{try{const r=await window.storage.get(k);return r?JSON.parse(r.value):null}catch(e){console.error("[storage.get]",k,e?.message||e);return null}};
 const sS=async(k,v)=>{try{await window.storage.set(k,JSON.stringify(v));return true}catch(e){console.error("[storage.set]",k,e?.message||e);return false}};
 
@@ -2594,7 +2618,38 @@ function NavSidebar(){
       <div style={{padding:"10px 12px 8px",borderBottom:"1px solid var(--border)"}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:6,marginBottom:next?4:0}}>
           <div style={{fontSize:9,fontWeight:700,color:T.textMute,letterSpacing:"0.06em",textTransform:"uppercase"}}>{next?"Next Show":"Tour"}</div>
-          <button onClick={()=>{setAllShows(true);setTab("dash");setSidebarOpen(false);}} title="All shows aggregate view" style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,border:`1px solid ${allShows?"var(--accent)":"var(--border)"}`,background:allShows?"var(--accent-pill-bg)":"var(--card-2)",color:allShows?"var(--accent)":T.textDim,cursor:"pointer",letterSpacing:"0.04em",textTransform:"uppercase",lineHeight:1.2}}>All Shows</button>
+          <div style={{display:"flex",gap:4,alignItems:"center"}}>
+            <button onClick={()=>{
+              const events=rows.map(d=>{
+                const sh=d.show||shows[d.date];
+                const isShow=d.type==="show"&&sh;
+                const icon=isShow?"🎤":d.type==="travel"?"✈":d.type==="off"?"·":d.type==="split"?"⇆":"·";
+                const titleCity=d.city||sh?.city||(d.type==="travel"?"Travel":d.type==="off"?"Off":d.type==="split"?"Split Day":"Tour day");
+                const venueOrNote=sh?.venue||d.venue||d.bus?.route||"";
+                const summary=`${icon} ${titleCity}${isShow&&venueOrNote?` · ${venueOrNote}`:""}`;
+                const location=isShow?[sh.venue,sh.city].filter(Boolean).join(", "):d.bus?.route||d.city||"";
+                const detailLines=[];
+                if(isShow){
+                  if(sh.promoter)detailLines.push(`Promoter: ${sh.promoter}`);
+                  if(sh.doors)detailLines.push(`Doors: ${fmt(sh.doors)}`);
+                  if(sh.curfew)detailLines.push(`Curfew: ${fmt(sh.curfew)}`);
+                  if(sh.crewCall)detailLines.push(`Crew Call: ${fmt(sh.crewCall)}`);
+                  if(sh.busArrive)detailLines.push(`Bus Arrival: ${fmt(sh.busArrive)}`);
+                  if(sh.notes)detailLines.push(sh.notes);
+                }else if(d.type==="travel"){
+                  if(d.bus?.route)detailLines.push(`Route: ${d.bus.route}`);
+                  if(d.bus?.dep&&d.bus.dep!=="—")detailLines.push(`Depart: ${d.bus.dep}`);
+                  if(d.bus?.arr&&d.bus.arr!=="—")detailLines.push(`Arrive: ${d.bus.arr}`);
+                  if(d.bus?.km)detailLines.push(`${d.bus.km}km · ${d.bus.drive||""}`);
+                  if(d.bus?.note)detailLines.push(d.bus.note);
+                }
+                return{date:d.date,kind:d.type||"day",summary,location,description:detailLines.join("\n")};
+              }).filter(e=>e.date);
+              const ics=buildICS(events,`${(CM[aC]||{}).name||"DOS"} Tour`);
+              downloadICS(`dos-tour-${aC}-${new Date().toISOString().slice(0,10)}.ics`,ics);
+            }} title="Export all dates as full-day events to Google Calendar (.ics)" style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,border:"1px solid var(--border)",background:"var(--card-2)",color:T.textDim,cursor:"pointer",letterSpacing:"0.04em",lineHeight:1.2}}>📅 Export</button>
+            <button onClick={()=>{setAllShows(true);setTab("dash");setSidebarOpen(false);}} title="All shows aggregate view" style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,border:`1px solid ${allShows?"var(--accent)":"var(--border)"}`,background:allShows?"var(--accent-pill-bg)":"var(--card-2)",color:allShows?"var(--accent)":T.textDim,cursor:"pointer",letterSpacing:"0.04em",textTransform:"uppercase",lineHeight:1.2}}>All Shows</button>
+          </div>
         </div>
         {next&&<>
           <div style={{fontSize:11,fontWeight:800,color:T.text,lineHeight:1.2}}>{next.city}</div>
