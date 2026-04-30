@@ -1568,6 +1568,7 @@ export default function App(){
       let resp;try{resp=await fetch("/api/intel",{method:"POST",signal:ac3.signal,headers:authHeaders,body:JSON.stringify({action:"bulkFetch",shows:showsArr,googleToken:session.provider_token,forceRefresh:force,userEmail:session.user?.email})});}finally{clearTimeout(t3);}
       if(!resp.ok)return;
       const data=await resp.json();
+      if(data.classifyDebug)console.log("[intel.classify] debug:",data.classifyDebug);
       setLabelIntel(prev=>{
         const prevAr=prev?.actionRequired||[];
         const prevIds=new Set(prevAr.map(i=>i.id));

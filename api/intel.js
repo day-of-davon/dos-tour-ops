@@ -236,8 +236,10 @@ function matchShow(thread, shows) {
 // to Claude in a single batch and asks it to classify each item as
 // "complete" | "ignore" | "action", with a one-line suggested action when
 // applicable. Annotations are merged onto each item; failures are non-fatal.
+// Returns { suggestions: Map, debug: { itemCount, status, error?, stopReason?, textPreview? } }
 async function classifyActionItems(items, threadPool) {
-  if (!items?.length) return new Map();
+  const debug = { itemCount: items?.length || 0, status: "skipped" };
+  if (!items?.length) return { suggestions: new Map(), debug };
   const ITEM_CAP = 60;
   const list = items.slice(0, ITEM_CAP).map(it => {
     const t = threadPool?.[it.id];
@@ -276,15 +278,21 @@ Return this exact JSON, one entry per item:
     }), 30000);
     if (!resp.ok) {
       let detail = ""; try { detail = await resp.text(); } catch {}
-      console.error(`[intel.classify] non-ok: ${resp.status} | ${detail.slice(0, 400)}`);
-      return new Map();
+      const msg = `non-ok ${resp.status}: ${detail.slice(0, 300)}`;
+      console.error(`[intel.classify] ${msg}`);
+      debug.status = "http_error"; debug.error = msg;
+      return { suggestions: new Map(), debug };
     }
     const data = await resp.json();
     const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("\n");
+    debug.stopReason = data.stop_reason;
+    debug.usage = { input: data.usage?.input_tokens || 0, output: data.usage?.output_tokens || 0 };
     const parsed = extractJson(text);
     if (!parsed?.suggestions) {
-      console.error(`[intel.classify] no suggestions in response. stop_reason=${data.stop_reason} text_len=${text.length} preview=${text.slice(0, 200)}`);
-      return new Map();
+      console.error(`[intel.classify] no suggestions. stop=${data.stop_reason} len=${text.length} preview=${text.slice(0, 200)}`);
+      debug.status = "no_suggestions"; debug.error = `stop=${data.stop_reason} len=${text.length}`;
+      debug.textPreview = text.slice(0, 300);
+      return { suggestions: new Map(), debug };
     }
     const out = new Map();
     for (const s of parsed.suggestions) {
@@ -296,12 +304,15 @@ Return this exact JSON, one entry per item:
         reason: (s.reason || "").slice(0, 120) || null,
       });
     }
-    console.log(`[intel.classify] ${out.size}/${list.length} classified | input=${data.usage?.input_tokens||0} output=${data.usage?.output_tokens||0}`);
-    return out;
+    debug.status = "ok"; debug.classified = out.size;
+    console.log(`[intel.classify] ${out.size}/${list.length} classified | input=${debug.usage.input} output=${debug.usage.output}`);
+    return { suggestions: out, debug };
   } catch (e) {
-    console.error(`[intel.classify] failed: ${e.name || "Error"}: ${e.message}`);
+    const msg = `${e.name || "Error"}: ${e.message}`;
+    console.error(`[intel.classify] failed: ${msg}`);
     if (e.stack) console.error(`[intel.classify] stack: ${e.stack.split("\n").slice(0, 5).join(" | ")}`);
-    return new Map();
+    debug.status = "exception"; debug.error = msg;
+    return { suggestions: new Map(), debug };
   }
 }
 
@@ -397,10 +408,10 @@ async function handleBulkFetch(req, res, user, supabase) {
     return new Date(b.date) - new Date(a.date);
   });
 
-  const suggestions = await classifyActionItems(actionRequired, threadPool);
+  const { suggestions, debug: classifyDebug } = await classifyActionItems(actionRequired, threadPool);
   const annotatedActionRequired = applySuggestions(actionRequired, suggestions);
 
-  const payload = { byShow, threadPool, settlements, crewFlights: crewFlightsRaw, advanceItems, actionRequired: annotatedActionRequired, threadCount: threadIds.length, labelThreadsFound: threadIds.length, scannedAt: new Date().toISOString() };
+  const payload = { byShow, threadPool, settlements, crewFlights: crewFlightsRaw, advanceItems, actionRequired: annotatedActionRequired, threadCount: threadIds.length, labelThreadsFound: threadIds.length, scannedAt: new Date().toISOString(), classifyDebug };
 
   await supabase.from("intel_cache").upsert(
     { user_id: user.id, show_id: BULK_ID, intel: payload, gmail_threads_found: threadIds.length, cached_at: new Date().toISOString(), is_shared: false, user_email: userEmail || null },
@@ -488,10 +499,10 @@ async function handleLabelScan(req, res, user, supabase) {
   });
 
   const labelThreadPool = Object.fromEntries(classified.map(t => [t.id, t]));
-  const suggestions = await classifyActionItems(actionRequired, labelThreadPool);
+  const { suggestions, debug: classifyDebug } = await classifyActionItems(actionRequired, labelThreadPool);
   const annotatedActionRequired = applySuggestions(actionRequired, suggestions);
 
-  const payload = { byShow, settlements, crewFlights: crewFlightsRaw, advanceItems, actionRequired: annotatedActionRequired, labelThreadsFound: threadIds.length, scannedAt: new Date().toISOString() };
+  const payload = { byShow, settlements, crewFlights: crewFlightsRaw, advanceItems, actionRequired: annotatedActionRequired, labelThreadsFound: threadIds.length, scannedAt: new Date().toISOString(), classifyDebug };
 
   await supabase.from("intel_cache").upsert(
     { user_id: user.id, show_id: LABEL_SCAN_ID, intel: payload, gmail_threads_found: threadIds.length, cached_at: new Date().toISOString(), is_shared: false, user_email: userEmail || null },
