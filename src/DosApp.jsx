@@ -3250,9 +3250,9 @@ function TopBar({ss}){
         </div>}
         <div style={{display:"flex",alignItems:"center",gap:mobile?4:8,flexShrink:0,minWidth:0,maxWidth:"100%"}}>
           {ss&&!mobile&&<span style={{fontSize:9,color:ss==="saved"?"var(--success-fg)":"var(--text-mute)",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
-          <Button variant="secondary" size="sm" onClick={()=>setUploadOpen(true)} title="Upload document" style={mobile?{fontSize:11,padding:"5px 9px",minHeight:30}:{fontSize:9}}>{mobile?"↑":"↑ Upload"}</Button>
+          {role==="tm_td"&&<Button variant="secondary" size="sm" onClick={()=>setUploadOpen(true)} title="Upload document" style={mobile?{fontSize:11,padding:"5px 9px",minHeight:30}:{fontSize:9}}>{mobile?"↑":"↑ Upload"}</Button>}
           <Button variant="secondary" size="sm" onClick={()=>setExp(true)} title="Export / Import" style={mobile?{fontSize:11,padding:"5px 9px",minHeight:30}:{fontSize:9}}>⇅</Button>
-          <Button variant="secondary" size="sm" onClick={()=>setCmd(true)} title="Command palette (⌘K)" style={mobile?{fontSize:11,padding:"5px 9px",minHeight:30}:{fontSize:9}}>{mobile?"⌘":"⌘K"}</Button>
+          {role==="tm_td"&&<Button variant="secondary" size="sm" onClick={()=>setCmd(true)} title="Command palette (⌘K)" style={mobile?{fontSize:11,padding:"5px 9px",minHeight:30}:{fontSize:9}}>{mobile?"⌘":"⌘K"}</Button>}
           <button onClick={()=>setCommentMode(v=>!v)} title={commentMode?"Exit comment mode":"Leave feedback / report a bug"} style={{fontSize:mobile?13:11,padding:mobile?"5px 9px":"4px 8px",borderRadius:6,border:`1.5px solid ${commentMode?"var(--accent)":"var(--border)"}`,background:commentMode?"var(--accent-pill-bg)":"var(--card-2)",color:commentMode?"var(--accent)":"var(--text-dim)",cursor:"pointer",display:"flex",alignItems:"center",gap:4,minHeight:mobile?30:undefined,fontWeight:commentMode?700:500}}>💬{!mobile&&<span style={{fontSize:9}}>{commentMode?"exit":"feedback"}</span>}</button>
           <ThemeToggle/>
           <SignOut/>
