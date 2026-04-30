@@ -955,6 +955,84 @@ const BUS_DATA_MAP=BUS_DATA.reduce((m,d)=>{
   return m;
 },{});
 
+// Parse a bus-day note string into a structured drive-session table.
+// Handles common patterns: S1/S2/S3 sessions, EC561 breaks, ferry/Le Shuttle
+// crossings, RP rest periods, ETA arrival, and prefatory notes (MD/DD).
+const parseDriveSessions=(note,stops)=>{
+  const rows=[];
+  if(!note)return rows;
+  const sentences=String(note).split(/(?<=[.!?])\s+/).map(s=>s.replace(/\s+$/,"")).filter(Boolean);
+  const grabKmDur=p=>{
+    if(!p)return{km:null,dur:null,extra:null};
+    const km=(p.match(/(?:~?)(\d+(?:[.,]\d+)?)\s*km/i)||[])[1];
+    const hM=p.match(/(\d+(?:[.,]\d+)?)\s*h(?!\w)/i);
+    const mM=p.match(/(\d+)\s*min(?!\w)/i);
+    const dur=hM?`${hM[1]}h`:mM?`${mM[1]}min`:null;
+    let extra=p
+      .replace(/(?:~?)\d+(?:[.,]\d+)?\s*km/gi,"")
+      .replace(/\d+(?:[.,]\d+)?\s*h(?!\w)/gi,"")
+      .replace(/\d+\s*min(?!\w)/gi,"")
+      .replace(/^[,;\s]+|[,;\s]+$/g,"")
+      .replace(/\s*[,;]\s*/g,", ")
+      .trim();
+    return{km:km?`${km} km`:null,dur,extra:extra||null};
+  };
+  sentences.forEach(raw=>{
+    const t=raw.replace(/\.$/,"").trim();if(!t)return;
+    // S<n> session — accept "S1 08:00–12:30 CEST via E40 (4.5h, ~270km)" or "S2 13:15 CEST X→Y (~40km, 40min)"
+    let m=t.match(/^S(\d+)\s+(\d{1,2}:\d{2}(?:[–\-]\d{1,2}:\d{2})?)\s*([A-Z]{2,4})?\s+(.+?)(?:\s*\(([^)]+)\))?$/);
+    if(m){const[,num,time,tz,route,paren]=m;const{km,dur,extra}=grabKmDur(paren||"");rows.push({kind:"session",label:`S${num}`,time:tz?`${time} ${tz}`:time,route:route.trim(),km,dur,note:extra});return;}
+    // Le Shuttle / ferry crossings
+    if(/Le Shuttle|Stena Line|Eurotunnel|ferry/i.test(t)){
+      const tM=t.match(/(\d{1,2}:\d{2})\s*(?:[A-Z]{2,4})?(?:\s*\/\s*(\d{1,2}:\d{2})\s*([A-Z]{2,4})?)?(?:\s*[→\-–]\s*(?:arr\s+\w+\s+)?(?:~?)(\d{1,2}:\d{2}))?/);
+      const carrier=(t.match(/(Le Shuttle|Stena Line|Eurotunnel|[A-Z]\w+\s+ferry)/i)||[])[1]||"Crossing";
+      const time=tM?(tM[4]?`${tM[1]}–${tM[4]}`:tM[1])+(tM[3]?` ${tM[3]}`:""):null;
+      const paren=(t.match(/\(([^)]+)\)/)||[])[1]||"";
+      const{km,dur,extra}=grabKmDur(paren);
+      const route=t.replace(/\(([^)]+)\)/,"").replace(/(Le Shuttle|Stena Line|Eurotunnel|[A-Z]\w+\s+ferry)/i,"").replace(/(?:dep|arr)\s+/gi,"").replace(/\d{1,2}:\d{2}\s*(?:[A-Z]{2,4})?/g,"").replace(/[,;\s\/→\-–]+/g," ").trim();
+      rows.push({kind:"ferry",label:carrier.toUpperCase(),time,route:route||extra||"crossing",km,dur,note:extra&&extra!==route?extra:null});
+      return;
+    }
+    // EC561 break or generic break
+    if(/EC561|break/i.test(t)){
+      const dM=t.match(/(\d+m?)\s*break/i);
+      const where=t.replace(/EC561\s*/i,"").replace(/\d+m?\s*break\s*/i,"").replace(/^[,;\s]+|[,;\s]+$/g,"").trim();
+      rows.push({kind:"break",label:"BREAK",time:null,route:where||"Break",km:null,dur:dM?dM[1].replace(/m$/,"min"):null,note:"EC561 mandatory"});
+      return;
+    }
+    // ETA / arrival
+    const etaM=t.match(/ETA\s+~?(\d{1,2}:\d{2})\s*([A-Z]{2,4})?/);
+    if(etaM){rows.push({kind:"eta",label:"ETA",time:etaM[2]?`${etaM[1]} ${etaM[2]}`:etaM[1],route:t.replace(/ETA\s+~?\d{1,2}:\d{2}\s*[A-Z]{0,4}\s*/,"").trim()||"Arrival",km:null,dur:null,note:null});return;}
+    // Rest period
+    const rpM=t.match(/(\d+h)\s*RP/i);
+    if(rpM){rows.push({kind:"rp",label:"REST",time:null,route:t,km:null,dur:rpM[1],note:"Daily rest period"});return;}
+    // Prefatory or trailing notes (MD/DD/Local crew/Soundcheck)
+    if(/^(MD|DD|Local|Soundcheck|Pieter|Per advance)/i.test(t)){rows.push({kind:"note",label:"NOTE",time:null,route:t,km:null,dur:null,note:null});return;}
+    // Fallback: keep the sentence
+    rows.push({kind:"other",label:"·",time:null,route:t,km:null,dur:null,note:null});
+  });
+  // Append stops that aren't yet referenced (best-effort dedupe by name fragment)
+  const stopList=stops?String(stops).split("·").map(s=>s.trim()).filter(Boolean):[];
+  if(stopList.length){
+    const inText=rows.map(r=>(r.route||"")+" "+(r.note||"")).join(" ").toLowerCase();
+    const extras=stopList.filter(s=>!inText.includes(s.toLowerCase().split(/[\(,]/)[0].trim()));
+    if(extras.length)rows.push({kind:"stops",label:"STOPS",time:null,route:extras.join(" · "),km:null,dur:null,note:null});
+  }
+  return rows;
+};
+
+// Color theme per row kind
+const DRIVE_KIND_STYLE={
+  session:{c:"var(--info-fg)",bg:"var(--info-bg)",label:"DRIVE"},
+  break:{c:"var(--warn-fg)",bg:"var(--warn-bg)",label:"BREAK"},
+  ferry:{c:"var(--accent)",bg:"var(--accent-pill-bg)",label:"FERRY"},
+  eta:{c:"var(--success-fg)",bg:"var(--success-bg)",label:"ETA"},
+  rp:{c:"var(--text-2)",bg:"var(--card-2)",label:"REST"},
+  note:{c:"var(--text-mute)",bg:"var(--card-2)",label:"NOTE"},
+  stops:{c:"var(--info-fg)",bg:"var(--info-bg)",label:"STOPS"},
+  other:{c:"var(--text-dim)",bg:"var(--card)",label:"·"},
+};
+
 // Split days: touring party divides across simultaneous events
 const SPLIT_DAYS={
   "2026-05-01":{
@@ -1086,6 +1164,69 @@ function fmtMin(m){if(m==null||m===0)return"—";const h=Math.floor(m/60),mm=m%6
 const fmtAudit=(iso)=>{if(!iso)return"";const d=new Date(iso);const M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];const h=d.getHours();const ap=h>=12?"pm":"am";const h12=((h+11)%12)+1;return `${M[d.getMonth()]} ${d.getDate()}, ${h12}:${String(d.getMinutes()).padStart(2,"0")}${ap}`;};
 const sGP=async k=>{try{const r=await window.storage.getPrivate(k);return r?JSON.parse(r.value):null}catch(e){console.error("[storage.getPrivate]",k,e?.message||e);return null}};
 const sSP=async(k,v)=>{try{await window.storage.setPrivate(k,JSON.stringify(v));return true}catch(e){console.error("[storage.setPrivate]",k,e?.message||e);return false}};
+
+// Tabular drive-session presentation. Used in both the ROS bus-row expansion
+// and the Logistics travel-day Bus Schedule context card.
+function BusDriveSessionTable({entry,label,compact}){
+  if(!entry)return null;
+  const sessions=parseDriveSessions(entry.note,entry.stops);
+  const hasContent=!!entry.note||!!entry.stops;
+  if(!hasContent)return null;
+  const totalKm=entry.km||0;
+  const totalDrive=entry.drive&&entry.drive!=="—"?entry.drive:null;
+  const flagged=entry.flag==="⚠";
+  return(
+    <div style={{padding:compact?"10px 14px 12px":"10px 14px 14px",background:"var(--card)",borderTop:"1px solid var(--border)",fontSize:9}}>
+      {label&&<div style={{fontSize:8,fontWeight:800,color:"var(--info-fg)",letterSpacing:"0.1em",marginBottom:6,textTransform:"uppercase"}}>{label}</div>}
+      <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap",marginBottom:8,paddingBottom:6,borderBottom:"1px solid var(--card-2)"}}>
+        <div style={{fontSize:11,fontWeight:800,color:T.text,letterSpacing:"-0.01em"}}>{entry.route||"Drive day"}</div>
+        {totalKm>0&&<span style={{fontSize:9,fontFamily:MN,fontWeight:700,color:T.text2,padding:"2px 7px",borderRadius:99,background:"var(--card-2)",border:"1px solid var(--border)"}}>{totalKm} km</span>}
+        {totalDrive&&<span style={{fontSize:9,fontFamily:MN,fontWeight:700,color:flagged?"var(--danger-fg)":T.text2,padding:"2px 7px",borderRadius:99,background:flagged?"var(--danger-bg)":"var(--card-2)",border:`1px solid ${flagged?"var(--danger-fg)":"var(--border)"}`}}>{totalDrive}{flagged?" ⚠":""}</span>}
+        {entry.dep&&entry.dep!=="—"&&<span style={{fontSize:9,fontFamily:MN,color:T.textDim}}>↑ {entry.dep}</span>}
+        {entry.arr&&entry.arr!=="—"&&<span style={{fontSize:9,fontFamily:MN,color:T.textDim}}>↓ {entry.arr}</span>}
+        <span style={{marginLeft:"auto",fontSize:8,color:T.textMute,fontFamily:MN,letterSpacing:"0.04em"}}>Pieter Smit T26-021201</span>
+      </div>
+      {sessions.length>0?(
+        <table style={{width:"100%",borderCollapse:"collapse",fontFamily:"'Outfit',system-ui",fontSize:9}}>
+          <thead>
+            <tr style={{textAlign:"left",color:T.textDim,fontWeight:800,letterSpacing:"0.06em"}}>
+              <th style={{padding:"4px 6px",fontSize:8,width:54,whiteSpace:"nowrap",borderBottom:"1px solid var(--card-2)"}}>STAGE</th>
+              <th style={{padding:"4px 6px",fontSize:8,width:106,whiteSpace:"nowrap",borderBottom:"1px solid var(--card-2)"}}>TIME</th>
+              <th style={{padding:"4px 6px",fontSize:8,borderBottom:"1px solid var(--card-2)"}}>ROUTE / LOCATION</th>
+              <th style={{padding:"4px 6px",fontSize:8,width:60,textAlign:"right",fontFamily:MN,whiteSpace:"nowrap",borderBottom:"1px solid var(--card-2)"}}>KM</th>
+              <th style={{padding:"4px 6px",fontSize:8,width:54,textAlign:"right",fontFamily:MN,whiteSpace:"nowrap",borderBottom:"1px solid var(--card-2)"}}>DUR</th>
+              <th style={{padding:"4px 6px",fontSize:8,borderBottom:"1px solid var(--card-2)"}}>NOTES</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sessions.map((r,i)=>{const ks=DRIVE_KIND_STYLE[r.kind]||DRIVE_KIND_STYLE.other;return(
+              <tr key={i} style={{borderBottom:i<sessions.length-1?"1px solid var(--card-2)":"none",background:i%2===0?"transparent":"var(--card-2)"}}>
+                <td style={{padding:"5px 6px",verticalAlign:"top",whiteSpace:"nowrap"}}>
+                  <span style={{fontSize:8,fontWeight:800,padding:"2px 7px",borderRadius:99,background:ks.bg,color:ks.c,letterSpacing:"0.06em",fontFamily:MN}}>{r.label}</span>
+                </td>
+                <td style={{padding:"5px 6px",verticalAlign:"top",fontFamily:MN,fontWeight:700,color:T.text2,whiteSpace:"nowrap",fontSize:9}}>{r.time||"—"}</td>
+                <td style={{padding:"5px 6px",verticalAlign:"top",color:T.text,fontWeight:r.kind==="session"||r.kind==="ferry"?600:500,fontSize:9}}>{r.route||"—"}</td>
+                <td style={{padding:"5px 6px",verticalAlign:"top",textAlign:"right",fontFamily:MN,color:r.km?T.text2:T.textMute,fontWeight:600,fontSize:9}}>{r.km||"—"}</td>
+                <td style={{padding:"5px 6px",verticalAlign:"top",textAlign:"right",fontFamily:MN,color:r.dur?T.text2:T.textMute,fontWeight:600,fontSize:9}}>{r.dur||"—"}</td>
+                <td style={{padding:"5px 6px",verticalAlign:"top",color:T.textDim,fontStyle:r.note?"italic":"normal",fontSize:9}}>{r.note||"—"}</td>
+              </tr>
+            );})}
+          </tbody>
+        </table>
+      ):(
+        entry.note&&<div style={{fontSize:9,color:T.text2,fontStyle:"italic"}}>{entry.note}</div>
+      )}
+      {entry.stops&&(
+        <div style={{marginTop:8,paddingTop:6,borderTop:"1px solid var(--card-2)"}}>
+          <div style={{fontSize:7,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:3}}>STOP LOCATIONS</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:5}}>
+            {String(entry.stops).split("·").map((s,i)=><span key={i} style={{fontSize:9,padding:"2px 8px",borderRadius:6,background:"var(--info-bg)",color:"var(--info-fg)",fontWeight:600,border:"1px solid var(--info-bg)"}}>📍 {s.trim()}</span>)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ContextBar(){
   const{sel,shows,advances,finance,setTab}=useContext(Ctx);
@@ -4283,23 +4424,7 @@ function ROSTab(){
   const busForItem=id=>id==="bus_arrive"?busCalTimes.arriveBus:id==="bus_depart"?busCalTimes.departBus:null;
   const renderBusDetail=(entry,label)=>{
     if(!entry)return null;
-    const stops=entry.stops?entry.stops.split("·").map(s=>s.trim()).filter(Boolean):[];
-    const hasContent=entry.note||stops.length>0;
-    if(!hasContent)return null;
-    return(
-      <div style={{padding:"8px 14px 10px 38px",background:"var(--info-bg)",borderBottom:"1px solid var(--card-3)",fontSize:9}}>
-        <div style={{fontSize:7,fontWeight:800,color:"var(--info-fg)",letterSpacing:"0.1em",marginBottom:5,textTransform:"uppercase"}}>{label}</div>
-        {entry.note&&<div style={{fontStyle:"italic",color:T.text2,marginBottom:stops.length?5:0}}>{entry.note}</div>}
-        {stops.length>0&&(
-          <div style={{display:"flex",flexDirection:"column",gap:3}}>
-            <div style={{fontSize:7,fontWeight:800,color:T.textDim,letterSpacing:"0.08em",marginBottom:2}}>STOPS</div>
-            {stops.map((s,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:6,color:T.text2}}>
-              <span style={{color:"var(--info-fg)",fontSize:8,flexShrink:0}}>📍</span>{s}
-            </div>)}
-          </div>
-        )}
-      </div>
-    );
+    return<BusDriveSessionTable entry={entry} label={label}/>;
   };
 
   const renderB=b=>{
@@ -5251,20 +5376,8 @@ function TravelDayView(){
             <span style={{fontSize:8,color:T.textMute,fontFamily:MN}}>Pieter Smit T26-021201</span>
           </div>
           {busDetailExp&&(busDay.stops||busDay.note)&&(
-            <div style={{flexBasis:"100%",paddingTop:8,borderTop:`1px solid ${busDay.show?"var(--success-fg)":"var(--info-fg)"}20`,display:"flex",flexDirection:"column",gap:5}}>
-              {busDay.note&&<div style={{fontSize:9,color:T.text2,fontStyle:"italic"}}>{busDay.note}</div>}
-              {busDay.stops&&(
-                <div>
-                  <div style={{fontSize:7,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:4}}>DRIVE SESSION STOPS</div>
-                  <div style={{display:"flex",flexDirection:"column",gap:3}}>
-                    {busDay.stops.split("·").map((s,i)=>(
-                      <div key={i} style={{display:"flex",alignItems:"center",gap:6,fontSize:9,color:T.text2}}>
-                        <span style={{color:busDay.show?"var(--success-fg)":"var(--info-fg)",fontSize:8,flexShrink:0}}>📍</span>{s.trim()}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+            <div style={{flexBasis:"100%",marginTop:8,borderTop:`1px solid ${busDay.show?"var(--success-fg)":"var(--info-fg)"}20`}}>
+              <BusDriveSessionTable entry={busDay} label={busDay.show?"SHOW DAY · LOCAL DRIVE":"DRIVE SESSION TABLE"} compact/>
             </div>
           )}
         </div>
