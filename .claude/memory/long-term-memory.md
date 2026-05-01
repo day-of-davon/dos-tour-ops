@@ -142,6 +142,20 @@
 
 - [2026-04-27 05:00 UTC] https://starterpick.com/blog/t3-stack-2026 — Developer community consensus (Apr 2026): Midday.so is the recommended open-source reference architecture for T3 + Supabase without Prisma — Midday uses Next.js + tRPC + Supabase directly (no Prisma ORM layer), which matches the dos-platform target stack; use as scaffold reference before Dane's Jun/Jul build window.
 
+- [2026-05-01 21:30 UTC] https://supabase.com/changelog — Supabase Data API table exposure changing May 30, 2026: new tables created in the public schema will require an explicit Postgres GRANT before PostgREST can expose them; existing tables unaffected; returns a clear error with the missing grant hint rather than silent failure — dos-platform Phase 0 schema work with Josh must include explicit grants for every new table or API calls will 404.
+
+- [2026-05-01 21:30 UTC] https://supabase.com/changelog — Supabase OAuth token endpoint changing from HTTP 201 to 200 on May 22, 2026 (OAuth 2.1 §3.2.3 compliance); only affects integrations that explicitly check for 201 — low direct impact (DOS uses Google OAuth gate, not Supabase token endpoint directly), but flag for any future Supabase Auth SDK upgrade that wraps this endpoint.
+
+- [2026-05-01 21:30 UTC] https://github.com/VROOM-Project/pyvroom/releases — pyvroom latest release is 1.15.2, not 1.15.0 as previously logged (2026-04-20 entry); CONTRADICTS prior version tracking — update any pinned pyvroom dependency specs to >=1.15.2.
+
+- [2026-05-01 21:30 UTC] https://nextjs.org/blog/next-16-2 — Next.js 16.2 AI agent integration features NOT captured in prior memory entries (which only noted perf): agent-ready create-next-app scaffolds AI-ready projects; Browser Log Forwarding pipes browser errors to terminal for agent-powered debugging; Experimental Agent DevTools give AI agents terminal access to React DevTools and Next.js diagnostics — relevant for Dane's Jun/Jul dos-platform scaffold if using AI-assisted development.
+
+- [2026-05-01 21:30 UTC] https://apps.apple.com/us/app/daysheets/id1579012240 — Daysheets has an iOS App Store listing in addition to Android (prior memory entry 2026-04-27 only noted Android/Google Play) — ADDENDUM to prior entry; Daysheets is fully cross-platform mobile; DOS has no mobile app on either platform.
+
+- [2026-05-01 21:30 UTC] https://pitchbook.com/profiles/company/521004-25 — Daysheets investors: Argon Ventures and Two Lanterns Venture Capital — not in prior memory; confirms Daysheets is VC-backed (not bootstrapped), increasing competitive durability; funding amount not publicly disclosed.
+
+- [2026-05-01 21:30 UTC] https://wifitalents.com/best/music-festival-software/ — Pollen: festival management software appearing in 2026 best-of lists, described as designed for planning, execution, and management of festivals at scale — NEW competitor not previously tracked; limited public detail, low authority source; add to monitor list alongside TourSync.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
