@@ -156,6 +156,12 @@
 
 - [2026-05-01 21:30 UTC] https://wifitalents.com/best/music-festival-software/ — Pollen: festival management software appearing in 2026 best-of lists, described as designed for planning, execution, and management of festivals at scale — NEW competitor not previously tracked; limited public detail, low authority source; add to monitor list alongside TourSync.
 
+- [2026-05-02 22:00 UTC] https://supabase.com/changelog — Supabase adding sales tax, VAT, or GST to invoices based on billing address; rollout May 1 - Jun 30, 2026 — dos-platform Supabase org must have accurate billing address and Tax ID set before June 30 to avoid incorrect tax charges.
+
+- [2026-05-02 22:00 UTC] https://vercel.com/changelog — Vercel Sandbox (May 1, 2026) can now connect to hosted Postgres databases including Supabase, Neon, AWS RDS via allowed-domain firewall config — dos-platform preview/sandbox environments can now hit Supabase Postgres directly; enables integration testing in Vercel preview deployments without a separate test DB.
+
+- [2026-05-02 22:00 UTC] https://tracxn.com/d/companies/gigfinesse/__tME-0Ec_KSQMSsEjhVMlhdV9gnQznXdeZDdYXTRH36A/funding-and-investors — GigFinesse has raised $9.39M total over 3 rounds (latest $5.79M, May 2024) — ADDENDUM to prior memory entry which listed GigFinesse as unconfirmed; VC-backed at nearly $10M, not bootstrapped; raises competitive durability assessment upward.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
