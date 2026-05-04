@@ -1,6 +1,6 @@
 # TOUR — Active Touring Context
 
-**Last refresh:** 2026-04-23.
+**Last refresh:** 2026-05-04.
 **Current tour:** bbno$ Internet Explorer Tour (`team_id = dos-bbno-2026`).
 
 ---
@@ -13,9 +13,18 @@
 
 ## Logistics
 
-- **Bus:** Pieter Smit nightliner, $68,367 confirmed (Toby Jansen, nightliner@pietersmit.com).
-- **Truck:** Fly By Nite, job 56714 confirmed (Fiona Nolan).
+- **Bus:** Pieter Smit nightliner, $68,367 confirmed (Toby Jansen, nightliner@pietersmit.com). Bus length pending PS confirmation.
+- **Trailer:** 2.85L × 2.48W × 2.50H m, attached to bus for full tour. Combined bus + trailer ≈ 20m — pushes ferry/tunnel fare class and EU toll category above standard coach.
+- **Trucks:** 2x Fly By Nite 45ft. Job 56714 confirmed (Fiona Nolan); 2nd truck job + contact TBC.
 - **LX/VX:** Neg Earth (Alex Griffiths PM), TSL Lighting quote J38723 GBP 66,991 (Gemma Jaques).
+
+### Fleet impact — re-advance required
+
+- **Stena Line May 6** — booked 1 nightliner; now combo + 2 trucks. Different fare class.
+- **O2 Victoria Manchester (May 7-8)** — pack assumes "2 buses + trucks tip & go" on Man Utd home day; trailer placement + 2nd truck slot not confirmed with Tyrone.
+- **Refinery Gallery Bratislava (May 27-29)** — booked 1 bus + 1 truck overnight (only bus has 32/3 power). Now 1 bus+trailer + 2 trucks. Reconfirm slot count + power with Peter.
+- **Le Shuttle May 2 + May 14** — Pieter Smit booked combo class; verify with Toby.
+- **Tight venues to revisit:** Le Bataclan (Paris May 20), SaSaZu (Prague May 24), Majestic Bratislava (May 28 — drop & go only, no on-site parking), AFAS Live (Amsterdam May 19 — no truck ramps).
 
 ---
 

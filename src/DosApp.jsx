@@ -913,6 +913,18 @@ const RRX_ROS=()=>[
 ];
 const CUSTOM_ROS_MAP={"2026-04-16":RRX_ROS};
 
+// Touring fleet — referenced by parking advances, ferry/tunnel fare class,
+// and EU toll category. Update when job IDs or bus length land.
+const FLEET={
+  bus:{operator:"Pieter Smit",contact:"nightliner@pietersmit.com",lengthM:null},
+  trailer:{lengthM:2.85,widthM:2.48,heightM:2.50},
+  combinedLengthM:20,
+  trucks:[
+    {operator:"Fly By Nite",sizeFt:45,job:"56714",contact:"Fiona Nolan"},
+    {operator:"Fly By Nite",sizeFt:45,job:null,contact:null},
+  ],
+};
+
 const BUS_DATA=[
   {day:1,date:"May 02",dow:"Sat",route:"Aarschot → London (Neg Earth)",km:482,drive:"6h",dep:"08:00",arr:"15:00",show:false,flag:"",note:"MD. Dep 08:00 CEST Pieter Smit depot. S1 08:00–10:44 CET Aarschot→Calais Terminal via E314/E40/A16 (251km, 2.75h). Le Shuttle dep 13:00 CET / 12:00 BST (TBC w/ PS). S2 12:56–15:00 BST Folkestone→Neg Earth Park Royal via M20/M25/A40 (177km, 2h). 9h RP before May 3 dep.",stops:"Calais Terminal (Le Shuttle dep 13:00 CET / 12:00 BST, TBC w/ PS) · Folkestone Terminal (arr 12:56 BST) · Neg Earth Lights, Park Royal London NW10 (arr 15:00 BST)"},
   {day:2,date:"May 03",dow:"Sun",route:"London → Dublin",km:462,drive:"7h",dep:"00:00",arr:"11:15",show:false,flag:"",note:"MD. Dep 00:00 GMT Neg Earth Park Royal. S1 00:00–02:00 GMT Neg Earth→Corley Services via M1/M6 (180km, 2h). EC561 45m break Corley Services M6. S2 02:45–06:05 GMT Corley Services→Holyhead Port via M6/A55 (275km, 3.3h). Irish ferry dep 07:30 GMT → arr 11:00 IST Holyhead→Dublin. S3 11:00–11:15 IST Dublin Port→National Stadium (7km, 0.25h). 9h RP on arrival.",stops:"Corley Services (M6 J3-4, break 02:00–02:45 GMT, EC561 mandatory) · Holyhead Port (dep 07:30 GMT) · Dublin Port (arr 11:00 IST)"},
