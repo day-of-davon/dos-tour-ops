@@ -2221,7 +2221,7 @@ function PaxEditor({pax,crew,onSave}){
 }
 
 function FlightsSection(){
-  const{flights,uFlight,setFlights,uRos,gRos,uFin,finance,crew,setShowCrew,shows,aC,sorted,tourStart,tourEnd,currentSplit,activeSplitParty,activeSplitPartyId}=useContext(Ctx);
+  const{flights,uFlight,setFlights,uRos,gRos,uFin,finance,crew,setShowCrew,shows,aC,sorted,tourStart,tourEnd,currentSplit,activeSplitParty,activeSplitPartyId,role}=useContext(Ctx);
   const a=useAuth();
   const[scanning,setScanning]=useState(false);
   const[scanMsg,setScanMsg]=useState("");
@@ -2395,13 +2395,13 @@ function FlightsSection(){
         <span style={{fontSize:10,fontWeight:800,color:T.link,letterSpacing:"0.06em"}}>✈ FLIGHTS</span>
         <span style={{fontSize:8,padding:"2px 7px",borderRadius:10,background:"var(--info-bg)",color:T.link,fontWeight:700}}>{confirmed.length} confirmed · {pending.length} pending</span>
         {scanMsg&&<span style={{fontSize:9,color:scanning?"var(--accent)":"var(--text-dim)",fontFamily:MN}}>{scanMsg}</span>}
-        <div style={{marginLeft:"auto",display:"flex",gap:6}}>
+        {role!=="viewer"&&<div style={{marginLeft:"auto",display:"flex",gap:6}}>
           <button onClick={()=>{const before=Object.keys(flights).length;const cleaned=cleanFlightsObj(flights);const after=Object.keys(cleaned).length;if(confirm(`Clean & deduplicate flights? ${before}→${after} (−${before-after})`)){setFlights(cleaned);setScanMsg(`Cleaned: ${before}→${after} flights.`);}}} disabled={scanning} style={{background:"var(--border)",color:T.textDim,border:"1px solid var(--border)",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700}}>Clean & Dedup</button>
           <button onClick={()=>{if(confirm(`Clear all ${allFlights.length} flights and rescan Gmail?`))scanFlights({reset:true});}} disabled={scanning} style={{background:scanning?"var(--border)":"var(--danger-fg)",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>Reset & Rescan</button>
           <button onClick={()=>scanFlights({forcePayMethod:true})} disabled={scanning} title="Re-parse only emails missing payment method / card info" style={{background:scanning?"var(--border)":"var(--warn-bg)",color:scanning?"var(--text-dim)":"var(--warn-fg)",border:`1px solid ${scanning?"var(--border)":"var(--warn-fg)"}`,borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"↺ Payment"}</button>
           <button onClick={()=>scanFlights({force:true})} disabled={scanning} title="Force re-parse all emails" style={{background:scanning?"var(--border)":"var(--card-3)",color:scanning?"var(--text-dim)":"var(--text-2)",border:"1px solid var(--border)",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>Force Rescan</button>
           <button onClick={()=>scanFlights()} disabled={scanning} style={{background:scanning?"var(--border)":"var(--link)",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail"}</button>
-        </div>
+        </div>}
       </div>
 
       {/* Pending import (just scanned, not yet in state) */}
@@ -2516,14 +2516,14 @@ function FlightsSection(){
       )}
 
       {allFlights.length===0&&pendingImport.length===0&&(
-        <div style={{fontSize:10,color:T.textMute,fontStyle:"italic",padding:"4px 0"}}>No flights yet. Click "Scan Gmail" to import from confirmation emails.</div>
+        <div style={{fontSize:10,color:T.textMute,fontStyle:"italic",padding:"4px 0"}}>{role!=="viewer"?`No flights yet. Click "Scan Gmail" to import from confirmation emails.`:"No flights yet."}</div>
       )}
     </div>
   );
 }
 
 function IntelPanel(){
-  const{sel,shows,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,uShow,labelIntel,addActLog}=useContext(Ctx);
+  const{sel,shows,intel,setIntel,addLog,refreshIntel,toggleIntelShare,refreshing,refreshMsg,uShow,labelIntel,addActLog,role}=useContext(Ctx);
   const show=shows[sel];const sid=show?showIdFor(show):"";const data=intel[sid]||{};
   const upd=patch=>setIntel(p=>({...p,[sid]:{...(p[sid]||{}),...patch}}));
   const primaryTid=(data.threads||[]).find(t=>t.tid)?.tid||null;
@@ -2647,9 +2647,9 @@ function IntelPanel(){
       {data.lastRefreshed&&<span style={{fontSize:9,color:T.textMute,fontFamily:MN}}>last: {new Date(data.lastRefreshed).toLocaleString()}</span>}
       {data._partial&&<span title="Claude response was truncated by max_tokens; some threads/fields may be missing. Re-run the scan." style={{fontSize:9,fontWeight:700,color:T.warnFg,fontFamily:MN,padding:"1px 6px",borderRadius:4,border:"1px solid var(--warn-fg)"}}>PARTIAL</span>}
       <span style={{marginLeft:"auto",fontSize:9,color:T.textDim}}>{(data.threads||[]).length} threads · {(data.todos||[]).length} to-dos</span>
-      <button onClick={()=>toggleIntelShare(show,!shared)} style={{background:shared?"var(--success-bg)":"var(--card-2)",color:shared?"var(--success-fg)":"var(--text-2)",border:`1px solid ${shared?"var(--success-fg)":"var(--border)"}`,borderRadius:6,fontSize:9,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>{shared?"Shared with team":"Share with team"}</button>
-      <button onClick={()=>{const d=intel[sid];if(!d)return;const before={t:(d.todos||[]).length,f:(d.followUps||[]).length,th:(d.threads||[]).length};const clean=deduplicateIntel(d);const saved=(before.t-(clean.todos||[]).length)+(before.f-(clean.followUps||[]).length)+(before.th-(clean.threads||[]).length);setIntel(p=>({...p,[sid]:clean}));if(saved>0)addLog({type:"user",section:"dedup",showId:sid,action:"cleaned",label:`Removed ${saved} duplicate${saved>1?"s":""}`,from:"intel_panel"});}} title="Remove near-duplicate todos, follow-ups, and threads" style={{background:"var(--card-2)",color:T.text2,border:"1px solid var(--border)",borderRadius:6,fontSize:9,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>Clean Dupes</button>
-      <button onClick={()=>refreshIntel(show,true)} disabled={!!refreshing} style={{background:refreshing?"var(--border)":"var(--accent)",color:refreshing?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:refreshing?"default":"pointer",fontWeight:700}}>{busy?"Scanning…":"Refresh Intel"}</button>
+      {role!=="viewer"&&<button onClick={()=>toggleIntelShare(show,!shared)} style={{background:shared?"var(--success-bg)":"var(--card-2)",color:shared?"var(--success-fg)":"var(--text-2)",border:`1px solid ${shared?"var(--success-fg)":"var(--border)"}`,borderRadius:6,fontSize:9,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>{shared?"Shared with team":"Share with team"}</button>}
+      {role!=="viewer"&&<button onClick={()=>{const d=intel[sid];if(!d)return;const before={t:(d.todos||[]).length,f:(d.followUps||[]).length,th:(d.threads||[]).length};const clean=deduplicateIntel(d);const saved=(before.t-(clean.todos||[]).length)+(before.f-(clean.followUps||[]).length)+(before.th-(clean.threads||[]).length);setIntel(p=>({...p,[sid]:clean}));if(saved>0)addLog({type:"user",section:"dedup",showId:sid,action:"cleaned",label:`Removed ${saved} duplicate${saved>1?"s":""}`,from:"intel_panel"});}} title="Remove near-duplicate todos, follow-ups, and threads" style={{background:"var(--card-2)",color:T.text2,border:"1px solid var(--border)",borderRadius:6,fontSize:9,padding:"3px 10px",cursor:"pointer",fontWeight:700}}>Clean Dupes</button>}
+      {role!=="viewer"&&<button onClick={()=>refreshIntel(show,true)} disabled={!!refreshing} style={{background:refreshing?"var(--border)":"var(--accent)",color:refreshing?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"4px 11px",cursor:refreshing?"default":"pointer",fontWeight:700}}>{busy?"Scanning…":"Refresh Intel"}</button>}
     </div>
     {refreshMsg&&<div style={{fontSize:10,color:T.accent,fontFamily:MN}}>{refreshMsg}</div>}
     {(()=>{
@@ -3587,9 +3587,9 @@ function Dash(){
       <div style={{display:"flex",alignItems:"center",gap:8,margin:"10px 0 6px"}}>
         <span style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em"}}>{client.name.toUpperCase()} OVERVIEW</span>
         <span style={{flex:1}}/>
-        {scanLastAt&&!scanning&&<span style={{fontSize:9,color:T.textMute,fontFamily:MN}}>scanned {scanLastAt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
-        {scanning&&refreshMsg&&<span style={{fontSize:9,color:T.accent,fontFamily:MN}}>{refreshMsg}</span>}
-        <button onClick={runIntelScan} disabled={scanning} title={`Scan all Gmail threads labeled for ${client.name} across ${cShows.length} shows`} style={{fontSize:10,padding:"4px 11px",borderRadius:6,border:"none",background:scanning?"var(--border)":"var(--accent)",color:scanning?"var(--text-dim)":"var(--card)",cursor:scanning?"default":"pointer",fontWeight:700,whiteSpace:"nowrap"}}>{scanning?"Scanning…":"↻ Scan Intel"}</button>
+        {role!=="viewer"&&scanLastAt&&!scanning&&<span style={{fontSize:9,color:T.textMute,fontFamily:MN}}>scanned {scanLastAt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
+        {role!=="viewer"&&scanning&&refreshMsg&&<span style={{fontSize:9,color:T.accent,fontFamily:MN}}>{refreshMsg}</span>}
+        {role!=="viewer"&&<button onClick={runIntelScan} disabled={scanning} title={`Scan all Gmail threads labeled for ${client.name} across ${cShows.length} shows`} style={{fontSize:10,padding:"4px 11px",borderRadius:6,border:"none",background:scanning?"var(--border)":"var(--accent)",color:scanning?"var(--text-dim)":"var(--card)",cursor:scanning?"default":"pointer",fontWeight:700,whiteSpace:"nowrap"}}>{scanning?"Scanning…":"↻ Scan Intel"}</button>}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:10,margin:"0 0 12px"}}>
         {[{l:"Next Show",v:next?.city||"--",s:next?nextBus?`${dU(next.date)}d · BUS ${nextBus}`:`${dU(next.date)}d`:"",c:client.color},{l:`${client.name} Shows`,v:cShows.length,s:"total",c:"var(--text)"},{l:"Open Advances",v:upcoming.filter(s=>pendingCount(s.date)>0).length,s:"shows w/ pending",c:upcoming.filter(s=>pendingCount(s.date)>0).length>0?"var(--warn-fg)":"var(--text-mute)"},{l:"Open To-Dos",v:allTodos.length,s:"private",c:allTodos.length>0?"var(--warn-fg)":"var(--text-mute)"},{l:"Follow-Ups",v:allFollowUps.length,s:"across shows",c:allFollowUps.length>0?"var(--link)":"var(--text-mute)"},{l:"Unsettled",v:unsettledCount,s:"past shows",c:unsettledCount>2?"var(--danger-fg)":unsettledCount>0?"var(--warn-fg)":"var(--text-mute)"}].map((s,i)=><div key={i} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}><div style={{fontSize:9,color:T.textDim,marginBottom:2,fontWeight:600}}>{s.l}</div><div style={{fontSize:20,fontWeight:800,color:s.c,fontFamily:MN}}>{s.v}</div><div style={{fontSize:9,color:T.textMute,fontFamily:MN,marginTop:1}}>{s.s}</div></div>)}
@@ -4208,7 +4208,7 @@ function AnchorTimes({b,setBF}){
 }
 
 function FlightDayStrip({sel}){
-  const{flights,uFlight,lodging,setTab,tourStart,tourEnd}=useContext(Ctx);
+  const{flights,uFlight,lodging,setTab,tourStart,tourEnd,role}=useContext(Ctx);
   const[open,setOpen]=useState(true);
   const[scanning,setScanning]=useState(false);
   const[refreshing,setRefreshing]=useState(false);
@@ -4273,8 +4273,8 @@ function FlightDayStrip({sel}){
         {!hasAny&&<span style={{fontSize:9,color:T.textMute,fontStyle:"italic"}}>none on this date</span>}
         {stripMsg&&<span style={{fontSize:9,color:T.textDim,fontFamily:MN,marginLeft:4}}>{stripMsg}</span>}
         <span style={{marginLeft:"auto",display:"flex",gap:5,alignItems:"center"}} onClick={e=>{e.stopPropagation();e.preventDefault();}}>
-          {hasAny>0&&<button onClick={refreshTimes} disabled={refreshing} style={{fontSize:9,padding:"2px 8px",borderRadius:6,border:"1px solid var(--info-fg)",background:refreshing?"var(--info-bg)":"var(--card)",color:T.link,cursor:refreshing?"default":"pointer",fontWeight:700,flexShrink:0}}>{refreshing?"…":"↻ Times"}</button>}
-          <button onClick={scanFlights} disabled={scanning} style={{fontSize:9,padding:"2px 8px",borderRadius:6,border:"none",background:scanning?"var(--info-bg)":"var(--link)",color:scanning?"var(--link)":"var(--card)",cursor:scanning?"default":"pointer",fontWeight:700,flexShrink:0}}>{scanning?"Scanning…":"Scan Gmail"}</button>
+          {role!=="viewer"&&hasAny>0&&<button onClick={refreshTimes} disabled={refreshing} style={{fontSize:9,padding:"2px 8px",borderRadius:6,border:"1px solid var(--info-fg)",background:refreshing?"var(--info-bg)":"var(--card)",color:T.link,cursor:refreshing?"default":"pointer",fontWeight:700,flexShrink:0}}>{refreshing?"…":"↻ Times"}</button>}
+          {role!=="viewer"&&<button onClick={scanFlights} disabled={scanning} style={{fontSize:9,padding:"2px 8px",borderRadius:6,border:"none",background:scanning?"var(--info-bg)":"var(--link)",color:scanning?"var(--link)":"var(--card)",cursor:scanning?"default":"pointer",fontWeight:700,flexShrink:0}}>{scanning?"Scanning…":"Scan Gmail"}</button>}
         </span>
       </summary>
       {/* Lodging summary row (always visible) */}
@@ -5235,7 +5235,7 @@ function TourCalendar(){
 }
 
 function FlightsListView(){
-  const{flights,uFlight,setFlights,uRos,gRos,uFin,finance,crew,setShowCrew,setSel,setTab,sorted,shows,tourStart,tourEnd}=useContext(Ctx);
+  const{flights,uFlight,setFlights,uRos,gRos,uFin,finance,crew,setShowCrew,setSel,setTab,sorted,shows,tourStart,tourEnd,role}=useContext(Ctx);
   const goToSchedule=(date)=>{setSel(date);setTab("ros");};
   const[scanning,setScanning]=useState(false);
   const[scanMsg,setScanMsg]=useState("");
@@ -5480,7 +5480,7 @@ function FlightsListView(){
         <div style={{marginLeft:"auto",display:"flex",gap:6,flexWrap:"wrap"}}>
           {confirmed.length>0&&<button onClick={reassignAllFlights} title="Re-match all confirmed flights to tour shows by airport proximity + date window" style={{background:"var(--card-3)",color:T.successFg,border:"1px solid var(--success-fg)",borderRadius:6,fontSize:10,padding:"5px 12px",cursor:"pointer",fontWeight:700}}>⟲ Re-match to Shows</button>}
           {confirmed.length>0&&<button onClick={refreshAllStatus} disabled={refreshingAll} style={{background:refreshingAll?"var(--border)":"var(--card-3)",color:refreshingAll?"var(--text-mute)":"var(--accent)",border:"1px solid var(--border)",borderRadius:6,fontSize:10,padding:"5px 12px",cursor:refreshingAll?"default":"pointer",fontWeight:700}}>{refreshingAll?"Refreshing…":"⟳ Refresh Status"}</button>}
-          <button onClick={scanFlights} disabled={scanning} style={{background:scanning?"var(--border)":"var(--link)",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"5px 14px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail for Flights"}</button>
+          {role!=="viewer"&&<button onClick={scanFlights} disabled={scanning} style={{background:scanning?"var(--border)":"var(--link)",color:scanning?"var(--text-dim)":"var(--card)",border:"none",borderRadius:6,fontSize:10,padding:"5px 14px",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"Scan Gmail for Flights"}</button>}
         </div>
       </div>
 
@@ -5581,7 +5581,7 @@ function FlightsListView(){
           ))}
         </div>
       ):(pendingImport.length===0&&pending.length===0&&unresolved.length===0&&(
-        <div style={{padding:"40px 0",textAlign:"center",color:T.textMute}}><div style={{fontSize:20,marginBottom:8,opacity:0.25}}>✈</div><div style={{fontSize:11}}>No flights yet.</div><div style={{fontSize:10,marginTop:4}}>Hit "Scan Gmail for Flights" above to import from email.</div></div>
+        <div style={{padding:"40px 0",textAlign:"center",color:T.textMute}}><div style={{fontSize:20,marginBottom:8,opacity:0.25}}>✈</div><div style={{fontSize:11}}>No flights yet.</div>{role!=="viewer"&&<div style={{fontSize:10,marginTop:4}}>Hit "Scan Gmail for Flights" above to import from email.</div>}</div>
       ))}
 
       {/* Unresolved */}
@@ -7158,7 +7158,7 @@ function FileUploadModal({onClose}){
 }
 
 function CmdP(){
-  const{sorted,setSel,setTab,setCmd,setAC,setExp,setDateMenu,next,sel,shows,refreshIntel,mobile}=useContext(Ctx);
+  const{sorted,setSel,setTab,setCmd,setAC,setExp,setDateMenu,next,sel,shows,refreshIntel,mobile,role}=useContext(Ctx);
   const[q,setQ]=useState("");const[sel1,setSel1]=useState(0);const ref=useRef(null);const listRef=useRef(null);
   useEffect(()=>{ref.current?.focus();},[]);
   const actions=useMemo(()=>{
@@ -7170,7 +7170,7 @@ function CmdP(){
       {type:"action",id:"open_dates",label:"Open Dates menu",sub:"full tour calendar",icon:"☰",run:()=>setDateMenu(true)},
       {type:"action",id:"export",label:"Export / Import snapshot",sub:"JSON download",icon:"⇅",run:()=>setExp(true)}];
     const cur=sel?shows?.[sel]:null;
-    if(cur&&refreshIntel)a.push({type:"action",id:"refresh_intel",label:`Refresh Gmail intel (${cur.city||cur.venue})`,sub:"scan inbox for this show",icon:"↻",run:()=>refreshIntel(cur,true)});
+    if(cur&&refreshIntel&&role!=="viewer")a.push({type:"action",id:"refresh_intel",label:`Refresh Gmail intel (${cur.city||cur.venue})`,sub:"scan inbox for this show",icon:"↻",run:()=>refreshIntel(cur,true)});
     if(next)a.push({type:"action",id:"jump_next",label:`Jump to next show (${next.city})`,sub:`${fD(next.date)} · ${dU(next.date)}d`,icon:"→",run:()=>{setSel(next.date);if(next.clientId)setAC(next.clientId);setTab("ros");}});
     return a;
   },[next,sel,shows,refreshIntel,setTab,setDateMenu,setExp,setSel,setAC]);
