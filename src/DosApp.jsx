@@ -6314,15 +6314,104 @@ function AllShowsDriveSessionsView(){
   );
 }
 
+const FLEET_EXCEPTION_STATUS_KEY="dos-fleet-exception-status";
+const FLEET_EXCEPTION_STATUSES=[
+  ["open","Open","var(--danger-fg)","var(--danger-bg)"],
+  ["in-progress","In Progress","var(--warn-fg)","var(--warn-bg)"],
+  ["resolved","Resolved","var(--success-fg)","var(--success-bg)"],
+  ["blocked","Blocked","var(--text-mute)","var(--card-2)"],
+];
+
+function useFleetExceptionStatus(){
+  const[overrides,setOverrides]=useState(()=>{
+    try{return JSON.parse(localStorage.getItem(FLEET_EXCEPTION_STATUS_KEY)||"{}");}
+    catch{return{};}
+  });
+  const set=(id,status)=>setOverrides(prev=>{
+    const next={...prev,[id]:status};
+    try{localStorage.setItem(FLEET_EXCEPTION_STATUS_KEY,JSON.stringify(next));}catch{}
+    return next;
+  });
+  return[overrides,set];
+}
+
+function collectFleetExceptions(){
+  const out=[];
+  Object.entries(BUS_DATA_MAP).forEach(([iso,d])=>{
+    if(d.fleetException)out.push({id:`crossing_${iso}`,iso,kind:"crossing",label:d.route,date:d.date,dow:d.dow,...d.fleetException});
+  });
+  Object.entries(VENUE_GRID).forEach(([iso,v])=>{
+    if(v.fleetException)out.push({id:`venue_${iso}`,iso,kind:"venue",label:`${v.venue} · ${v.city}`,date:iso,dow:null,...v.fleetException});
+  });
+  return out.sort((a,b)=>a.iso.localeCompare(b.iso));
+}
+
+function FleetExceptionsView(){
+  const[overrides,setStatus]=useFleetExceptionStatus();
+  const exceptions=useMemo(()=>collectFleetExceptions(),[]);
+  const withStatus=exceptions.map(e=>({...e,status:overrides[e.id]||e.status}));
+  const counts=withStatus.reduce((m,e)=>{m[e.status]=(m[e.status]||0)+1;return m;},{});
+  const trailerSpec=`${FLEET.trailer.lengthM}L × ${FLEET.trailer.widthM}W × ${FLEET.trailer.heightM}H m`;
+  const truckSpec=`${FLEET.trucks.length}x Fly By Nite ${FLEET.trucks[0].sizeFt}ft`;
+  return(
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+      <div style={{padding:"10px 14px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:8,display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
+        <div style={{fontSize:11,fontWeight:800,color:T.text,letterSpacing:"-0.01em"}}>Fleet exceptions</div>
+        <div style={{display:"flex",gap:6,fontSize:9,fontFamily:MN}}>
+          {FLEET_EXCEPTION_STATUSES.map(([s,l,fg,bg])=>(
+            <span key={s} style={{padding:"2px 8px",borderRadius:99,background:bg,color:fg,fontWeight:700}}>{l} {counts[s]||0}</span>
+          ))}
+        </div>
+        <div style={{marginLeft:"auto",fontSize:9,fontFamily:MN,color:T.textMute,textAlign:"right"}}>
+          Bus + trailer ({trailerSpec}) ≈ {FLEET.combinedLengthM}m · {truckSpec}
+        </div>
+      </div>
+      {withStatus.length===0&&<div style={{padding:"40px 20px",textAlign:"center",color:T.textMute,fontSize:11,fontStyle:"italic"}}>No fleet exceptions on file.</div>}
+      {withStatus.map(e=>{
+        const sty=FLEET_EXCEPTION_STATUSES.find(s=>s[0]===e.status)||FLEET_EXCEPTION_STATUSES[0];
+        return(
+          <div key={e.id} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,overflow:"hidden",opacity:e.status==="resolved"?0.6:1}}>
+            <div style={{padding:"10px 14px",display:"flex",alignItems:"flex-start",gap:12,flexWrap:"wrap",borderBottom:"1px solid var(--card-2)"}}>
+              <div style={{minWidth:0,flex:"1 1 220px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2,flexWrap:"wrap"}}>
+                  <span style={{fontSize:8,fontWeight:800,padding:"1px 7px",borderRadius:99,background:e.kind==="crossing"?"var(--accent-pill-bg)":"var(--info-bg)",color:e.kind==="crossing"?"var(--accent)":"var(--info-fg)",letterSpacing:"0.06em"}}>{e.kind==="crossing"?"CROSSING":"VENUE"}</span>
+                  <span style={{fontSize:9,color:T.textDim,fontFamily:MN}}>{e.date}{e.dow?` · ${e.dow}`:""}</span>
+                  <span style={{fontSize:8,fontFamily:MN,color:T.textMute}}>{e.iso}</span>
+                  <span style={{fontSize:8,fontWeight:800,padding:"1px 7px",borderRadius:99,background:sty[3],color:sty[2],letterSpacing:"0.06em",textTransform:"uppercase"}}>{sty[1]}</span>
+                </div>
+                <div style={{fontSize:13,fontWeight:800,color:T.text,letterSpacing:"-0.01em"}}>{e.label}</div>
+              </div>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                {FLEET_EXCEPTION_STATUSES.map(([s,l,fg,bg])=>(
+                  <button key={s} onClick={()=>setStatus(e.id,s)} style={{fontSize:8,padding:"3px 8px",borderRadius:5,border:`1px solid ${e.status===s?fg:"var(--border)"}`,background:e.status===s?bg:"var(--card-2)",color:e.status===s?fg:T.textDim,cursor:"pointer",fontWeight:700,fontFamily:MN,letterSpacing:"0.04em",textTransform:"uppercase"}}>{l}</button>
+                ))}
+              </div>
+            </div>
+            <div style={{padding:"10px 14px",fontSize:11,lineHeight:1.5,color:T.text2}}>
+              <div style={{marginBottom:6}}><span style={{fontSize:8,fontFamily:MN,fontWeight:800,color:T.textMute,letterSpacing:"0.08em",marginRight:6}}>REASON</span>{e.reason}</div>
+              <div><span style={{fontSize:8,fontFamily:MN,fontWeight:800,color:T.textMute,letterSpacing:"0.08em",marginRight:6}}>ACTION</span>{e.action}</div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function TransTab(){
   const{flights,uFlight,sel,labelIntel,transView:view,setTransView:setView,allShows}=useContext(Ctx);
   const[crewFlightsOpen,setCrewFlightsOpen]=useState(false);
   const confirmedCount=Object.values(flights).filter(f=>f.status==="confirmed").length;
   const daySegCount=Object.values(flights).filter(s=>s.status!=="dismissed"&&(s.depDate===sel||s.arrDate===sel)).length;
   useEffect(()=>{if(allShows&&view==="travel")setView("calendar");},[allShows,view,setView]);
+  const fleetOpenCount=useMemo(()=>{
+    const overrides=(()=>{try{return JSON.parse(localStorage.getItem(FLEET_EXCEPTION_STATUS_KEY)||"{}");}catch{return{};}})();
+    return collectFleetExceptions().filter(e=>(overrides[e.id]||e.status)==="open").length;
+  },[view]);
+  const fleetLabel=`Fleet${fleetOpenCount>0?` ⚠ ${fleetOpenCount}`:""}`;
   const subTabs=allShows
-    ?[["calendar","Tour Calendar"],["drive","Drive Sessions"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`]]
-    :[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["drive","Drive Sessions"],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`]];
+    ?[["calendar","Tour Calendar"],["drive","Drive Sessions"],["fleet",fleetLabel],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`]]
+    :[["travel",`Travel Day${daySegCount>0?` (${daySegCount})`:""}`],["drive","Drive Sessions"],["fleet",fleetLabel],["flights",`✈ Flights${confirmedCount>0?` (${confirmedCount})`:""}`]];
   return(
     <div className="fi" style={{display:"flex",flexDirection:"column",height:"calc(100vh - 115px)"}}>
       <div style={{padding:"7px 20px",borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",gap:6,flexShrink:0,alignItems:"center",flexWrap:"nowrap",overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
@@ -6332,6 +6421,7 @@ function TransTab(){
       </div>
       <div style={{flex:1,overflow:"auto",padding:"12px 20px 30px"}}>
         {view==="calendar"&&<TourCalendar/>}
+        {view==="fleet"&&<FleetExceptionsView/>}
         {view==="drive"&&(allShows?<AllShowsDriveSessionsView/>:<DailyDriveSessionsView/>)}
         {view==="travel"&&!allShows&&<><TravelDayView/><div style={{margin:"20px 0 8px",display:"flex",alignItems:"center",gap:10}}><div style={{flex:1,height:1,background:"var(--border)"}}></div><span style={{fontSize:8,fontWeight:800,color:T.textMute,letterSpacing:"0.1em",whiteSpace:"nowrap"}}>TOUR CALENDAR</span><div style={{flex:1,height:1,background:"var(--border)"}}></div></div><TourCalendar/></>}
         {view==="flights"&&<>{labelIntel?.crewFlights?.length>0&&(
