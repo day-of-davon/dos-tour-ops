@@ -26,6 +26,7 @@ export const SK = Object.freeze({
   PERMISSIONS:  "dos-v7-permissions",
   BUS_EDITS:    "dos-v7-bus-edits",
   USER_TYPES:   "dos-v7-user-types",
+  GROUP_NOTES:  "dos-v7-group-notes",
 });
 
 export const PK = Object.freeze({
