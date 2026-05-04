@@ -3496,7 +3496,7 @@ function DashSingle(){
 }
 
 function Dash(){
-  const{sorted,cShows,next,setTab,setSel,advances,finance,aC,mobile,intel,setIntel,addLog,addActLog,labelIntel,allShows,sel,refreshLabelIntel,refreshMsg}=useContext(Ctx);
+  const{sorted,cShows,next,setTab,setSel,advances,finance,aC,mobile,intel,setIntel,addLog,addActLog,labelIntel,allShows,sel,refreshLabelIntel,refreshMsg,role}=useContext(Ctx);
   const[scanning,setScanning]=useState(false);
   const[scanLastAt,setScanLastAt]=useState(null);
   const[todoSort,setTodoSort]=useState("priority");
@@ -3521,6 +3521,7 @@ function Dash(){
   const allFollowUps=useMemo(()=>cShows.flatMap(s=>{const sid=showIdFor(s);return(intel[sid]?.followUps||[]).filter(f=>!f.done&&!f.ignored).map(f=>({...f,show:s}));}).sort((a,b)=>{if(fuSort==="due")return sortByDue(a,b);return(PORD[a.priority]??4)-(PORD[b.priority]??4);}),[cShows,intel,fuSort]);
   const arItems=useMemo(()=>(labelIntel?.actionRequired||[]).filter(i=>!arHidden.has(i.id)).sort((a,b)=>{const d=(BORD[a.bucket]??5)-(BORD[b.bucket]??5);return d!==0?d:new Date(b.date)-new Date(a.date);}),[labelIntel,arHidden]);
   const urgentItems=useMemo(()=>arItems.filter(i=>i.bucket==="urgent"||i.category==="LEGAL"),[arItems]);
+  const FIN_LEGAL=new Set(["FINANCE","LEGAL"]);
   const logisticsItems=useMemo(()=>(labelIntel?.advanceItems||[]).filter(i=>!arHidden.has(i.id)&&(i.category==="LOGISTICS"||i.category==="ADVANCE")).slice(0,20),[labelIntel,arHidden]);
 
   // Snapshot what was visible in the source thread at dismissal time so future
@@ -3593,7 +3594,7 @@ function Dash(){
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:10,margin:"0 0 12px"}}>
         {[{l:"Next Show",v:next?.city||"--",s:next?nextBus?`${dU(next.date)}d · BUS ${nextBus}`:`${dU(next.date)}d`:"",c:client.color},{l:`${client.name} Shows`,v:cShows.length,s:"total",c:"var(--text)"},{l:"Open Advances",v:upcoming.filter(s=>pendingCount(s.date)>0).length,s:"shows w/ pending",c:upcoming.filter(s=>pendingCount(s.date)>0).length>0?"var(--warn-fg)":"var(--text-mute)"},{l:"Open To-Dos",v:allTodos.length,s:"private",c:allTodos.length>0?"var(--warn-fg)":"var(--text-mute)"},{l:"Follow-Ups",v:allFollowUps.length,s:"across shows",c:allFollowUps.length>0?"var(--link)":"var(--text-mute)"},{l:"Unsettled",v:unsettledCount,s:"past shows",c:unsettledCount>2?"var(--danger-fg)":unsettledCount>0?"var(--warn-fg)":"var(--text-mute)"}].map((s,i)=><div key={i} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}><div style={{fontSize:9,color:T.textDim,marginBottom:2,fontWeight:600}}>{s.l}</div><div style={{fontSize:20,fontWeight:800,color:s.c,fontFamily:MN}}>{s.v}</div><div style={{fontSize:9,color:T.textMute,fontFamily:MN,marginTop:1}}>{s.s}</div></div>)}
       </div></>);})()}
-      {(()=>{const pastShows=(cShows||[]).filter(s=>s.date<today&&!settlementHidden.has(s.date)).slice(-6);if(!pastShows.length)return null;return(
+      {role!=="viewer"&&(()=>{const pastShows=(cShows||[]).filter(s=>s.date<today&&!settlementHidden.has(s.date)).slice(-6);if(!pastShows.length)return null;return(
       <div style={{marginBottom:12}}>
         <div style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:5}}>SETTLEMENT PIPELINE</div>
         <div style={{display:"flex",flexDirection:"column",gap:2}}>
@@ -3649,8 +3650,8 @@ function Dash(){
           </div>
         </div>
       )}
-      {urgentItems.length>0&&<div style={{marginBottom:10,display:"flex",flexDirection:"column",gap:3}}>
-        {urgentItems.filter(i=>!arReopenedIds.has(i.id)).slice(0,4).map(i=><div key={i.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"7px 12px",background:"var(--danger-bg)",borderRadius:10,borderLeft:"3px solid var(--danger-fg)"}}>
+      {(()=>{const vUrgent=urgentItems.filter(i=>!arReopenedIds.has(i.id)&&(role!=="viewer"||!FIN_LEGAL.has(i.category)));return vUrgent.length>0&&<div style={{marginBottom:10,display:"flex",flexDirection:"column",gap:3}}>
+        {vUrgent.slice(0,4).map(i=><div key={i.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"7px 12px",background:"var(--danger-bg)",borderRadius:10,borderLeft:"3px solid var(--danger-fg)"}}>
           <span style={{fontSize:9,fontWeight:800,color:"var(--danger-fg)",fontFamily:MN,flexShrink:0,marginTop:1}}>{i.category}</span>
           <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:11,fontWeight:600,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div>
@@ -3663,7 +3664,7 @@ function Dash(){
           <button onClick={()=>markAr(i.id,"done",i.subject,i)} style={BTN_DONE}>Done</button>
           <button onClick={()=>markAr(i.id,"ignored",i.subject,i)} style={BTN_IGN}>Ignore</button>
         </div>)}
-      </div>}
+      </div>;})()}
       {(()=>{
         const todayShows=upcoming.filter(s=>s.date===today);
         const soonShows=upcoming.filter(s=>dU(s.date)<=14&&s.date!==today);
@@ -3766,10 +3767,10 @@ function Dash(){
             </div>);})}
           </div>
         </div>}
-        {arItems.length>0&&<div>
-          <div style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:5}}>ACTION REQUIRED ({arItems.length})</div>
+        {(()=>{const vAr=arItems.filter(i=>role!=="viewer"||!FIN_LEGAL.has(i.category));return vAr.length>0&&<div>
+          <div style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:5}}>ACTION REQUIRED ({vAr.length})</div>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
-            {arItems.slice(0,25).map(i=><div key={i.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
+            {vAr.slice(0,25).map(i=><div key={i.id} style={{display:"flex",alignItems:"flex-start",gap:8,padding:"5px 0",borderBottom:"1px solid var(--border)"}}>
               <span style={{fontSize:8,padding:"2px 6px",borderRadius:6,background:bucketB(i.bucket),color:bucketC(i.bucket),fontWeight:700,flexShrink:0,marginTop:1}}>{i.bucket}</span>
               <div style={{flex:1,minWidth:0}}><div style={{fontSize:11,color:T.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{i.subject||"(no subject)"}</div><div style={{fontSize:9,color:T.textDim}}>{i.from}{arShowLabel(i)?` · ${arShowLabel(i)}`:""}</div></div>
               <span style={{fontSize:8,color:T.textMute,fontFamily:MN,flexShrink:0,paddingTop:2}}>{i.category}</span>
@@ -3779,7 +3780,7 @@ function Dash(){
               <button onClick={()=>markAr(i.id,"ignored",i.subject,i)} style={BTN_IGN}>Ignore</button>
             </div>)}
           </div>
-        </div>}
+        </div>;})()}
         {logisticsItems.length>0&&<div>
           <div style={{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.1em",marginBottom:5}}>UPCOMING LOGISTICS ({logisticsItems.length})</div>
           <div style={{display:"flex",flexDirection:"column",gap:2}}>
