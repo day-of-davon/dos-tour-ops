@@ -3322,7 +3322,7 @@ function TopBar({ss}){
               onDragLeave={()=>{if(overId===t.id)setOverId(null);}}
               onDrop={e=>{e.preventDefault();if(dragId&&dragId!==t.id&&reorderTabs)reorderTabs(dragId,t.id);setDragId(null);setOverId(null);}}
               onDragEnd={()=>{setDragId(null);setOverId(null);}}
-              onClick={()=>!t.disabled&&setTab(t.id)}
+              onClick={()=>{if(t.disabled)return;setTab(t.id);if(sidebarOpen)setSidebarOpen(false);}}
               style={{padding:mobile?"9px 13px":"6px 12px",fontSize:mobile?12:11,fontWeight:tab===t.id?700:500,color:t.disabled?"var(--text-mute)":tab===t.id?"var(--text)":"var(--text-dim)",background:isOver?"var(--accent-pill-bg)":"none",border:"none",cursor:t.disabled?"default":mobile?"pointer":isDrag?"grabbing":"grab",borderBottom:tab===t.id?"2px solid var(--accent)":isOver?"2px solid var(--accent)":"2px solid transparent",display:"flex",alignItems:"center",gap:5,flexShrink:0,whiteSpace:"nowrap",opacity:isDrag?0.4:1,transition:"opacity .1s,background .1s",userSelect:"none",minHeight:mobile?40:undefined}}
             >
               <span style={{fontSize:mobile?12:10}}>{t.icon}</span>{t.label}{t.soon&&<span style={{fontSize:8,color:T.textMute}}>soon</span>}{tabBadge[t.id]>0&&<span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",minWidth:14,height:14,borderRadius:99,background:t.id==="finance"?"var(--danger-fg)":t.id==="advance"?"var(--warn-fg)":"var(--link)",color:"#fff",fontSize:7,fontWeight:800,fontFamily:MN,padding:"0 3px",marginLeft:2,lineHeight:1}}>{tabBadge[t.id]}</span>}
