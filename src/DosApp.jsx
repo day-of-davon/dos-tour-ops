@@ -4714,7 +4714,7 @@ function ROSTab(){
     const t={};const{doors,curfew,busArrive,crewCall,venueAccess,mgTime}=effShow;
     const effBusArrive=effShow.busArriveConfirmed?busArrive:(busCalTimes.busArriveEff??busArrive);
     t.bus_arrive={s:effBusArrive,e:effBusArrive};t.venue_access={s:venueAccess,e:venueAccess};t.crew_call={s:crewCall,e:crewCall};
-    const pre=blocks.filter(b=>b.phase==="pre"&&!b.isAnchor);let c=crewCall;
+    const pre=blocks.filter(b=>b.phase==="pre"&&!b.anchorKey);let c=crewCall;
     for(const b of pre){t[b.id]={s:c,e:c+b.duration};c+=b.duration;}
     const mgCI=blocks.find(b=>b.id==="mg_checkin")?.duration||30;
     t.mg_checkin={s:mgTime-mgCI,e:mgTime};t.mg={s:mgTime,e:mgTime+(blocks.find(b=>b.id==="mg")?.duration||120)};
@@ -4837,7 +4837,7 @@ function ROSTab(){
               </div>
               <div style={{gridColumn:"1 / -1",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
                 <label style={{fontSize:9,fontWeight:700,color:T.textDim,display:"flex",alignItems:"center",gap:4,cursor:"pointer"}}><input type="checkbox" checked={!!b.isAnchor} onChange={e=>setBF(b.id,"isAnchor",e.target.checked)}/>Anchor</label>
-                {b.isAnchor&&<AnchorTimes b={b} setBF={setBF}/>}
+                <AnchorTimes b={b} setBF={setBF}/>
                 <button onClick={()=>removeBlock(b.id)} style={{marginLeft:"auto",background:"none",border:"none",color:"var(--danger-fg)",fontSize:10,cursor:"pointer",fontWeight:700}}>Remove block</button>
               </div>
             </div>
