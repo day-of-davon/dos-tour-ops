@@ -8175,6 +8175,7 @@ function VBSection({title,children,accent}){
 }
 
 function VenueBrief({vg,sel,data,upd}){
+  const{me}=useContext(Ctx);
   const[newLinkLabel,setNewLinkLabel]=useState("");
   const[newLinkUrl,setNewLinkUrl]=useState("");
   const links=data.venueLinks||[];
@@ -8185,6 +8186,11 @@ function VenueBrief({vg,sel,data,upd}){
     setNewLinkLabel("");setNewLinkUrl("");
   };
   const removeLink=id=>upd({venueLinks:links.filter(l=>l.id!==id)});
+  const recordOpen=lnk=>{
+    const now=new Date().toISOString();
+    const opens=[...(lnk.opens||[]).filter(o=>o.uid!==me.id),{uid:me.id,initials:me.initials,at:now}];
+    upd({venueLinks:links.map(l=>l.id===lnk.id?{...l,opens}:l)});
+  };
 
   if(!vg)return(
     <div style={{padding:32,textAlign:"center",color:T.textMute,fontSize:10}}>
@@ -8214,7 +8220,8 @@ function VenueBrief({vg,sel,data,upd}){
         <div style={{...UI.sectionLabel,marginBottom:8}}>Document Links</div>
         {links.length>0&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
           {links.map(lnk=><div key={lnk.id} style={{display:"flex",alignItems:"center",gap:4,background:"var(--accent-pill-bg)",borderRadius:6,padding:"3px 8px"}}>
-            <a href={lnk.url} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:T.accent,textDecoration:"none",fontWeight:600}}>{lnk.label} ↗</a>
+            <a href={lnk.url} target="_blank" rel="noopener noreferrer" onClick={()=>recordOpen(lnk)} style={{fontSize:10,color:T.accent,textDecoration:"none",fontWeight:600}}>{lnk.label} ↗</a>
+            {lnk.opens?.length>0&&<div style={{display:"flex",gap:2,alignItems:"center"}}>{lnk.opens.map(o=><span key={o.uid} title={`${o.uid} opened ${new Date(o.at).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`} style={{fontSize:7,fontWeight:800,background:"var(--card-3)",color:T.textDim,borderRadius:3,padding:"1px 3px",letterSpacing:"0.03em",fontFamily:MN}}>{o.initials}</span>)}</div>}
             <button onClick={()=>removeLink(lnk.id)} style={{fontSize:11,color:T.textMute,background:"none",border:"none",cursor:"pointer",padding:"0 2px",lineHeight:1}}>×</button>
           </div>)}
         </div>}
