@@ -5851,7 +5851,7 @@ function TravelDayView(){
 
       {/* EU Bus Schedule context for selected date */}
       {busDay&&(
-        <div style={{background:busDay.show?"var(--success-bg)":"var(--info-bg)",border:`1px solid ${busDay.show?"var(--success-fg)":"var(--info-fg)"}30`,borderRadius:10,padding:"10px 14px",display:"flex",gap:14,alignItems:"flex-start",flexWrap:"wrap"}}>
+        <div onClick={e=>{if(e.target.closest("button,textarea,input,a"))return;if(!(busDay.stops||busDay.note||busDay.sessions))return;setBusDetailExp(v=>!v);setBusSessionEdit(false);}} style={{background:busDay.show?"var(--success-bg)":"var(--info-bg)",border:`1px solid ${busDay.show?"var(--success-fg)":"var(--info-fg)"}30`,borderRadius:10,padding:"10px 14px",display:"flex",gap:14,alignItems:"flex-start",flexWrap:"wrap",cursor:(busDay.stops||busDay.note||busDay.sessions)?"pointer":"default"}}>
           <div style={{display:"flex",flexDirection:"column",gap:2,flexShrink:0}}>
             <div style={{fontSize:8,fontWeight:800,color:busDay.show?"var(--success-fg)":"var(--info-fg)",letterSpacing:"0.08em",textTransform:"uppercase"}}>{busDay.show?"Show Day":"Travel Day"} · EU Day {busDay.day}</div>
             <div style={{fontSize:13,fontWeight:800,color:busDay.show?"var(--success-fg)":"var(--info-fg)"}}>{busDay.show?(busDay.venue||busDay.route):busDay.route}</div>
