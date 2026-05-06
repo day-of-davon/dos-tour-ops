@@ -162,6 +162,14 @@
 
 - [2026-05-02 22:00 UTC] https://tracxn.com/d/companies/gigfinesse/__tME-0Ec_KSQMSsEjhVMlhdV9gnQznXdeZDdYXTRH36A/funding-and-investors — GigFinesse has raised $9.39M total over 3 rounds (latest $5.79M, May 2024) — ADDENDUM to prior memory entry which listed GigFinesse as unconfirmed; VC-backed at nearly $10M, not bootstrapped; raises competitive durability assessment upward.
 
+- [2026-05-06 05:00 UTC] https://supabase.com/changelog — Supabase "Branching without Git" is now the DEFAULT for all Supabase projects as of May 4, 2026; previously database branching required a connected GitHub repo; branches can now be created directly from the dashboard or CLI without any Git integration — Phase 0 schema work with Josh no longer requires setting up the GitHub integration before branching; simplifies iterative schema exploration.
+
+- [2026-05-06 05:00 UTC] https://nextjs.org/docs/app/guides/upgrading/version-16 — Next.js 16 introduces "use cache" directive and Cache Components: explicit opt-in caching for pages, components, and functions via `"use cache"` at the top of a file or function; `fetch()` is no longer cached by default in dynamic routes (must be explicit); `revalidateTag()` now requires a `cacheLife` profile as the second argument for stale-while-revalidate behavior — NOT in prior memory entries (which covered async params, proxy.ts, Turbopack, Node 20.9+, TS 5.1+); dos-platform scaffold must audit all data-fetching patterns and add explicit cache directives.
+
+- [2026-05-06 05:00 UTC] https://tourflip.com/ — TourFlip: new global booking, ticketing, and tour-routing platform launched 2026 by Mitch Harris (Napalm Death); venue-posting model where artists bid on shows, fans buy tickets, multi-party splits paid at source with automatic global FX handling — NEW competitor not in CLAUDE.md or any prior memory entry; positioning is marketplace/routing, not ops (no advancing/ROS/transport), so limited direct overlap with DOS moat; monitor for feature expansion.
+
+- [2026-05-06 05:00 UTC] https://www.yourtempo.com/touring-pro — YourTempo "Touring Pro": complete artist tour management software appearing in 2026 best-of lists — NEW name not previously tracked in CLAUDE.md or memory; low public detail available; add to monitor list alongside TourSync and Pollen.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
