@@ -35,6 +35,7 @@ const EXTRA_QUERIES = [
   `"tsl lighting" newer_than:180d`,
   `subject:(immigration OR "work permit" OR carnet) newer_than:90d`,
   `(DUB OR MAN OR GLA OR LHR OR ZRH OR AMS OR CDG OR PRG OR BER OR WAW) (confirmation OR receipt OR itinerary) newer_than:90d`,
+  `label:bbno$ newer_than:180d`,
 ];
 
 function extractHeaders(thread) {
@@ -345,11 +346,11 @@ async function handleBulkFetch(req, res, user, supabase) {
 
   let threadIds = [];
   try {
-    const [labelIds, ...extraResults] = await withTimeout(Promise.all([
-      gmailSearch(googleToken, "label:bbno$", 60),
+    const [subjectIds, ...extraResults] = await withTimeout(Promise.all([
+      gmailSearch(googleToken, "subject:bbno newer_than:180d", 60),
       ...EXTRA_QUERIES.map(q => gmailSearch(googleToken, q, 25).catch(() => [])),
     ]), 45000);
-    threadIds = [...new Set([...labelIds, ...extraResults.flat()])];
+    threadIds = [...new Set([...subjectIds, ...extraResults.flat()])];
   } catch (e) {
     if (e.message.includes("401") || e.message.includes("403")) return res.status(402).json({ error: "gmail_token_expired" });
     return res.status(502).json({ error: e.message });
@@ -445,11 +446,11 @@ async function handleLabelScan(req, res, user, supabase) {
 
   let threadIds = [];
   try {
-    const [labelIds, ...extraResults] = await withTimeout(Promise.all([
-      gmailSearch(googleToken, "label:bbno$", 60), // bumped from 50
+    const [subjectIds, ...extraResults] = await withTimeout(Promise.all([
+      gmailSearch(googleToken, "subject:bbno newer_than:180d", 60),
       ...EXTRA_QUERIES.map(q => gmailSearch(googleToken, q, 25).catch(() => [])),
     ]), 45000);
-    threadIds = [...new Set([...labelIds, ...extraResults.flat()])];
+    threadIds = [...new Set([...subjectIds, ...extraResults.flat()])];
   } catch (e) {
     if (e.message.includes("401") || e.message.includes("403")) return res.status(402).json({ error: "gmail_token_expired" });
     return res.status(502).json({ error: e.message });
