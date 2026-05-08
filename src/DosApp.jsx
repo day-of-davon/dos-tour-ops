@@ -3246,7 +3246,7 @@ function ShowPickerSheet(){
 }
 
 function TopBar({ss}){
-  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,setShowOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd,advances,finance,intel,cShows,currentSplit,activeSplitParty,perms,me,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows,userTypes,userAssignments}=useContext(Ctx);
+  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd,advances,finance,intel,cShows,currentSplit,activeSplitParty,perms,me,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows,userTypes,userAssignments}=useContext(Ctx);
   const[dragId,setDragId]=useState(null);
   const[overId,setOverId]=useState(null);
   const hasEvent=!!shows[sel]||(currentSplit&&activeSplitParty?.type==="show");
@@ -3318,12 +3318,6 @@ function TopBar({ss}){
         </div>
       </div>
       <div style={{padding:mobile?"3px 12px 5px":"3px 20px 5px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-        <button onClick={()=>setShowOffDays(v=>!v)} title={showOffDays?"Hide off/travel days":"Show off/travel days"} style={{display:"flex",alignItems:"center",gap:6,padding:mobile?"5px 10px":"3px 9px",borderRadius:99,border:"1px solid var(--border)",background:showOffDays?"var(--accent-pill-bg)":"var(--card-2)",cursor:"pointer",flexShrink:0,minHeight:mobile?30:undefined,transition:"background 150ms ease"}}>
-          <span style={{fontSize:mobile?10:9,fontWeight:600,color:showOffDays?T.accentSoft:T.textDim,whiteSpace:"nowrap"}}>off / travel</span>
-          <div style={{position:"relative",width:24,height:14,borderRadius:99,background:showOffDays?"var(--accent)":"var(--card-3)",transition:"background 150ms ease",flexShrink:0}}>
-            <span style={{position:"absolute",top:2,left:showOffDays?12:2,width:10,height:10,borderRadius:99,background:"#fff",transition:"left 150ms ease",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}/>
-          </div>
-        </button>
         {canPickClient&&activeClients.length>1?<select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${curClient?.color||"var(--border)"}`,background:curClient?`${curClient.color}14`:"var(--card)",color:curClient?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer",minHeight:mobile?30:undefined}}>
           {activeClients.map(c=><option key={c.id} value={c.id} style={{color:T.text,fontWeight:500}}>● {c.name} · {c.type==="festival"?"FEST":"ARTIST"}</option>)}
         </select>:<span style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${(CM.bbn?.color)||"var(--border)"}`,background:CM.bbn?`${CM.bbn.color}14`:"var(--card)",color:CM.bbn?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,whiteSpace:"nowrap",minHeight:mobile?30:undefined,display:"inline-flex",alignItems:"center"}}>● bbno$</span>}
