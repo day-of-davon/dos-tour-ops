@@ -3074,7 +3074,7 @@ function NavSidebar(){
               const ics=buildICS(events,`${(CM[aC]||{}).name||"DOS"} Tour`);
               downloadICS(`dos-tour-${aC}-${new Date().toISOString().slice(0,10)}.ics`,ics);
             }} title="Export all dates as full-day events to Google Calendar (.ics)" style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,border:"1px solid var(--border)",background:"var(--card-2)",color:T.textDim,cursor:"pointer",letterSpacing:"0.04em",lineHeight:1.2}}>📅 Export</button>
-            <button onClick={()=>{setAllShows(v=>!v);setSidebarOpen(false);}} title="All shows aggregate view" style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,border:`1px solid ${allShows?"var(--accent)":"var(--border)"}`,background:allShows?"var(--accent-pill-bg)":"var(--card-2)",color:allShows?"var(--accent)":T.textDim,cursor:"pointer",letterSpacing:"0.04em",textTransform:"uppercase",lineHeight:1.2}}>All Shows</button>
+            <button onClick={()=>{setAllShows(true);setSidebarOpen(false);}} title="All shows aggregate view" style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,border:"1px solid var(--border)",background:"var(--card-2)",color:T.textDim,cursor:"pointer",letterSpacing:"0.04em",textTransform:"uppercase",lineHeight:1.2}}>All Shows</button>
           </div>
         </div>
         {next&&<>
@@ -3313,7 +3313,7 @@ function TopBar({ss}){
         {canPickClient&&activeClients.length>1?<select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${curClient?.color||"var(--border)"}`,background:curClient?`${curClient.color}14`:"var(--card)",color:curClient?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer",minHeight:mobile?30:undefined}}>
           {activeClients.map(c=><option key={c.id} value={c.id} style={{color:T.text,fontWeight:500}}>● {c.name} · {c.type==="festival"?"FEST":"ARTIST"}</option>)}
         </select>:<span style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${(CM.bbn?.color)||"var(--border)"}`,background:CM.bbn?`${CM.bbn.color}14`:"var(--card)",color:CM.bbn?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,whiteSpace:"nowrap",minHeight:mobile?30:undefined,display:"inline-flex",alignItems:"center"}}>● bbno$</span>}
-        {!mobile&&<div style={{display:"flex",alignItems:"center",gap:4,marginLeft:8}}>
+        {!mobile&&role!=="viewer"&&<div style={{display:"flex",alignItems:"center",gap:4,marginLeft:8}}>
           <span style={{fontSize:8,color:T.textMute,fontFamily:MN,fontWeight:700,letterSpacing:"0.06em",flexShrink:0}}>TOUR</span>
           <input type="date" value={tourStart} onChange={e=>setTourStart(e.target.value)} style={{fontSize:9,padding:"2px 5px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-3)",color:T.text2,fontFamily:MN,cursor:"pointer"}}/>
           <span style={{fontSize:9,color:T.textMute}}>–</span>
@@ -5725,7 +5725,7 @@ function DriveSessionEditor({initialSessions,onSave,onCancel,onReset,hasOverride
 // Master Tour-style: chronological list on the left, editor drawer on the right. The currently-selected show
 // date (sel) drives what's displayed; header shows a prev/next stepper and jumps to the Travel Dates menu.
 function TravelDayView(){
-  const{flights,uFlight,sel,setSel,setDateMenu,shows,sorted,tourDaysSorted,crew,setShowCrew,showCrew,mobile,pushUndo,currentSplit,activeSplitParty,activeSplitPartyId,lodging}=useContext(Ctx);
+  const{flights,uFlight,sel,setSel,shows,sorted,tourDaysSorted,crew,setShowCrew,showCrew,mobile,pushUndo,currentSplit,activeSplitParty,activeSplitPartyId,lodging}=useContext(Ctx);
   const[activeId,setActiveId]=useState(null);
   const[addType,setAddType]=useState(null);
   const[travelNotes,setTravelNotes]=useState("");
@@ -5857,7 +5857,7 @@ function TravelDayView(){
         <div style={{textAlign:"right",fontSize:11,color:"var(--accent-pill-bg)",flexShrink:0}}>
           <div style={{fontWeight:700,fontSize:11,color:"#fff"}}>{fFull(sel)}</div>
           <div style={{fontSize:10,marginTop:2,letterSpacing:"0.04em",textTransform:"uppercase",color:"var(--accent-pill-border)"}}>{dayLabel}</div>
-          <button onClick={()=>setDateMenu(true)} style={{marginTop:8,background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",fontSize:10,padding:"4px 10px",borderRadius:6,cursor:"pointer",fontWeight:700}}>☰ Change Day</button>
+          {(()=>{const stepDays=(tourDaysSorted||[]);const ci=stepDays.findIndex(d=>d.date===sel);const prev=stepDays[ci-1];const next=stepDays[ci+1];const btn=(enabled,label,date)=><button disabled={!enabled} onClick={()=>enabled&&setSel(date)} style={{background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",color:enabled?"#fff":"rgba(255,255,255,0.3)",fontSize:13,padding:"3px 10px",borderRadius:6,cursor:enabled?"pointer":"default",fontWeight:700,lineHeight:1}}>{label}</button>;return<div style={{marginTop:8,display:"flex",gap:6,justifyContent:"flex-end"}}>{btn(!!prev,"‹",prev?.date)}{btn(!!next,"›",next?.date)}</div>;})()}
         </div>
       </div>
 
