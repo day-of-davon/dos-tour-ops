@@ -3270,16 +3270,12 @@ function TopBar({ss}){
   const activeClients=CLIENTS.filter(c=>c.status==="active"&&me.clients.includes(c.id)&&(role!=="viewer"||c.id==="bbn"));
   React.useEffect(()=>{if(!activeClients.find(c=>c.id===aC))setAC(activeClients[0]?.id||"bbn");},[me.clients.join(","),role]);
   React.useEffect(()=>{if(!canPickClient&&aC!=="bbn")setAC("bbn");},[canPickClient,aC,setAC]);
-  const stepBtn={background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:T.text2,fontSize:11,padding:mobile?"5px 8px":"3px 7px",cursor:"pointer",fontWeight:700,minHeight:mobile?30:undefined,lineHeight:1};
   const stepList=useMemo(()=>{
     const tourIds=new Set((tourDaysSorted||[]).map(d=>d.date));
     const extras=(sorted||[]).filter(s=>s.clientId===aC&&!tourIds.has(s.date)).map(s=>({date:s.date,type:s.type||"show"}));
     const all=[...(tourDaysSorted||[]).map(d=>({date:d.date,type:d.type})),...extras].sort((a,b)=>a.date.localeCompare(b.date));
     return showOffDays?all:all.filter(d=>d.type!=="off"&&d.type!=="travel");
   },[tourDaysSorted,sorted,showOffDays,aC]);
-  const curIdx=stepList.findIndex(d=>d.date===sel);
-  const stepDate=dir=>{if(curIdx<0)return;const ni=curIdx+dir;if(ni<0||ni>=stepList.length)return;setSel(stepList[ni].date);};
-  const canPrev=curIdx>0;const canNext=curIdx>=0&&curIdx<stepList.length-1;
   const today=new Date().toISOString().slice(0,10);
   const tabBadge=useMemo(()=>{
     const upcoming=(cShows||[]).filter(s=>s.date>=today);
@@ -3305,10 +3301,6 @@ function TopBar({ss}){
             <span style={{fontSize:15,fontWeight:300,opacity:0.9,lineHeight:1,flexShrink:0}}>≡</span>
             <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0}}>{(()=>{const s=shows[sel];const d=stepList.find(x=>x.date===sel);const dateLabel=s?`${s.city} · ${fD(sel)}`:d?.type==="travel"?`Travel · ${fD(sel)}`:d?.type==="off"?`Off · ${fD(sel)}`:sel?fD(sel):"";if(allShows)return dateLabel?`All Shows · ${dateLabel}`:"All Shows";return dateLabel||"Select";})()}</span>
           </button>
-          <div style={{display:"flex",alignItems:"center",gap:0,flexShrink:0}}>
-            <button onClick={()=>stepDate(-1)} disabled={!canPrev} title="Previous date" style={{fontSize:11,padding:"2px 7px",borderRadius:"5px 0 0 5px",border:"1px solid var(--border)",borderRight:"none",background:canPrev?"var(--card-3)":"var(--card-4)",color:canPrev?"var(--text)":"var(--text-mute)",cursor:canPrev?"pointer":"default"}}>‹</button>
-            <button onClick={()=>stepDate(1)} disabled={!canNext} title="Next date" style={{fontSize:11,padding:"2px 7px",borderRadius:"0 5px 5px 0",border:"1px solid var(--border)",background:canNext?"var(--card-3)":"var(--card-4)",color:canNext?"var(--text)":"var(--text-mute)",cursor:canNext?"pointer":"default"}}>›</button>
-          </div>
           {sel&&(()=>{const days=dU(sel);const urgColor=days<0?"var(--text-mute)":days<=7?"var(--danger-fg)":days<=14?"var(--warn-fg)":days<=21?"var(--link)":"var(--accent)";return<span style={{fontSize:10,fontFamily:MN,color:urgColor,fontWeight:700,whiteSpace:"nowrap"}}>{fD(sel)} · {days>=0?`${days}d`:`${-days}d ago`}</span>;})()}
           {!sel&&next&&<span style={{fontSize:10,fontFamily:MN,color:T.accent,fontWeight:600}}>{next.city} {fD(next.date)} · {dU(next.date)}d</span>}
         </div>
