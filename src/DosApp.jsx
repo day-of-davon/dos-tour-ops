@@ -3246,7 +3246,7 @@ function ShowPickerSheet(){
 }
 
 function TopBar({ss}){
-  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,setShowOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd,advances,finance,intel,cShows,currentSplit,activeSplitParty,perms,me,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows,userTypes,userAssignments}=useContext(Ctx);
+  const{tab,setTab,role,setRole,setCmd,next,aC,setAC,setExp,sel,setSel,shows,sorted,tourDaysSorted,orderedTabs,reorderTabs,setUploadOpen,sidebarOpen,setSidebarOpen,showOffDays,mobile,tourStart,tourEnd,setTourStart,setTourEnd,advances,finance,intel,cShows,currentSplit,activeSplitParty,perms,me,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows,userTypes,userAssignments}=useContext(Ctx);
   const[dragId,setDragId]=useState(null);
   const[overId,setOverId]=useState(null);
   const hasEvent=!!shows[sel]||(currentSplit&&activeSplitParty?.type==="show");
@@ -3270,16 +3270,12 @@ function TopBar({ss}){
   const activeClients=CLIENTS.filter(c=>c.status==="active"&&me.clients.includes(c.id)&&(role!=="viewer"||c.id==="bbn"));
   React.useEffect(()=>{if(!activeClients.find(c=>c.id===aC))setAC(activeClients[0]?.id||"bbn");},[me.clients.join(","),role]);
   React.useEffect(()=>{if(!canPickClient&&aC!=="bbn")setAC("bbn");},[canPickClient,aC,setAC]);
-  const stepBtn={background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:T.text2,fontSize:11,padding:mobile?"5px 8px":"3px 7px",cursor:"pointer",fontWeight:700,minHeight:mobile?30:undefined,lineHeight:1};
   const stepList=useMemo(()=>{
     const tourIds=new Set((tourDaysSorted||[]).map(d=>d.date));
     const extras=(sorted||[]).filter(s=>s.clientId===aC&&!tourIds.has(s.date)).map(s=>({date:s.date,type:s.type||"show"}));
     const all=[...(tourDaysSorted||[]).map(d=>({date:d.date,type:d.type})),...extras].sort((a,b)=>a.date.localeCompare(b.date));
     return showOffDays?all:all.filter(d=>d.type!=="off"&&d.type!=="travel");
   },[tourDaysSorted,sorted,showOffDays,aC]);
-  const curIdx=stepList.findIndex(d=>d.date===sel);
-  const stepDate=dir=>{if(curIdx<0)return;const ni=curIdx+dir;if(ni<0||ni>=stepList.length)return;setSel(stepList[ni].date);};
-  const canPrev=curIdx>0;const canNext=curIdx>=0&&curIdx<stepList.length-1;
   const today=new Date().toISOString().slice(0,10);
   const tabBadge=useMemo(()=>{
     const upcoming=(cShows||[]).filter(s=>s.date>=today);
@@ -3305,10 +3301,6 @@ function TopBar({ss}){
             <span style={{fontSize:15,fontWeight:300,opacity:0.9,lineHeight:1,flexShrink:0}}>≡</span>
             <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0}}>{(()=>{const s=shows[sel];const d=stepList.find(x=>x.date===sel);const dateLabel=s?`${s.city} · ${fD(sel)}`:d?.type==="travel"?`Travel · ${fD(sel)}`:d?.type==="off"?`Off · ${fD(sel)}`:sel?fD(sel):"";if(allShows)return dateLabel?`All Shows · ${dateLabel}`:"All Shows";return dateLabel||"Select";})()}</span>
           </button>
-          <div style={{display:"flex",alignItems:"center",gap:0,flexShrink:0}}>
-            <button onClick={()=>stepDate(-1)} disabled={!canPrev} title="Previous date" style={{fontSize:11,padding:"2px 7px",borderRadius:"5px 0 0 5px",border:"1px solid var(--border)",borderRight:"none",background:canPrev?"var(--card-3)":"var(--card-4)",color:canPrev?"var(--text)":"var(--text-mute)",cursor:canPrev?"pointer":"default"}}>‹</button>
-            <button onClick={()=>stepDate(1)} disabled={!canNext} title="Next date" style={{fontSize:11,padding:"2px 7px",borderRadius:"0 5px 5px 0",border:"1px solid var(--border)",background:canNext?"var(--card-3)":"var(--card-4)",color:canNext?"var(--text)":"var(--text-mute)",cursor:canNext?"pointer":"default"}}>›</button>
-          </div>
           {sel&&(()=>{const days=dU(sel);const urgColor=days<0?"var(--text-mute)":days<=7?"var(--danger-fg)":days<=14?"var(--warn-fg)":days<=21?"var(--link)":"var(--accent)";return<span style={{fontSize:10,fontFamily:MN,color:urgColor,fontWeight:700,whiteSpace:"nowrap"}}>{fD(sel)} · {days>=0?`${days}d`:`${-days}d ago`}</span>;})()}
           {!sel&&next&&<span style={{fontSize:10,fontFamily:MN,color:T.accent,fontWeight:600}}>{next.city} {fD(next.date)} · {dU(next.date)}d</span>}
         </div>
@@ -3318,12 +3310,6 @@ function TopBar({ss}){
         </div>
       </div>
       <div style={{padding:mobile?"3px 12px 5px":"3px 20px 5px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-        <button onClick={()=>setShowOffDays(v=>!v)} title={showOffDays?"Hide off/travel days":"Show off/travel days"} style={{display:"flex",alignItems:"center",gap:6,padding:mobile?"5px 10px":"3px 9px",borderRadius:99,border:"1px solid var(--border)",background:showOffDays?"var(--accent-pill-bg)":"var(--card-2)",cursor:"pointer",flexShrink:0,minHeight:mobile?30:undefined,transition:"background 150ms ease"}}>
-          <span style={{fontSize:mobile?10:9,fontWeight:600,color:showOffDays?T.accentSoft:T.textDim,whiteSpace:"nowrap"}}>off / travel</span>
-          <div style={{position:"relative",width:24,height:14,borderRadius:99,background:showOffDays?"var(--accent)":"var(--card-3)",transition:"background 150ms ease",flexShrink:0}}>
-            <span style={{position:"absolute",top:2,left:showOffDays?12:2,width:10,height:10,borderRadius:99,background:"#fff",transition:"left 150ms ease",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}/>
-          </div>
-        </button>
         {canPickClient&&activeClients.length>1?<select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${curClient?.color||"var(--border)"}`,background:curClient?`${curClient.color}14`:"var(--card)",color:curClient?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer",minHeight:mobile?30:undefined}}>
           {activeClients.map(c=><option key={c.id} value={c.id} style={{color:T.text,fontWeight:500}}>● {c.name} · {c.type==="festival"?"FEST":"ARTIST"}</option>)}
         </select>:<span style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${(CM.bbn?.color)||"var(--border)"}`,background:CM.bbn?`${CM.bbn.color}14`:"var(--card)",color:CM.bbn?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,whiteSpace:"nowrap",minHeight:mobile?30:undefined,display:"inline-flex",alignItems:"center"}}>● bbno$</span>}
