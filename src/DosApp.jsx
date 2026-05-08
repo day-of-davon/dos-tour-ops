@@ -2964,6 +2964,44 @@ function SignOut(){
   return <button title={user.email} onClick={()=>supabase.auth.signOut().catch(e=>console.warn("[signout]",e?.message||e))} style={{width:22,height:22,borderRadius:"50%",background:"var(--accent)",color:"#fff",fontSize:10,fontWeight:700,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{initial}</button>;
 }
 
+function UserMenu({role,setRole,visibleRoles,setUploadOpen,setCmd,commentMode,setCommentMode,setExp,canUpload,canCmd}){
+  const a=useAuth();const user=a?.user;
+  const[open,setOpen]=useState(false);
+  const[theme,setTheme]=useState(()=>{try{return localStorage.getItem("dos-theme")||"dark";}catch{return "dark";}});
+  const ref=useRef(null);
+  useEffect(()=>{if(!open)return;const onDoc=e=>{if(ref.current&&!ref.current.contains(e.target))setOpen(false);};document.addEventListener("mousedown",onDoc);return()=>document.removeEventListener("mousedown",onDoc);},[open]);
+  const toggleTheme=()=>{const next=theme==="dark"?"light":"dark";setTheme(next);try{localStorage.setItem("dos-theme",next);}catch{}document.documentElement.setAttribute("data-theme",next);};
+  if(!user)return null;
+  const initial=(user.email||"?").trim()[0].toUpperCase();
+  const close=()=>setOpen(false);
+  const row={display:"flex",alignItems:"center",gap:8,padding:"7px 10px",fontSize:11,color:T.text2,background:"transparent",border:"none",cursor:"pointer",textAlign:"left",width:"100%",borderRadius:6,fontWeight:500};
+  const iconStyle={width:18,fontSize:12,textAlign:"center",flexShrink:0};
+  return(
+    <div ref={ref} style={{position:"relative"}}>
+      <button title={user.email} onClick={()=>setOpen(v=>!v)} style={{width:24,height:24,borderRadius:"50%",background:open?"var(--accent-soft)":"var(--accent)",color:"#fff",fontSize:11,fontWeight:700,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{initial}</button>
+      {open&&(
+        <div style={{position:"absolute",top:30,right:0,minWidth:220,background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,boxShadow:"0 10px 28px rgba(0,0,0,0.45)",padding:6,zIndex:90,display:"flex",flexDirection:"column",gap:1}}>
+          <div style={{padding:"6px 10px 4px",fontSize:9,color:T.textMute,fontFamily:MN,fontWeight:700,letterSpacing:"0.08em"}}>{user.email}</div>
+          {visibleRoles?.length>0&&<>
+            <div style={{padding:"4px 10px 2px",fontSize:8,color:T.textMute,fontFamily:MN,fontWeight:700,letterSpacing:"0.08em"}}>ROLE</div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:3,padding:"2px 8px 6px"}}>
+              {visibleRoles.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:10,fontWeight:role===r.id?700:500,padding:"4px 8px",borderRadius:6,border:"1px solid var(--border)",cursor:"pointer",background:role===r.id?"var(--accent-pill-bg)":"var(--card-2)",color:role===r.id?r.c:"var(--text-dim)"}}>{r.label}</button>)}
+            </div>
+            <div style={{height:1,background:"var(--border)",margin:"4px 6px"}}/>
+          </>}
+          {canUpload&&<button onClick={()=>{setUploadOpen(true);close();}} style={row}><span style={iconStyle}>↑</span>Upload</button>}
+          <button onClick={()=>{setExp(true);close();}} style={row}><span style={iconStyle}>⇅</span>Export / Import</button>
+          {canCmd&&<button onClick={()=>{setCmd(true);close();}} style={row}><span style={iconStyle}>⌘</span>Command palette<span style={{marginLeft:"auto",fontSize:9,color:T.textMute,fontFamily:MN}}>⌘K</span></button>}
+          <button onClick={()=>{setCommentMode(v=>!v);close();}} style={{...row,color:commentMode?T.accent:T.text2}}><span style={iconStyle}>💬</span>{commentMode?"Exit comment mode":"Leave feedback"}</button>
+          <button onClick={()=>{toggleTheme();}} style={row}><span style={iconStyle}>{theme==="dark"?"☼":"☾"}</span>{theme==="dark"?"Light theme":"Dark theme"}</button>
+          <div style={{height:1,background:"var(--border)",margin:"4px 6px"}}/>
+          <button onClick={()=>{supabase.auth.signOut().catch(e=>console.warn("[signout]",e?.message||e));close();}} style={{...row,color:"var(--danger-fg)"}}><span style={iconStyle}>⎋</span>Sign out</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── NAV SIDEBAR ──────────────────────────────────────────────────────────────
 
 function NavSidebar(){
@@ -3227,8 +3265,11 @@ function TopBar({ss}){
       ?_allRoleOptions.filter(r=>r.id===_assignedRole)
       :ROLES.filter(r=>r.id==="viewer");
   const curClient=CM[aC];
+  const _clientPickerEmails=new Set(["d.johnson@dayofshow.net","o.mims@dayofshow.net","advance@dayofshow.net"]);
+  const canPickClient=_clientPickerEmails.has(_email);
   const activeClients=CLIENTS.filter(c=>c.status==="active"&&me.clients.includes(c.id)&&(role!=="viewer"||c.id==="bbn"));
   React.useEffect(()=>{if(!activeClients.find(c=>c.id===aC))setAC(activeClients[0]?.id||"bbn");},[me.clients.join(","),role]);
+  React.useEffect(()=>{if(!canPickClient&&aC!=="bbn")setAC("bbn");},[canPickClient,aC,setAC]);
   const stepBtn={background:"var(--card-3)",border:"1px solid var(--border)",borderRadius:6,color:T.text2,fontSize:11,padding:mobile?"5px 8px":"3px 7px",cursor:"pointer",fontWeight:700,minHeight:mobile?30:undefined,lineHeight:1};
   const stepList=useMemo(()=>{
     const tourIds=new Set((tourDaysSorted||[]).map(d=>d.date));
@@ -3262,28 +3303,18 @@ function TopBar({ss}){
             setSidebarOpen(v=>!v);
           }} title="Navigation" style={{display:"flex",alignItems:"center",gap:6,padding:"5px 10px",borderRadius:8,background:sidebarOpen?"var(--accent-soft)":"var(--accent)",color:"#fff",border:"none",cursor:"pointer",fontWeight:700,fontSize:11,letterSpacing:"-0.01em",flexShrink:1,minWidth:0,maxWidth:240,lineHeight:1,transition:"background 150ms ease"}}>
             <span style={{fontSize:15,fontWeight:300,opacity:0.9,lineHeight:1,flexShrink:0}}>≡</span>
-            <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0}}>{(()=>{if(allShows)return"All Shows";const s=shows[sel];const d=stepList.find(x=>x.date===sel);if(s)return`${s.city} · ${fD(sel)}`;if(d?.type==="travel")return`Travel · ${fD(sel)}`;if(d?.type==="off")return`Off · ${fD(sel)}`;return sel?fD(sel):"Select";})()}</span>
+            <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0}}>{(()=>{const s=shows[sel];const d=stepList.find(x=>x.date===sel);const dateLabel=s?`${s.city} · ${fD(sel)}`:d?.type==="travel"?`Travel · ${fD(sel)}`:d?.type==="off"?`Off · ${fD(sel)}`:sel?fD(sel):"";if(allShows)return dateLabel?`All Shows · ${dateLabel}`:"All Shows";return dateLabel||"Select";})()}</span>
           </button>
           <div style={{display:"flex",alignItems:"center",gap:0,flexShrink:0}}>
             <button onClick={()=>stepDate(-1)} disabled={!canPrev} title="Previous date" style={{fontSize:11,padding:"2px 7px",borderRadius:"5px 0 0 5px",border:"1px solid var(--border)",borderRight:"none",background:canPrev?"var(--card-3)":"var(--card-4)",color:canPrev?"var(--text)":"var(--text-mute)",cursor:canPrev?"pointer":"default"}}>‹</button>
             <button onClick={()=>stepDate(1)} disabled={!canNext} title="Next date" style={{fontSize:11,padding:"2px 7px",borderRadius:"0 5px 5px 0",border:"1px solid var(--border)",background:canNext?"var(--card-3)":"var(--card-4)",color:canNext?"var(--text)":"var(--text-mute)",cursor:canNext?"pointer":"default"}}>›</button>
           </div>
-          {next&&<span style={{fontSize:10,fontFamily:MN,color:T.accent,fontWeight:600}}>{next.city} {fD(next.date)} · {dU(next.date)}d</span>}
+          {sel&&(()=>{const days=dU(sel);const urgColor=days<0?"var(--text-mute)":days<=7?"var(--danger-fg)":days<=14?"var(--warn-fg)":days<=21?"var(--link)":"var(--accent)";return<span style={{fontSize:10,fontFamily:MN,color:urgColor,fontWeight:700,whiteSpace:"nowrap"}}>{fD(sel)} · {days>=0?`${days}d`:`${-days}d ago`}</span>;})()}
+          {!sel&&next&&<span style={{fontSize:10,fontFamily:MN,color:T.accent,fontWeight:600}}>{next.city} {fD(next.date)} · {dU(next.date)}d</span>}
         </div>
-        {!mobile&&<div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2,flexShrink:0}}>
-          <span style={{fontSize:9,color:T.textMute,fontFamily:MN,fontWeight:700,letterSpacing:"0.08em"}}>ROLE</span>
-          <div style={{display:"flex",gap:2,background:"var(--border)",borderRadius:6,padding:2}}>
-            {visibleRoles.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:10,fontWeight:role===r.id?700:500,padding:"4px 8px",borderRadius:6,border:"none",cursor:"pointer",background:role===r.id?"var(--card)":"transparent",color:role===r.id?r.c:"var(--text-dim)",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
-          </div>
-        </div>}
         <div style={{display:"flex",alignItems:"center",gap:mobile?4:8,flexShrink:0,minWidth:0,maxWidth:"100%"}}>
           {ss&&!mobile&&<span style={{fontSize:9,color:ss==="saved"?"var(--success-fg)":"var(--text-mute)",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
-          {role==="tm_td"&&<Button variant="secondary" size="sm" onClick={()=>setUploadOpen(true)} title="Upload document" style={mobile?{fontSize:11,padding:"5px 9px",minHeight:30}:{fontSize:9}}>{mobile?"↑":"↑ Upload"}</Button>}
-          <Button variant="secondary" size="sm" onClick={()=>setExp(true)} title="Export / Import" style={mobile?{fontSize:11,padding:"5px 9px",minHeight:30}:{fontSize:9}}>⇅</Button>
-          {role==="tm_td"&&<Button variant="secondary" size="sm" onClick={()=>setCmd(true)} title="Command palette (⌘K)" style={mobile?{fontSize:11,padding:"5px 9px",minHeight:30}:{fontSize:9}}>{mobile?"⌘":"⌘K"}</Button>}
-          <button onClick={()=>setCommentMode(v=>!v)} title={commentMode?"Exit comment mode":"Leave feedback / report a bug"} style={{fontSize:mobile?13:11,padding:mobile?"5px 9px":"4px 8px",borderRadius:6,border:`1.5px solid ${commentMode?"var(--accent)":"var(--border)"}`,background:commentMode?"var(--accent-pill-bg)":"var(--card-2)",color:commentMode?"var(--accent)":"var(--text-dim)",cursor:"pointer",display:"flex",alignItems:"center",gap:4,minHeight:mobile?30:undefined,fontWeight:commentMode?700:500}}>💬{!mobile&&<span style={{fontSize:9}}>{commentMode?"exit":"feedback"}</span>}</button>
-          <ThemeToggle/>
-          <SignOut/>
+          <UserMenu role={role} setRole={setRole} visibleRoles={visibleRoles} setUploadOpen={setUploadOpen} setCmd={setCmd} commentMode={commentMode} setCommentMode={setCommentMode} setExp={setExp} canUpload={role==="tm_td"} canCmd={role==="tm_td"}/>
         </div>
       </div>
       <div style={{padding:mobile?"3px 12px 5px":"3px 20px 5px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
@@ -3293,21 +3324,16 @@ function TopBar({ss}){
             <span style={{position:"absolute",top:2,left:showOffDays?12:2,width:10,height:10,borderRadius:99,background:"#fff",transition:"left 150ms ease",boxShadow:"0 1px 3px rgba(0,0,0,0.3)"}}/>
           </div>
         </button>
-        {activeClients.length>1&&<select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${curClient?.color||"var(--border)"}`,background:curClient?`${curClient.color}14`:"var(--card)",color:curClient?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer",minHeight:mobile?30:undefined}}>
+        {canPickClient&&activeClients.length>1?<select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${curClient?.color||"var(--border)"}`,background:curClient?`${curClient.color}14`:"var(--card)",color:curClient?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer",minHeight:mobile?30:undefined}}>
           {activeClients.map(c=><option key={c.id} value={c.id} style={{color:T.text,fontWeight:500}}>● {c.name} · {c.type==="festival"?"FEST":"ARTIST"}</option>)}
-        </select>}
+        </select>:<span style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${(CM.bbn?.color)||"var(--border)"}`,background:CM.bbn?`${CM.bbn.color}14`:"var(--card)",color:CM.bbn?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,whiteSpace:"nowrap",minHeight:mobile?30:undefined,display:"inline-flex",alignItems:"center"}}>● bbno$</span>}
         {!mobile&&<div style={{display:"flex",alignItems:"center",gap:4,marginLeft:8}}>
           <span style={{fontSize:8,color:T.textMute,fontFamily:MN,fontWeight:700,letterSpacing:"0.06em",flexShrink:0}}>TOUR</span>
           <input type="date" value={tourStart} onChange={e=>setTourStart(e.target.value)} style={{fontSize:9,padding:"2px 5px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-3)",color:T.text2,fontFamily:MN,cursor:"pointer"}}/>
           <span style={{fontSize:9,color:T.textMute}}>–</span>
           <input type="date" value={tourEnd} onChange={e=>setTourEnd(e.target.value)} style={{fontSize:9,padding:"2px 5px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-3)",color:T.text2,fontFamily:MN,cursor:"pointer"}}/>
         </div>}
-        {mobile&&<div style={{display:"flex",alignItems:"center",gap:6,marginLeft:"auto"}}>
-          <div style={{display:"flex",gap:2,background:"var(--border)",borderRadius:6,padding:2}}>
-            {visibleRoles.map(r=><button key={r.id} onClick={()=>setRole(r.id)} style={{fontSize:10,fontWeight:role===r.id?700:500,padding:"4px 8px",borderRadius:6,border:"none",cursor:"pointer",background:role===r.id?"var(--card)":"transparent",color:role===r.id?r.c:"var(--text-dim)",boxShadow:role===r.id?"0 1px 3px rgba(0,0,0,.1)":"none"}}>{r.label}</button>)}
-          </div>
-          {ss&&<span style={{fontSize:9,color:ss==="saved"?"var(--success-fg)":"var(--text-mute)",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
-        </div>}
+        {mobile&&ss&&<span style={{fontSize:9,color:ss==="saved"?"var(--success-fg)":"var(--text-mute)",fontFamily:MN,fontWeight:600,marginLeft:"auto"}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
       </div>
       <div style={{display:"flex",padding:mobile?"0 12px":"0 20px",width:"100%",overflowX:"auto",overflowY:"hidden",scrollbarWidth:"thin",WebkitOverflowScrolling:"touch"}}>
         {(orderedTabs||TABS).filter(t=>(hasEvent||t.id!=="advance"&&t.id!=="production")&&(!allShows||(t.id!=="advance"&&t.id!=="production"&&t.id!=="ros"))&&canAccessTab(t.id)).map(t=>{
