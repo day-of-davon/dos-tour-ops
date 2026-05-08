@@ -1818,7 +1818,6 @@ export default function App(){
           <span style={{fontSize:9,fontWeight:500,color:T.textDim,letterSpacing:0}}>Edits are disabled. Switch to TM/TD or Internal in the role pill to edit.</span>
         </div>}
         <TopBar ss={ss}/>
-        <ContextBar/>
         <div style={{flex:1,display:"flex",flexDirection:"row",minWidth:0,minHeight:0,width:"100%",overflow:"visible",position:"relative"}}>
           <NavSidebar/>
           <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,minHeight:0,overflow:"hidden"}}>
@@ -3301,8 +3300,7 @@ function TopBar({ss}){
             <span style={{fontSize:15,fontWeight:300,opacity:0.9,lineHeight:1,flexShrink:0}}>≡</span>
             <span style={{whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0}}>{(()=>{const s=shows[sel];const d=stepList.find(x=>x.date===sel);const dateLabel=s?`${s.city} · ${fD(sel)}`:d?.type==="travel"?`Travel · ${fD(sel)}`:d?.type==="off"?`Off · ${fD(sel)}`:sel?fD(sel):"";if(allShows)return dateLabel?`All Shows · ${dateLabel}`:"All Shows";return dateLabel||"Select";})()}</span>
           </button>
-          {sel&&(()=>{const days=dU(sel);const urgColor=days<0?"var(--text-mute)":days<=7?"var(--danger-fg)":days<=14?"var(--warn-fg)":days<=21?"var(--link)":"var(--accent)";return<span style={{fontSize:10,fontFamily:MN,color:urgColor,fontWeight:700,whiteSpace:"nowrap"}}>{fD(sel)} · {days>=0?`${days}d`:`${-days}d ago`}</span>;})()}
-          {!sel&&next&&<span style={{fontSize:10,fontFamily:MN,color:T.accent,fontWeight:600}}>{next.city} {fD(next.date)} · {dU(next.date)}d</span>}
+          {(()=>{const show=shows?.[sel];if(show){const adv=advances[sel]||{};const pc=[...AT,...(adv.customItems||[])].filter(t=>((adv.items||{})[t.id]?.status||"pending")==="pending").length;const fStages=finance[sel]?.stages||{};const settled=["wire_ref_confirmed","signed_sheet","payment_initiated"].every(k=>fStages[k]);const days=dU(sel);const dayC=days<0?"var(--text-mute)":days===0?"var(--danger-fg)":days<=7?"var(--warn-fg)":days<=14?"var(--link)":"var(--text-mute)";return<div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flexShrink:1,overflow:"hidden"}}><span style={{padding:"1px 6px",borderRadius:4,background:dayC+"22",color:dayC,fontWeight:800,fontFamily:MN,whiteSpace:"nowrap",fontSize:9,flexShrink:0}}>{days===0?"TODAY":days>0?`${days}d`:`${-days}d ago`}</span><span onClick={()=>setTab("advance")} style={{cursor:"pointer",color:pc>0?"var(--warn-fg)":"var(--text-mute)",fontWeight:pc>0?700:400,whiteSpace:"nowrap",fontSize:9,fontFamily:MN,flexShrink:0}}>{pc} open</span><span style={{display:"flex",alignItems:"center",gap:4,color:T.textMute,whiteSpace:"nowrap",fontSize:9,fontFamily:MN,flexShrink:0}}><span style={{width:6,height:6,borderRadius:99,background:settled?"var(--success-fg)":"var(--text-mute)",display:"inline-block",flexShrink:0}}/>{settled?"SETTLED":"OUTSTANDING"}</span></div>;}if(!sel&&next)return<span style={{fontSize:10,fontFamily:MN,color:T.accent,fontWeight:600,whiteSpace:"nowrap"}}>{next.city} {fD(next.date)} · {dU(next.date)}d</span>;return null;})()}
         </div>
         <div style={{display:"flex",alignItems:"center",gap:mobile?4:8,flexShrink:0,minWidth:0,maxWidth:"100%"}}>
           {ss&&!mobile&&<span style={{fontSize:9,color:ss==="saved"?"var(--success-fg)":"var(--text-mute)",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
@@ -4643,13 +4641,13 @@ function EventSwitcher({show,sel}){
   const[adding,setAdding]=useState(false);
   const[newName,setNewName]=useState("");
   const[delId,setDelId]=useState(null);
-  const BAR={minHeight:56,borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",alignItems:"center"};
-  if(!show)return <div style={{...BAR,minHeight:40}}/>;
+  const BAR={minHeight:36,borderBottom:"1px solid var(--border)",background:"var(--card)",display:"flex",alignItems:"center"};
+  if(!show)return <div style={{...BAR,minHeight:28}}/>;
   const subEvents=show.subEvents||[];
   const DOTS=["#16a34a","#2563eb","#d97706","#9333ea","#dc2626","#0891b2"];
   const crewCount=k=>Object.values(showCrew?.[k]||{}).filter(v=>v&&(v.going||v.status==="going"||v===true)).length;
   const EventTab=({active,onClick,dotColor,name,sub,children})=>(
-    <button onClick={onClick} style={{display:"flex",alignItems:"center",gap:8,padding:"8px 16px",border:"none",borderBottom:active?"2px solid var(--text)":"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,textAlign:"left",minHeight:56}}>
+    <button onClick={onClick} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 14px",border:"none",borderBottom:active?"2px solid var(--text)":"2px solid transparent",background:"none",cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,textAlign:"left",minHeight:36}}>
       <span style={{width:8,height:8,borderRadius:"50%",background:dotColor,flexShrink:0}}/>
       <span style={{display:"flex",flexDirection:"column",gap:1,lineHeight:1.2}}>
         <span style={{fontSize:13,fontWeight:700,color:active?"var(--text)":"var(--text-dim)"}}>{name}</span>
