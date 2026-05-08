@@ -3304,13 +3304,13 @@ function TopBar({ss}){
         </div>
         <div style={{display:"flex",alignItems:"center",gap:mobile?4:8,flexShrink:0,minWidth:0,maxWidth:"100%"}}>
           {ss&&!mobile&&<span style={{fontSize:9,color:ss==="saved"?"var(--success-fg)":"var(--text-mute)",fontFamily:MN,fontWeight:600}}>{ss==="saving"?"saving...":"saved ✓"}</span>}
+          {canPickClient&&activeClients.length>1?<select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${curClient?.color||"var(--border)"}`,background:curClient?`${curClient.color}14`:"var(--card)",color:curClient?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer",minHeight:mobile?30:undefined}}>
+            {activeClients.map(c=><option key={c.id} value={c.id} style={{color:T.text,fontWeight:500}}>● {c.name} · {c.type==="festival"?"FEST":"ARTIST"}</option>)}
+          </select>:<span style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${(CM.bbn?.color)||"var(--border)"}`,background:CM.bbn?`${CM.bbn.color}14`:"var(--card)",color:CM.bbn?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,whiteSpace:"nowrap",minHeight:mobile?30:undefined,display:"inline-flex",alignItems:"center"}}>● bbno$</span>}
           <UserMenu role={role} setRole={setRole} visibleRoles={visibleRoles} setUploadOpen={setUploadOpen} setCmd={setCmd} commentMode={commentMode} setCommentMode={setCommentMode} setExp={setExp} canUpload={role==="tm_td"} canCmd={role==="tm_td"}/>
         </div>
       </div>
       <div style={{padding:mobile?"3px 12px 5px":"3px 20px 5px",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
-        {canPickClient&&activeClients.length>1?<select value={aC} onChange={e=>setAC(e.target.value)} style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${curClient?.color||"var(--border)"}`,background:curClient?`${curClient.color}14`:"var(--card)",color:curClient?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,cursor:"pointer",minHeight:mobile?30:undefined}}>
-          {activeClients.map(c=><option key={c.id} value={c.id} style={{color:T.text,fontWeight:500}}>● {c.name} · {c.type==="festival"?"FEST":"ARTIST"}</option>)}
-        </select>:<span style={{fontSize:mobile?11:10,padding:mobile?"5px 12px":"3px 9px",borderRadius:99,border:`1.5px solid ${(CM.bbn?.color)||"var(--border)"}`,background:CM.bbn?`${CM.bbn.color}14`:"var(--card)",color:CM.bbn?.color||"var(--text-2)",fontFamily:"'Outfit',system-ui",fontWeight:700,whiteSpace:"nowrap",minHeight:mobile?30:undefined,display:"inline-flex",alignItems:"center"}}>● bbno$</span>}
         {!mobile&&role!=="viewer"&&<div style={{display:"flex",alignItems:"center",gap:4,marginLeft:8}}>
           <span style={{fontSize:8,color:T.textMute,fontFamily:MN,fontWeight:700,letterSpacing:"0.06em",flexShrink:0}}>TOUR</span>
           <input type="date" value={tourStart} onChange={e=>setTourStart(e.target.value)} style={{fontSize:9,padding:"2px 5px",borderRadius:6,border:"1px solid var(--border)",background:"var(--card-3)",color:T.text2,fontFamily:MN,cursor:"pointer"}}/>
