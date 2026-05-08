@@ -3115,7 +3115,7 @@ function NavSidebar(){
             const dt=dateStr.getDate();
             const wd=dateStr.toLocaleString("en-US",{weekday:"short"});
             return(
-              <div key={d.date} ref={isSel?selRef:null} onClick={()=>{setSel(d.date);setSidebarOpen(false);}} className="rh" style={{display:"flex",alignItems:"center",gap:0,padding:"6px 10px 6px 0",cursor:"pointer",background:isSel?"rgba(91,33,182,0.16)":"transparent",borderLeft:isSel?"3px solid var(--accent-soft)":"3px solid transparent",opacity:isOff?0.65:1,boxShadow:isSel?"inset 0 0 0 1px rgba(124,58,237,0.18)":undefined}}>
+              <div key={d.date} ref={isSel?selRef:null} onClick={()=>{setSel(d.date);setAllShows(false);setSidebarOpen(false);}} className="rh" style={{display:"flex",alignItems:"center",gap:0,padding:"6px 10px 6px 0",cursor:"pointer",background:isSel?"rgba(91,33,182,0.16)":"transparent",borderLeft:isSel?"3px solid var(--accent-soft)":"3px solid transparent",opacity:isOff?0.65:1,boxShadow:isSel?"inset 0 0 0 1px rgba(124,58,237,0.18)":undefined}}>
                 <div style={{width:46,flexShrink:0,textAlign:"center"}}>
                   <div style={{fontSize:8,fontWeight:700,color:isSel?"var(--link)":"var(--text-mute)",fontFamily:MN,letterSpacing:"0.04em"}}>{wd.toUpperCase()}</div>
                   <div style={{fontSize:13,fontWeight:800,color:isSel?"var(--accent-pill-border)":"var(--text)",lineHeight:1}}>{dt}</div>
@@ -3180,7 +3180,7 @@ function NavSidebar(){
 }
 
 function ShowPickerSheet(){
-  const{showPickerOpen,setShowPickerOpen,sel,setSel,shows,sorted,tourDaysSorted,showOffDays,aC,mobile,tab,setTab}=useContext(Ctx);
+  const{showPickerOpen,setShowPickerOpen,sel,setSel,shows,sorted,tourDaysSorted,showOffDays,aC,mobile,tab,setTab,allShows,setAllShows}=useContext(Ctx);
   const[q,setQ]=useState("");
   const inputRef=useRef(null);
   useEffect(()=>{if(showPickerOpen)setTimeout(()=>inputRef.current?.focus(),80);},[showPickerOpen]);
@@ -3206,7 +3206,7 @@ function ShowPickerSheet(){
     });
     return Object.entries(m);
   },[rows]);
-  const pick=(date)=>{setSel(date);if(tab==="dash")setTab("ros");setShowPickerOpen(false);};
+  const pick=(date)=>{setSel(date);setAllShows(false);if(tab==="dash"||allShows)setTab("ros");setShowPickerOpen(false);};
   if(!showPickerOpen)return null;
   const sheetH=mobile?"72vh":"56vh";
   return(
@@ -5029,7 +5029,7 @@ function TourCalendar(){
     setCalcRows(p=>({...p,[iso]:false}));
   };
   const crewById=useMemo(()=>DEFAULT_CREW.reduce((a,c)=>{a[c.id]=c;return a},{}),[]);
-  const openDay=iso=>{setSel(iso);};
+  const openDay=iso=>{setSel(iso);setAllShows(false);};
   const busMap=useMemo(()=>{
     const m={};
     BUS_DATA.forEach(d=>{
