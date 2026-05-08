@@ -1389,7 +1389,7 @@ export default function App(){
   const[dateMenu,setDateMenu]=useState(false);
   const[showOffDays,setShowOffDays]=useState(true);
   const[sidebarOpen,setSidebarOpen]=useState(true);
-  const[transView,setTransView]=useState("flights");
+  const[transView,setTransView]=useState("travel");
   const[allShows,setAllShowsState]=useState(false);
   const setAllShows=useCallback(v=>setAllShowsState(typeof v==="function"?v:!!v),[]);
   // Per-date active split-party id. Absent entries fall back to the first party.
@@ -4967,7 +4967,7 @@ function ROSTab(){
 }
 
 function TourCalendar(){
-  const{setSel,setTab,flights,uFlight,effectiveSplitDays,allShows,setAllShows,busEdits,uBusEdit}=useContext(Ctx);
+  const{setSel,setTab,flights,uFlight,effectiveSplitDays,allShows,setAllShows,busEdits,uBusEdit,setTransView}=useContext(Ctx);
   const importBusLegs=()=>{
     const base=new Date('2026-05-02T12:00:00');
     BUS_DATA.forEach(d=>{
@@ -5013,7 +5013,7 @@ function TourCalendar(){
     setCalcRows(p=>({...p,[iso]:false}));
   };
   const crewById=useMemo(()=>DEFAULT_CREW.reduce((a,c)=>{a[c.id]=c;return a},{}),[]);
-  const openDay=iso=>{setSel(iso);setAllShows(false);};
+  const openDay=iso=>{setSel(iso);setAllShows(false);setTransView("drive");};
   const busMap=useMemo(()=>{
     const m={};
     BUS_DATA.forEach(d=>{
