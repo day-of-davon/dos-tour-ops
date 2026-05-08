@@ -5013,7 +5013,8 @@ function TourCalendar(){
     setCalcRows(p=>({...p,[iso]:false}));
   };
   const crewById=useMemo(()=>DEFAULT_CREW.reduce((a,c)=>{a[c.id]=c;return a},{}),[]);
-  const openDay=iso=>{setSel(iso);setAllShows(false);setTransView("drive");};
+  const openDay=(iso,type)=>{setSel(iso);if(type==="travel"){if(allShows)setAllShows(false);setTransView("drive");}};
+
   const busMap=useMemo(()=>{
     const m={};
     BUS_DATA.forEach(d=>{
@@ -5110,7 +5111,7 @@ function TourCalendar(){
               <React.Fragment key={d.iso}>
               <div style={{borderBottom:i<arr.length-1?"1px solid var(--card-3)":"none"}}>
               <div
-                onClick={()=>openDay(d.iso)}
+                onClick={()=>openDay(d.iso,d.type)}
                 className="rh"
                 style={{display:"grid",gridTemplateColumns:"76px 58px 1fr auto",alignItems:"center",gap:8,padding:isOff?"5px 12px":"8px 12px",background:d.type==="show"?"var(--muted-bg)":d.type==="travel"?"var(--info-bg)":d.type==="split"?"var(--warn-bg)":"var(--card)",cursor:"pointer",opacity:isOff?0.65:1,borderLeft:d.type==="show"?"3px solid var(--success-fg)":"3px solid transparent"}}
               >
