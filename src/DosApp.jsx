@@ -3074,7 +3074,7 @@ function NavSidebar(){
               const ics=buildICS(events,`${(CM[aC]||{}).name||"DOS"} Tour`);
               downloadICS(`dos-tour-${aC}-${new Date().toISOString().slice(0,10)}.ics`,ics);
             }} title="Export all dates as full-day events to Google Calendar (.ics)" style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,border:"1px solid var(--border)",background:"var(--card-2)",color:T.textDim,cursor:"pointer",letterSpacing:"0.04em",lineHeight:1.2}}>📅 Export</button>
-            <button onClick={()=>{setAllShows(v=>!v);setSidebarOpen(false);}} title="All shows aggregate view" style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,border:`1px solid ${allShows?"var(--accent)":"var(--border)"}`,background:allShows?"var(--accent-pill-bg)":"var(--card-2)",color:allShows?"var(--accent)":T.textDim,cursor:"pointer",letterSpacing:"0.04em",textTransform:"uppercase",lineHeight:1.2}}>All Shows</button>
+            <button onClick={()=>{setAllShows(true);setSidebarOpen(false);}} title="All shows aggregate view" style={{fontSize:9,fontWeight:700,padding:"2px 8px",borderRadius:99,border:"1px solid var(--border)",background:"var(--card-2)",color:T.textDim,cursor:"pointer",letterSpacing:"0.04em",textTransform:"uppercase",lineHeight:1.2}}>All Shows</button>
           </div>
         </div>
         {next&&<>
