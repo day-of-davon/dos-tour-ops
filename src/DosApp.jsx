@@ -5725,7 +5725,7 @@ function DriveSessionEditor({initialSessions,onSave,onCancel,onReset,hasOverride
 // Master Tour-style: chronological list on the left, editor drawer on the right. The currently-selected show
 // date (sel) drives what's displayed; header shows a prev/next stepper and jumps to the Travel Dates menu.
 function TravelDayView(){
-  const{flights,uFlight,sel,setSel,setDateMenu,shows,sorted,tourDaysSorted,crew,setShowCrew,showCrew,mobile,pushUndo,currentSplit,activeSplitParty,activeSplitPartyId,lodging}=useContext(Ctx);
+  const{flights,uFlight,sel,setSel,shows,sorted,tourDaysSorted,crew,setShowCrew,showCrew,mobile,pushUndo,currentSplit,activeSplitParty,activeSplitPartyId,lodging}=useContext(Ctx);
   const[activeId,setActiveId]=useState(null);
   const[addType,setAddType]=useState(null);
   const[travelNotes,setTravelNotes]=useState("");
@@ -5857,7 +5857,7 @@ function TravelDayView(){
         <div style={{textAlign:"right",fontSize:11,color:"var(--accent-pill-bg)",flexShrink:0}}>
           <div style={{fontWeight:700,fontSize:11,color:"#fff"}}>{fFull(sel)}</div>
           <div style={{fontSize:10,marginTop:2,letterSpacing:"0.04em",textTransform:"uppercase",color:"var(--accent-pill-border)"}}>{dayLabel}</div>
-          <button onClick={()=>setDateMenu(true)} style={{marginTop:8,background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",fontSize:10,padding:"4px 10px",borderRadius:6,cursor:"pointer",fontWeight:700}}>☰ Change Day</button>
+          {(()=>{const stepDays=(tourDaysSorted||[]);const ci=stepDays.findIndex(d=>d.date===sel);const prev=stepDays[ci-1];const next=stepDays[ci+1];const btn=(enabled,label,date)=><button disabled={!enabled} onClick={()=>enabled&&setSel(date)} style={{background:"rgba(255,255,255,0.12)",border:"1px solid rgba(255,255,255,0.2)",color:enabled?"#fff":"rgba(255,255,255,0.3)",fontSize:13,padding:"3px 10px",borderRadius:6,cursor:enabled?"pointer":"default",fontWeight:700,lineHeight:1}}>{label}</button>;return<div style={{marginTop:8,display:"flex",gap:6,justifyContent:"flex-end"}}>{btn(!!prev,"‹",prev?.date)}{btn(!!next,"›",next?.date)}</div>;})()}
         </div>
       </div>
 
