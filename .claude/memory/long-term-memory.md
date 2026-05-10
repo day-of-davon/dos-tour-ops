@@ -170,6 +170,12 @@
 
 - [2026-05-06 05:00 UTC] https://www.yourtempo.com/touring-pro — YourTempo "Touring Pro": complete artist tour management software appearing in 2026 best-of lists — NEW name not previously tracked in CLAUDE.md or memory; low public detail available; add to monitor list alongside TourSync and Pollen.
 
+- [2026-05-10 04:00 UTC] https://supabase.com/changelog — Supabase new API key model announced: replacing long-lived JWT-based anon and service_role keys with a new format; legacy JWT keys will be removed in late 2026 — both dos-tour-ops (uses anon key for client access) and dos-platform must plan key rotation before late 2026; audit all SDK init calls that hardcode the legacy key format.
+
+- [2026-05-10 04:00 UTC] https://supabase.com/changelog — Supabase is now available for purchase through the AWS Marketplace — relevant for dos-platform enterprise billing if future customers prefer consolidated AWS invoicing; no immediate action.
+
+- [2026-05-10 04:00 UTC] https://vercel.com/changelog/next-js-may-2026-security-release — Next.js May 2026 coordinated security release: 13 advisories covering auth bypass (App Router segment-prefetch), SSRF via WebSocket upgrades, DoS via RSC memory exhaustion (CVE-2026-23864), cache poisoning, and XSS; patched in 15.5.18 and 16.2.6 only — earlier minors of 15.x and 16.x will NOT receive patches; dos-platform scaffold must target Next.js 16.2.6+ (already tracked as 16.2+, now a security requirement not just a perf choice); dos-tour-ops (Vite, not Next.js) is unaffected.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
