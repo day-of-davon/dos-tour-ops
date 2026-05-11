@@ -8198,19 +8198,29 @@ function VenueBrief({vg,sel,data,upd}){
   };
   const removeLink=id=>upd({venueLinks:links.filter(l=>l.id!==id)});
 
+  const LinkBlock=({compact})=>(
+    <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:12,marginBottom:compact?0:10,textAlign:"left"}}>
+      <div style={{...UI.sectionLabel,marginBottom:8}}>Document Links</div>
+      {links.length>0&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
+        {links.map(lnk=><div key={lnk.id} style={{display:"flex",alignItems:"center",gap:4,background:"var(--accent-pill-bg)",borderRadius:6,padding:"3px 8px"}}>
+          <a href={lnk.url} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:T.accent,textDecoration:"none",fontWeight:600}}>{lnk.label} ↗</a>
+          {!compact&&<button onClick={()=>removeLink(lnk.id)} style={{fontSize:11,color:T.textMute,background:"none",border:"none",cursor:"pointer",padding:"0 2px",lineHeight:1}}>×</button>}
+        </div>)}
+      </div>}
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+        <input value={newLinkLabel} onChange={e=>setNewLinkLabel(e.target.value)} placeholder="Label (e.g. Venue Tech Pack)" style={{...UI.input,flex:1,minWidth:120}} onKeyDown={e=>e.key==="Enter"&&addLink()}/>
+        <input value={newLinkUrl} onChange={e=>setNewLinkUrl(e.target.value)} placeholder="Paste URL" style={{...UI.input,flex:2,minWidth:160}} onKeyDown={e=>e.key==="Enter"&&addLink()}/>
+        <button onClick={addLink} disabled={!newLinkLabel.trim()||!newLinkUrl.trim()} style={{fontSize:10,fontWeight:700,padding:"4px 10px",borderRadius:6,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",opacity:(!newLinkLabel.trim()||!newLinkUrl.trim())?0.4:1}}>Add</button>
+      </div>
+    </div>
+  );
+
   if(!vg)return(
     <div style={{padding:32,textAlign:"center",color:T.textMute,fontSize:10}}>
       <div style={{fontSize:20,marginBottom:8}}>▤</div>
       <div style={{fontWeight:600,marginBottom:4}}>No venue brief on file</div>
       <div>This show date is not in the EU tour binder. Add document links below or upload vendor quotes.</div>
-      <div style={{marginTop:16,background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:12,textAlign:"left"}}>
-        <div style={{...UI.sectionLabel,marginBottom:8}}>Document Links</div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
-          <input value={newLinkLabel} onChange={e=>setNewLinkLabel(e.target.value)} placeholder="Label (e.g. Venue Tech Pack)" style={{...UI.input,flex:1,minWidth:120}}/>
-          <input value={newLinkUrl} onChange={e=>setNewLinkUrl(e.target.value)} placeholder="URL" style={{...UI.input,flex:2,minWidth:160}}/>
-          <button onClick={addLink} disabled={!newLinkLabel.trim()||!newLinkUrl.trim()} style={{fontSize:10,fontWeight:700,padding:"4px 10px",borderRadius:6,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",opacity:(!newLinkLabel.trim()||!newLinkUrl.trim())?0.4:1}}>Add</button>
-        </div>
-      </div>
+      <div style={{marginTop:16}}><LinkBlock/></div>
     </div>
   );
 
@@ -8222,24 +8232,11 @@ function VenueBrief({vg,sel,data,upd}){
       {vg.flags&&<div style={{background:hasWarn(vg.flags)?"var(--danger-bg)":"var(--warn-bg)",border:`1px solid ${hasWarn(vg.flags)?"var(--danger-bg)":"var(--warn-bg)"}`,borderRadius:6,padding:"8px 12px",marginBottom:10,fontSize:10,color:hasWarn(vg.flags)?"var(--danger-fg)":"var(--warn-fg)",lineHeight:1.5}}><span style={{fontWeight:800}}>FLAGS: </span>{vg.flags}</div>}
 
       {/* Document links */}
-      <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:12,marginBottom:10}}>
-        <div style={{...UI.sectionLabel,marginBottom:8}}>Document Links</div>
-        {links.length>0&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
-          {links.map(lnk=><div key={lnk.id} style={{display:"flex",alignItems:"center",gap:4,background:"var(--accent-pill-bg)",borderRadius:6,padding:"3px 8px"}}>
-            <a href={lnk.url} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:T.accent,textDecoration:"none",fontWeight:600}}>{lnk.label} ↗</a>
-            <button onClick={()=>removeLink(lnk.id)} style={{fontSize:11,color:T.textMute,background:"none",border:"none",cursor:"pointer",padding:"0 2px",lineHeight:1}}>×</button>
-          </div>)}
-        </div>}
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          <input value={newLinkLabel} onChange={e=>setNewLinkLabel(e.target.value)} placeholder="Label (e.g. Venue Tech Pack)" style={{...UI.input,flex:1,minWidth:120}} onKeyDown={e=>e.key==="Enter"&&addLink()}/>
-          <input value={newLinkUrl} onChange={e=>setNewLinkUrl(e.target.value)} placeholder="Paste URL" style={{...UI.input,flex:2,minWidth:160}} onKeyDown={e=>e.key==="Enter"&&addLink()}/>
-          <button onClick={addLink} disabled={!newLinkLabel.trim()||!newLinkUrl.trim()} style={{fontSize:10,fontWeight:700,padding:"4px 10px",borderRadius:6,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",opacity:(!newLinkLabel.trim()||!newLinkUrl.trim())?0.4:1}}>Add</button>
-        </div>
-        {vg.advanceEmail&&<div style={{marginTop:8,display:"flex",gap:6,flexWrap:"wrap"}}>
-          <a href={`mailto:${vg.advanceEmail}`} style={{fontSize:9,color:T.accent,background:"var(--accent-pill-bg)",padding:"2px 8px",borderRadius:6,textDecoration:"none",fontWeight:600}}>{vg.advanceContact||"Advance"} ✉</a>
-          {vg.techContact&&vg.techContact.includes("@")&&<a href={`mailto:${vg.techContact.match(/[\w.+-]+@[\w-]+\.[\w.]+/)?.[0]}`} style={{fontSize:9,color:T.successFg,background:"var(--success-bg)",padding:"2px 8px",borderRadius:6,textDecoration:"none",fontWeight:600}}>Tech Contact ✉</a>}
-        </div>}
-      </div>
+      <LinkBlock/>
+      {vg.advanceEmail&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10,marginTop:-4}}>
+        <a href={`mailto:${vg.advanceEmail}`} style={{fontSize:9,color:T.accent,background:"var(--accent-pill-bg)",padding:"2px 8px",borderRadius:6,textDecoration:"none",fontWeight:600}}>{vg.advanceContact||"Advance"} ✉</a>
+        {vg.techContact&&vg.techContact.includes("@")&&<a href={`mailto:${vg.techContact.match(/[\w.+-]+@[\w-]+\.[\w.]+/)?.[0]}`} style={{fontSize:9,color:T.successFg,background:"var(--success-bg)",padding:"2px 8px",borderRadius:6,textDecoration:"none",fontWeight:600}}>Tech Contact ✉</a>}
+      </div>}
 
       <div style={{display:"grid",gridTemplateColumns:window.innerWidth>600?"1fr 1fr":"1fr",gap:0}}>
         <div style={{paddingRight:6}}>
