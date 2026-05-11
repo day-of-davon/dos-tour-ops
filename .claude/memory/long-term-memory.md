@@ -162,6 +162,12 @@
 
 - [2026-05-02 22:00 UTC] https://tracxn.com/d/companies/gigfinesse/__tME-0Ec_KSQMSsEjhVMlhdV9gnQznXdeZDdYXTRH36A/funding-and-investors — GigFinesse has raised $9.39M total over 3 rounds (latest $5.79M, May 2024) — ADDENDUM to prior memory entry which listed GigFinesse as unconfirmed; VC-backed at nearly $10M, not bootstrapped; raises competitive durability assessment upward.
 
+- [2026-05-06 05:00 UTC] https://tourflip.com/ — TourFlip launched publicly ~May 3, 2026 (built by Mitch Harris, ex-Napalm Death): global artist-to-promoter direct booking, ticketing, and tour-routing platform; no service fees for fans (face-value only); crowdfunding live, full platform launch summer 2026 — NEW competitor not previously tracked; booking/routing layer partially overlaps DOS ops but targets indie artist–promoter deal-making, not production ops; monitor post-launch.
+
+- [2026-05-06 05:00 UTC] https://supabase.com/blog/branching-without-git-is-now-the-default — Supabase Branching 2.0 default as of May 4, 2026: dashboard-only branching (no Git integration required) is now the default for all new projects; create branch → edit in SQL/Table Editor → review schema diff → merge; existing git-based workflows unaffected — Phase 0 schema work with Josh can use dashboard branching immediately with no repo config; reduces setup friction.
+
+- [2026-05-06 05:00 UTC] https://medium.com/@factman60/next-js-server-actions-vs-trpc-a-2026-architects-guide-85cc4953bae4 — April 2026 community consensus (benchmarked against Next.js 16 + React 19 + tRPC v11): tRPC remains the superior choice for complex data-intensive SaaS dashboards and multi-client apps; Server Actions preferred for form-heavy/content apps; hybrid recommended for enterprise — validates dos-platform tRPC decision; no change to architecture.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
