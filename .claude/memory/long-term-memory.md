@@ -176,6 +176,16 @@
 
 - [2026-05-10 04:00 UTC] https://vercel.com/changelog/next-js-may-2026-security-release — Next.js May 2026 coordinated security release: 13 advisories covering auth bypass (App Router segment-prefetch), SSRF via WebSocket upgrades, DoS via RSC memory exhaustion (CVE-2026-23864), cache poisoning, and XSS; patched in 15.5.18 and 16.2.6 only — earlier minors of 15.x and 16.x will NOT receive patches; dos-platform scaffold must target Next.js 16.2.6+ (already tracked as 16.2+, now a security requirement not just a perf choice); dos-tour-ops (Vite, not Next.js) is unaffected.
 
+- [2026-05-11 00:00 UTC] https://blog.n8n.io/introducing-n8n-2-0/ — n8n v2.0 released March 9, 2026: Task Runners are no longer bundled in the main Docker image and must run as a separate container; Code nodes block environment variable access by default; ExecuteCommand and LocalFileTrigger nodes disabled by default; v1.x EOL ~June 2026 (3-month window) — CRITICAL: Phase 4 Railway n8n deployment must migrate to v2.0 queue-mode stack before ~June 9, 2026 or use the production-stack template with explicit task-runner container.
+
+- [2026-05-11 00:00 UTC] https://www.linkedin.com/pulse/ontrack-tech-group-acquires-live-event-operations-platform-lennd-hweee — OnTrack Tech Group acquired Lennd (live event operations platform); OnTrack describes itself as "the World's only integrated Event Data Platform" covering scheduling through execution for entertainment, sporting events, and mass gatherings — consolidates two enterprise-tier competitors into one; CLAUDE.md competitive entry for Lennd is stale; reassess tier and overlap with DOS Platform enterprise roadmap.
+
+- [2026-05-11 00:00 UTC] https://www.infoq.com/news/2026/04/vercel-open-agents/ — Vercel released Open Agents (April 2026): open-source reference platform for durable background coding agents; three-layer architecture (web UI + durable workflow + sandboxed VM); GitHub integration for clone/branch/commit/PR; intended for forking not direct use — relevant if Dane uses AI-assisted scaffolding for dos-platform Jun/Jul window; not a production dependency.
+
+- [2026-05-11 00:00 UTC] https://nextjs.org/docs/app/guides/upgrading/version-16 — Next.js 16 PPR config: `experimental_ppr` route segment removed, replaced by `cacheComponents` in next.config; `revalidateTag()` requires `cacheLife` profile as second argument — addendum to 2026-05-06 cache entry; dos-platform scaffold must account for both if ISR/PPR patterns are used.
+
+- [2026-05-11 00:00 UTC] https://docs.n8n.io/2-0-breaking-changes/ — n8n v2.0 additional breaking details: ExecuteCommand node requires explicit re-enable via N8N_ALLOW_EXEC env var; LocalFileTrigger requires N8N_ALLOW_LOCAL_FILE_TRIGGER; migration report tool available to audit existing workflows before upgrade — Phase 4 Railway n8n must set these env vars if those nodes are used.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
