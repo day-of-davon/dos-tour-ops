@@ -170,6 +170,16 @@
 
 - [2026-05-06 05:00 UTC] https://www.yourtempo.com/touring-pro — YourTempo "Touring Pro": complete artist tour management software appearing in 2026 best-of lists — NEW name not previously tracked in CLAUDE.md or memory; low public detail available; add to monitor list alongside TourSync and Pollen.
 
+- [2026-05-08 04:30 UTC] https://supabase.com/blog/introducing-supabase-server — @supabase/server public beta (May 6, 2026): new SDK handling auth verification, client setup, CORS, and context injection for Edge Functions, Vercel Functions, Deno, Bun, and Cloudflare Workers; stateless/header-based auth (distinct from @supabase/ssr which handles cookie-based Next.js sessions); uses withSupabase higher-order function with inline access policies — dos-platform should evaluate this over manual JWT wiring for all non-Next.js server runtimes in Phase 4+.
+
+- [2026-05-08 04:30 UTC] https://www.linkedin.com/pulse/ontrack-tech-group-acquires-live-event-operations-platform-lennd-hweee — OnTrack Tech Group acquired Lennd; OnTrack is an integrated Event Data Platform providing real-time ops intelligence (safety, situational awareness) for Festivals, Concerts, Arenas, Stadiums; Lennd adds full event management workflow (credentialing, logistics, communications) — CLAUDE.md lists Lennd as an enterprise competitor; post-acquisition, OnTrack+Lennd combines live ops data with event management workflows, narrowing the gap with DOS's real-time ops + AI intel moat; reassess Lennd competitive entry.
+
+- [2026-05-08 04:30 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Supabase achieved ISO/IEC 27001:2022 certification covering the full platform (May 2026) — not in prior memory; directly usable as enterprise trust signal in dos-platform sales; removes a common procurement blocker for festival/venue enterprise buyers.
+
+- [2026-05-08 04:30 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Stripe Sync Engine transferred from Supabase to Stripe's GitHub org; Stripe now owns and maintains it going forward; remains open source — ADDENDUM to 2026-04-20 entry which described it as "Supabase-built"; maintenance ownership shift means feature roadmap is now controlled by Stripe, not Supabase; no immediate impact but changes long-term dependency governance for Phase 8 Stripe Connect implementation.
+
+- [2026-05-08 04:30 UTC] https://n8n.io/pricing/ — n8n self-hosted Enterprise features (SSO, SAML, LDAP, audit logs, advanced RBAC) are gated behind a paid Business plan (~€800/mo cloud equivalent or custom self-hosted enterprise license); Community Edition (free, Railway-hosted) excludes all of these — not in any prior memory entry, which only noted unlimited workflows/executions on Community; if dos-platform Phase 7+ requires SSO for enterprise customer n8n workflows, this adds ~$800-2000/mo to the cost model.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
