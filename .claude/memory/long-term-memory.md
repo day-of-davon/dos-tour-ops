@@ -162,6 +162,20 @@
 
 - [2026-05-02 22:00 UTC] https://tracxn.com/d/companies/gigfinesse/__tME-0Ec_KSQMSsEjhVMlhdV9gnQznXdeZDdYXTRH36A/funding-and-investors — GigFinesse has raised $9.39M total over 3 rounds (latest $5.79M, May 2024) — ADDENDUM to prior memory entry which listed GigFinesse as unconfirmed; VC-backed at nearly $10M, not bootstrapped; raises competitive durability assessment upward.
 
+- [2026-05-05 05:00 UTC] https://supabase.com/blog/branching-without-git-is-now-the-default — Supabase Branching 2.0 is now the default for ALL projects (May 4, 2026): create branches directly from dashboard with no Git config required, each branch gets its own Postgres instance, schema diff + merge stays inside Supabase; git-based branching still supported; relevant to Phase 0 schema work with Josh — branch freely without setting up GitHub integration first.
+
+- [2026-05-05 05:00 UTC] https://supabase.com/changelog/45329-breaking-change-tables-not-exposed-to-data-and-graphql-api-automatically — ADDENDUM to 2026-05-01 entry: Supabase Data API grant change ALSO applies to ALL EXISTING projects on October 30, 2026 (not only new projects from May 30); Security Advisor will flag affected tables before then; dos-tour-ops current tables must be audited and explicit grants added before Oct 30 or API calls will 404.
+
+- [2026-05-05 05:00 UTC] https://www.eventric.com/Master-Tour/master-tour-pricing — Master Tour entry price now $59.99/month; CONTRADICTS CLAUDE.md which lists $74.99/mo single-user — pricing appears to have been reduced; verify before updating positioning and STRATEGY.md; source is search metadata (eventric.com/pricing returned 403).
+
+- [2026-05-05 05:00 UTC] https://abossmusic.com/ — ABOSS: "the operating system for artists and booking agencies in live music" — NEW competitor not in prior memory; Amsterdam-based; covers deal management, advancing, settlements, multi-currency, ISO-certified eSignature contracts; open REST API with OAuth 2.0; unlimited seats per agency plan; directly competes with DOS's advancing + ops moat across agency and artist tiers.
+
+- [2026-05-05 05:00 UTC] https://stagent.com/ — Stagent: artist booking + management platform — NEW competitor not in prior memory; €99/mo for 10 artists, €799/mo enterprise with API; iOS + Android apps; native MCP integration for AI assistants; Zapier 5000+ apps; covers transport coordination, contracts (eSignatures), advancing docs, task tracking; overlaps DOS Advance and transport features with stronger mobile and integration story.
+
+- [2026-05-05 05:00 UTC] https://releasebot.io/updates/n8n — n8n 2.19.2 is current stable Docker image for Railway self-hosted deployments (as of May 2026); notable additions in recent builds: Alibaba Cloud Chat Model node, Notion OAuth, data redaction in logs, webhook caching performance gains — no breaking changes from prior tracked versions; Railway template already pins this image.
+
+- [2026-05-05 05:00 UTC] https://community.vercel.com/t/vercel-weekly-2026-05-04/40073 — Vercel AI Gateway expanded (May 2026): GPT-5.5 and GPT-5.5 Pro added (long-running agentic/coding/research workloads); GPT Image 2 added; DeepSeek V4 Pro + Flash added; Zero Data Retention controls live (team-wide, routes AI requests only to providers with ZDR agreements) — dos-platform can use Vercel AI Gateway as a model-agnostic proxy with privacy controls rather than direct Anthropic API calls if needed.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
