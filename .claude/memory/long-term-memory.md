@@ -156,6 +156,12 @@
 
 - [2026-05-01 21:30 UTC] https://wifitalents.com/best/music-festival-software/ — Pollen: festival management software appearing in 2026 best-of lists, described as designed for planning, execution, and management of festivals at scale — NEW competitor not previously tracked; limited public detail, low authority source; add to monitor list alongside TourSync.
 
+- [2026-05-02 22:00 UTC] https://supabase.com/docs/guides/api/hardening-data-api — CONTRADICTS 2026-05-01 entry ("existing tables unaffected"): Supabase Data API hardening has a third phase — October 30, 2026, the no-auto-grant setting is applied to ALL existing projects, not just new ones; existing dos-tour-ops tables in the public schema will require explicit Postgres GRANTs or API calls will fail; audit and add grants before October 2026 deadline.
+
+- [2026-05-02 22:00 UTC] https://github.com/supabase/etl — Supabase ETL (Rust-based CDC framework, open source) supports BigQuery as a second official destination alongside Iceberg — addendum to 2026-04-22 entry which only mentioned Iceberg; Phase 6 Market Intel pipeline can target BigQuery or Iceberg Analytics Buckets depending on tooling preference.
+
+- [2026-05-02 22:00 UTC] https://github.com/supabase/etl — Supabase ETL is open-sourced (github.com/supabase/etl); reads Postgres WAL and streams INSERT/UPDATE/DELETE to BigQuery or Iceberg in near real-time — not captured in prior memory entries; custom CDC pipeline option for Phase 6 without vendor lock-in.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
