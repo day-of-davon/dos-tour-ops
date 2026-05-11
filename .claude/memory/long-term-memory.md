@@ -170,6 +170,20 @@
 
 - [2026-05-06 05:00 UTC] https://www.yourtempo.com/touring-pro — YourTempo "Touring Pro": complete artist tour management software appearing in 2026 best-of lists — NEW name not previously tracked in CLAUDE.md or memory; low public detail available; add to monitor list alongside TourSync and Pollen.
 
+- [2026-05-09 05:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Supabase is now ISO/IEC 27001:2022 certified across the entire platform; directly supports dos-platform enterprise/festival tier sales (security questionnaires) and reduces security-review friction for large promoter clients.
+
+- [2026-05-09 05:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Stripe Sync Engine (previously Supabase-built) transferred to the Stripe GitHub org and is now open-source, Stripe-maintained; prior memory entries (2026-04-20, 2026-04-21) logged it as a Supabase product; dependency and maintenance model has shifted to Stripe directly.
+
+- [2026-05-09 05:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — New Supabase Functions SDK (May 2026): handles auth, client creation, CORS, and context injection across Edge Functions, Vercel Functions, Deno, Bun, and Cloudflare Workers in a single package; reduces boilerplate for multi-runtime dos-platform Edge Function architecture.
+
+- [2026-05-09 05:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Supabase Agent Skills released as open-source AI coding agent instructions for Supabase workflows; Dane can reference these during Jun/Jul dos-platform scaffold to reduce boilerplate and follow Supabase best practices automatically within Claude Code.
+
+- [2026-05-09 05:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Supabase Terraform Provider v1.9.0 adds Edge Functions resource and secrets resource; enables IaC management of dos-platform Edge Functions and env secrets from day one, relevant for Phase 4+ infrastructure automation.
+
+- [2026-05-09 05:00 UTC] https://supabase.com/changelog/43465-developer-update-march-2026 — Supabase Table Editor now supports queue-and-diff workflow (March 2026): stage inserts, edits, and deletes, review in Diff View before committing; reduces accidental migration mistakes during Phase 0 schema work with Josh; not in prior memory entries.
+
+- [2026-05-09 05:00 UTC] https://trpc.io/docs/client/nextjs/server-actions — tRPC v11 Next.js Server Actions integration uses `experimental_caller` and `experimental_nextAppDirCaller` adapter; both are still experimental-prefixed (not stable API); prior memory only noted "native RSC/server-actions support" without flagging the experimental status — dos-platform scaffold must not treat these as stable; use SSE subscriptions or standard queries for production advancing/ROS flows.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
