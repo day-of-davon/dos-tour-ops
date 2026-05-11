@@ -162,6 +162,16 @@
 
 - [2026-05-02 22:00 UTC] https://tracxn.com/d/companies/gigfinesse/__tME-0Ec_KSQMSsEjhVMlhdV9gnQznXdeZDdYXTRH36A/funding-and-investors — GigFinesse has raised $9.39M total over 3 rounds (latest $5.79M, May 2024) — ADDENDUM to prior memory entry which listed GigFinesse as unconfirmed; VC-backed at nearly $10M, not bootstrapped; raises competitive durability assessment upward.
 
+- [2026-05-03 03:00 UTC] https://supabase.com/docs/guides/realtime/pricing — Supabase Realtime pricing (not previously logged): $2.50/1M messages + $10/1K peak connections on Pro plan, with plan quota included before overage — directly needed for dos-platform ROS/advancing real-time cost projections; high-frequency advancing updates could generate significant overage at scale.
+
+- [2026-05-03 03:00 UTC] https://supabase.com/docs/guides/storage/pricing — Supabase Storage pricing (not previously logged): $0.021/GB/month for object storage; Image Transformations billed separately — needed for dos-platform rider attachment + contract PDF storage cost estimates in FINANCIALS.md.
+
+- [2026-05-03 03:00 UTC] https://www.landbase.com/blog/fastest-growing-travel-tech — TourOptima clients confirmed as Intrepid Travel, Gray Line Worldwide, City Wonders — CONTRADICTS prior memory entry (2026-04-20) which flagged TourOptima as "monitor"; all named clients are travel/tour operators, not live music/festival; competitive threat to DOS is LOW, demote from active monitor.
+
+- [2026-05-03 03:00 UTC] https://supabase.com/changelog — Supabase Data API table exposure opt-in available from April 28, 2026 (new project creation option); ADDENDUM to 2026-05-01 entry which only noted the May 30 default cutover — Phase 0 schema work with Josh should create the dos-platform project after April 28 with the non-exposure default enabled, not wait for May 30.
+
+- [2026-05-03 03:00 UTC] https://discord-questions.trpc.io/m/1342053911757979678 — tRPC v10→v11 upgrade with Next.js 15 pages router produces `req.socket.once is not a function` (status 500 in production) — not in prior memory; dos-platform uses App Router (not pages router) so direct impact is low, but flag if any legacy pages/ endpoints are scaffolded during Dane's Jun/Jul window.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
