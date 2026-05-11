@@ -142,6 +142,14 @@
 
 - [2026-04-27 05:00 UTC] https://starterpick.com/blog/t3-stack-2026 — Developer community consensus (Apr 2026): Midday.so is the recommended open-source reference architecture for T3 + Supabase without Prisma — Midday uses Next.js + tRPC + Supabase directly (no Prisma ORM layer), which matches the dos-platform target stack; use as scaffold reference before Dane's Jun/Jul build window.
 
+- [2026-04-30 04:00 UTC] https://supabase.com/changelog — NEW: starting April 28, 2026, Supabase projects can opt to create tables in the public schema NOT exposed to the Data API (PostgREST) or GraphQL by default; on May 30, 2026 this becomes the default for ALL new projects — dos-platform Phase 0: if Josh creates the Supabase project after May 30, REST endpoint for new public tables will be off by default; explicitly enable Data API exposure or use service_role calls only; distinct from prior RLS-on-by-default and pg_graphql-disabled entries.
+
+- [2026-04-30 04:00 UTC] https://newsroom.livenation.com/statements/live-nation-entertainment-reaches-settlement-with-u-s-department-of-justice/ — Live Nation DOJ settlement structural remedies (detail not in prior memory): 4-year cap on exclusive venue contracts, 20% ticket non-exclusive option for competing primary platforms at LN venues, 50% of tickets at LN amphitheaters available to third-party promoters via competing platforms, 15% service fee cap at LN-controlled amphitheaters, $280M fund for state damages — non-exclusivity provisions directly open distribution channels for indie ticketing/booking tech; jury verdict April 15 found $1.72/ticket overcharge in 21 states + DC; 30+ states still litigating separately, fragmentation risk remains.
+
+- [2026-04-30 04:00 UTC] https://www.yourtempo.com/touring-pro — YourTempo Touring Pro: end-to-end artist tour management software; day sheets, central calendar with Google Calendar sync, ticket and guest management with approval workflows, mobile-friendly, custom user roles, document storage — NEW competitor not previously tracked; day-sheet and advancing feature overlap with DOS; aimed at road managers and full touring crew; check pricing and scale before assessing as serious threat.
+
+- [2026-04-30 04:00 UTC] https://gitnux.org/best/music-tour-management-software/ — Reisware: listed as #1 in multiple Feb/March 2026 content-farm review roundups; described as all-in-one bookings, contracts, advances, settlements, riders, and logistics with intelligent routing algorithms — NEW name not previously tracked; source authority is low (gitnux, wifitalents, zipdo are content farms with known hallucination risk); verify independently before treating as competitive threat.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
