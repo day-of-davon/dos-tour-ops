@@ -142,6 +142,12 @@
 
 - [2026-04-27 05:00 UTC] https://starterpick.com/blog/t3-stack-2026 — Developer community consensus (Apr 2026): Midday.so is the recommended open-source reference architecture for T3 + Supabase without Prisma — Midday uses Next.js + tRPC + Supabase directly (no Prisma ORM layer), which matches the dos-platform target stack; use as scaffold reference before Dane's Jun/Jul build window.
 
+- [2026-05-01 04:00 UTC] https://supabase.com/changelog — BREAKING: Supabase tables in the public schema will no longer be exposed to the Data API by default; timeline: new projects from April 28 2026, all new projects from May 30 2026, ALL existing projects from October 30 2026 — dos-tour-ops (existing project) is affected by the Oct 30 deadline; any table that is not explicitly exposed will become unreachable via PostgREST/REST without a schema config change; audit and explicitly expose required tables before Oct 30 or migrate access patterns.
+
+- [2026-05-01 04:00 UTC] https://supabase.com/changelog — Supabase released a native Cursor IDE plugin: connects Cursor to the project database for AI-assisted query writing, table creation, and SQL debugging inline — speeds Phase 0 schema work with Josh if Cursor is in the toolchain; no action required, optional.
+
+- [2026-05-01 04:00 UTC] https://github.com/supabase/supabase/releases/tag/v1.26.03 — ADDENDUM to 2026-04-21 Edge Functions rate-limit entry: the specific limit is 5,000 outbound fetch() calls per minute between Edge Functions within the same project — sets a concrete ceiling for any agentic chain-of-functions architecture in dos-platform Phase 4; design to stay well under this at expected load.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
