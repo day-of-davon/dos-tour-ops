@@ -162,6 +162,18 @@
 
 - [2026-05-02 22:00 UTC] https://tracxn.com/d/companies/gigfinesse/__tME-0Ec_KSQMSsEjhVMlhdV9gnQznXdeZDdYXTRH36A/funding-and-investors — GigFinesse has raised $9.39M total over 3 rounds (latest $5.79M, May 2024) — ADDENDUM to prior memory entry which listed GigFinesse as unconfirmed; VC-backed at nearly $10M, not bootstrapped; raises competitive durability assessment upward.
 
+- [2026-05-04 04:00 UTC] https://blabbermouth.net/news/ex-napalm-death-guitarist-mitch-harris-launches-tourflip-new-platform-helping-bands-get-booked-and-fans-pay-less — TourFlip launched May 2026 by Mitch Harris (Napalm Death): global booking, ticketing, and tour-routing platform; direct promoter-to-band booking offers, no fan service fees, multi-party splits paid at source with global FX in real time, summer 2026 full launch, accepting Founding Supporters now — NEW competitor not previously tracked; booking/routing/settlement scope overlaps DOS advancing and Finance tab; monitor.
+
+- [2026-05-04 04:00 UTC] https://sourceforge.net/software/product/Eventric-Master-Tour/ — Master Tour pricing is $59.99/mo (contradicts CLAUDE.md which states $74.99/mo single-user) — update CLAUDE.md competitive entry; lower entry price narrows DOS's cost advantage at the touring tier.
+
+- [2026-05-04 04:00 UTC] https://supabase.com/blog/launch-week-15-top-10 — Supabase Launch Week 15 (July 14-18, 2026): Edge Functions now support Deno 2.1 and S3-compatible persistent storage mounting; cold starts up to 97% faster — significantly reduces dos-platform Phase 4 Edge Function infrastructure complexity; persistent storage removes need for separate object storage workarounds in function handlers.
+
+- [2026-05-04 04:00 UTC] https://supabase.com/blog/launch-week-15-top-10 — Supabase Launch Week 15: new API key architecture with asymmetric JWTs (Elliptic Curve and RSA), Publishable vs Secret key separation with scoped limits — dos-platform Phase 0 auth design must account for this new key model; existing anon/service_role key pattern still works but new projects should adopt Publishable/Secret structure.
+
+- [2026-05-04 04:00 UTC] https://supabase.com/blog/launch-week-15-top-10 — Supabase Launch Week 15: Storage max upload raised from 50 GB to 500 GB; cached egress now $0.03/GB — directly reduces dos-platform storage cost projections for large rider attachments, contracts, and advancing media; update FINANCIALS.md egress estimates.
+
+- [2026-05-04 04:00 UTC] https://railway.com/deploy/n8n-latest-version — n8n current Railway Docker image is n8nio/n8n:2.19.2 as of May 2026 — version baseline for dos-platform Phase 4 n8n deployment; pin this version in Railway template config.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
