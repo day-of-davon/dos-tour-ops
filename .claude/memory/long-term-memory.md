@@ -170,6 +170,16 @@
 
 - [2026-05-06 05:00 UTC] https://www.yourtempo.com/touring-pro — YourTempo "Touring Pro": complete artist tour management software appearing in 2026 best-of lists — NEW name not previously tracked in CLAUDE.md or memory; low public detail available; add to monitor list alongside TourSync and Pollen.
 
+- [2026-05-07 04:00 UTC] https://trpc.io/blog/announcing-trpc-v11 — tRPC v11 rewrote the Next.js adapter to work natively with React Server Components and server actions — NOT in prior memory entries (which covered breaking changes and SSE/FormData); dos-platform can use tRPC procedures directly inside RSCs without a separate HTTP fetch layer, simplifying advancing/ROS data-fetching architecture.
+
+- [2026-05-07 04:00 UTC] https://www.yourtempo.com/touring-pro — YourTempo Touring Pro ADDENDUM to 2026-05-06 entry ("low public detail"): Nashville-based, part of a multi-product suite (Booking Pro, Talent Buying Pro, Publishing Pro, Touring Pro), cloud-based with Google Calendar sync, generates day-sheet PDFs, manages guest lists and ticket requests, mobile-friendly web — more feature overlap with DOS v7 (itinerary, day sheet, advancing) than the prior entry implied; not just a "monitor list" entry.
+
+- [2026-05-07 04:00 UTC] https://www.daysheets.com/ — Daysheets v2.0 released; added Group Tags (admin-defined crew sub-groups for personalized schedules), upgraded PDF export engine (visual tour docs for any need), in-app hotel/flight/ground-transport booking on mobile — ADDENDUM to prior entries (2026-04-27, 2026-05-01); in-app integrated travel booking is a direct capability DOS has no equivalent for; production manager persona gap identified.
+
+- [2026-05-07 04:00 UTC] https://supabase.com/changelog — Supabase Table Editor Queue Operations (May 2026): stage multiple inserts, edits, and deletes, review the combined diff, then commit with cmd+s — new workflow for Phase 0 schema exploration with Josh; reduces risk of running ad-hoc mutations during live schema review; not in any prior memory entry.
+
+- [2026-05-07 04:00 UTC] https://prism.fm/blog/product-updates-news/prism-announces-8-million-series-a-funding/ — Prism.fm funding ADDENDUM to 2026-04-26 entry: $8M Series A (total $11.2M at that point) followed by $5M Series B = ~$16.2M total raised; Series B earmarked for product, engineering, and GTM — prior entry said "$15M+ in funding" which was approximately correct; Prism is Series B, not seed-stage; competitive durability higher than implied.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
