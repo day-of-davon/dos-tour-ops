@@ -142,6 +142,14 @@
 
 - [2026-04-27 05:00 UTC] https://starterpick.com/blog/t3-stack-2026 — Developer community consensus (Apr 2026): Midday.so is the recommended open-source reference architecture for T3 + Supabase without Prisma — Midday uses Next.js + tRPC + Supabase directly (no Prisma ORM layer), which matches the dos-platform target stack; use as scaffold reference before Dane's Jun/Jul build window.
 
+- [2026-04-29 04:00 UTC] https://supabase.com/docs/guides/api/hardening-data-api — Supabase Data API public-schema hardening has three enforcement dates: (1) Apr 28, 2026 opt-in for new projects; (2) May 30, 2026 default for all new projects; (3) Oct 30, 2026 enforced on ALL existing projects including dos-tour-ops — new tables after that date require explicit Postgres GRANT before PostgREST/GraphQL can see them; CONTRADICTS prior memory entry (2026-04-21) which noted only "new projects will have RLS on by default" without flagging the existing-project enforcement deadline; schedule a pre-Oct-30 audit of dos-tour-ops table grants.
+
+- [2026-04-29 04:00 UTC] https://trpc.io/blog/announcing-trpc-v11 — tRPC v11 adds HTTP/2 first-class support via `createHTTP2Handler` (creates HTTP/2 servers) and `createHTTPServer` (HTTP/1 remains) — not in prior memory entries; relevant for dos-platform if deployed behind HTTP/2-native Vercel edge; no breaking change, purely additive.
+
+- [2026-04-29 04:00 UTC] https://vite.dev/guide/migration — Vite 6 (stable 2025) drops Node 18 support entirely; requires Node 20.19+ or 22.12+ — dos-tour-ops is on Vite 5; if/when upgraded, verify Railway/Vercel Node runtime version before bumping; also removes several internal APIs used by some Vite plugins.
+
+- [2026-04-29 04:00 UTC] https://vercel.com/changelog — Vercel eliminated the $10/month base fee for Observability Plus (April 2026); billing is now event-based (pay only for observability events collected) — reduces dos-platform Phase 4 infra cost baseline; update FINANCIALS.md.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
