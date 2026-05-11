@@ -176,6 +176,14 @@
 
 - [2026-05-10 04:00 UTC] https://vercel.com/changelog/next-js-may-2026-security-release — Next.js May 2026 coordinated security release: 13 advisories covering auth bypass (App Router segment-prefetch), SSRF via WebSocket upgrades, DoS via RSC memory exhaustion (CVE-2026-23864), cache poisoning, and XSS; patched in 15.5.18 and 16.2.6 only — earlier minors of 15.x and 16.x will NOT receive patches; dos-platform scaffold must target Next.js 16.2.6+ (already tracked as 16.2+, now a security requirement not just a perf choice); dos-tour-ops (Vite, not Next.js) is unaffected.
 
+- [2026-05-10 05:30 UTC] https://docs.n8n.io/release-notes/ — n8n added Python support via external task runners (set N8N_RUNNERS_ENABLED=true on self-hosted); JS runner ships by default, Python enabled opt-in — Phase 4 DOS automation workflows can now execute Python logic natively in n8n without custom Docker images.
+
+- [2026-05-10 05:30 UTC] https://docs.n8n.io/release-notes/ — n8n March 2026: 1Password Connect Server added as external secrets provider; secrets fetched at runtime, never stored in n8n, 1Password remains single source of truth — relevant for Phase 4 n8n on Railway if team credentials need centralized secrets management.
+
+- [2026-05-10 05:30 UTC] https://supabase.com/docs/guides/self-hosting/self-hosted-auth-keys — ADDENDUM to 2026-05-10 API key entry: new key formats are `sb_publishable_...` (replaces anon key) and `sb_secret_...` (replaces service_role); multiple secret keys can be created and rotated independently without downtime; Supabase auto-revokes `sb_secret_` keys detected in public GitHub repos and notifies the project owner — dos-tour-ops and dos-platform must migrate to new key format before late 2026; independent rotation removes the downtime risk of rotating service_role today.
+
+- [2026-05-10 05:30 UTC] https://vercel.com/changelog/summary-of-cve-2026-23869 — ADDENDUM to 2026-05-10 Next.js security entry: CVE-2026-23869 is the specific identifier for SSRF via WebSocket upgrades in Next.js; patched in 15.5.18 and 16.2.6 — dos-platform scaffold must target >=16.2.6 for both the perf gains (tracked since 2026-04-27) and this security fix.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
