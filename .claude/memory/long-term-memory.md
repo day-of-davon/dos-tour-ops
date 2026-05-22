@@ -186,6 +186,32 @@
 
 - [2026-05-11 00:00 UTC] https://docs.n8n.io/2-0-breaking-changes/ — n8n v2.0 additional breaking details: ExecuteCommand node requires explicit re-enable via N8N_ALLOW_EXEC env var; LocalFileTrigger requires N8N_ALLOW_LOCAL_FILE_TRIGGER; migration report tool available to audit existing workflows before upgrade — Phase 4 Railway n8n must set these env vars if those nodes are used.
 
+- [2026-05-22 04:00 UTC] https://supabase.com/blog/custom-oauth-oidc-providers — Supabase now supports connecting any external OAuth2 or OIDC provider (GitHub Enterprise, regional compliance IdPs, internal OAuth2 servers) to Supabase Auth with PKCE by default; free plan allows up to 3 custom providers, Pro+ unlimited — DISTINCT from the previously-logged "Sign in with [Your App]" (Supabase acting as IdP); this is Supabase consuming external IdPs; directly relevant for dos-platform Phase 9 enterprise SSO where customers may bring their own identity stack.
+
+- [2026-05-22 04:00 UTC] https://trpc.io/docs/migrate-from-v10-to-v11 — tRPC v11 sixth breaking change not in prior memory: data transformers are now configured in the links array instead of at tRPC client init; every HTTP link that uses transformers must add `transformer: superjson` explicitly — dos-platform scaffold must audit all link configurations; missed from previous breaking-change logging.
+
+- [2026-05-22 04:00 UTC] https://trpc.io/blog/announcing-trpc-v11 — tRPC v11 adds async generator function support for subscription handlers: handlers can yield multiple values and clean up on finish using native JS generator syntax — NEW capability not in prior memory (prior entry only logged SSE transport); enables complex real-time advancing/ROS update patterns in dos-platform without managing subscription state manually.
+
+- [2026-05-22 04:00 UTC] https://support.eventric.com/hc/en-us/articles/46286508608532-Master-Tour-Mobile-7-1-10-Beta-2026-02-20 — Master Tour Mobile 7.1.10 Beta (Feb 20, 2026) adds Ground Travel Items that auto-calculate Arrival Time, Travel Time, Distance, and Start/End Time Zones from Origin + Destination inputs using the same "pessimistic" model as Desktop — closes the transport logistics automation gap with DOS v7's transport tab; prior Master Tour memory entries (product line, ticketing settlement, offline mode) did not capture this routing intelligence feature.
+
+- [2026-05-22 04:00 UTC] https://nextjs.org/docs/app/api-reference/adapters — Next.js 16.2 ships a stable, public Build Adapter API (was alpha in 16.0); generates a typed, versioned build manifest (routes, prerenders, static assets, caching rules, routing decisions) that third-party adapters map onto any hosting provider; configured via `experimental.adapterPath` in next.config — dos-platform is not locked to Vercel at the infrastructure level; relevant if enterprise customers require self-hosted or non-Vercel deployments.
+
+- [2026-05-22 04:00 UTC] https://blog.n8n.io/introducing-n8n-2-0/ — n8n v2.0 decouples Save from production deploy: Save now preserves edits without going live, a separate Publish button updates the production version — NOT in prior n8n memory entries (which covered Task Runners, Code node env blocking, ExecuteCommand disabled); Phase 4 Railway n8n operator training must explicitly account for this workflow change to avoid accidentally leaving Phase 4 automations in draft state.
+
+- [2026-05-22 04:00 UTC] https://techstrong.ai/features/vercel-labs-builds-a-programming-language-designed-for-ai-agents/ — Vercel Labs released Zero (May 15, 2026): a low-level systems programming language whose compiler emits structured JSON diagnostics with stable error codes and typed repair IDs designed for AI agent consumption; capability-based I/O lets agents reason about behavior from function signatures alone — not a dos-platform dependency; monitor as emerging Vercel-ecosystem AI-native tooling that may surface in Dane's Jun/Jul scaffold workflow.
+
+- [2026-05-22 04:00 UTC] https://releasebot.io/updates/vercel — Vercel CLI gained `vercel alerts` command (May 2026): lists anomaly alerts with timestamps and alert type; `--ai` flag appends AI-investigation results inline — not in prior memory; provides dos-platform production incident triage without opening Vercel dashboard; complements existing Flags (Phase 5) and Log Drains (Phase 4) tooling.
+
+- [2026-05-22 04:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — New @supabase/server SDK announced May 2026: unified SDK handles auth, client creation, CORS, and context injection across runtimes (Edge Functions, Vercel Functions, Deno, Bun, Cloudflare Workers) — not in prior memory; replaces patchwork of runtime-specific adapter packages for dos-platform server-side Supabase usage; simplifies middleware and tRPC context setup.
+
+- [2026-05-22 04:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Supabase achieved ISO/IEC 27001:2022 certification (announced May 2026), covering the information security management system across the entire platform — not in prior memory; directly strengthens dos-platform enterprise GTM and any compliance-sensitive festival/promoter customers; cite in Phase 9 enterprise sales materials.
+
+- [2026-05-22 04:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Stripe Sync Engine transferred to Stripe GitHub org and is now open source, maintained by Stripe directly; Supabase app in Stripe Marketplace now GA — ADDENDUM to 2026-04-20 entry; stewardship change means Stripe controls the roadmap; more durable dependency for dos-platform Phase 8 Stripe Connect implementation.
+
+- [2026-05-22 04:00 UTC] https://github.com/supabase/wrappers/releases — Supabase Wrappers v0.6.0 ships an OpenAPI Foreign Data Wrapper (FDW): query any external REST API as a Postgres table using standard SQL — not in prior memory; enables dos-platform Phase 6 DOS Market Intel to pull venue/ticketing/external data sources via SQL joins without building a separate ETL pipeline; complements the already-logged Supabase Warehouse (pg_duckdb) for analytics.
+
 ## promoted
+
+<!-- Weekly consolidation moves validated patterns here -->
 
 <!-- Weekly consolidation moves validated patterns here -->
