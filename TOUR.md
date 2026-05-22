@@ -70,7 +70,6 @@
 ## Summer NA
 
 - Jun 5: Toronto, RBC Amphitheatre (bbno$).
-- Jun 13: Chicago, Medialink Campus — Beyond Wonderland (Insomniac/Tectonic — Haley Evans, Jaron Drucker). Olivia primary.
 - Jul 1: Mississauga, Celebration Square (bbno$) — promoter TBD.
 - **Jul 10: Festival d'été de Québec — NEW. Florence Bergeron contact. Advance pending.**
 - Jul 11: Uncasville, Mohegan Sun Arena — promoter TBD.
