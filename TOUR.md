@@ -80,6 +80,7 @@
 
 ## Festivals
 
+- **Jun 12:** Bonnaroo Music & Arts Festival, Manchester TN — C3 Presents LLC. Tyler Crain production (tcrain@c3presents.com, +1 512 470 6591). Bryan Benson promoter (bryanbenson@livenation.com). 3rd on Which Stage. Flat $50k. 20 weekend comps. Merch soft 70%/hard 90%, festival sells. $5k deposit due May 12; $45k day-of. Advance not started.
 - **Aug 7–10:** Elements Music & Arts, Lake Harmony PA — Brett Herman (brett@elementsfest.us). ⚠ 2025 settlement slow, monitor.
 - **Oct 22:** Wakaan, Mulberry Mountain — Chloe + Waylon. Olivia managing transport.
 
