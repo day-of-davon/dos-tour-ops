@@ -214,6 +214,20 @@
 
 - [2026-05-23 02:00 UTC] https://supabase.com/changelog/41796-developer-update-january-2026 — Supabase January 2026 release added Performance Advisor (auto-analyzes query patterns, suggests missing indexes, flags unused indexes) and EXPLAIN/Analyze diagrams in the dashboard (visual query plan with table scan vs. index scan highlighting) — not previously in memory (Security Advisor logged 2026-04-21 is separate; that's RLS/security hygiene, this is query performance); both tools run automatically; use Performance Advisor during Phase 0 schema work with Josh to catch missing indexes before production.
 
+- [2026-05-23 22:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — CONTRADICTS/EXTENDS 2026-05-01 entry: Supabase Data API default-exposure change has a third phase not previously captured: Oct 30, 2026 is when ALL EXISTING PROJECTS (not just new ones) will have the "no automatic table permissions" default applied — dos-tour-ops is an existing project and will be affected; audit all table grants before Oct 30 or existing PostgREST calls will silently fail after migration.
+
+- [2026-05-23 22:00 UTC] https://releasebot.io/updates/supabase — ADDENDUM to 2026-04-20 pg_graphql entry: May 18, 2026 is the specific date pg_graphql stops being enabled by default on new projects; prior entry lacked this date — plan any dos-platform GraphQL dependency (if any) to explicitly enable pg_graphql in project settings after May 18.
+
+- [2026-05-23 22:00 UTC] https://releasebot.io/updates/vercel — Vercel Flat Rate CDN now in Limited Beta for Pro teams: replaces usage-based CDN pricing with a fixed monthly fee — NEW, not in any prior memory entry; relevant for dos-platform Phase 5+ cost predictability if CDN egress becomes significant; apply for beta access before GA.
+
+- [2026-05-23 22:00 UTC] https://vercel.com/changelog — Vercel Sandbox now supports Claude Managed Agents: agent tool calls run on Vercel Sandbox infrastructure with isolated Firecracker microVMs — DISTINCT from 2026-05-02 entry (Supabase Postgres connectivity); enables dos-platform AI agent workflows to execute sandboxed tool calls via Vercel infrastructure rather than raw Claude API calls; relevant for Phase 4 agent architecture.
+
+- [2026-05-23 22:00 UTC] https://releasebot.io/updates/vercel — Vercel Flags gains `vercel flags split` CLI command (May 21, 2026): weighted traffic splits to route a percentage of traffic to one variant without touching code — ADDENDUM to 2026-04-23 Vercel Flags GA entry; enables dos-platform Phase 5 canary rollouts directly from CLI, not just dashboard.
+
+- [2026-05-23 22:00 UTC] https://devops-daily.com/posts/nextjs-16-2-6-15-5-18-security-release — ADDENDUM to 2026-05-10 Next.js security entry: severity breakdown is 7 high, 4 moderate, 2 low across 13 advisories; CVE-2026-23870 is an upstream React Server Components vulnerability (not Next.js itself); Vercel confirms vulnerabilities "cannot be reliably blocked at the WAF layer" — WAF mitigation is not sufficient; only patch resolves; dos-platform must target 16.2.6+ as security baseline, not just performance.
+
+- [2026-05-23 22:00 UTC] https://trpc.io/blog/announcing-trpc-v11 — tRPC v11 adds React Server Component (RSC) support: execute a tRPC procedure inside an RSC, then automatically hydrate the React Query cache client-side with the result — NEW capability not in any prior memory entry (prior entries covered SSE, generators, FormData, OpenAPI, breaking changes); enables dos-platform to prefetch advancing/ROS data server-side in Next.js 16 RSCs without a separate fetch layer.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
