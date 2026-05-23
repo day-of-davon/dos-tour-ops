@@ -214,6 +214,20 @@
 
 - [2026-05-23 02:00 UTC] https://supabase.com/changelog/41796-developer-update-january-2026 — Supabase January 2026 release added Performance Advisor (auto-analyzes query patterns, suggests missing indexes, flags unused indexes) and EXPLAIN/Analyze diagrams in the dashboard (visual query plan with table scan vs. index scan highlighting) — not previously in memory (Security Advisor logged 2026-04-21 is separate; that's RLS/security hygiene, this is query performance); both tools run automatically; use Performance Advisor during Phase 0 schema work with Josh to catch missing indexes before production.
 
+- [2026-05-23 22:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Supabase OAuth token endpoint success response changing from 201 Created to 200 OK for OAuth 2.1 compliance (May 2026); any dos-platform auth code or middleware that checks for 201 on /v1/oauth/token responses must be updated to accept 200.
+
+- [2026-05-23 22:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Supabase Branching without Git is now the default: branches can be created directly from the dashboard without a GitHub integration — simplifies dos-platform development workflow; prior memory implied Git integration was required for branching.
+
+- [2026-05-23 22:00 UTC] https://github.com/orgs/supabase/discussions/43465 — Supabase Storage object listing up to 14.8x faster on datasets with 60M+ objects (March 2026): replaced prefix table with hybrid skip-scan algorithm and cursor-based pagination — relevant if DOS Platform storage bucket scales to large rider/contract/media attachment volumes; no config change needed, automatic upgrade.
+
+- [2026-05-23 22:00 UTC] https://github.com/orgs/supabase/discussions/43465 — Supabase Storage March 2026 security patches: path traversal vulnerability fixed, orphaned object deletion via direct SQL manipulation prevented — dos-tour-ops and dos-platform storage buckets automatically protected post-upgrade; no action needed.
+
+- [2026-05-23 22:00 UTC] https://github.com/orgs/supabase/discussions/43465 — Supabase SQL snippets now version-controlled via a supabase/snippets folder in the connected Git repo — enables dos-platform team to track and review all saved dashboard SQL queries in source control alongside migrations.
+
+- [2026-05-23 22:00 UTC] https://github.com/orgs/supabase/discussions/43465 — Supabase Edge Functions Dashboard (list, search, test, download as .zip) is now available for self-hosted and CLI users, not only Supabase cloud — relevant for any local-dev or self-hosted staging environments used during Phase 4 dos-platform build.
+
+- [2026-05-23 22:00 UTC] https://vercel.com/changelog/next-js-may-2026-security-release — Next.js May 2026 coordinated security release: 13 advisories, CVE-2026-23869, covering denial of service, middleware/proxy bypass, SSRF, cache poisoning, and XSS — dos-platform must ship on a patched Next.js 16.x version; verify that Dane's Jun/Jul scaffold target includes this security release; do not deploy on any unpatched build.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
