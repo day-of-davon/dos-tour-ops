@@ -210,6 +210,10 @@
 
 - [2026-05-22 04:00 UTC] https://github.com/supabase/wrappers/releases — Supabase Wrappers v0.6.0 ships an OpenAPI Foreign Data Wrapper (FDW): query any external REST API as a Postgres table using standard SQL — not in prior memory; enables dos-platform Phase 6 DOS Market Intel to pull venue/ticketing/external data sources via SQL joins without building a separate ETL pipeline; complements the already-logged Supabase Warehouse (pg_duckdb) for analytics.
 
+- [2026-05-23 02:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Supabase Data API revamped with per-table and per-function dashboard toggles controlling PostgREST/GraphQL exposure, plus a default-privileges switch at project creation; anon and authenticated roles now have no automatic table permissions (functions in the api schema are executable, tables are not) — DISTINCT from the May 30 GRANT requirement logged 2026-05-01 (Postgres-level); the dashboard toggles are a UI-level control on top of that; dos-platform Phase 0 schema design must account for both layers: explicit GRANT on tables AND toggle enabled in Data API settings, or API calls will 404.
+
+- [2026-05-23 02:00 UTC] https://supabase.com/changelog/41796-developer-update-january-2026 — Supabase January 2026 release added Performance Advisor (auto-analyzes query patterns, suggests missing indexes, flags unused indexes) and EXPLAIN/Analyze diagrams in the dashboard (visual query plan with table scan vs. index scan highlighting) — not previously in memory (Security Advisor logged 2026-04-21 is separate; that's RLS/security hygiene, this is query performance); both tools run automatically; use Performance Advisor during Phase 0 schema work with Josh to catch missing indexes before production.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
