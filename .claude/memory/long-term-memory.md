@@ -228,6 +228,18 @@
 
 - [2026-05-23 22:00 UTC] https://trpc.io/blog/announcing-trpc-v11 — tRPC v11 adds React Server Component (RSC) support: execute a tRPC procedure inside an RSC, then automatically hydrate the React Query cache client-side with the result — NEW capability not in any prior memory entry (prior entries covered SSE, generators, FormData, OpenAPI, breaking changes); enables dos-platform to prefetch advancing/ROS data server-side in Next.js 16 RSCs without a separate fetch layer.
 
+- [2026-05-24 15:00 UTC] https://releasebot.io/updates/supabase — Supabase Postgres 14 deprecated July 1, 2026; all projects still on Postgres 14 will be auto-upgraded to latest Postgres version on that date; projects using extensions no longer supported will be PAUSED instead of upgraded — CRITICAL: dos-tour-ops must verify its Postgres version before July 1 and manually upgrade if on 14; a paused project on show day is a severity-1 incident.
+
+- [2026-05-24 15:00 UTC] https://supabase.com/changelog/44713-developer-update-april-2026 — Supabase RLS Tester preview shipped April 2026: interactive tool in the dashboard for testing RLS policies with different user roles and expected row results — DISTINCT from Security Advisor (logged 2026-04-21, which suggests policy fixes) and Performance Advisor (logged 2026-05-23, query perf); use RLS Tester during Phase 0 schema work with Josh to validate multi-tenant row isolation before go-live.
+
+- [2026-05-24 15:00 UTC] https://supabase.com/changelog/44713-developer-update-april-2026 — Supabase April 2026: PostgREST automatic retries added to all four official client SDKs (JS, Python, Swift, Kotlin); transient network errors no longer require manual retry logic in client code — not in prior memory; dos-tour-ops and dos-platform get retry resilience automatically on next SDK update.
+
+- [2026-05-24 15:00 UTC] https://supabase.com/changelog/44713-developer-update-april-2026 — Supabase Terraform Provider v1.9.0: adds Edge Functions resource, Edge Function secrets resource, and network bans data source — not in prior memory; relevant for dos-platform IaC setup if Terraform is used for infra-as-code in Phase 3+.
+
+- [2026-05-24 15:00 UTC] https://hello.eventotron.com/exciting-changes-ahead-for-eventotron/ — Eventotron (all-in-one arts event management: artist liaison, venue scheduling, ticketing, settlements) is doing a complete ground-up rebuild launching in 2026; beta testing with existing clients before release — NEW: not in CLAUDE.md or prior memory; overlaps DOS advancing and settlements features; monitor beta launch for feature positioning impact.
+
+- [2026-05-24 15:00 UTC] https://support.eventric.com/hc/en-us/articles/43482885920276-Master-Tour-Mobile-7-1-6-2025-11-12 — ADDENDUM to 2026-04-21 Master Tour offline entry: Mobile 7.1.6 (Nov 2025) specifically added automatic offline sync with NO manual preloading required, a completely new mobile Dashboard showing an entire Day at a glance, and rearrangeable bottom navigation — prior entry captured the offline sync concept but missed the new Dashboard and navigation UX; Master Tour mobile is now a more complete on-site crew tool than previously assessed.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
