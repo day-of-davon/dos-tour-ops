@@ -240,6 +240,14 @@
 
 - [2026-05-24 15:00 UTC] https://support.eventric.com/hc/en-us/articles/43482885920276-Master-Tour-Mobile-7-1-6-2025-11-12 — ADDENDUM to 2026-04-21 Master Tour offline entry: Mobile 7.1.6 (Nov 2025) specifically added automatic offline sync with NO manual preloading required, a completely new mobile Dashboard showing an entire Day at a glance, and rearrangeable bottom navigation — prior entry captured the offline sync concept but missed the new Dashboard and navigation UX; Master Tour mobile is now a more complete on-site crew tool than previously assessed.
 
+- [2026-05-24 20:00 UTC] https://johal.in/architecture-teardown-supabase-2026-realtime-works-using-postgresql/ — Supabase Realtime architectural overhaul in 2026: trigger-based CDC replaced with Postgres 17 native logical replication; up to 1M concurrent WebSocket connections per project with automatic subscription sharding; WebSocket per-message deflate compression added; row-level filtering at publication layer via pg17 filter_row option; existing subscriptions migrate seamlessly without code changes — LOW CONFIDENCE (source is personal architecture teardown blog, not official Supabase changelog); consistent with pg14 deprecation July 1 already in memory; relevant for dos-tour-ops real-time advancing/ROS subscriptions at show-day concurrency.
+
+- [2026-05-24 20:00 UTC] https://www.gigwell.com/blog/gigwell-vs-prism — EXTENDS 2026-04-26 Gigwell memory entry (which logged "booking workflow, contracts, payments"): Gigwell also includes artist advancing with flight and hotel lookups natively — this directly overlaps DOS Advance feature set; prior entry understated the overlap.
+
+- [2026-05-24 20:00 UTC] https://www.daysheets.travel/ — Daysheets operates a separate travel booking product at daysheets.travel (tour travel booking for every stop) in addition to the main tour management platform at daysheets.com — not captured in prior Daysheets entries (2026-04-27, 2026-05-01); full-stack competitor: tour management + travel booking in one ecosystem vs. DOS v7's transport tab.
+
+- [2026-05-24 20:00 UTC] https://github.com/vercel/next.js/releases — Next.js 16.3 is canary-only as of May 22, 2026 (latest: 16.3.0-canary.27); latest stable is 16.2.6 (May 7, 2026) — confirms dos-platform scaffold target of 16.2.6+ is the correct stable baseline; no action needed, but monitor canary for features Dane may want in Jul build window.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
