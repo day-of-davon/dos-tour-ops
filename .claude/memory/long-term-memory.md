@@ -238,6 +238,12 @@
 
 - [2026-05-24 15:00 UTC] https://hello.eventotron.com/exciting-changes-ahead-for-eventotron/ — Eventotron (all-in-one arts event management: artist liaison, venue scheduling, ticketing, settlements) is doing a complete ground-up rebuild launching in 2026; beta testing with existing clients before release — NEW: not in CLAUDE.md or prior memory; overlaps DOS advancing and settlements features; monitor beta launch for feature positioning impact.
 
+- [2026-05-24 22:30 UTC] https://supabase.com/docs/guides/self-hosting/postgres-upgrade-17 — Self-hosted Supabase docker-compose default db image moves from Postgres 15 to Postgres 17 the week of June 15, 2026; extensions timescaledb, plv8, plcoffee, plls are dropped from PG 17 images; bringing the new compose file against an existing PG 15 volume fails to start (PG 17 cannot read PG 15 data directory) — relevant if Josh runs local Supabase for Phase 0 schema work; must follow published upgrade guide rather than pulling new images directly.
+
+- [2026-05-24 22:30 UTC] https://releasebot.io/updates/supabase — Self-hosted Supabase docker-compose: analytics (Logflare) and vector services removed from the default docker-compose.yml the week of June 1, 2026; moved to an opt-in overlay (docker-compose.logs.yml); default `docker compose up -d` starts a leaner stack with no log aggregation — local dev environment loses automatic log collection; must explicitly opt in if structured logs are needed during Phase 0/4 local testing.
+
+- [2026-05-24 22:30 UTC] https://releasebot.io/updates/supabase — Self-hosted Supabase docker-compose: Studio and postgres-meta now use the `postgres` role instead of `supabase_admin`, aligning self-hosted behavior with managed platform and reducing privileges; existing instances may need a one-time public schema ownership migration — affects local dev if Josh's Phase 0 environment was set up before this change; run the ownership migration script before upgrading to avoid schema permission errors.
+
 - [2026-05-24 15:00 UTC] https://support.eventric.com/hc/en-us/articles/43482885920276-Master-Tour-Mobile-7-1-6-2025-11-12 — ADDENDUM to 2026-04-21 Master Tour offline entry: Mobile 7.1.6 (Nov 2025) specifically added automatic offline sync with NO manual preloading required, a completely new mobile Dashboard showing an entire Day at a glance, and rearrangeable bottom navigation — prior entry captured the offline sync concept but missed the new Dashboard and navigation UX; Master Tour mobile is now a more complete on-site crew tool than previously assessed.
 
 ## promoted
