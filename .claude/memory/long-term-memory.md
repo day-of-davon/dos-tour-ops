@@ -246,6 +246,14 @@
 
 - [2026-05-24 15:00 UTC] https://support.eventric.com/hc/en-us/articles/43482885920276-Master-Tour-Mobile-7-1-6-2025-11-12 — ADDENDUM to 2026-04-21 Master Tour offline entry: Mobile 7.1.6 (Nov 2025) specifically added automatic offline sync with NO manual preloading required, a completely new mobile Dashboard showing an entire Day at a glance, and rearrangeable bottom navigation — prior entry captured the offline sync concept but missed the new Dashboard and navigation UX; Master Tour mobile is now a more complete on-site crew tool than previously assessed.
 
+- [2026-05-25 05:00 UTC] https://supabase.com/blog/mcp-server — Supabase launched an official MCP server: connects AI IDEs (Cursor, Claude Code, Windsurf) directly to Supabase projects for DB management, SQL execution, migration generation, and config fetching via natural language; distinct from the "Fix with Assistant" UI buttons (logged 2026-04-21) — this is IDE-level integration bypassing the dashboard entirely; speeds Phase 0 schema work with Josh if he uses Cursor or Claude Code.
+
+- [2026-05-25 05:00 UTC] https://supabase.com/changelog/43465-developer-update-march-2026 — Supabase March 2026 (partial coverage gap): Table Editor gained queue mode (stage inserts/edits/deletes, review changes in Diff View before committing with cmd+s) and exportable AI prompts (the exact prompts powering Supabase AI Assistant are copyable for use in local agents and tools like Claude Code) — not in prior memory despite the March 2026 update being partially logged for Storage perf and OpenAPI deprecation; both features useful during Phase 0 schema iteration with Josh.
+
+- [2026-05-25 05:00 UTC] https://docs.n8n.io/integrations/builtin/cluster-nodes/sub-nodes/n8n-nodes-langchain.toolmcp/ — n8n supports MCP bidirectionally via two native built-in nodes: MCP Client Tool (n8n AI agents can call any external MCP server as a tool) and MCP Server Trigger (exposes n8n workflows as callable MCP tools for external AI agents, including Claude Code); DISTINCT from the 2026-04-20 memory entry which is a third-party Railway template bridging external tools to n8n via custom REST — this is first-party n8n node support on both sides of the MCP protocol, enabling dos-platform agents to call n8n workflows programmatically without custom code.
+
+- [2026-05-25 05:00 UTC] https://railway.com/deploy/n8n-enterprise-ready-stack-ollama — Railway now offers an "n8n Enterprise-Ready Stack + Ollama" one-click template: n8n + Postgres + Redis + Ollama in a single deploy for fully private LLM-powered automation — NEW template not in prior memory (prior templates: n8n-MCP Railway 2026-04-20, production queue-mode stack 2026-04-21); relevant if DOS agents need a cost-comparison path against Claude API or want local inference for non-sensitive workflow steps.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
