@@ -254,6 +254,18 @@
 
 - [2026-05-25 05:00 UTC] https://railway.com/deploy/n8n-enterprise-ready-stack-ollama — Railway now offers an "n8n Enterprise-Ready Stack + Ollama" one-click template: n8n + Postgres + Redis + Ollama in a single deploy for fully private LLM-powered automation — NEW template not in prior memory (prior templates: n8n-MCP Railway 2026-04-20, production queue-mode stack 2026-04-21); relevant if DOS agents need a cost-comparison path against Claude API or want local inference for non-sensitive workflow steps.
 
+- [2026-05-25 06:30 UTC] https://www.hypebot.com/soundcheck-live-is-a-new-platform-modernizing-the-backbone-of-live-music/ — Soundcheck Live: Austin-based startup (cofounders Ben Ikwuagwu and Steven Tran) positioning as an operations hub for live performance teams, centralizing communication, coordination, and booking workflows — NEW competitor not in CLAUDE.md or prior memory; directly overlaps DOS ops-dashboard moat; monitor for funding and feature expansion.
+
+- [2026-05-25 06:30 UTC] https://www.daysheets.com/ — Daysheets released Daysheets 2.0 for Android with improved navigation UX and added Group Tags for departmentalizing tour team roles and personalizing per-role itineraries — ADDENDUM to prior Daysheets entries (2026-04-26, 2026-04-27, 2026-05-01); mobile UX improvements widen the gap with DOS's absent mobile app.
+
+- [2026-05-25 06:30 UTC] https://github.com/vercel/next.js/releases — Next.js 16.3.0-canary.28 released May 23, 2026; no stable 16.3 release yet — dos-platform scaffold security baseline remains 16.2.6 (logged 2026-05-10); monitor 16.3 stable before Dane's Jun/Jul window finalizes the pinned version.
+
+- [2026-05-25 06:30 UTC] https://supabase.com/changelog/29260-upcoming-changes-to-supabase-api-keys — ADDENDUM to 2026-05-10 API key migration entry: new key format is sb_publishable_... (replaces anon) and sb_secret_... (replaces service_role); asymmetric JWT migration is zero-downtime and reversible per step; Supabase auto-revokes sb_secret_ keys detected in public GitHub repos and notifies project owner — update dos-tour-ops SDK init and any scripts referencing legacy key format before late 2026 cutoff; zero-downtime migration means rotation can happen during a show weekend without incident.
+
+- [2026-05-25 06:30 UTC] https://www.tipranks.com/news/private-companies/supabase-customer-milestone-highlights-consolidation-trend-and-ai-infrastructure-capabilities — Supabase surpassed 230,000 customers globally as of May 19, 2026, and closed 250+ AWS Marketplace deals; $70M ARR (2025 baseline per GetLatka) — ADDENDUM to 2026-04-21 $5B valuation entry; confirms Supabase infrastructure durability and growth trajectory for long-term platform dependency.
+
+- [2026-05-25 06:30 UTC] https://crackmagazine.net/article/long-reads/gigpig-live-music-startup/ — GigPig: UK-based live music booking startup (launched 2022), 110,000+ gigs facilitated, £28M+ paid to artists — NEW competitor not previously tracked; booking/marketplace focus targeting small-venue and session work, not full tour ops; limited DOS overlap but signals UK live music tech appetite.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
