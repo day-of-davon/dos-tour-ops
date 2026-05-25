@@ -48,8 +48,9 @@
     margin-bottom: 2mm;
     table-layout: fixed;
   }
-  .items-table col.c-item  { width: 14mm; }
-  .items-table col.c-desc  { width: 96mm; }
+  .items-table col.c-item  { width: 22mm; }
+  .items-table col.c-desc  { width: 88mm; }
+  .items-table td.c-item-cell { white-space: nowrap; }
   .items-table col.c-pcs   { width: 8mm; }
   .items-table col.c-orig  { width: 10mm; }
   .items-table col.c-ser   { width: 56mm; }
@@ -110,8 +111,8 @@
 
 <div class="meta-block">
   <table>
-    <tr><td>Carnet No.</td><td><strong>GB/B73890</strong></td><td style="width:46mm;font-weight:bold">Date of Declaration</td><td><strong>24 May 2026</strong></td></tr>
-    <tr><td>Issuing Association</td><td>Birmingham Chamber of Commerce and Industry, United Kingdom</td><td style="font-weight:bold">Carnet Valid Until</td><td>29 April 2027</td></tr>
+    <tr><td>Carnet No.</td><td><strong>GB/B73890</strong></td><td style="width:42mm;font-weight:bold;white-space:nowrap">Date of Declaration</td><td style="white-space:nowrap"><strong>24 May 2026</strong></td></tr>
+    <tr><td>Issuing Association</td><td>Birmingham Chamber of Commerce and Industry, United Kingdom</td><td style="font-weight:bold;white-space:nowrap">Carnet Valid Until</td><td style="white-space:nowrap">29 April 2027</td></tr>
     <tr><td>Carnet Holder</td><td colspan="3">Fly by Nite Conferences Ltd, The FBN Complex, Shawbank Road, Lakeside, Redditch, B98 8YN, United Kingdom</td></tr>
     <tr><td>Holder's Representative</td><td colspan="3">Lee Bayley (plus any authorised representative)</td></tr>
   </table>
@@ -148,11 +149,11 @@
     </tr>
   </thead>
   <tbody>
-    <tr><td>126&ndash;137</td><td>Ceeform Adapter - 16a 1ph - 2 x16a 1ph</td><td style="text-align:center">12</td><td style="text-align:center">GB</td><td>&mdash;</td></tr>
-    <tr><td>144&ndash;147</td><td>Ceeform Adapter - 16a M to Schuko F</td><td style="text-align:center">4</td><td style="text-align:center">GB</td><td>&mdash;</td></tr>
-    <tr><td>357&ndash;368</td><td>Ethercon XLR Cable 30m</td><td style="text-align:center">12</td><td style="text-align:center">GB</td><td>&mdash;</td></tr>
-    <tr><td>1033&ndash;1040</td><td>Laserworld PL-30.000RGB IP65 with internal FB4 and Etherdream &mdash; 30W full-colour RGB laser projector</td><td style="text-align:center">8</td><td style="text-align:center">GB</td><td class="serials">SN: 81895854, 81895859, 81896164, 81896171, 81895857, 81895867, 81895869, 81895862</td></tr>
-    <tr><td>1041&ndash;1048</td><td>Peli flight case (600 x 700 x 400 mm) &mdash; protective transit case for laser projector</td><td style="text-align:center">8</td><td style="text-align:center">GB</td><td>&mdash;</td></tr>
+    <tr><td class="c-item-cell">126&ndash;137</td><td>Ceeform Adapter - 16a 1ph - 2 x16a 1ph</td><td style="text-align:center">12</td><td style="text-align:center">GB</td><td>&mdash;</td></tr>
+    <tr><td class="c-item-cell">144&ndash;147</td><td>Ceeform Adapter - 16a M to Schuko F</td><td style="text-align:center">4</td><td style="text-align:center">GB</td><td>&mdash;</td></tr>
+    <tr><td class="c-item-cell">357&ndash;368</td><td>Ethercon XLR Cable 30m</td><td style="text-align:center">12</td><td style="text-align:center">GB</td><td>&mdash;</td></tr>
+    <tr><td class="c-item-cell">1033&ndash;1040</td><td>Laserworld PL-30.000RGB IP65 with internal FB4 and Etherdream &mdash; 30W full-colour RGB laser projector</td><td style="text-align:center">8</td><td style="text-align:center">GB</td><td class="serials">SN: 81895854, 81895859, 81896164, 81896171, 81895857, 81895867, 81895869, 81895862</td></tr>
+    <tr><td class="c-item-cell">1041&ndash;1048</td><td>Peli flight case (600 x 700 x 400 mm) &mdash; protective transit case for laser projector</td><td style="text-align:center">8</td><td style="text-align:center">GB</td><td>&mdash;</td></tr>
     <tr class="total"><td colspan="2" style="text-align:right;padding-right:3mm">Total pieces temporarily separated</td><td style="text-align:center">44</td><td colspan="2"></td></tr>
   </tbody>
 </table>
@@ -162,22 +163,21 @@
   consignment and travel under the carnet booklet in the normal manner.
 </div>
 
-<div class="sig-block">
-  <div class="label">Signed for and on behalf of the Carnet Holder:</div>
-  <div class="sig-row">
-    <div class="sig-col">
-      Name: <strong>Lee Bayley</strong><br>
-      Position: Holder's Representative, Fly by Nite Conferences Ltd
-      <div class="sig-line"></div>
-      <div class="sig-field-label">Signature</div>
-    </div>
-    <div class="sig-col">
-      &nbsp;
-      <div class="sig-line"></div>
-      <div class="sig-field-label">Date</div>
-    </div>
-  </div>
-</div>
+<table class="sig-block" style="width:100%;border-collapse:collapse;">
+  <tr><td colspan="2" class="label" style="padding-bottom:3mm;">Signed for and on behalf of the Carnet Holder:</td></tr>
+  <tr>
+    <td style="vertical-align:bottom;padding-bottom:1.5mm;">Name: <strong>Lee Bayley</strong><br>Position: Holder's Representative, Fly by Nite Conferences Ltd</td>
+    <td style="width:50mm;vertical-align:bottom;">&nbsp;</td>
+  </tr>
+  <tr>
+    <td style="border-bottom:1px solid #000;height:2mm;padding:0;"></td>
+    <td style="border-bottom:1px solid #000;height:2mm;padding:0;width:50mm;"></td>
+  </tr>
+  <tr>
+    <td class="sig-field-label" style="padding-top:1mm;">Signature</td>
+    <td class="sig-field-label" style="padding-top:1mm;">Date</td>
+  </tr>
+</table>
 
 <div class="footer">
   Copy distribution: 2 copies accompany the separated goods (for presentation at border crossings) &nbsp;|&nbsp; 2 copies retained with the carnet booklet for the next driver
