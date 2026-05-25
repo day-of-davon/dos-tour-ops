@@ -254,6 +254,20 @@
 
 - [2026-05-25 05:00 UTC] https://railway.com/deploy/n8n-enterprise-ready-stack-ollama — Railway now offers an "n8n Enterprise-Ready Stack + Ollama" one-click template: n8n + Postgres + Redis + Ollama in a single deploy for fully private LLM-powered automation — NEW template not in prior memory (prior templates: n8n-MCP Railway 2026-04-20, production queue-mode stack 2026-04-21); relevant if DOS agents need a cost-comparison path against Claude API or want local inference for non-sensitive workflow steps.
 
+- [2026-05-25 22:00 UTC] https://releasebot.io/updates/anthropic/claude — Claude Opus 4.7 ships a new tokenizer that may use up to 35% more tokens for the same input text; pricing stays at $5/$25 per M tokens — ADDENDUM to 2026-04-22 entry which only tracked GA date and API default shift; any dos-platform code calling Opus 4.7 without explicit token budgets could see 35% cost overrun vs. projections; pin Sonnet 4.6 (current dos-platform spec) and verify model IDs in all API calls.
+
+- [2026-05-25 22:00 UTC] https://releasebot.io/updates/anthropic/claude — Anthropic released Claude Managed Agents (May 2026): dreaming (background reasoning between turns), multiagent orchestration (Claude can spawn and coordinate sub-agents natively), outcomes (goal-scoped execution contracts), and webhooks (push completion events to external URLs) — NOT in any prior memory entry; these are first-party API capabilities that directly reshape dos-platform Phase 4 agent architecture; native orchestration removes need to build custom agent-loop scaffolding in n8n or custom code.
+
+- [2026-05-25 22:00 UTC] https://releasebot.io/updates/anthropic/claude — Anthropic Advisor strategy (beta, May 2026): within an agent call, Claude can consult a separate advisor model for intelligence boost on specific sub-tasks — not in prior memory; relevant for dos-platform advancing intelligence layer where a fast agent routes complex questions to an advisor model; distinct from multiagent orchestration (which spawns parallel workers).
+
+- [2026-05-25 22:00 UTC] https://platform.claude.com/docs/en/about-claude/models/overview — Anthropic Skills (beta, May 2026): teach Claude reusable best practices defined once and injected into any API call for consistent behavior — not in prior memory; directly relevant for DOS advancing assistant where consistent rider-parsing or venue-advancing output format is required across sessions; reduces system prompt duplication across dos-platform features.
+
+- [2026-05-25 22:00 UTC] https://releasebot.io/updates/anthropic/claude — Anthropic MCP connector (beta, May 2026): native Claude API feature that connects Claude to any remote MCP server without writing a custom client; distinct from n8n's MCP Client Tool node (logged 2026-05-25) which adds MCP to n8n workflows — this is Claude-API-level MCP, enabling dos-platform to point Claude at the Supabase MCP server (logged 2026-05-25) or n8n MCP Server Trigger directly from API calls with zero wrapper code.
+
+- [2026-05-25 22:00 UTC] https://nextjs.org/blog/next-16-2 — CONTRADICTS 2026-04-27 memory entry: that entry states Next.js 16.2 delivers "~400% faster next dev startup"; the official blog states "87% faster compared to Next.js 16.1 on the default application" — the 400% figure likely measures against Next.js 15, not 16.1; use 87% as the accurate 16.1→16.2 delta for Dane's scaffold-window performance expectations.
+
+- [2026-05-25 22:00 UTC] https://nextjs.org/blog/next-16-2 — Next.js 16.2 Server Function terminal logging: logs the function name, arguments, execution time, and source file for every Server Function call during next dev — not in prior memory (which captured AI agent features, performance, security, and cache directives for 16.2 but not this); speeds dos-platform tRPC server action debugging; no config required, enabled by default in dev mode.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
