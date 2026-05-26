@@ -276,6 +276,20 @@
 
 - [2026-05-26 04:00 UTC] https://www.softwareadvice.com/festival-management/ — OnePlan: map-based festival planning and operations tool appearing across multiple 2026 best-of festival software lists; features map-scale event layout, crew scheduling, and vendor management — NEW competitor not in CLAUDE.md or prior memory; limited direct overlap with DOS advancing/ROS/transport moat (OnePlan is spatial/layout-focused, not artist workflow-focused), but monitor for feature expansion into artist logistics.
 
+- [2026-05-26 22:00 UTC] https://docs.n8n.io/2-0-breaking-changes/ — n8n v2.0 drops MySQL and MariaDB support entirely; PostgreSQL is now the only supported relational DB — NOT in prior memory entries (which covered Task Runners, Code node env blocking, ExecuteCommand/LocalFileTrigger defaults, Save/Publish split); Railway Phase 4 deploy already targets Postgres so no action needed, but any dev environment using MySQL must migrate before v2.0 upgrade.
+
+- [2026-05-26 22:00 UTC] https://docs.n8n.io/2-0-breaking-changes/ — n8n v2.0 removes the --tunnel CLI option; local webhook testing must switch to ngrok, localtunnel, or Cloudflare Tunnel — NOT in prior memory; affects any Phase 4 dev workflow that relied on n8n's built-in tunnel for local endpoint testing.
+
+- [2026-05-26 22:00 UTC] https://supabase.com/blog/supabase-security-2025-retro — Supabase Security Retro 2025 documents CVE-2025-48757: 170+ Lovable-generated apps exposed due to missing RLS on AI-generated tables; CVE-2025-57164 also filed — specific CVEs not in prior memory (RLS-by-default was logged but not the CVEs); dos-platform schema audit with Josh must verify RLS on every table, especially any AI-scaffolded code.
+
+- [2026-05-26 22:00 UTC] https://supabase.com/blog/supabase-security-2025-retro — Supabase Security Retro 2025: AI coding assistants with service_role access bypass RLS entirely; documented attack: attacker embeds hidden prompt in a support ticket instructing the agent to read integration_tokens table and exfiltrate contents — NOT in prior memory; dos-platform Claude agent architecture must use anon/authenticated role (not service_role) for any user-facing or externally-reachable agent; service_role only in server-side trusted contexts.
+
+- [2026-05-26 22:00 UTC] https://supabase.com/blog/supabase-security-2025-retro — Supabase Security Advisor is powered by Splinter, an open-source Postgres security linter — not in prior memory (Security Advisor was logged 2026-04-21 but the underlying tool name was not); relevant if DOS team wants to run Splinter locally during Phase 0 schema work outside the dashboard.
+
+- [2026-05-26 22:00 UTC] https://tourflip.com/ https://metalinjection.net/news/napalm-deaths-mitch-harris-builds-new-touring-platform-tourflip — CONTRADICTS 2026-05-06 memory entry: TourFlip is in crowdfunding/pre-launch as of 2026, not yet launched; prior entry said "launched 2026"; Mitch Harris is running a campaign to fund development — downgrade from confirmed competitor to watch-list until live launch.
+
+- [2026-05-26 22:00 UTC] https://touringdata.org/ — CONTRADICTS 2026-04-27 memory entry: TouringData (touringdata.org) is a Ticketmaster ticket-count analytics resource (event date, venue, section, capacity, tickets sold) — NOT a tour settlement automation competitor as the prior entry stated; prior entry likely conflated with a different product; remove TouringData from the settlements-competitor assessment.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
