@@ -276,6 +276,14 @@
 
 - [2026-05-26 04:00 UTC] https://www.softwareadvice.com/festival-management/ — OnePlan: map-based festival planning and operations tool appearing across multiple 2026 best-of festival software lists; features map-scale event layout, crew scheduling, and vendor management — NEW competitor not in CLAUDE.md or prior memory; limited direct overlap with DOS advancing/ROS/transport moat (OnePlan is spatial/layout-focused, not artist workflow-focused), but monitor for feature expansion into artist logistics.
 
+- [2026-05-26 05:30 UTC] https://docs.n8n.io/2-0-breaking-changes/ — n8n v2.0 dropped MySQL and MariaDB support entirely; PostgreSQL is now the recommended production database for self-hosted instances; SQLite remains for small deployments — NOT in prior memory entries (which covered Task Runners, Code node env, ExecuteCommand, Save/Publish workflow, and env var flags); Phase 4 Railway n8n must use PostgreSQL, not MySQL or MariaDB.
+
+- [2026-05-26 05:30 UTC] https://github.com/supabase/supabase/releases — Supabase SQL snippets converted to files: SQL snippets are now stored as files in a `supabase/snippets` folder and version-controlled alongside migrations — NOT in prior memory (which logged Table Editor queue mode and AI prompts from March 2026 but missed this); enables dos-platform Phase 0 schema work with Josh to version SQL utility queries alongside migrations in the same repo.
+
+- [2026-05-26 05:30 UTC] https://railway.com/deploy/n8n-v2 — Railway has an official "Deploy n8n V2" one-click template specifically for the v2.0 architecture — ADDENDUM to n8n v2.0 entries (2026-05-11); use this template for Phase 4 Railway n8n setup rather than adapting the prior production-stack template (2026-04-21), which was built for v1.x queue-mode.
+
+- [2026-05-26 05:30 UTC] https://noadohler.com/live-music-industry-shakeup-touring-tech-tools-and-ticketing-trends-in-2026/ — TourCntrl: free-to-use live event management software for artists, agencies, and venues, appearing in 2026 best-of lists — NEW name not in CLAUDE.md or prior memory; free pricing tier differentiates from DOS; low-authority source (same noadohler.com blog that logged TourSync), unverified independently; add to monitor list.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
