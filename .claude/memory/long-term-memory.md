@@ -268,6 +268,14 @@
 
 - [2026-05-25 22:00 UTC] https://nextjs.org/blog/next-16-2 — Next.js 16.2 Server Function terminal logging: logs the function name, arguments, execution time, and source file for every Server Function call during next dev — not in prior memory (which captured AI agent features, performance, security, and cache directives for 16.2 but not this); speeds dos-platform tRPC server action debugging; no config required, enabled by default in dev mode.
 
+- [2026-05-26 04:00 UTC] https://github.com/orgs/supabase/discussions/41231 — Supabase December 2025: expanded auth email templates for security-sensitive events (password changed, email changed, phone changed, identity link/unlink, MFA enroll/unenroll); dos-platform auth flows that trigger these events will now surface user-facing notifications automatically with no custom transactional email build needed for those states.
+
+- [2026-05-26 04:00 UTC] https://github.com/orgs/supabase/discussions/41231 — Supabase December 2025: "Supabase Platform" white-label offering launched — allows SaaS platforms to provision and manage fully managed Supabase backends on behalf of their users; enables a multi-tenant architecture where each dos-platform customer gets an isolated Supabase project provisioned programmatically rather than a shared schema — relevant if Phase 9 enterprise tier requires per-customer data isolation beyond RLS.
+
+- [2026-05-26 04:00 UTC] https://github.com/orgs/supabase/discussions/41231 — Supabase December 2025: Edge Functions now support deploying legacy Node.js applications; Supabase CLI can download deployed Edge Functions without Docker; bulk secret editing for Edge Functions now available — Phase 4 Edge Function workflow improvements not in prior memory; reduces Docker dependency for local dev.
+
+- [2026-05-26 04:00 UTC] https://www.softwareadvice.com/festival-management/ — OnePlan: map-based festival planning and operations tool appearing across multiple 2026 best-of festival software lists; features map-scale event layout, crew scheduling, and vendor management — NEW competitor not in CLAUDE.md or prior memory; limited direct overlap with DOS advancing/ROS/transport moat (OnePlan is spatial/layout-focused, not artist workflow-focused), but monitor for feature expansion into artist logistics.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
