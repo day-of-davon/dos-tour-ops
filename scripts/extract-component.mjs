@@ -1,37 +1,48 @@
 #!/usr/bin/env node
 /**
- * extract-component.mjs — Phase 2 decomposition codemod for DosApp.jsx.
+ * extract-component.mjs — decomposition codemod for DosApp.jsx.
  *
- * Moves one top-level component (or helper) out of src/DosApp.jsx into its own
- * file under src/components/<subdir>/, and rewires imports on BOTH sides so the
- * app keeps compiling and rendering.
+ * Moves one or more top-level declarations (components OR helpers/constants)
+ * out of src/DosApp.jsx into a target module, and rewires imports on BOTH
+ * sides so the app keeps compiling and rendering.
  *
- * Why this is safe to automate: every component in DosApp.jsx is a top-level
- * `function` that pulls its dependencies either from module-level
- * helpers/constants, from `useContext(Ctx)`, or from existing imports. None
- * close over App's locals. So extraction is purely "move the declaration, then
- * make every free identifier resolvable again."
+ * Why this is safe to automate: every top-level decl in DosApp.jsx pulls its
+ * dependencies from other module-level decls, from `useContext(Ctx)`, or from
+ * existing imports. None close over App's locals. So extraction is purely
+ * "move the declaration(s), then make every free identifier resolvable again."
  *
- * What it does, per target:
- *   1. Finds the declaration by name (FunctionDeclaration or const = ...).
- *   2. Collects every free identifier it references (skips its own params/locals
- *      and property/JSX-attribute names).
- *   3. Resolves each free identifier to where it is declared:
- *        - an existing import in DosApp  -> replicate that import in the new file
+ * Per run:
+ *   1. Finds each named declaration (FunctionDeclaration or `const X = ...`).
+ *   2. Collects free identifiers it references (skips its own params/locals,
+ *      other members of the SAME group, and property/JSX-attribute names).
+ *   3. Resolves each free identifier:
+ *        - an existing import in DosApp  -> replicate it (relative specifiers
+ *          recomputed for the new file's location)
  *        - a module-level decl in DosApp -> mark it `export` and import it back
- *          from "../../DosApp.jsx" (a temporary edge later phases collapse)
+ *          from the monolith (a temporary edge; avoid by extracting depended-on
+ *          symbols FIRST — see ordering note below)
  *        - a global (window, Math, ...)  -> ignore
- *   4. Writes src/components/<subdir>/<Name>.jsx with `export function/const`.
- *   5. Removes the declaration from DosApp.jsx and adds
- *      `import { Name } from "./components/<subdir>/<Name>.jsx";`
+ *   4. Writes the target module with `export` on each moved decl.
+ *   5. Removes the decls from DosApp.jsx and adds one back-import.
  *
- * Run the safety net after EVERY extraction:
- *   npm run lint && npm test
+ * ORDERING: extract depended-on symbols before their dependents. Then a
+ * dependent's deps already live in real modules (they resolve to imports in
+ * DosApp, which this tool replicates) and NO back-edge to the monolith forms.
+ * Substrate (Ctx, lib helpers) before components; leaf helpers before the
+ * helpers that use them.
+ *
+ * Run the safety net after EVERY run:  npm run lint && npm test
  *
  * Usage:
- *   node scripts/extract-component.mjs <Name> <subdir> [--dry]
- *   node scripts/extract-component.mjs FlightCard flights
- *   node scripts/extract-component.mjs GLMetric shared --dry
+ *   node scripts/extract-component.mjs <Name[,Name2,...]> <dest> [--dry]
+ *
+ *   dest relative to src/. If it ends in .js/.jsx it is the exact module file
+ *   (use this for groups). Otherwise it is a directory and the file is
+ *   <dest>/<Name>.jsx (single decl only).
+ *
+ *   node scripts/extract-component.mjs Ctx context/DosContext.jsx
+ *   node scripts/extract-component.mjs toM,fmt,dU,fD,fW,fFull lib/time.js
+ *   node scripts/extract-component.mjs FlightCard components/flights
  */
 import { Project, SyntaxKind, ts, Node } from "ts-morph";
 import path from "node:path";
@@ -39,16 +50,42 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-const MONOLITH = path.join(ROOT, "src/DosApp.jsx");
+const SRC = path.join(ROOT, "src");
+const MONOLITH = path.join(SRC, "DosApp.jsx");
 
-const [, , NAME, SUBDIR, ...flags] = process.argv;
+const [, , NAMES_ARG, DEST, ...flags] = process.argv;
 const DRY = flags.includes("--dry");
 
-if (!NAME || !SUBDIR) {
-  console.error("usage: node scripts/extract-component.mjs <Name> <subdir> [--dry]");
+if (!NAMES_ARG || !DEST) {
+  console.error("usage: node scripts/extract-component.mjs <Name[,Name2,...]> <dest> [--dry]");
   process.exit(2);
 }
+const NAMES = NAMES_ARG.split(",").map((s) => s.trim()).filter(Boolean);
+const groupNames = new Set(NAMES);
 
+// --- resolve destination ---------------------------------------------------
+const destIsFile = /\.(jsx?|tsx?)$/.test(DEST);
+if (!destIsFile && NAMES.length > 1) {
+  console.error("✗ a directory dest takes a single name; pass a <dest>.jsx file for groups");
+  process.exit(2);
+}
+const targetRel = destIsFile ? DEST : path.join(DEST, `${NAMES[0]}.jsx`);
+const targetAbs = path.join(SRC, targetRel);
+const targetDir = path.dirname(targetAbs);
+// import specifier DosApp will use to pull the moved symbols back in
+const importPathFromMono =
+  "./" + (destIsFile ? DEST : path.join(DEST, `${NAMES[0]}.jsx`)).replace(/\\/g, "/");
+// import specifier the new module uses to reach the monolith for any back-edge
+const monoFromTarget = relSpec(targetDir, MONOLITH, /*keepExt*/ true);
+
+function relSpec(fromDir, toFile, keepExt) {
+  let rel = path.relative(fromDir, toFile).replace(/\\/g, "/");
+  if (!keepExt) rel = rel.replace(/\.(jsx?|tsx?)$/, "");
+  if (!rel.startsWith(".")) rel = "./" + rel;
+  return rel;
+}
+
+// --- load project ----------------------------------------------------------
 const project = new Project({
   compilerOptions: {
     allowJs: true,
@@ -60,48 +97,44 @@ const project = new Project({
   },
   skipAddingFilesFromTsConfig: true,
 });
-project.addSourceFilesAtPaths(path.join(ROOT, "src/**/*.{js,jsx}"));
-
+project.addSourceFilesAtPaths(path.join(SRC, "**/*.{js,jsx}"));
 const mono = project.getSourceFileOrThrow(MONOLITH);
 
-// --- locate the declaration ------------------------------------------------
-let decl =
-  mono.getFunction(NAME) ||
-  mono.getVariableDeclaration(NAME);
-if (!decl) {
-  console.error(`✗ could not find a top-level "${NAME}" in DosApp.jsx`);
-  process.exit(1);
-}
-// The whole statement we will move (function decl, or the `const ...` statement).
-const moveNode =
-  decl.getKind() === SyntaxKind.VariableDeclaration
+// --- locate declarations ---------------------------------------------------
+const moveNodes = NAMES.map((name) => {
+  const decl = mono.getFunction(name) || mono.getVariableDeclaration(name);
+  if (!decl) {
+    console.error(`✗ could not find a top-level "${name}" in DosApp.jsx`);
+    process.exit(1);
+  }
+  return decl.getKind() === SyntaxKind.VariableDeclaration
     ? decl.getVariableStatementOrThrow()
     : decl;
+}).sort((a, b) => a.getStart() - b.getStart()); // preserve source order
 
-// --- collect free identifiers ----------------------------------------------
-// Names declared inside the moved node (params, locals, nested fns) are NOT
-// dependencies. Everything else referenced is.
-const internalNames = new Set();
-for (const id of moveNode.getDescendantsOfKind(SyntaxKind.Identifier)) {
-  const p = id.getParent();
-  // collect binding names that are LOCAL to the moved node
-  if (
-    Node.isParameterDeclaration(p) ||
-    Node.isVariableDeclaration(p) ||
-    Node.isFunctionDeclaration(p) ||
-    Node.isBindingElement(p)
-  ) {
-    if (p.getNameNode?.() === id) internalNames.add(id.getText());
+// --- helpers ---------------------------------------------------------------
+function collectLocals(node) {
+  const locals = new Set();
+  for (const id of node.getDescendantsOfKind(SyntaxKind.Identifier)) {
+    const p = id.getParent();
+    if (
+      (Node.isParameterDeclaration(p) ||
+        Node.isVariableDeclaration(p) ||
+        Node.isFunctionDeclaration(p) ||
+        Node.isBindingElement(p)) &&
+      p.getNameNode?.() === id
+    ) {
+      locals.add(id.getText());
+    }
   }
+  return locals;
 }
-internalNames.add(NAME);
 
 function isReferencePosition(id) {
   const p = id.getParent();
-  // skip property names: obj.foo, {foo: ...}, jsx attr name=, import/export
   if (Node.isPropertyAccessExpression(p) && p.getNameNode() === id) return false;
   if (Node.isPropertyAssignment(p) && p.getNameNode() === id) return false;
-  if (Node.isShorthandPropertyAssignment(p)) return true; // {foo} -> foo is a ref
+  if (Node.isShorthandPropertyAssignment(p)) return true;
   if (Node.isJsxAttribute(p)) return false;
   if (Node.isJsxAttribute(p?.getParent?.()) && p.getParent().getNameNode?.() === id) return false;
   if (Node.isImportSpecifier(p) || Node.isExportSpecifier(p)) return false;
@@ -109,74 +142,54 @@ function isReferencePosition(id) {
   return true;
 }
 
+// --- collect dependencies across the whole group ---------------------------
 const deps = new Map(); // name -> { kind, ... }
-for (const id of moveNode.getDescendantsOfKind(SyntaxKind.Identifier)) {
-  const name = id.getText();
-  if (internalNames.has(name)) continue;
-  if (deps.has(name)) continue;
-  if (!isReferencePosition(id)) continue;
+for (const node of moveNodes) {
+  const locals = collectLocals(node);
+  for (const id of node.getDescendantsOfKind(SyntaxKind.Identifier)) {
+    const name = id.getText();
+    if (groupNames.has(name) || locals.has(name) || deps.has(name)) continue;
+    if (!isReferencePosition(id)) continue;
 
-  const sym = id.getSymbol();
-  const decls = sym?.getDeclarations?.() ?? [];
-  if (decls.length === 0) continue; // global / unresolved -> ignore
+    const sym = id.getSymbol();
+    const decls = sym?.getDeclarations?.() ?? [];
+    if (decls.length === 0) continue; // global / unresolved
 
-  // Prefer a declaration that lives in the monolith.
-  const d = decls.find((x) => x.getSourceFile() === mono) ?? decls[0];
-  const sf = d.getSourceFile();
+    const d = decls.find((x) => x.getSourceFile() === mono) ?? decls[0];
+    const sf = d.getSourceFile();
+    const imp = d.getFirstAncestorByKind(SyntaxKind.ImportDeclaration);
 
-  // Is it an imported binding (in any file we control)?
-  const imp = d.getFirstAncestorByKind(SyntaxKind.ImportDeclaration);
-  if (imp && sf === mono) {
-    // Bare specifiers (react, @supabase/...) carry over unchanged. Relative
-    // specifiers must be recomputed from the NEW file's directory.
-    const spec = imp.getModuleSpecifierValue();
-    let module = spec;
-    if (spec.startsWith(".")) {
-      const resolved = imp.getModuleSpecifierSourceFile();
-      const targetPath = resolved
-        ? resolved.getFilePath()
-        : path.resolve(path.dirname(MONOLITH), spec);
-      let rel = path
-        .relative(path.join(ROOT, "src/components", SUBDIR), targetPath)
-        .replace(/\\/g, "/")
-        // drop a resolved extension so it matches the source's import style
-        .replace(/\.(jsx?|tsx?)$/, "");
-      if (!rel.startsWith(".")) rel = "./" + rel;
-      module = rel;
+    if (imp && sf === mono) {
+      const spec = imp.getModuleSpecifierValue();
+      let module = spec;
+      if (spec.startsWith(".")) {
+        const resolved = imp.getModuleSpecifierSourceFile();
+        const tp = resolved ? resolved.getFilePath() : path.resolve(path.dirname(MONOLITH), spec);
+        module = relSpec(targetDir, tp, /*keepExt*/ false);
+      }
+      deps.set(name, {
+        kind: "import",
+        module,
+        isDefault: !!imp.getDefaultImport() && imp.getDefaultImport().getText() === name,
+        isNamespace: !!imp.getNamespaceImport() && imp.getNamespaceImport().getText() === name,
+      });
+    } else if (sf === mono) {
+      deps.set(name, { kind: "monolith" });
+    } else {
+      deps.set(name, { kind: "external-file", module: relSpec(targetDir, sf.getFilePath(), false) });
     }
-    deps.set(name, {
-      kind: "import",
-      module,
-      isDefault: !!imp.getDefaultImport() && imp.getDefaultImport().getText() === name,
-      isNamespace: !!imp.getNamespaceImport() && imp.getNamespaceImport().getText() === name,
-    });
-    continue;
   }
-
-  // Module-level declaration inside the monolith -> needs export + back-import.
-  if (sf === mono) {
-    deps.set(name, { kind: "monolith", node: d });
-    continue;
-  }
-
-  // Declared in another project file directly (rare) -> import from there.
-  deps.set(name, {
-    kind: "external-file",
-    module: "./" + path.relative(path.join(ROOT, "src/components", SUBDIR), sf.getFilePath()).replace(/\\/g, "/"),
-  });
 }
 
-// --- build the import block for the new file -------------------------------
-const importsByModule = new Map(); // module -> {named:Set, default:string|null, namespace:string|null}
+// --- assemble import block for the new module ------------------------------
+const importsByModule = new Map();
 function addImport(module, { named, def, ns } = {}) {
-  if (!importsByModule.has(module))
-    importsByModule.set(module, { named: new Set(), def: null, ns: null });
+  if (!importsByModule.has(module)) importsByModule.set(module, { named: new Set(), def: null, ns: null });
   const e = importsByModule.get(module);
   if (named) e.named.add(named);
   if (def) e.def = def;
   if (ns) e.ns = ns;
 }
-
 const monolithBackImports = new Set();
 for (const [name, info] of deps) {
   if (info.kind === "import") {
@@ -187,72 +200,66 @@ for (const [name, info] of deps) {
     addImport(info.module, { named: name });
   } else if (info.kind === "monolith") {
     monolithBackImports.add(name);
+    addImport(monoFromTarget, { named: name });
   }
 }
-if (monolithBackImports.size) {
-  for (const n of monolithBackImports) addImport("../../DosApp.jsx", { named: n });
-}
-
 function renderImports() {
-  const lines = [];
-  // react first for readability
   const ordered = [...importsByModule.entries()].sort(([a], [b]) =>
     a === "react" ? -1 : b === "react" ? 1 : a.localeCompare(b)
   );
-  for (const [mod, e] of ordered) {
-    const clause = [];
-    if (e.def) clause.push(e.def);
-    if (e.ns) clause.push(`* as ${e.ns}`);
-    if (e.named.size) clause.push(`{ ${[...e.named].sort().join(", ")} }`);
-    lines.push(`import ${clause.join(", ")} from "${mod}";`);
-  }
-  return lines.join("\n");
+  return ordered
+    .map(([mod, e]) => {
+      const clause = [];
+      if (e.def) clause.push(e.def);
+      if (e.ns) clause.push(`* as ${e.ns}`);
+      if (e.named.size) clause.push(`{ ${[...e.named].sort().join(", ")} }`);
+      return `import ${clause.join(", ")} from "${mod}";`;
+    })
+    .join("\n");
 }
 
-// --- compose & apply -------------------------------------------------------
-const body = moveNode.getText();
-const exported = body.startsWith("export ") ? body : `export ${body}`;
-const newRelDir = path.join("src/components", SUBDIR);
-const newRelPath = path.join(newRelDir, `${NAME}.jsx`);
-const newAbsPath = path.join(ROOT, newRelPath);
-const newContent = `${renderImports()}\n\n${exported}\n`;
-const backImport = `import { ${NAME} } from "./components/${SUBDIR}/${NAME}.jsx";`;
+// --- compose ---------------------------------------------------------------
+const texts = moveNodes.map((n) => {
+  const t = n.getText();
+  return t.startsWith("export ") ? t : `export ${t}`;
+});
+const newContent = `${renderImports()}\n\n${texts.join("\n\n")}\n`;
+const backImport = `import { ${NAMES.join(", ")} } from "${importPathFromMono}";`;
 
-// Report
-console.log(`\n● extract ${NAME} -> ${newRelPath}`);
+// --- report ----------------------------------------------------------------
+console.log(`\n● extract [${NAMES.join(", ")}] -> src/${targetRel}`);
 const byKind = (k) => [...deps].filter(([, v]) => v.kind === k).map(([n]) => n);
 console.log(`  imports replicated : ${byKind("import").join(", ") || "(none)"}`);
-console.log(`  monolith deps      : ${[...monolithBackImports].join(", ") || "(none)"}`);
-const extFile = byKind("external-file");
-if (extFile.length) console.log(`  sibling-file deps  : ${extFile.join(", ")}`);
-console.log(`  -> will mark exported in DosApp.jsx: ${[...monolithBackImports].join(", ") || "(none)"}`);
+console.log(`  sibling-file deps  : ${byKind("external-file").join(", ") || "(none)"}`);
+console.log(`  monolith back-edges: ${[...monolithBackImports].join(", ") || "(none)  ← clean"}`);
+if (monolithBackImports.size)
+  console.log(`  ⚠ extract these first to avoid the back-edge: ${[...monolithBackImports].join(", ")}`);
 
 if (DRY) {
-  console.log("\n--- new file preview ---\n");
-  console.log(newContent.split("\n").slice(0, 40).join("\n"));
+  console.log("\n--- new module preview (head) ---\n");
+  console.log(newContent.split("\n").slice(0, 24).join("\n"));
   console.log("\n(dry run; nothing written)\n");
   process.exit(0);
 }
 
-// 1. mark monolith deps exported
+// --- apply -----------------------------------------------------------------
+// 1. export any monolith deps we back-import
 for (const n of monolithBackImports) {
   const d = mono.getFunction(n) || mono.getVariableDeclaration(n);
   if (!d) continue;
   if (d.getKind() === SyntaxKind.VariableDeclaration) {
     const stmt = d.getVariableStatementOrThrow();
     if (!stmt.isExported()) stmt.setIsExported(true);
-  } else if (typeof d.setIsExported === "function") {
-    if (!d.isExported()) d.setIsExported(true);
+  } else if (typeof d.setIsExported === "function" && !d.isExported()) {
+    d.setIsExported(true);
   }
 }
-
-// 2. write the new file
-project.createSourceFile(newAbsPath, newContent, { overwrite: true });
-
-// 3. remove the declaration from the monolith and add the back-import
-moveNode.remove();
+// 2. write the new module
+project.createSourceFile(targetAbs, newContent, { overwrite: true });
+// 3. remove decls from the monolith, add the back-import
+for (const n of moveNodes) n.remove();
 mono.insertStatements(0, backImport);
 
 project.saveSync();
-console.log(`\n✓ wrote ${newRelPath} and rewired DosApp.jsx`);
+console.log(`\n✓ wrote src/${targetRel} and rewired DosApp.jsx`);
 console.log(`  next: npm run lint && npm test\n`);

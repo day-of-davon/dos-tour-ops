@@ -1,3 +1,4 @@
+import { Ctx } from "./context/DosContext.jsx";
 import React, { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { useAuth } from "./components/AuthGate.jsx";
 import { Button, Pill } from "./components/ui.jsx";
@@ -1115,8 +1116,6 @@ const resolvePartyCrew=(date,partyId,showCrew,allCrew)=>{
   if(!hasData)return null;
   return allCrew.filter(c=>sc[c.id]?.attending===true).map(c=>c.id);
 };
-
-const Ctx=createContext(null);
 
 function useMobile(bp=640){
   const[m,setM]=useState(typeof window!=="undefined"&&window.innerWidth<=bp);
