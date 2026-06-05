@@ -1,4 +1,3 @@
-import { GLMetric } from "./components/shared/GLMetric.jsx";
 import React, { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { useAuth } from "./components/AuthGate.jsx";
 import { Button, Pill } from "./components/ui.jsx";
@@ -493,7 +492,7 @@ const flightToLeg=f=>({
   flightId:f.id,
 });
 
-export const MN="'JetBrains Mono',monospace";
+const MN="'JetBrains Mono',monospace";
 
 const CLIENTS=[
   {id:"bbn",name:"bbno$",type:"artist",status:"active",color:T.accent,short:"BBN"},
@@ -9576,6 +9575,13 @@ function GuestListTab(){
       </>}
     </div>
   );
+}
+
+function GLMetric({label,value,sub}){
+  return<div style={{flex:"1 1 120px",background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"10px 12px",minWidth:110}}>
+    <div style={{fontSize:9,fontWeight:700,color:T.textDim,letterSpacing:"0.08em"}}>{label.toUpperCase()}</div>
+    <div style={{fontSize:20,fontWeight:800,color:T.text,fontFamily:MN,lineHeight:1.1,marginTop:2}}>{value}{sub&&<span style={{fontSize:10,color:T.textMute,marginLeft:6}}>{sub}</span>}</div>
+  </div>;
 }
 
 function CommentPanel(){
