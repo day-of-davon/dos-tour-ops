@@ -1,3 +1,6 @@
+import { CLIENTS, CM, isClientOwner, ROLES, TABS, COMMENT_TARGETS, COMMENT_CATEGORIES, COMMENT_STATUSES, ADMIN_EMAIL, SESSION_ID, PERM_ROLES, PERM_SCHEMA, DEFAULT_PERMS, DEFAULT_CREW, AB, UI, DEPTS, DM, AT, SC, SC_CYCLE, SC_ORDER, IMM_TYPES, IMM_STATUS, PRE_STAGES, POST_STAGES, FIN_EVENT_TYPES, FIN_EVENT_STATUS, MN, describeScanError } from "./lib/domain-constants.js";
+import { GL_DEFAULT_CATEGORIES, GL_STATUS, GL_PARTY_ROLES, GL_DEFAULT_SHOW, glNewId, GL_BUILTIN_TEMPLATE_ID, glBuiltinTemplate, glInitFromTemplate, glBuildTemplate, GL_ACTIVITY_CAP, glAppendActivity, glApplyTemplate } from "./lib/guestlist.js";
+import { sG, sS, sGP, sSP } from "./lib/store-json.js";
 import { crewLifecycleState, crewLifecycleSlots } from "./lib/lifecycle.js";
 import { SEG_META, segType, segMeta, AIRPORT_BUFFERS, airportBufferMin, buildDayTimeline, lodgingModeFor } from "./lib/segments.js";
 import { BUS_DATA, BUS_DATA_MAP, FLEET } from "./lib/tour-data.js";
@@ -26,15 +29,6 @@ import {
 // Returns a new object; does not mutate input.
 // Extract a human-readable message from a scan-api error body.
 // Server returns {error, anthropic:{type,message}, detail} JSON on 502; fall back to raw text.
-const describeScanError=body=>{
-  if(!body)return "";
-  try{
-    const p=JSON.parse(body);
-    if(p?.anthropic?.message)return`${p.anthropic.type||"error"}: ${p.anthropic.message}`.slice(0,400);
-    if(p?.error)return String(p.error).slice(0,400);
-  }catch{}
-  return String(body).slice(0,400);
-};
 // Merge fresh scan data into an existing flight, filling empty fields and unioning pax.
 // Preserves user-set status/confirmedAt and non-empty suggestedCrewIds.
 // Locate an existing record that matches a freshly scanned flight. Matches by tid first,
@@ -92,307 +86,13 @@ Object.entries(CITY_AIRPORTS).forEach(([city,codes])=>{
 // (e.g. hotel slot on a bus-mid day); "unknown" = segment is not tracked as a
 // distinct record (hotel stays without a check-in record).
 // Serialize a flight record into the compact leg shape used in showCrew.
-const MN="'JetBrains Mono',monospace";
-
-const CLIENTS=[
-  {id:"bbn",name:"bbno$",type:"artist",status:"active",color:T.accent,short:"BBN"},
-  {id:"wkn",name:"Wakaan",type:"festival",status:"active",color:T.successFg,short:"WKN"},
-  {id:"bwc",name:"Beyond Wonderland",type:"festival",status:"active",color:T.link,short:"BWC"},
-  {id:"elm",name:"Elements",type:"festival",status:"active",color:T.warnFg,short:"ELM"},
-];
-const CM=CLIENTS.reduce((a,c)=>{a[c.id]=c;return a},{});
-const isClientOwner=(me,clientId)=>!!(me?.primary||[]).includes(clientId);
-const ROLES=[{id:"tm_td",label:"TM/TD",c:"var(--accent)"},{id:"internal",label:"Internal",c:"var(--warn-fg)"},{id:"viewer",label:"Viewer",c:"var(--text-dim)"}];
-const TABS=[{id:"dash",label:"Dashboard",icon:"⊞"},{id:"advance",label:"Advance",icon:"◎"},{id:"guestlist",label:"Guest List",icon:"◉"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"},{id:"notes",label:"Notes",icon:"◫"},{id:"access",label:"Access",icon:"⊙"}];
-const COMMENT_TARGETS={
-  dash:["Overview cards","Upcoming shows","Open items","Intel panel"],
-  advance:["Checklist items","Status pills","Contacts","Notes","Intel threads"],
-  guestlist:["Parties panel","Categories","Templates","Activity log"],
-  ros:["ROS timeline","Anchor blocks","Block editor"],
-  transport:["Bus schedule","Driver dispatch","Ground transport"],
-  finance:["Settlement table","Wire tracker","Payout log","Ledger"],
-  crew:["Crew roster","Split-day picker"],
-  lodging:["Room blocks","Scan panel","Todos"],
-  production:["Doc ingest","Equipment list"],
-  access:["Role selector","Permissions matrix","Comments review"],
-};
-const COMMENT_CATEGORIES=[
-  {id:"bug",label:"Bug",color:"var(--danger-fg)"},
-  {id:"feature",label:"Feature request",color:T.accent},
-  {id:"ux",label:"UX issue",color:T.warnFg},
-  {id:"fix",label:"Fix needed",color:T.link},
-];
-const COMMENT_STATUSES=[
-  {id:"open",label:"Open",color:T.textDim},
-  {id:"reviewed",label:"Reviewed",color:T.link},
-  {id:"planned",label:"Planned",color:T.accent},
-  {id:"done",label:"Done",color:T.successFg},
-  {id:"wontfix",label:"Won't fix",color:T.textMute},
-];
-const ADMIN_EMAIL="d.johnson@dayofshow.net";
-const SESSION_ID=Math.random().toString(36).slice(2,9);
-const PERM_ROLES=[
-  {id:"tm_td",label:"TM/TD"},
-  {id:"internal",label:"Internal"},
-  {id:"viewer",label:"Viewer"},
-];
-const PERM_SCHEMA=[
-  {section:"Tabs",items:[
-    {id:"tab.dash",label:"Dashboard"},
-    {id:"tab.advance",label:"Advance"},
-    {id:"tab.guestlist",label:"Guest List"},
-    {id:"tab.ros",label:"Schedule"},
-    {id:"tab.transport",label:"Logistics"},
-    {id:"tab.finance",label:"Finance"},
-    {id:"tab.crew",label:"Crew"},
-    {id:"tab.lodging",label:"Lodging"},
-    {id:"tab.production",label:"Production"},
-  ]},
-  {section:"Logistics",items:[
-    {id:"feat.flights.scan",label:"Scan Flights"},
-    {id:"feat.flights.edit",label:"Edit Flights"},
-    {id:"feat.ground.edit",label:"Edit Ground Ops"},
-  ]},
-  {section:"Finance",items:[
-    {id:"feat.finance.edit",label:"Edit Settlement"},
-    {id:"feat.finance.ledger",label:"Ledger"},
-  ]},
-  {section:"Advance",items:[
-    {id:"feat.advance.edit",label:"Edit Checklist"},
-  ]},
-  {section:"Crew",items:[
-    {id:"feat.crew.edit",label:"Edit Roster"},
-  ]},
-  {section:"Production",items:[
-    {id:"feat.production.edit",label:"Edit Production"},
-  ]},
-];
-const DEFAULT_PERMS=(()=>{const p={};PERM_SCHEMA.forEach(s=>s.items.forEach(item=>{p[item.id]={};PERM_ROLES.forEach(r=>{p[item.id][r.id]=true;});}));return p;})();
-const GL_DEFAULT_CATEGORIES=[
-  {id:"artist_guest",name:"Artist Guest",side:"artist",zones:["FOH"],qty:6,walkOnQty:2},
-  {id:"artist_family",name:"Artist Family",side:"artist",zones:["VIP","DR"],qty:4,walkOnQty:0},
-  {id:"manager",name:"Manager",side:"artist",zones:["FOH","BS"],qty:2,walkOnQty:0},
-  {id:"agent",name:"Agent",side:"artist",zones:["FOH"],qty:1,walkOnQty:0},
-  {id:"media",name:"Publicist + Media",side:"artist",zones:["FOH","PIT"],qty:4,walkOnQty:0},
-  {id:"feature",name:"Feature Performer",side:"artist",zones:["FOH","BS"],qty:4,walkOnQty:0},
-  {id:"aaa_crew",name:"AAA Crew",side:"artist",zones:["FOH","BS","STG","CAT","DR","VIP","HOSPO","PIT"],qty:99,walkOnQty:0},
-  {id:"promoter",name:"Venue Promoter",side:"venue",zones:["FOH","BS","VIP","HOSPO"],qty:6,walkOnQty:0},
-  {id:"ar_manager",name:"AR Manager",side:"venue",zones:["HOSPO","VIP"],qty:4,walkOnQty:0},
-  {id:"hospo",name:"Hospo Guests",side:"venue",zones:["VIP"],qty:10,walkOnQty:0},
-];
-const GL_STATUS=[
-  {id:"draft",label:"Draft",color:T.textDim,bg:"var(--card-2)"},
-  {id:"pending_approval",label:"Pending Approval",color:T.warnFg,bg:"var(--warn-bg)"},
-  {id:"open",label:"Open",color:T.successFg,bg:"var(--success-bg)"},
-  {id:"locked",label:"Locked",color:T.accent,bg:"var(--accent-pill-bg)"},
-  {id:"closed",label:"Closed",color:"var(--text-3)",bg:"var(--bg)"},
-];
-const GL_PARTY_ROLES=[
-  {id:"artist",label:"Artist",side:"artist",defaultCategory:"artist_guest"},
-  {id:"manager",label:"Manager",side:"artist",defaultCategory:"manager"},
-  {id:"agent",label:"Agent",side:"artist",defaultCategory:"agent"},
-  {id:"publicist",label:"Publicist",side:"artist",defaultCategory:"media"},
-  {id:"family",label:"Family",side:"artist",defaultCategory:"artist_family"},
-  {id:"feature",label:"Feature Performer",side:"artist",defaultCategory:"feature"},
-  {id:"crew",label:"Crew",side:"artist",defaultCategory:"aaa_crew"},
-  {id:"promoter",label:"Promoter",side:"venue",defaultCategory:"promoter"},
-  {id:"ar_manager",label:"AR Manager",side:"venue",defaultCategory:"ar_manager"},
-  {id:"hospo_mgr",label:"Hospo Manager",side:"venue",defaultCategory:"hospo"},
-  {id:"talent_buyer",label:"Talent Buyer",side:"venue",defaultCategory:"promoter"},
-];
-const GL_DEFAULT_SHOW=()=>({
-  categories:GL_DEFAULT_CATEGORIES.map(c=>({...c})),
-  parties:{},
-  cutoffAt:"",
-  status:"draft",
-  walkOnCap:10,
-  notes:"",
-});
-const glNewId=p=>`${p}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
-const GL_BUILTIN_TEMPLATE_ID="__tour_default";
-const glBuiltinTemplate=()=>({id:GL_BUILTIN_TEMPLATE_ID,name:"Tour Default",builtin:true,categories:GL_DEFAULT_CATEGORIES.map(c=>({...c})),walkOnCap:10,notes:""});
-const glInitFromTemplate=tpl=>({categories:(tpl?.categories||GL_DEFAULT_CATEGORIES).map(c=>({...c})),parties:{},cutoffAt:"",status:"draft",walkOnCap:tpl?.walkOnCap??10,notes:tpl?.notes||"",templateId:tpl?.id||null});
-const glBuildTemplate=(name,show)=>({id:glNewId("tpl"),name:name.trim(),builtin:false,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),categories:(show.categories||[]).map(c=>({...c})),walkOnCap:show.walkOnCap??10,notes:show.notes||""});
-const GL_ACTIVITY_CAP=200;
-const glAppendActivity=(arr,entry)=>{
-  const next=[...(arr||[]),entry];
-  return next.length>GL_ACTIVITY_CAP?next.slice(-GL_ACTIVITY_CAP):next;
-};
-const glApplyTemplate=(show,tpl)=>{
-  // Remap parties' categoryIds: prefer same id, else first category of matching side, else first category.
-  const next={...show,categories:(tpl.categories||[]).map(c=>({...c})),walkOnCap:tpl.walkOnCap??show.walkOnCap,notes:tpl.notes||show.notes,templateId:tpl.id};
-  const nextIds=new Set(next.categories.map(c=>c.id));
-  if(show.parties&&Object.keys(show.parties).length){
-    const mapped={};
-    Object.entries(show.parties).forEach(([pid,p])=>{
-      let cid=p.categoryId;
-      if(!nextIds.has(cid)){
-        const sideMatch=next.categories.find(c=>c.side===p.side);
-        cid=sideMatch?.id||next.categories[0]?.id||cid;
-      }
-      mapped[pid]={...p,categoryId:cid};
-    });
-    next.parties=mapped;
-  }
-  return next;
-};
-const DEFAULT_CREW=[
-  {id:"ag", name:"Alex Gumuchian",        role:"Headliner (bbno$)",          email:"alexgumuchian@gmail.com"},
-  {id:"jb", name:"Julien Bruce",           role:"Support (Jungle Bobby)",     email:""},
-  {id:"mse",name:"Mat Senechal",           role:"Bassist/Keys",               email:""},
-  {id:"tip",name:"Taylor Madrigal (Tip)",  role:"DJ",                         email:""},
-  {id:"ac", name:"Andrew Campbell",        role:"DJ (Bishu)",                 email:""},
-  {id:"dj", name:"Davon Johnson",          role:"TM/TD",                      email:"d.johnson@dayofshow.net"},
-  {id:"ms", name:"Mike Sheck",             role:"PM (Advance)",               email:"mikesheck@l7touring.com"},
-  {id:"dn", name:"Dan Nudelman",           role:"PM (On-site)",               email:"dan@noodle.management"},
-  {id:"tc", name:"TBD",                    role:"Tour Coordinator",           email:""},
-  {id:"rm", name:"Ruairi Matthews",        role:"FOH Audio",                  email:"ruairim@magentasound.ca"},
-  {id:"nf", name:"Nick Foerster",          role:"Monitor Engineer",           email:""},
-  {id:"sa", name:"Saad A.",               role:"Audio/BNE",                  email:""},
-  {id:"gg", name:"Gabe Greenwood",         role:"LD",                         email:""},
-  {id:"lt1",name:"TBD",                    role:"LED Tech 1",                 email:""},
-  {id:"lt2",name:"TBD",                    role:"LED Tech 2",                 email:""},
-  {id:"cl", name:"Cody Leggett",           role:"Lasers/LSO",                 email:"cody@photon7.com"},
-  {id:"mh", name:"Michael Heid",           role:"Visual/Set Design (Sigma-1)",email:"bbno-visual@sigma-1.com"},
-  {id:"go", name:"Grace Offerdahl",        role:"Merch (Tour Seller)",        email:"graceofferdahl@gmail.com"},
-  {id:"nm", name:"Nathan McCoy",           role:"Merch Dir (A3)",             email:"nathan@a3merch.com"},
-  {id:"mp", name:"Megan Putnam",           role:"Hospo/GL",                   email:"mputnam5@yahoo.com"},
-  {id:"od", name:"O'Len Davis",            role:"Content & Media",            email:""},
-  {id:"gb", name:"Guillaume Bessette",     role:"Bus Driver (Prod.G)",        email:""},
-  {id:"td", name:"TBD",                    role:"Truck Driver",               email:""},
-];
-const AB=new Set(["bus_arrive","doors_early","doors_ga","clear","bus_depart"]);
-
-const UI={
-  expandPanel:{background:"var(--card-4)",borderLeft:"3px solid var(--accent)",padding:"10px 14px 12px"},
-  expandBtn:(open,accent="var(--accent)")=>({background:open?"var(--accent)":accent,border:"none",borderRadius:6,color:"#fff",fontSize:10,padding:"4px 11px",cursor:"pointer",fontWeight:700}),
-  sectionLabel:{fontSize:9,fontWeight:800,color:T.textDim,letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:6},
-  input:{background:"var(--card)",border:"1px solid var(--border)",borderRadius:6,fontSize:10,padding:"4px 6px",outline:"none",fontFamily:"'Outfit',system-ui"},
-};
-
-const DEPTS=[
-  {id:"all",label:"All",color:T.text2,bg:"var(--card-2)"},
-  {id:"artist_team",label:"Artist Team",color:T.accent,bg:"var(--accent-pill-bg)"},
-  {id:"venue",label:"Venue / Promoter",color:T.successFg,bg:"var(--success-bg)"},
-  {id:"ar_hospo",label:"AR / Hospo",color:T.successFg,bg:"var(--success-bg)"},
-  {id:"transport",label:"Transport",color:T.link,bg:"var(--info-bg)"},
-  {id:"production",label:"Production",color:T.warnFg,bg:"var(--warn-bg)"},
-  {id:"vendors",label:"Vendors",color:"var(--accent-soft)",bg:"var(--accent-pill-bg)"},
-  {id:"site_ops",label:"Site Ops",color:"var(--info-fg)",bg:"var(--info-bg)"},
-  {id:"quartermaster",label:"Quartermaster",color:T.textDim,bg:"var(--card-3)"},
-];
-const DM=DEPTS.reduce((a,d)=>{a[d.id]=d;return a},{});
-
 // locked:true = status only, question immutable | locked:false/undefined = editable
-const AT=[
-  {id:"at1",dept:"artist_team",dir:"we_provide",q:"Rider submitted (production + hospitality)."},
-  {id:"at2",dept:"artist_team",dir:"we_provide",q:"Crew list and credentials submitted."},
-  {id:"at3",dept:"artist_team",dir:"we_provide",q:"Tech spec submitted (FOH plot, monitor world, power req, LED manifest)."},
-  {id:"at4",dept:"artist_team",dir:"we_provide",q:"M&G preferences confirmed (count, timing, format, photo policy)."},
-  {id:"at5",dept:"artist_team",dir:"we_provide",q:"Guest list submitted (AA, GA, plus-ones, crew holds)."},
-  {id:"at6",dept:"artist_team",dir:"we_provide",q:"Travel itinerary shared with venue (bus arrival, flight if applicable)."},
-  {id:"vn1",dept:"venue",dir:"they_provide",q:"Venue tech pack sent (stage plot, rigging plan, CAD, PSR)."},
-  {id:"vn2",dept:"venue",dir:"they_provide",q:"House LX patch, node addresses, and type sent for pre-merge."},
-  {id:"vn3",dept:"venue",dir:"they_provide",q:"Guest allotment confirmed. Access levels (VIP, GA, AA)."},
-  {id:"vn4",dept:"venue",dir:"they_provide",q:"Merch terms confirmed (artist-sells or venue-sells, split %)."},
-  {id:"vn5",dept:"venue",dir:"they_provide",q:"Hospitality budget confirmed. Cash leftover or buyout."},
-  {id:"vn6",dept:"venue",dir:"they_provide",q:"Friends and family viewing area. Location and capacity."},
-  {id:"vn7",dept:"venue",dir:"they_provide",locked:true,q:"Withholding tax requirements and immigration documentation provided."},
-  {id:"vn8",dept:"venue",dir:"they_provide",locked:true,q:"Wire transfer details, tax forms, and withholding docs for settlement."},
-  {id:"ar1",dept:"ar_hospo",dir:"bilateral",q:"Hospitality setup confirmed (room layout, catering, green room)."},
-  {id:"ar2",dept:"ar_hospo",dir:"bilateral",q:"Hotel confirmation received. Artist and touring party assigned."},
-  {id:"ar3",dept:"ar_hospo",dir:"bilateral",q:"M&G logistics locked (room, flow, security, photo station)."},
-  {id:"ar4",dept:"ar_hospo",dir:"bilateral",q:"Badge/credential allocation received and distributed."},
-  {id:"ar5",dept:"ar_hospo",dir:"they_provide",q:"Runner scheduled. Rate confirmed. Can handle crew transfers."},
-  {id:"ar6",dept:"ar_hospo",dir:"they_provide",q:"WiFi credentials provided (network + password)."},
-  {id:"ar7",dept:"ar_hospo",dir:"bilateral",q:"Towels confirmed: 25 bath + 10 black stage per show day."},
-  {id:"tr1",dept:"transport",dir:"bilateral",q:"Parking confirmed: nightliner + truck for required nights."},
-  {id:"tr2",dept:"transport",dir:"they_provide",q:"Shore power (32A 3-phase) available at parking location."},
-  {id:"tr3",dept:"transport",dir:"they_provide",q:"Loading dock access details and dimensions provided."},
-  {id:"tr4",dept:"transport",dir:"they_provide",q:"Overnight parking restrictions and permits confirmed."},
-  {id:"tr5",dept:"transport",dir:"bilateral",q:"Parking/dock layout or satellite image received."},
-  {id:"tr6",dept:"transport",dir:"we_provide",q:"Driver contact shared with venue (name, mobile, vehicle info)."},
-  {id:"tr7",dept:"transport",dir:"bilateral",q:"Bus arrival window confirmed. Power connect on arrival."},
-  {id:"pr1",dept:"production",dir:"they_provide",q:"Guest Cat5e or Cat6 line available. Length and shielding confirmed."},
-  {id:"pr2",dept:"production",dir:"they_provide",locked:true,q:"RF permitting confirmed for IEM (470-542 MHz) and mic (470-636 MHz)."},
-  {id:"pr3",dept:"production",dir:"they_provide",locked:true,q:"Laser zoning confirmed. Venue map with cameras/projectors sent."},
-  {id:"pr4",dept:"production",dir:"they_provide",q:"Labor call confirmed with PM. Quote received per position."},
-  {id:"pr5",dept:"production",dir:"they_provide",q:"Loaders doubling as hands confirmed or additional hands called."},
-  {id:"pr6",dept:"production",dir:"bilateral",q:"Power distribution confirmed (200A 3ph LX, 60A VX, 100A audio)."},
-  {id:"pr7",dept:"production",dir:"bilateral",q:"Greenroom/dressing room layout confirmed. Rooms assigned."},
-  {id:"vd1",dept:"vendors",dir:"bilateral",q:"Equipment delivery window confirmed with production."},
-  {id:"vd2",dept:"vendors",dir:"bilateral",q:"Setup and strike time allocated in venue schedule."},
-  {id:"vd3",dept:"vendors",dir:"we_provide",locked:true,q:"COI / insurance certificate submitted to venue."},
-  {id:"vd4",dept:"vendors",dir:"bilateral",q:"Payment terms confirmed. Invoice submitted."},
-  {id:"vd5",dept:"vendors",dir:"bilateral",q:"Vendor parking and unloading access confirmed."},
-  {id:"so1",dept:"site_ops",dir:"bilateral",q:"Security meeting time confirmed."},
-  {id:"so2",dept:"site_ops",dir:"they_provide",q:"Security deployment schedule provided (perimeter, pit, backstage, bus)."},
-  {id:"so3",dept:"site_ops",dir:"they_provide",q:"Forklift availability confirmed (extensions if no loading dock)."},
-  {id:"so4",dept:"site_ops",dir:"they_provide",q:"Cable ramp accessible at load-in."},
-  {id:"so5",dept:"site_ops",dir:"bilateral",q:"Photo/video policy communicated to venue security."},
-  {id:"qm1",dept:"quartermaster",dir:"we_provide",q:"Expendables list submitted (tape, batteries, misc supplies)."},
-  {id:"qm2",dept:"quartermaster",dir:"bilateral",q:"Storage location confirmed for tour cases and excess gear."},
-  {id:"qm3",dept:"quartermaster",dir:"bilateral",q:"Towel order confirmed (25 bath, 10 black stage). Delivery location set."},
-  {id:"qm4",dept:"quartermaster",dir:"bilateral",q:"Stage supplies confirmed (music stands, chairs, power strips)."},
-];
-
-const SC={
-  pending:{l:"Pending",c:"var(--text-dim)",b:"var(--card-2)"},
-  sent:{l:"Sent",c:"var(--text-3)",b:"var(--border)"},
-  received:{l:"Received",c:"var(--text-3)",b:"var(--border)"},
-  in_progress:{l:"In Progress",c:"var(--link)",b:"var(--info-bg)"},
-  respond:{l:"Respond",c:"var(--warn-fg)",b:"var(--warn-bg)"},
-  follow_up:{l:"Follow Up",c:"var(--warn-fg)",b:"var(--warn-bg)"},
-  escalate:{l:"Escalate",c:"var(--danger-fg)",b:"var(--danger-bg)"},
-  confirmed:{l:"Confirmed",c:"var(--success-fg)",b:"var(--success-bg)"},
-  na:{l:"N/A",c:"var(--text-mute)",b:"var(--card-2)"},
-  // Stored rows written before "responded" was renamed to "in_progress"; render them the same.
-  responded:{l:"In Progress",c:"var(--link)",b:"var(--info-bg)"},
-};
-const SC_CYCLE=["pending","in_progress","confirmed"];
-const SC_ORDER=["pending","in_progress","sent","received","respond","follow_up","escalate","confirmed","na"];
 // Immigration entity — country-scoped, spans multiple shows.
 // Lifecycle: not_started → in_progress → submitted → received → approved (or rejected).
-const IMM_TYPES=[
-  {id:"work_permit",l:"Work Permit"},
-  {id:"visa",l:"Visa"},
-  {id:"withholding",l:"Withholding / Tax"},
-  {id:"customs",l:"Customs / Carnet"},
-  {id:"other",l:"Other"},
-];
-const IMM_STATUS=[
-  {id:"not_started",l:"Not Started",c:"var(--text-dim)",b:"var(--muted-bg)"},
-  {id:"in_progress",l:"In Progress",c:"var(--link)",b:"var(--info-bg)"},
-  {id:"submitted",l:"Submitted",c:"var(--warn-fg)",b:"var(--warn-bg)"},
-  {id:"received",l:"Received",c:"var(--accent)",b:"var(--accent-pill-bg)"},
-  {id:"approved",l:"Approved",c:"var(--success-fg)",b:"var(--success-bg)"},
-  {id:"rejected",l:"Rejected",c:"var(--danger-fg)",b:"var(--danger-bg)"},
-  {id:"na",l:"N/A",c:"var(--text-mute)",b:"var(--muted-bg)"},
-];
-const PRE_STAGES=[{id:"contract_received",l:"Contract Received"},{id:"estimate_received",l:"Pre-Show Estimate"},{id:"guarantee_confirmed",l:"Guarantee Confirmed"}];
-const POST_STAGES=[{id:"expenses_reviewed",l:"Expenses Reviewed"},{id:"disputes_resolved",l:"Disputes Resolved"},{id:"payment_initiated",l:"Payment Initiated"},{id:"wire_ref_confirmed",l:"Wire Ref # Confirmed",req:true},{id:"signed_sheet",l:"Signed Sheet Received",req:true}];
 // Financial events — distinct timelines per event. Settlement lands same-night,
 // wire can arrive T+45, withholding triggers T+30. Modeling as independent events
 // avoids status collisions on a single show-level record.
-const FIN_EVENT_TYPES=[
-  {id:"settlement",l:"Settlement",c:"var(--success-fg)",b:"var(--success-bg)"},
-  {id:"wire",l:"Wire",c:"var(--link)",b:"var(--info-bg)"},
-  {id:"withholding",l:"Withholding",c:"var(--warn-fg)",b:"var(--warn-bg)"},
-  {id:"merch",l:"Merch",c:"var(--accent)",b:"var(--accent-pill-bg)"},
-  {id:"vip",l:"VIP",c:"var(--link)",b:"var(--info-bg)"},
-  {id:"reconciliation",l:"Reconciliation",c:"var(--text-2)",b:"var(--muted-bg)"},
-  {id:"other",l:"Other",c:"var(--text-dim)",b:"var(--muted-bg)"},
-];
-const FIN_EVENT_STATUS=[
-  {id:"pending",l:"Pending",c:"var(--text-dim)",b:"var(--muted-bg)"},
-  {id:"in_progress",l:"In Progress",c:"var(--link)",b:"var(--info-bg)"},
-  {id:"confirmed",l:"Confirmed",c:"var(--success-fg)",b:"var(--success-bg)"},
-  {id:"disputed",l:"Disputed",c:"var(--danger-fg)",b:"var(--danger-bg)"},
-];
 // iCalendar export: build a VCALENDAR with all-day VEVENTs for each tour day.
-const sG=async k=>{try{const r=await window.storage.get(k);return r?JSON.parse(r.value):null}catch(e){console.error("[storage.get]",k,e?.message||e);return null}};
-const sS=async(k,v)=>{try{await window.storage.set(k,JSON.stringify(v));return true}catch(e){console.error("[storage.set]",k,e?.message||e);return false}};
-
 const ALL_SHOWS=[
   {date:"2026-04-16",clientId:"bbn",city:"Morrison",venue:"Red Rocks Amphitheatre",country:"US",region:"na",promoter:"AEG / Sasha Minkov",advance:[{name:"Sasha Minkov",email:"sminkov@aegpresents.com",role:"Promoter",dept:"venue"}],doors:toM(17,30),curfew:toM(23,30),busArrive:toM(7),crewCall:toM(8),venueAccess:toM(7),mgTime:toM(16,30),notes:"Hard curfew 11:30p. BNP vendor. w/ Oliver Tree.",customRos:true},
   {date:"2026-05-01",clientId:"bbn",city:"Worcester",venue:"WPI",country:"US",region:"na",promoter:"Pretty Polly / Tori Pacheco",advance:[{name:"Dan Saldarini",email:"dan@prettypolly.com",role:"Promoter",dept:"venue"},{name:"Tori Pacheco",email:"tori@prettypolly.com",role:"Hospo",dept:"ar_hospo"}],doors:toM(19),curfew:toM(23),crewCall:toM(10),venueAccess:toM(9),mgTime:toM(16,30),notes:"Advance past due.",busSkip:true},
@@ -741,9 +441,6 @@ function parseAllTimes(str){
 function parseTimeStr(s){const t=parseAllTimes(s);return t.length?t[0].minutes:null;}
 function fmtMin(m){if(m==null||m===0)return"—";const h=Math.floor(m/60),mm=m%60;const ap=h>=12?"PM":"AM";const h12=((h+11)%12)+1;return `${h12}:${String(mm).padStart(2,"0")} ${ap}`;}
 const fmtAudit=(iso)=>{if(!iso)return"";const d=new Date(iso);const M=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];const h=d.getHours();const ap=h>=12?"pm":"am";const h12=((h+11)%12)+1;return `${M[d.getMonth()]} ${d.getDate()}, ${h12}:${String(d.getMinutes()).padStart(2,"0")}${ap}`;};
-const sGP=async k=>{try{const r=await window.storage.getPrivate(k);return r?JSON.parse(r.value):null}catch(e){console.error("[storage.getPrivate]",k,e?.message||e);return null}};
-const sSP=async(k,v)=>{try{await window.storage.setPrivate(k,JSON.stringify(v));return true}catch(e){console.error("[storage.setPrivate]",k,e?.message||e);return false}};
-
 // Operational flags computed from a bus-day entry. Pure derivation from
 // existing fields (entry.flag, entry.note, entry.drive, entry.show) — no data
 // model change. Promote to first-class fields on busEdits[iso] later if a
