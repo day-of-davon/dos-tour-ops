@@ -1,3 +1,4 @@
+import { hhmmToMin, toM, fmt, pM, dU, fD, fW, fFull, fmt24, fmtDur, subtractMinutes, daysBetween } from "./lib/time.js";
 import { Ctx } from "./context/DosContext.jsx";
 import React, { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { useAuth } from "./components/AuthGate.jsx";
@@ -13,8 +14,6 @@ import {
 
 // DOS TOUR OPS v7.0 — Day of Show, LLC
 // Client-first · All dept advance lanes · Custom + editable items · Full settlement
-
-const hhmmToMin=s=>{if(!s)return null;const[h,m]=s.split(":").map(Number);return isNaN(h)||isNaN(m)?null:h*60+m;};
 // Group same-day flight legs by itinerary (confirmNo / bookingRef / pax signature) and tag
 // each with role: final leg of a multi-leg chain = "arr", all prior legs = "dep". Single-leg
 // groups stay "dep". Overnight arrivals (arrs) are always "arr".
@@ -374,13 +373,6 @@ const airportBufferMin=(iata,hasBag=true)=>{
   return hasBag?b.bag:b.carry;
 };
 // Subtract `mins` from "HH:MM" and return "HH:MM" (wraps into negative = previous day warning separately).
-const subtractMinutes=(hhmm,mins)=>{
-  const t=hhmmToMin(hhmm);if(t==null)return"";
-  const diff=t-mins;
-  if(diff<0){const d=1440+diff;return`${String(Math.floor(d/60)).padStart(2,"0")}:${String(d%60).padStart(2,"0")}*`;}
-  return`${String(Math.floor(diff/60)).padStart(2,"0")}:${String(diff%60).padStart(2,"0")}`;
-};
-
 // ── Lodging-mode inference ────────────────────────────────────────────────
 // Bus dates: crew sleep on the Pieter Smit nightliner; hotel rooms are not needed
 // (artist may take one off-day; tracked separately). Any date in BUS_DATA_MAP with
@@ -393,10 +385,6 @@ const lodgingModeFor=(date,tourDaysObj)=>{
   // Days marked explicitly "off" outside the bus window don't count.
   if(td?.type==="off"&&!bus)return"hotel";
   return"bus";
-};
-const daysBetween=(a,b)=>{
-  if(!a||!b)return 0;
-  return Math.round((new Date(b+"T12:00:00")-new Date(a+"T12:00:00"))/86400000);
 };
 // Classify a crew member's role on a given show date based on their attending
 // history: bus-mid (middle of the bus run — on bus, no segments expected),
@@ -790,14 +778,6 @@ const FIN_EVENT_STATUS=[
   {id:"confirmed",l:"Confirmed",c:"var(--success-fg)",b:"var(--success-bg)"},
   {id:"disputed",l:"Disputed",c:"var(--danger-fg)",b:"var(--danger-bg)"},
 ];
-
-const toM=(h,m=0)=>h*60+m;
-const fmt=mins=>{if(mins==null)return"--";const n=((mins%1440)+1440)%1440,h=Math.floor(n/60),m=n%60,p=h>=12?"p":"a",h12=h===0?12:h>12?h-12:h;return`${h12}:${String(m).padStart(2,"0")}${p}`;};
-const pM=str=>{if(!str)return null;const m=str.match(/^(\d{1,2}):(\d{2})\s*(a|p|am|pm)?$/i);if(!m)return null;let h=parseInt(m[1]);const mi=parseInt(m[2]),pe=(m[3]||"a").toLowerCase();if(pe.startsWith("p")&&h<12)h+=12;if(pe.startsWith("a")&&h===12)h=0;return h*60+mi;};
-const dU=d=>Math.ceil((new Date(d+"T12:00:00")-new Date())/86400000);
-const fD=d=>new Date(d+"T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"});
-const fW=d=>new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"short"});
-const fFull=d=>new Date(d+"T12:00:00").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});
 // iCalendar export: build a VCALENDAR with all-day VEVENTs for each tour day.
 const icsEsc=s=>String(s||"").replace(/\\/g,"\\\\").replace(/\n/g,"\\n").replace(/,/g,"\\,").replace(/;/g,"\\;");
 const icsDate=iso=>iso.replace(/-/g,"");
@@ -1058,8 +1038,6 @@ const parseDriveSessions=(note,stops)=>{
 // Build a draft of the drive-session table from a calculated route result.
 // Splits driving time at EC561 boundaries (45min break after every 4.5h
 // driving) and includes a final ETA row. Distances are pro-rated by time.
-const fmt24=(mins)=>{const t=((mins%1440)+1440)%1440;const h=Math.floor(t/60);const m=Math.round(t%60);return`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;};
-const fmtDur=(mins)=>{if(mins<60)return`${mins}min`;const h=mins/60;const r=Math.round(h*2)/2;return`${r}h`;};
 const buildDraftSessions=(result,form)=>{
   if(!result||result.error||result.duration_min==null)return null;
   const total=result.duration_min;

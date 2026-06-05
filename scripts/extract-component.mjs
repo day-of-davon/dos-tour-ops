@@ -157,6 +157,9 @@ for (const node of moveNodes) {
 
     const d = decls.find((x) => x.getSourceFile() === mono) ?? decls[0];
     const sf = d.getSourceFile();
+    // Ambient/global symbols (Math, Date, JSX intrinsics...) resolve to .d.ts
+    // lib files. They need no import.
+    if (sf.isDeclarationFile()) continue;
     const imp = d.getFirstAncestorByKind(SyntaxKind.ImportDeclaration);
 
     if (imp && sf === mono) {
@@ -223,7 +226,8 @@ const texts = moveNodes.map((n) => {
   const t = n.getText();
   return t.startsWith("export ") ? t : `export ${t}`;
 });
-const newContent = `${renderImports()}\n\n${texts.join("\n\n")}\n`;
+const head = renderImports();
+const newContent = (head ? `${head}\n\n` : "") + `${texts.join("\n\n")}\n`;
 const backImport = `import { ${NAMES.join(", ")} } from "${importPathFromMono}";`;
 
 // --- report ----------------------------------------------------------------
