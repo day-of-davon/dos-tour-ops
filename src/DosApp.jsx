@@ -1,3 +1,4 @@
+import { useMobile } from "./hooks/useMobile.jsx";
 import { tokens, showIdFor, gmailUrl, STOP, textSimilar, deduplicateIntel, matchScore, confOf, suggestStatusFromThread, FIELD_KEYS, parseAllTimes, parseTimeStr, fmtMin, fmtAudit, DRIVE_FLAG_STYLE, computeDriveFlags } from "./lib/intel.js";
 import { ALL_SHOWS, DEFAULT_ROS, RRX_ROS, CUSTOM_ROS_MAP, SPLIT_DAYS, resolvePartyCrew, parseDriveSessions, buildDraftSessions, DRIVE_KIND_STYLE } from "./lib/ros-data.js";
 import { CLIENTS, CM, isClientOwner, ROLES, TABS, COMMENT_TARGETS, COMMENT_CATEGORIES, COMMENT_STATUSES, ADMIN_EMAIL, SESSION_ID, PERM_ROLES, PERM_SCHEMA, DEFAULT_PERMS, DEFAULT_CREW, AB, UI, DEPTS, DM, AT, SC, SC_CYCLE, SC_ORDER, IMM_TYPES, IMM_STATUS, PRE_STAGES, POST_STAGES, FIN_EVENT_TYPES, FIN_EVENT_STATUS, MN, describeScanError } from "./lib/domain-constants.js";
@@ -106,13 +107,6 @@ Object.entries(CITY_AIRPORTS).forEach(([city,codes])=>{
 // driving) and includes a final ETA row. Distances are pro-rated by time.
 // Color theme per row kind
 // Split days: touring party divides across simultaneous events
-
-function useMobile(bp=640){
-  const[m,setM]=useState(typeof window!=="undefined"&&window.innerWidth<=bp);
-  useEffect(()=>{const h=()=>setM(window.innerWidth<=bp);window.addEventListener("resize",h);return()=>window.removeEventListener("resize",h);},[bp]);
-  return m;
-}
-
 // ── Intel deduplication ──────────────────────────────────────────────────────
 // Runs after every scan/import. Normalizes and fuzzy-matches todos, followUps,
 // and threads so repeated scans don't accumulate near-identical entries.
