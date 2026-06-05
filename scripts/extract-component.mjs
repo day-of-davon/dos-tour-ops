@@ -264,6 +264,33 @@ project.createSourceFile(targetAbs, newContent, { overwrite: true });
 for (const n of moveNodes) n.remove();
 mono.insertStatements(0, backImport);
 
+// 4. repoint OTHER files that imported any moved symbol from the monolith.
+// Those `import { X } from "...DosApp.jsx"` lines would otherwise break, since
+// X no longer lives in (or is re-exported by) the monolith. ESLint no-undef
+// can't see this (the binding exists); rollup can. So fix it here.
+const moved = new Set(NAMES);
+let repointed = 0;
+for (const sf of project.getSourceFiles()) {
+  if (sf === mono || sf.getFilePath() === targetAbs) continue;
+  for (const imp of sf.getImportDeclarations()) {
+    if (imp.getModuleSpecifierSourceFile() !== mono) continue;
+    const hits = imp.getNamedImports().filter((ni) => moved.has(ni.getName()));
+    if (hits.length === 0) continue;
+    const spec = relSpec(path.dirname(sf.getFilePath()), targetAbs, /*keepExt*/ false);
+    sf.addImportDeclaration({ moduleSpecifier: spec, namedImports: hits.map((ni) => ni.getName()) });
+    hits.forEach((ni) => ni.remove());
+    if (
+      imp.getNamedImports().length === 0 &&
+      !imp.getDefaultImport() &&
+      !imp.getNamespaceImport()
+    ) {
+      imp.remove();
+    }
+    repointed++;
+  }
+}
+if (repointed) console.log(`  repointed ${repointed} existing importer(s) to the new module`);
+
 project.saveSync();
 console.log(`\n✓ wrote src/${targetRel} and rewired DosApp.jsx`);
 console.log(`  next: npm run lint && npm test\n`);

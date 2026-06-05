@@ -1,9 +1,9 @@
 import { useContext, useRef, useState } from "react";
 import { Ctx } from "../../context/DosContext";
-import { DOC_TYPE_META } from "../../DosApp.jsx";
 import { MN } from "../../lib/domain-constants";
 import { supabase } from "../../lib/supabase";
 import { T } from "../../styles/tokens";
+import { DOC_TYPE_META } from "../../lib/files";
 
 export function FileUploadModal({onClose}){
   const{uFin,uFlight,uShow,uProd,setSel,setTab,sel,eventKey,aC,shows,flights,finance}=useContext(Ctx);

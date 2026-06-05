@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { getLegLabel } from "../../DosApp.jsx";
 import { ConnectionPill } from "../shared/ConnectionPill";
 import { ReservationHeader } from "./ReservationHeader";
+import { getLegLabel } from "../../lib/flights-view";
 
 export function ReservationGroup({g,defaultCollapsed=false,borderColor,renderSegment}){
   const[collapsed,setCollapsed]=useState(defaultCollapsed);

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { HOTEL_STATUS_META, ROOM_STATUS_META } from "../../DosApp.jsx";
 import { HOTEL_TODOS_DEFAULT } from "../../lib/constants";
 import { MN } from "../../lib/domain-constants";
 import { T } from "../../styles/tokens";
+import { HOTEL_STATUS_META, ROOM_STATUS_META } from "../../lib/lodging";
 
 export function HotelCard({hotel,date,onEdit,crew,uLodging,uFin,finance}){
   const[open,setOpen]=useState(true);

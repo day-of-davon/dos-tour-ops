@@ -1,6 +1,5 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { Ctx } from "../../context/DosContext";
-import { FLEET_EXCEPTION_STATUS_KEY, collectFleetExceptions } from "../../DosApp.jsx";
 import { MN } from "../../lib/domain-constants";
 import { gmailUrl } from "../../lib/intel";
 import { T } from "../../styles/tokens";
@@ -10,6 +9,7 @@ import { AllShowsDriveSessionsView } from "./AllShowsDriveSessionsView";
 import { DailyDriveSessionsView } from "./DailyDriveSessionsView";
 import { FleetExceptionsView } from "./FleetExceptionsView";
 import { TravelDayView } from "./TravelDayView";
+import { FLEET_EXCEPTION_STATUS_KEY, collectFleetExceptions } from "../../lib/fleet";
 
 export function TransTab(){
   const{flights,uFlight,sel,labelIntel,transView:view,setTransView:setView,allShows}=useContext(Ctx);

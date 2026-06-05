@@ -1,8 +1,8 @@
 import { useMemo } from "react";
-import { FLEET_EXCEPTION_STATUSES, collectFleetExceptions, useFleetExceptionStatus } from "../../DosApp.jsx";
 import { MN } from "../../lib/domain-constants";
 import { FLEET } from "../../lib/tour-data";
 import { T } from "../../styles/tokens";
+import { FLEET_EXCEPTION_STATUSES, collectFleetExceptions, useFleetExceptionStatus } from "../../lib/fleet";
 
 export function FleetExceptionsView(){
   const[overrides,setStatus]=useFleetExceptionStatus();

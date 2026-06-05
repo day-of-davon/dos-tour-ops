@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { SEV_STYLES, checkRigVsVenue } from "../../DosApp.jsx";
 import { MN, UI } from "../../lib/domain-constants";
 import { T } from "../../styles/tokens";
 import { VBRow } from "./VBRow";
 import { VBSection } from "./VBSection";
+import { SEV_STYLES, checkRigVsVenue } from "../../lib/production";
 
 export function VenueBrief({vg,sel,data,upd}){
   const[newLinkLabel,setNewLinkLabel]=useState("");

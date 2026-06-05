@@ -1,6 +1,5 @@
 import { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Ctx } from "../../context/DosContext";
-import { FOCUS_CARRIERS, groupByReservation, matchPaxToCrew } from "../../DosApp.jsx";
 import { MN, describeScanError } from "../../lib/domain-constants";
 import { cleanFlightsObj, enrichFlight, findFlightMatch, findItineraryLegs, flightDedupKey, flightToLeg, matchShowByAirport } from "../../lib/flights";
 import { gmailUrl } from "../../lib/intel";
@@ -12,6 +11,7 @@ import { useAuth } from "../AuthGate";
 import { IntelSection } from "../intel/IntelSection";
 import { FlightCard } from "./FlightCard";
 import { ReservationGroup } from "./ReservationGroup";
+import { FOCUS_CARRIERS, groupByReservation, matchPaxToCrew } from "../../lib/flights-view";
 
 export function FlightsSection(){
   const{flights,uFlight,setFlights,uRos,gRos,uFin,finance,crew,setShowCrew,shows,aC,sorted,tourStart,tourEnd,currentSplit,activeSplitParty,activeSplitPartyId,role}=useContext(Ctx);

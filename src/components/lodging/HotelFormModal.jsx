@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { HOTEL_STATUS_META } from "../../DosApp.jsx";
 import { HOTEL_DEFAULT_CHECKIN, HOTEL_DEFAULT_CHECKOUT, HOTEL_TODOS_DEFAULT } from "../../lib/constants";
 import { MN } from "../../lib/domain-constants";
 import { T } from "../../styles/tokens";
+import { HOTEL_STATUS_META } from "../../lib/lodging";
 
 export function HotelFormModal({date,hotel,onClose,onSave,existingHotels}){
   const isEdit=!!hotel;

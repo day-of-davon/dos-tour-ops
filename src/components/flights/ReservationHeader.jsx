@@ -1,7 +1,7 @@
-import { JOURNEY_BADGE } from "../../DosApp.jsx";
 import { MN } from "../../lib/domain-constants";
 import { gmailUrl } from "../../lib/intel";
 import { T } from "../../styles/tokens";
+import { JOURNEY_BADGE } from "../../lib/flights-view";
 
 export function ReservationHeader({g,collapsed,onToggle}){
   if(g.isSolo)return null;

@@ -1,5 +1,5 @@
-import { computeLayoverMins, fmtMins } from "../../DosApp.jsx";
 import { MN } from "../../lib/domain-constants";
+import { computeLayoverMins, fmtMins } from "../../lib/flights-view";
 
 export function ConnectionPill({prev,next}){
   const m=computeLayoverMins(prev,next);

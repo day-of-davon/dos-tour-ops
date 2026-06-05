@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { matchPaxToCrew } from "../../DosApp.jsx";
 import { T } from "../../styles/tokens";
+import { matchPaxToCrew } from "../../lib/flights-view";
 
 export function PaxEditor({pax,crew,onSave}){
   const[names,setNames]=useState(pax||[]);

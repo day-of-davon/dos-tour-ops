@@ -1,6 +1,5 @@
 import { useContext, useEffect, useState } from "react";
 import { Ctx } from "../../context/DosContext";
-import { groupByReservation, matchPaxToCrew } from "../../DosApp.jsx";
 import { MN } from "../../lib/domain-constants";
 import { findItineraryLegs, findReturnLeg, flightDedupKey, flightItinKey, flightToLeg, matchShowByAirport, validateConnections } from "../../lib/flights";
 import { gmailUrl } from "../../lib/intel";
@@ -11,6 +10,7 @@ import { T } from "../../styles/tokens";
 import { IntelSection } from "../intel/IntelSection";
 import { FlightCard } from "./FlightCard";
 import { ReservationGroup } from "./ReservationGroup";
+import { groupByReservation, matchPaxToCrew } from "../../lib/flights-view";
 
 export function FlightsListView(){
   const{flights,uFlight,setFlights,uRos,gRos,uFin,finance,crew,setShowCrew,setSel,setTab,sorted,shows,tourStart,tourEnd,role}=useContext(Ctx);

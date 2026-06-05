@@ -1,10 +1,10 @@
 import { useCallback, useContext, useMemo, useRef, useState } from "react";
 import { Ctx } from "../../context/DosContext";
-import { DESIGN_RIG, MANIFEST_SEED, POS_STYLES, PROD_DEPTS, SEV_STYLES, VENUE_GRID, checkRigVsVenue } from "../../DosApp.jsx";
 import { MN, UI } from "../../lib/domain-constants";
 import { supabase } from "../../lib/supabase";
 import { T } from "../../styles/tokens";
 import { VenueBrief } from "../lodging/VenueBrief";
+import { DESIGN_RIG, MANIFEST_SEED, POS_STYLES, PROD_DEPTS, SEV_STYLES, VENUE_GRID, checkRigVsVenue } from "../../lib/production";
 
 export function ProdTab(){
   const{shows,sel,eventKey,production,uProd,mobile}=useContext(Ctx);

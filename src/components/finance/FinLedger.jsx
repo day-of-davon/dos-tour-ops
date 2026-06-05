@@ -1,9 +1,9 @@
 import { useContext, useMemo, useState } from "react";
 import { Ctx } from "../../context/DosContext";
-import { LEDGER_EDITABLE } from "../../DosApp.jsx";
 import { FIN_EVENT_TYPES, MN } from "../../lib/domain-constants";
 import { fD } from "../../lib/time";
 import { T } from "../../styles/tokens";
+import { LEDGER_EDITABLE } from "../../lib/finance";
 
 export function FinLedger(){
   const{shows,finance,flights,uFin,uFlight,setUploadOpen}=useContext(Ctx);

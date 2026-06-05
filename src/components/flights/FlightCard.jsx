@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { statusStyle } from "../../DosApp.jsx";
 import { MN } from "../../lib/domain-constants";
 import { T } from "../../styles/tokens";
 import { PaxEditor } from "./PaxEditor";
+import { statusStyle } from "../../lib/flights-view";
 
 export function FlightCard({f,actions,liveStatus,onRefreshStatus,refreshing,onUpdatePax,onUpdate,crew,defaultCollapsed=false,legLabel}){
   const st=liveStatus?statusStyle(liveStatus.status):null;
