@@ -22,7 +22,8 @@ Promoter: Live Nation (Lianne Fox). Note: venue/date conflicts with seed "Missis
 - Crew inbound YYZ Jun 4–6 (Air Canada, WestJet, United, Delta confirmations). Taylor Madrigal AC conf A4QSF5 (+xbag).
 
 ## Day-of
-- Guest list active. Comps: Leban Osman (+1, VIP/F&F); Kristina (confirmed). Junos team declined (schedule conflict).
+- Guest list active. Comps: Leban Osman (+1, VIP/F&F); Kristina (confirmed); Lisa Logutenkow (Orchard) +1 confirmed, will-call pickup. Junos team declined (schedule conflict).
+- 06-05 GL finalized: Marcus Grimmie list submitted; Jessica Brudner (LN box office) confirmed all set for box-office pickup. Passes at will call.
 
 ## Settlement / Post
 - Pending post-show.
@@ -38,3 +39,4 @@ Promoter: Live Nation (Lianne Fox). Note: venue/date conflicts with seed "Missis
 - 19e939ceff62c261 — Interview Request (Toronto) / Junos GL
 - 19e94a93ae855780 — Free BBNO$ ticket (Kristina)
 - 19e94438a665be17 — TV Stylist Toronto / Leban Osman
+- 19e1b9d2cc0fc653 — bbno$ Show Toronto 6/5 (Lisa Logutenkow / Orchard GL) — 2026-06-05
