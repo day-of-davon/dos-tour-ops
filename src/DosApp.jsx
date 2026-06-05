@@ -1,3 +1,6 @@
+import { crewLifecycleState, crewLifecycleSlots } from "./lib/lifecycle.js";
+import { SEG_META, segType, segMeta, AIRPORT_BUFFERS, airportBufferMin, buildDayTimeline, lodgingModeFor } from "./lib/segments.js";
+import { BUS_DATA, BUS_DATA_MAP, FLEET } from "./lib/tour-data.js";
 import { flightItinKey, flightDedupKey, normFlightNo, isJunkFlightNo, flightRichness, cleanFlightsObj, FLIGHT_ENRICH_FIELDS, enrichFlight, findFlightMatch, tagFlightRoles, CITY_AIRPORTS, AIRPORT_TO_CITIES, cityKey, matchShowByAirport, findItineraryLegs, legGapMinutes, validateConnections, findReturnLeg, flightToLeg } from "./lib/flights.js";
 import { icsEsc, icsDate, icsAddDay, buildICS, downloadICS } from "./lib/ics.js";
 import { hhmmToMin, toM, fmt, pM, dU, fD, fW, fFull, fmt24, fmtDur, subtractMinutes, daysBetween } from "./lib/time.js";
@@ -59,44 +62,6 @@ Object.entries(CITY_AIRPORTS).forEach(([city,codes])=>{
 // the separate lodging store; check-ins/outs on `date` become timeline entries.
 // Each entry: {kind, seg, label, start, end, from, to, gapBefore, warning}.
 // start/end are HH:MM strings; gapBefore is minutes since previous entry's end.
-const buildDayTimeline=(date,daySegs,lodging)=>{
-  const entries=[];
-  (daySegs||[]).forEach(s=>{
-    const t=segType(s);
-    const isArr=s._role==="arr"||(s.arrDate===date&&s.depDate!==date);
-    const start=isArr?s.arr:s.dep;
-    const end=isArr?s.arr:(s.arr||s.dep);
-    if(!start)return;
-    const label=t==="air"?(s.flightNo||s.carrier||"Flight"):t==="ground"?(s.mode||s.provider||"Ground"):t==="hotel"?(s.hotelName||"Hotel"):t==="bus"?(s.carrier||"Bus"):t==="rail"?(s.trainNo||s.carrier||"Rail"):"Seg";
-    entries.push({kind:t,seg:s,label,start,end,from:isArr?s.fromCity||s.from:s.fromCity||s.from,to:s.toCity||s.to,isArr});
-  });
-  Object.values(lodging||{}).forEach(h=>{
-    if(!h)return;
-    if(h.checkIn===date)entries.push({kind:"hotel_in",seg:h,label:h.hotelName||"Hotel",start:h.checkInTime||HOTEL_DEFAULT_CHECKIN,end:h.checkInTime||HOTEL_DEFAULT_CHECKIN,from:null,to:h.city||h.hotelName});
-    if(h.checkOut===date)entries.push({kind:"hotel_out",seg:h,label:h.hotelName||"Hotel",start:h.checkOutTime||HOTEL_DEFAULT_CHECKOUT,end:h.checkOutTime||HOTEL_DEFAULT_CHECKOUT,from:h.hotelName,to:null});
-  });
-  entries.sort((a,b)=>(hhmmToMin(a.start)??0)-(hhmmToMin(b.start)??0));
-  for(let i=0;i<entries.length;i++){
-    if(i===0){entries[i].gapBefore=null;entries[i].warning=null;continue;}
-    const prev=entries[i-1],cur=entries[i];
-    const g=(hhmmToMin(cur.start)??0)-(hhmmToMin(prev.end)??0);
-    cur.gapBefore=g;
-    cur.warning=null;
-    const sameAirport=prev.kind==="air"&&cur.kind==="air"&&
-      (prev.seg?.to||"").toUpperCase()===(cur.seg?.from||"").toUpperCase();
-    if(sameAirport&&g<60&&g>=0)cur.warning="tight-connection";
-    else if(sameAirport&&g<0)cur.warning="missed-connection";
-    else if(prev.kind==="air"&&prev.isArr&&!["ground","bus","rail"].includes(cur.kind)&&g>30){
-      // Air arrival with no ground/bus follow-up before the next event at a different place → unbridged.
-      const prevCity=cityKey(prev.to||prev.seg?.toCity||"");
-      const curCity=cityKey(cur.from||cur.to||cur.seg?.city||"");
-      if(prevCity&&curCity&&prevCity!==curCity)cur.warning="unbridged";
-      else if(prev.to&&cur.kind==="hotel_in")cur.warning="unbridged";
-    }else if(g>360)cur.warning="long-layover";
-  }
-  return entries;
-};
-
 // ── Segment model (unified travel store) ───────────────────────────────────
 // The `flights` store widens into a generic segments store: each record has a `type`
 // ∈ {air, ground, bus, rail, sea, hotel}. Legacy records (no type) are implicitly "air".
@@ -107,151 +72,25 @@ const buildDayTimeline=(date,daySegs,lodging)=>{
 //   bus:    carrier, from/to, dep/arr, pax, route
 //   rail:   carrier, trainNo, from/to, dep/arr, pax
 //   hotel:  hotelName, from (address), checkIn/checkOut dates, pax
-const SEG_META={
-  air:   {label:"Flight",  icon:"✈", color:T.link, bg:"var(--info-bg)", border:"var(--info-bg)"},
-  ground:{label:"Ground",  icon:"🚗", color:T.warnFg, bg:"var(--warn-bg)", border:"var(--warn-bg)"},
-  bus:   {label:"Bus",     icon:"🚌", color:"var(--info-fg)", bg:"var(--info-bg)", border:"var(--info-bg)"},
-  rail:  {label:"Rail",    icon:"🚆", color:T.successFg, bg:"var(--success-bg)", border:"var(--success-fg)"},
-  sea:   {label:"Sea",     icon:"⛴", color:"var(--info-fg)", bg:"var(--info-bg)", border:"var(--info-fg)"},
-  hotel: {label:"Hotel",   icon:"🏨", color:T.accent, bg:"var(--accent-pill-bg)", border:"var(--accent-pill-border)"},
-};
-const segType=s=>s?.type||(s?.flightNo||s?.carrier?"air":"ground");
-const segMeta=s=>SEG_META[segType(s)]||SEG_META.air;
-
 // Airport check-in buffers in minutes before scheduled departure. Split by
 // with-checked-bag vs carry-on-only. Override per segment via seg.airportBuffer.
-const AIRPORT_BUFFERS={
-  // EU hubs (typical Schengen/int'l queues)
-  LHR:{bag:180,carry:120}, LGW:{bag:180,carry:120}, STN:{bag:150,carry:120}, LCY:{bag:90,carry:60}, LTN:{bag:150,carry:120},
-  CDG:{bag:180,carry:120}, ORY:{bag:150,carry:120}, BVA:{bag:120,carry:90},
-  AMS:{bag:150,carry:120}, FRA:{bag:150,carry:120}, MUC:{bag:150,carry:120}, CGN:{bag:120,carry:90}, DUS:{bag:120,carry:90},
-  MXP:{bag:150,carry:120}, LIN:{bag:90,carry:60}, BGY:{bag:120,carry:90},
-  MAD:{bag:150,carry:120}, BCN:{bag:150,carry:120},
-  FCO:{bag:150,carry:120}, VCE:{bag:120,carry:90},
-  ZRH:{bag:120,carry:90}, GVA:{bag:120,carry:90}, BSL:{bag:120,carry:90},
-  VIE:{bag:120,carry:90}, BER:{bag:120,carry:90},
-  DUB:{bag:120,carry:90},
-  MAN:{bag:120,carry:90}, GLA:{bag:90,carry:60}, EDI:{bag:90,carry:60},
-  PRG:{bag:120,carry:90}, BUD:{bag:120,carry:90}, WAW:{bag:120,carry:90}, WMI:{bag:90,carry:60},
-  CPH:{bag:120,carry:90}, ARN:{bag:120,carry:90}, OSL:{bag:120,carry:90}, HEL:{bag:120,carry:90},
-  LIS:{bag:120,carry:90}, OPO:{bag:120,carry:90},
-  BTS:{bag:90,carry:60},
-  // NA hubs
-  JFK:{bag:150,carry:120}, LGA:{bag:120,carry:90}, EWR:{bag:150,carry:120},
-  LAX:{bag:150,carry:120}, BUR:{bag:60,carry:45}, LGB:{bag:60,carry:45}, SNA:{bag:75,carry:60}, ONT:{bag:75,carry:60},
-  SFO:{bag:120,carry:90}, OAK:{bag:90,carry:60}, SJC:{bag:90,carry:60},
-  SEA:{bag:90,carry:60}, PDX:{bag:90,carry:60},
-  ORD:{bag:150,carry:120}, MDW:{bag:120,carry:90},
-  ATL:{bag:150,carry:120}, DFW:{bag:150,carry:120}, IAH:{bag:150,carry:120},
-  DEN:{bag:90,carry:60}, PHX:{bag:90,carry:60}, LAS:{bag:90,carry:60},
-  BOS:{bag:120,carry:90}, PHL:{bag:120,carry:90}, DCA:{bag:120,carry:90}, IAD:{bag:150,carry:120},
-  MIA:{bag:150,carry:120}, FLL:{bag:120,carry:90}, MCO:{bag:120,carry:90}, TPA:{bag:90,carry:60},
-  BNA:{bag:90,carry:60}, BDL:{bag:90,carry:60}, PVD:{bag:90,carry:60}, MHT:{bag:75,carry:60},
-  MSP:{bag:90,carry:60}, DTW:{bag:120,carry:90},
-  // Canada
-  YYZ:{bag:120,carry:90}, YTZ:{bag:60,carry:45}, YUL:{bag:120,carry:90}, YVR:{bag:120,carry:90},
-  YOW:{bag:90,carry:60}, YHZ:{bag:90,carry:60}, YWG:{bag:90,carry:60}, YYC:{bag:90,carry:60},
-  __default:{bag:120,carry:90},
-};
-const airportBufferMin=(iata,hasBag=true)=>{
-  const b=AIRPORT_BUFFERS[(iata||"").toUpperCase()]||AIRPORT_BUFFERS.__default;
-  return hasBag?b.bag:b.carry;
-};
 // Subtract `mins` from "HH:MM" and return "HH:MM" (wraps into negative = previous day warning separately).
 // ── Lodging-mode inference ────────────────────────────────────────────────
 // Bus dates: crew sleep on the Pieter Smit nightliner; hotel rooms are not needed
 // (artist may take one off-day; tracked separately). Any date in BUS_DATA_MAP with
 // a show or travel entry is treated as "bus". Everything else (Red Rocks, NA summer,
 // post-EU one-offs) is "hotel" — requires room + airport/hotel/venue ground chain.
-const lodgingModeFor=(date,tourDaysObj)=>{
-  const td=tourDaysObj?.[date];
-  const bus=td?.bus||BUS_DATA_MAP[date];
-  if(!bus)return"hotel";
-  // Days marked explicitly "off" outside the bus window don't count.
-  if(td?.type==="off"&&!bus)return"hotel";
-  return"bus";
-};
 // Classify a crew member's role on a given show date based on their attending
 // history: bus-mid (middle of the bus run — on bus, no segments expected),
 // bus-join (first bus day, needs inbound air + ground to bus),
 // bus-leave (last bus day, needs ground to airport + outbound air),
 // bus-solo (attending only one bus day — effectively treat like one-off bus),
 // fly-one-off (standalone fly-in/fly-out show with hotel).
-const crewLifecycleState=(crewId,date,attendingDates,tourDaysObj)=>{
-  const thisMode=lodgingModeFor(date,tourDaysObj);
-  if(thisMode!=="bus")return"fly-one-off";
-  const idx=(attendingDates||[]).indexOf(date);
-  const prev=idx>0?attendingDates[idx-1]:null;
-  const next=idx>=0&&idx<attendingDates.length-1?attendingDates[idx+1]:null;
-  const prevBus=prev?lodgingModeFor(prev,tourDaysObj)==="bus":false;
-  const nextBus=next?lodgingModeFor(next,tourDaysObj)==="bus":false;
-  const gapPrev=prev?daysBetween(prev,date):999;
-  const gapNext=next?daysBetween(date,next):999;
-  // Consider "consecutive on bus" = prev within 3 days and also bus mode.
-  const joinedFromBus=prevBus&&gapPrev<=3;
-  const stayingOnBus=nextBus&&gapNext<=3;
-  if(!joinedFromBus&&!stayingOnBus)return"bus-solo";
-  if(!joinedFromBus)return"bus-join";
-  if(!stayingOnBus)return"bus-leave";
-  return"bus-mid";
-};
-
 // Given a lifecycle state + the data, return an ordered list of lifecycle slots for
 // rendering. Each slot: {key, icon, label, state: "ok"|"missing"|"na"|"unknown"}.
 // "ok" = segment present; "missing" = expected but not found; "na" = not applicable
 // (e.g. hotel slot on a bus-mid day); "unknown" = segment is not tracked as a
 // distinct record (hotel stays without a check-in record).
-const crewLifecycleSlots=({state,crewId,crew,date,showCrew,flights,lodging})=>{
-  const cd=showCrew?.[date]?.[crewId]||{};
-  const cname=(crew||[]).find(c=>c.id===crewId)?.name||"";
-  const fname=cname.split(" ")[0].toLowerCase();
-  const paxIncludes=(pax)=>fname&&(pax||[]).some(n=>String(n||"").toLowerCase().startsWith(fname));
-  const allSegs=Object.values(flights||{}).filter(s=>s&&s.status!=="dismissed");
-  const hasInboundAir=(cd.inbound||[]).some(l=>l.flight||l.flightId)||allSegs.some(s=>segType(s)==="air"&&s.arrDate===date&&paxIncludes(s.pax));
-  const hasOutboundAir=(cd.outbound||[]).some(l=>l.flight||l.flightId)||allSegs.some(s=>segType(s)==="air"&&s.depDate===date&&paxIncludes(s.pax));
-  const groundsArriving=allSegs.filter(s=>segType(s)==="ground"&&s.arrDate===date&&paxIncludes(s.pax));
-  const groundsDeparting=allSegs.filter(s=>segType(s)==="ground"&&s.depDate===date&&paxIncludes(s.pax));
-  // Hotel presence: check the dedicated lodging store (room assigned to this crewId,
-  // covering this date) OR any segment-style hotel record the user may have added.
-  const hotelFromLodging=Object.values(lodging||{}).some(h=>h&&h.checkIn<=date&&h.checkOut>=date&&(h.rooms||[]).some(r=>r.crewId===crewId));
-  const hotelOnDate=hotelFromLodging||allSegs.some(s=>segType(s)==="hotel"&&(s.depDate===date||s.arrDate===date)&&paxIncludes(s.pax));
-  if(state==="bus-mid"){
-    return[{key:"bus",icon:"🚌",label:"On bus",state:"ok"}];
-  }
-  if(state==="bus-join"){
-    return[
-      {key:"fly-in",icon:"✈",label:"Inbound flight",state:hasInboundAir?"ok":"missing"},
-      {key:"gnd-in",icon:"🚗",label:"Airport → Bus pickup",state:groundsArriving.length?"ok":"missing"},
-      {key:"bus",icon:"🚌",label:"On bus",state:"ok"},
-    ];
-  }
-  if(state==="bus-leave"){
-    return[
-      {key:"bus",icon:"🚌",label:"On bus",state:"ok"},
-      {key:"gnd-out",icon:"🚗",label:"Bus → Airport",state:groundsDeparting.length?"ok":"missing"},
-      {key:"fly-out",icon:"✈",label:"Outbound flight",state:hasOutboundAir?"ok":"missing"},
-    ];
-  }
-  if(state==="bus-solo"){
-    // Standalone bus day: needs full chain in and out but lodging is the bus.
-    return[
-      {key:"fly-in",icon:"✈",label:"Inbound flight",state:hasInboundAir?"ok":"missing"},
-      {key:"gnd-in",icon:"🚗",label:"Airport → Bus",state:groundsArriving.length?"ok":"missing"},
-      {key:"bus",icon:"🚌",label:"On bus",state:"ok"},
-      {key:"gnd-out",icon:"🚗",label:"Bus → Airport",state:groundsDeparting.length?"ok":"missing"},
-      {key:"fly-out",icon:"✈",label:"Outbound flight",state:hasOutboundAir?"ok":"missing"},
-    ];
-  }
-  // fly-one-off: full chain with hotel
-  return[
-    {key:"fly-in",icon:"✈",label:"Inbound flight",state:hasInboundAir?"ok":"missing"},
-    {key:"gnd-to-htl",icon:"🚗",label:"Airport → Hotel",state:groundsArriving.length?"ok":"missing"},
-    {key:"hotel",icon:"🏨",label:"Hotel",state:hotelOnDate?"ok":"unknown"},
-    {key:"gnd-to-ven",icon:"🚗",label:"Hotel → Venue",state:groundsDeparting.length?"ok":"missing"},
-    {key:"fly-out",icon:"✈",label:"Outbound flight",state:hasOutboundAir?"ok":"missing"},
-  ];
-};
-
 // Serialize a flight record into the compact leg shape used in showCrew.
 const MN="'JetBrains Mono',monospace";
 
@@ -665,59 +504,7 @@ const CUSTOM_ROS_MAP={"2026-04-16":RRX_ROS};
 
 // Touring fleet — referenced by parking advances, ferry/tunnel fare class,
 // and EU toll category. Update when job IDs or bus length land.
-const FLEET={
-  bus:{operator:"Pieter Smit",contact:"nightliner@pietersmit.com",lengthM:null},
-  trailer:{lengthM:2.85,widthM:2.48,heightM:2.50},
-  combinedLengthM:20,
-  trucks:[
-    {operator:"Fly By Nite",sizeFt:45,job:"56714",contact:"Fiona Nolan"},
-    {operator:"Fly By Nite",sizeFt:45,job:null,contact:null},
-  ],
-};
-
-const BUS_DATA=[
-  {day:1,date:"May 02",dow:"Sat",route:"Aarschot → London (Neg Earth)",km:450,drive:"6h",dep:"08:00",arr:"15:00",show:false,flag:"",note:"MD. Dep 08:00 CEST Pieter Smit depot. S1 08:00–11:00 CET Aarschot→Calais Terminal via E314/E40/A16 (270km, 3h). Le Shuttle dep 13:00 CET / 12:00 BST (TBC w/ PS). S2 12:56–14:30 BST Folkestone→Neg Earth Park Royal via M20/M25/A40 (125km, 1.5h). 9h RP before May 3 dep.",stops:"Calais Terminal (Le Shuttle dep 13:00 CET / 12:00 BST, TBC w/ PS) · Folkestone Terminal (arr 12:56 BST) · Neg Earth Lights, Park Royal London NW10 (arr 14:30 BST)",fleetException:{reason:"Le Shuttle May 2 booked pre-trailer + pre-2nd-truck. ≈20m combo + 2x 45ft trucks change fare class and deck space.",action:"Verify booking with Toby Jansen (Pieter Smit). Confirm both trucks travel on this crossing or separately.",status:"open"}},
-  {day:2,date:"May 03",dow:"Sun",route:"London → Dublin",km:462,drive:"7h",dep:"00:00",arr:"11:15",show:false,flag:"",note:"MD. Dep 00:00 GMT Neg Earth Park Royal. S1 00:00–02:00 GMT Neg Earth→Corley Services via M1/M6 (180km, 2h). EC561 45m break Corley Services M6. S2 02:45–06:05 GMT Corley Services→Holyhead Port via M6/A55 (275km, 3.3h). Irish ferry dep 07:30 GMT → arr 11:00 IST Holyhead→Dublin. S3 11:00–11:15 IST Dublin Port→National Stadium (7km, 0.25h). 9h RP on arrival.",stops:"Corley Services (M6 J3-4, break 02:00–02:45 GMT, EC561 mandatory) · Holyhead Port (dep 07:30 GMT) · Dublin Port (arr 11:00 IST)"},
-  {day:3,date:"May 04",dow:"Mon",route:"Dublin",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"National Stadium",flag:""},
-  {day:4,date:"May 05",dow:"Tue",route:"Dublin",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"National Stadium",flag:""},
-  {day:5,date:"May 06",dow:"Wed",route:"Dublin → Manchester",km:196,drive:"4h",dep:"02:00",arr:"16:30",show:false,flag:"",note:"Bus ready 02:00 IST post load-out. S1 07:00–07:40 IST National Stadium→Dublin Port via East Wall Rd (7km, 40min). Bus check-in 08:45 IST (90min before sailing). Stena Line dep 10:15 IST → arr 13:45 BST Dublin→Holyhead (3h25m). S2 13:45–16:30 BST Holyhead→Manchester O2 Victoria Warehouse via A55/A494/A550/M56/M60(J10)/A5063 (189km, 2.2h). 4h RP on arrival.",stops:"National Stadium, South Circular Rd Dublin 8 (S1 dep 07:00 IST) · Dublin Port Stena Line Terminal (check-in 08:45 IST, ferry dep 10:15 IST) · Holyhead Port, Anglesey (arr 13:45 BST) · O2 Victoria Warehouse, Trafford Wharf Rd Manchester M17 1AB (arr 16:30 BST)",fleetException:{reason:"Stena Line booked as 1 nightliner; fleet now ≈20m combo + 2x 45ft trucks. Fare class + deck space change. Booking risk for May 6 sailing.",action:"Rebook Stena Line dep 10:15 IST with Toby Jansen (Pieter Smit). Confirm sailing capacity for combo + 2 trucks.",status:"open"}},
-  {day:6,date:"May 07",dow:"Thu",route:"Manchester",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"O2 Victoria Warehouse",flag:""},
-  {day:7,date:"May 08",dow:"Fri",route:"Manchester",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"O2 Victoria Warehouse",flag:""},
-  {day:8,date:"May 09",dow:"Sat",route:"Manchester → Glasgow",km:350,drive:"6h",dep:"05:00",arr:"11:45",show:false,flag:"",note:"S1 05:00–09:30 GMT Manchester→Abington Services via M6/M74 (262km, 4.5h). EC561 45m break Abington Services M74. S2 10:15–11:45 GMT Abington→Glasgow via M74/M8 (88km, 1.5h). 4h RP on arrival.",stops:"Abington Services (M74, break 09:30–10:15 GMT) · O2 Academy Glasgow (arr 11:45 GMT)"},
-  {day:9,date:"May 10",dow:"Sun",route:"Glasgow",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"O2 Academy",flag:""},
-  {day:10,date:"May 11",dow:"Mon",route:"Glasgow",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"O2 Academy",flag:""},
-  {day:11,date:"May 12",dow:"Tue",route:"Glasgow → Heathrow",km:638,drive:"10h",dep:"01:30",arr:"12:45",show:false,flag:"⚠",note:"10h exemption used 1/2 W3. S1 01:30–06:00 GMT Glasgow O2 Academy→Charnock Richard Services via M8/M74/M6 (290km, 4.5h). EC561 45m break Charnock Richard Services M6 J27. S2 06:45–11:15 GMT Charnock Richard→South Mimms Services via M6/M1/A1(M) (286km, 4.5h). EC561 45m break South Mimms Services A1(M)/M25. S3 12:00–12:45 GMT South Mimms→Travelodge Heathrow Heston M4 Eastbound via M25/M4 (42km, 45m). Bus overnight Travelodge Heathrow Heston.",stops:"Charnock Richard Services (M6 J27, break 06:00–06:45 GMT) · South Mimms Services (A1(M)/M25, break 11:15–12:00 GMT) · Travelodge Heathrow Heston M4 Eastbound, North Hyde Lane TW5 9NA (arr 12:45 GMT)"},
-  {day:12,date:"May 13",dow:"Wed",route:"London",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"O2 Brixton Academy",flag:""},
-  {day:13,date:"May 14",dow:"Thu",route:"Travelodge Heathrow → Brixton",km:30,drive:"1h15m",dep:"08:00",arr:"09:15",show:false,flag:"",note:"S1 08:00–09:15 GMT Travelodge Heathrow Heston M4 Eastbound→O2 Brixton Academy via M4/A316/A3/A24 (30km, 1h15m).",stops:"O2 Brixton Academy London (arr 09:15 GMT)"},
-  {day:13,date:"May 14",dow:"Thu",route:"London → Zurich",km:951,drive:"9h20m",dep:"03:00",arr:"18:05",show:false,flag:"⚠",note:"MD. 10h exemption 2/2 W3. S1 03:00–04:30 BST Brixton→Dover via A2/M2/M20/A20 (121km, 1.5h). P&O Ferry dep 06:15 BST → arr Calais 08:45 CEST (90m crossing). Ref POORRJOJVA3J6, plate BB-25-OT, 18.75+4m combo, 17 pax. S2 08:45–11:05 CEST Calais→Aire de Reims-Champagne via A16/A26/A4 (275km, 2h20m). EC561 45m break Aire de Reims-Champagne A4. S3 11:50–16:20 CEST Reims→Swiss border area via A4/A35/A5/A3 (450km, 4.5h) — passing Strasbourg without stop. EC561 45m break Autobahnraststätte Wiggertal A2 CH. S4 17:05–18:05 CEST Wiggertal→Zurich Halle 622 via A1/A3 (70km, 1h). 11h daily rest.",stops:"Dover Terminal (P&O check-in 04:30–06:00 BST, sail 06:15 BST) · Calais Terminal (arr 08:45 CEST) · Aire de Reims-Champagne A4 (EC561 break 11:05–11:50 CEST) · Autobahnraststätte Wiggertal A2 CH (EC561 break 16:20–17:05 CEST) · Halle 622 Zurich (arr 18:05 CEST)",fleetException:{reason:"Switched UK→FR crossing from Le Shuttle to P&O Ferry (Dover→Calais 06:15 BST). Coach booking POORRJOJVA3J6 confirmed for BB-25-OT (18.75+4m combo, 17 pax, 0 cabins, EUR 0.00).",action:"Confirm separate P&O bookings for 2x 45ft trucks with Toby Jansen (Pieter Smit).",status:"open"}},
-  {day:14,date:"May 15",dow:"Fri",route:"Zurich",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"Halle 622",flag:""},
-  {day:15,date:"May 16",dow:"Sat",route:"Zurich → Cologne",km:570,drive:"6h30m",dep:"02:00",arr:"09:15",show:true,venue:"Palladium",flag:"",note:"S1 02:00–06:00 CET Zurich→Autohof Gräfenhausen-West via A3/A5/A67 (340km, 4h). EC561 45m break Autohof Gräfenhausen-West A67. S2 06:45–09:15 CET Gräfenhausen→Cologne Palladium via A67/A3 (230km, 2.5h). Local crew handles AM load-in. Soundcheck 16:00.",stops:"Autohof Gräfenhausen-West (A67 near Darmstadt, break 06:00–06:45 CET) · Cologne Palladium (arr 09:15 CET)"},
-  {day:16,date:"May 17",dow:"Sun",route:"Cologne",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"Palladium",flag:""},
-  {day:17,date:"May 18",dow:"Mon",route:"Cologne → Amsterdam",km:265,drive:"3.5h",dep:"08:00",arr:"13:45",show:false,flag:"",note:"Day off transit. S1 08:00–09:00 CET Cologne→Autohof Bottrop via A57/A2 (81km, 1h). Rest/fuel stop Autohof Bottrop (~45min). S2 09:45–12:15 CET Autohof Bottrop→Amsterdam AFAS Live via A2/A10 (184km, 2.5h). Scheduled arr 13:45 with buffer.",stops:"Autohof Bottrop (A2, fuel stop ~09:00–09:45 CET) · AFAS Live Amsterdam (arr 13:45 CET)"},
-  {day:18,date:"May 19",dow:"Tue",route:"Amsterdam",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"AFAS Live",flag:""},
-  {day:19,date:"May 20",dow:"Wed",route:"Amsterdam → Paris",km:515,drive:"8.25h",dep:"01:00",arr:"09:15",show:true,venue:"Le Bataclan",flag:"⚠",note:"DD. S1 01:00–09:15 CET Amsterdam→Paris Le Bataclan via A2/A1 (515km, 8.25h). No mandatory EC561 break — double driver. Immigration outstanding.",stops:"Le Bataclan Paris (arr 09:15 CET)"},
-  {day:20,date:"May 21",dow:"Thu",route:"Paris → Milan",km:855,drive:"9h",dep:"01:00",arr:"10:00",show:false,flag:"",note:"DD. S1 01:00–10:00 CET Bataclan→Milan Fabrique via A6/A43 Frejus tunnel (855km, 9h). No mandatory EC561 break — double driver. Deadhead. Day off Milan.",stops:"Milan Fabrique (arr 10:00 CET)"},
-  {day:21,date:"May 22",dow:"Fri",route:"Milan",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"Fabrique",flag:""},
-  {day:22,date:"May 23",dow:"Sat",route:"Milan → Prague",km:880,drive:"14h",dep:"01:00",arr:"15:00",show:false,flag:"",note:"DD. S1 01:00–15:00 CET Milan→Prague SaSaZu via A22 Brenner pass/A93/A3/D5 (Munich bypass) (880km, 14h). No mandatory EC561 break — double driver. Deadhead. Arrives Prague day-off ahead of SaSaZu show.",stops:"SaSaZu Prague (arr 15:00 CET)"},
-  {day:23,date:"May 24",dow:"Sun",route:"Prague",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"SaSaZu",flag:""},
-  {day:24,date:"May 25",dow:"Mon",route:"Prague → Berlin",km:342,drive:"5h",dep:"01:00",arr:"06:00",show:false,flag:"",note:"DD. S1 01:00–06:00 CET Prague→Berlin Columbiahalle via D8/A17/A13/A10 (342km, 5h). No mandatory EC561 break — double driver. Deadhead.",stops:"Berlin Columbiahalle (arr 06:00 CET)"},
-  {day:25,date:"May 26",dow:"Tue",route:"Berlin",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"Columbiahalle",flag:""},
-  {day:26,date:"May 27",dow:"Wed",route:"Berlin → Bratislava",km:680,drive:"11.25h",dep:"01:00",arr:"12:15",show:false,flag:"",note:"DD. S1 01:00–12:15 CET Berlin→Bratislava Refinery Gallery via A13/D8/D1/D2 (680km, 11.25h). No mandatory EC561 break — double driver. CRITICAL: load-in 15:00, bus must arrive 14:45 — DD confirmed 12:15 arrival. Bus overnights at Refinery Gallery (32A 3-phase). Truck no power at venue.",stops:"Refinery Gallery Bratislava (arr 12:15 CET, overnight, 48.128201, 17.180051)"},
-  {day:27,date:"May 28",dow:"Thu",route:"Bratislava",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"Majestic Music Club",flag:""},
-  {day:28,date:"May 29",dow:"Fri",route:"Bratislava → Warsaw",km:690,drive:"11.25h",dep:"01:00",arr:"12:15",show:false,flag:"",note:"DD. S1 01:00–12:15 CET Bratislava→Warsaw Orange Festival via D2/D1/A1/S8 (690km, 11.25h). No mandatory EC561 break — double driver.",stops:"Orange Festival Warsaw (arr 12:15 CET)"},
-  {day:29,date:"May 30",dow:"Sat",route:"Warsaw",km:0,drive:"—",dep:"—",arr:"—",show:true,venue:"Orange Festival",flag:""},
-  {day:30,date:"May 31",dow:"Sun",route:"Warsaw → Warsaw Chopin Airport (WAW)",km:25,drive:"1h",dep:"09:00",arr:"10:00",show:false,flag:"",note:"S1 09:00–10:00 CET Warsaw→Warsaw Chopin Airport WAW (25km, 1h). Airport drop-off."},
-  {day:31,date:"Jun 01",dow:"Mon",route:"Warsaw → Aarschot",km:1313,drive:"17.5h",dep:"09:00",arr:"Jun 02 02:30",show:false,flag:"",note:"Pieter Smit handles. DD deadhead. S1 09:00–Jun 02 02:30 CET Warsaw→Aarschot depot via A2/A10/A2/A44/E40/E314 (1313km, 17.5h). No mandatory EC561 break — double driver. Confirm DD with Toby Jansen (Pieter Smit)."},
-];
-
 // BUS_DATA keyed by ISO date for fast lookup (Day 1 = 2026-05-02)
-const BUS_DATA_MAP=BUS_DATA.reduce((m,d)=>{
-  const base=new Date('2026-05-02T12:00:00');
-  base.setDate(base.getDate()+d.day-1);
-  m[base.toISOString().slice(0,10)]=d;
-  return m;
-},{});
-
 // Parse a bus-day note string into a structured drive-session table.
 // Handles common patterns: S1/S2/S3 sessions, EC561 breaks, ferry/Le Shuttle
 // crossings, RP rest periods, ETA arrival, and prefatory notes (MD/DD).
