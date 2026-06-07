@@ -2,8 +2,8 @@
 event: RBC Amphitheatre, Toronto
 date: 2026-06-05
 event_id: TBD
-stage: Day-of
-updated: 2026-06-05
+stage: Settlement
+updated: 2026-06-07
 ---
 # RBC Amphitheatre, Toronto — 2026-06-05
 
@@ -26,13 +26,18 @@ Promoter: Live Nation (Lianne Fox). Note: venue/date conflicts with seed "Missis
 - 06-05 GL finalized: Marcus Grimmie list submitted; Jessica Brudner (LN box office) confirmed all set for box-office pickup. Passes at will call.
 
 ## Settlement / Post
-- Pending post-show.
+- 06-06 Davon requested settlement from Lianne (Live Nation). 06-07 Lianne sent settlement document (attached to thread; amount not parsed). Box office / TM scan-count link provided 06-05.
+- Post: Live Nation comms (Mahlet Sintayehu) requested approval to post show images; Cancel Communications (Brandon/Matthew) handling, "back soon" 06-07. No DOS action required.
 
 ## Open items / next actions
-- [ ] Confirm meal counts + times to Capers/Lianne
+- [ ] Review LN settlement figures (Lianne) and reconcile.
 - [ ] A3 merch: Corrie banking info + W8 to Julia
+- [ ] (Day-of meal counts now moot — show complete.)
 
 ## Sources
+- 19e99f4b9982e44e — Box office link / settlement sent (Lianne Fox, LN) — 2026-06-07
+- 19e9ec3dc468c85f — RBC Amphitheatre + LN images approval request — 2026-06-07
+- 19e941a0d74e3dcb — BBNO$ - Lakehouse Guests (GL/access) — 2026-06-05
 - 19e9884268252bad — Guest list // bbno$ - June 5
 - 19e6e3e88fadcb78 — hospitality advance // RBC Amphitheatre - June 5
 - 19e1cfa2df2f09ac — BBNO$ merch rep - June 5
