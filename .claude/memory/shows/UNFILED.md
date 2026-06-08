@@ -2,6 +2,11 @@
 
 ## 2026-06-08
 
+### Lollapalooza (Chicago, Aug) — special-guest passes (Gravy)
+- Internal RCC thread (Sandro Lipari, Sam Alavi; CC bbnomula) re: special guest "Gravy" at Lolla. Plan per Adler: add Matt + entourage (Ariel, Andrew + one manager — tyler/jake/henley) to bbno$ crew list rather than separate comps; ~4 passes. Sam: "still happening, just need to advance how many passes." Internal coordination, no external promoter reply owed from Davon yet. Relates to Lolla weekend (bbno$ HOB Chicago aftershow is Jul 31 — see 2026-07-31-hob-chicago.md); confirm whether this is mainstage Lolla or aftershow.
+- Open: [ ] Confirm final pass count for Matt + entourage; advance with C3/Lolla once known.
+- Source: 19ea7d06e0fbd7d6 — Gravy Lolla Special Guest — 2026-06-08
+
 ### Bratislava (Slovakia) — settlement (Live Nation Hungary)
 - bbno$ Bratislava show, promoter Live Nation Hungary, settler Máté Horváth (mate.horvath@livenation.hu); CC LN HU team (Révész, Kanda, Kovács, Borsos, Borbély, Szűcs). No roster entry; venue + exact show date not stated in mail. Promote to a dated `YYYY-MM-DD-<venue>-bratislava.md` once venue/date confirmed.
 - 05-28→05-29 settlement exchange: pre-settlement + costing sheets sent, then final. Davon asked to include the lift from VIP ticket sales; Máté added net VIP revenue less VAT and PRS fee. Extra-day parking booked as a showcost; extra rentals (IEMs, step-down converters) added. Final settlement + costing sheet sent 05-29. Figures not parsed from attachments.
@@ -39,4 +44,7 @@
 
 ### Company insurance gap ($0 coverage) — STILL OPEN / CRITICAL
 - Standing company-wide gap from task seed. No COI / certificate-of-insurance / coverage-bound email surfaced in the 2026-06-05 scan. Treat as unretired until evidence appears.
+- 06-08 partial evidence (older Apr thread, BBNO$ EU/UK Production x Sonalyst): vendor Sonalyst (Dan, dan@sonalyst.co.uk) requires a copy of the company's "hire-in" liability insurance + VAT number before delivering gear (LH3 drop ~Apr 29). DMCL handling on the artist-co side — Tony Yacowar (tyacowar@dmcl.ca) requested Sonalyst's insurance requirements to pass to DMCL's broker; biz/tax number 713129286RT0001 provided; invoices to BBNO Shows Inc, 1700-1140 West Pender St, Vancouver BC V6E 4G1. Shows coverage being sourced for the EU/UK leg via DMCL broker, but no bound COI seen. Not the same as DOS-company-level coverage.
 - Open: [ ] Obtain/confirm liability + production insurance (COI) covering upcoming FR (Jun 26/28) and NA (Jul) dates.
+- [ ] Confirm Sonalyst hire-in liability COI was issued (DMCL broker) before EU/UK production gear release.
+- Source: 19dac396525aaa79 — BBNO$ EU/UK Production x Sonalyst — 2026-04-21

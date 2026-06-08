@@ -4,12 +4,14 @@ Email-lifecycle show memory lives in `shows/`. See [shows/INDEX.md](shows/INDEX.
 
 ## Show files
 - [shows/2026-08-30-ape-london.md](shows/2026-08-30-ape-london.md) — All Points East, London, advance opened
+- [shows/2026-08-29-superbloom-munich.md](shows/2026-08-29-superbloom-munich.md) — Superbloom Munich, guest day passes (pending comps)
 - [shows/2026-07-31-hob-chicago.md](shows/2026-07-31-hob-chicago.md) — HOB Chicago, advance opened
 - [shows/2026-07-12-ottawa-bluesfest.md](shows/2026-07-12-ottawa-bluesfest.md) — Ottawa Bluesfest, charter + immigration reply owed
 - [shows/2026-07-11-mohegan-sun.md](shows/2026-07-11-mohegan-sun.md) — Mohegan Sun, charter
 - [shows/2026-07-01-mississauga.md](shows/2026-07-01-mississauga.md) — Mississauga (City of Mississauga), advance active (L7 specs owed)
 - [shows/2026-06-28-le-transbordeur.md](shows/2026-06-28-le-transbordeur.md) — Le Transbordeur/Villeurbanne, FR immigration watch
-- [shows/2026-06-11-bonnaroo-manchester.md](shows/2026-06-11-bonnaroo-manchester.md) — Bonnaroo (Manchester TN), ground-transport decision owed
+- [shows/2026-06-11-bonnaroo-manchester.md](shows/2026-06-11-bonnaroo-manchester.md) — Bonnaroo (Manchester TN), ground-transport decision owed; prod thread + drag-queen feature + crew flights
+- [shows/2026-06-10-nxne-toronto.md](shows/2026-06-10-nxne-toronto.md) — NXNE Billboard show Toronto (Jun 10, IMMINENT), editor tickets + ROS reply owed
 - [shows/2026-06-26-chambord.md](shows/2026-06-26-chambord.md) — Chambord festival, FR immigration watch + Sprinter quote in
 - [shows/2026-06-25-sala-apolo-barcelona.md](shows/2026-06-25-sala-apolo-barcelona.md) — Sala Apolo, Barcelona (Euro leg 2)
 - [shows/2026-06-24-lav-lisbon.md](shows/2026-06-24-lav-lisbon.md) — LAV, Lisbon (Euro leg 2)
