@@ -3,7 +3,7 @@ event: RBC Amphitheatre, Toronto
 date: 2026-06-05
 event_id: TBD
 stage: Settlement
-updated: 2026-06-07
+updated: 2026-06-08
 ---
 # RBC Amphitheatre, Toronto — 2026-06-05
 
@@ -27,7 +27,7 @@ Promoter: Live Nation (Lianne Fox). Note: venue/date conflicts with seed "Missis
 
 ## Settlement / Post
 - 06-06 Davon requested settlement from Lianne (Live Nation). 06-07 Lianne sent settlement document (attached to thread; amount not parsed). Box office / TM scan-count link provided 06-05.
-- Post: Live Nation comms (Mahlet Sintayehu) requested approval to post show images; Cancel Communications (Brandon/Matthew) handling, "back soon" 06-07. No DOS action required.
+- Post: Live Nation comms (Mahlet Sintayehu) requested approval to post show images; Cancel Communications (Brandon/Matthew) handling. 06-08 Matthew Cancel: "Remove below. All else approved." Image approval effectively closed (one shot pulled). No DOS action required.
 
 ## Open items / next actions
 - [ ] Review LN settlement figures (Lianne) and reconcile.

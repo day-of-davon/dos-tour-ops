@@ -1,5 +1,13 @@
 # UNFILED — ops items not matched to a dated show file
 
+## 2026-06-08
+
+### Bratislava (Slovakia) — settlement (Live Nation Hungary)
+- bbno$ Bratislava show, promoter Live Nation Hungary, settler Máté Horváth (mate.horvath@livenation.hu); CC LN HU team (Révész, Kanda, Kovács, Borsos, Borbély, Szűcs). No roster entry; venue + exact show date not stated in mail. Promote to a dated `YYYY-MM-DD-<venue>-bratislava.md` once venue/date confirmed.
+- 05-28→05-29 settlement exchange: pre-settlement + costing sheets sent, then final. Davon asked to include the lift from VIP ticket sales; Máté added net VIP revenue less VAT and PRS fee. Extra-day parking booked as a showcost; extra rentals (IEMs, step-down converters) added. Final settlement + costing sheet sent 05-29. Figures not parsed from attachments.
+- Open: [ ] Confirm Bratislava venue + date; reconcile final settlement figures vs deal; capture guarantee/net amount.
+- Source: 19e70203d610e247 — BBNO$ settlement - Bratislava — 2026-05-29
+
 ## 2026-06-07
 
 ### Deep Tropics — outstanding payment owed to Davon (settlement/collections)
