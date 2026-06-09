@@ -1,5 +1,20 @@
 # UNFILED — ops items not matched to a dated show file
 
+## 2026-06-09
+
+### UK dates — flight & hotel receipts for UK tax authority (DMCL)
+- Tony Yacowar, DMCL (tyacowar@dmcl.ca; Roni Gill rgill@dmcl.ca CC) received a UK tax authority letter 06-09; must respond NEXT WEEK. Compiling all UK-date invoices/receipts. Asks Davon to send any flight & hotel receipts he holds for the UK dates.
+- Clear document request, near-term deadline. DRAFT created (holding reply; [NEEDS] which UK dates window + receipt source).
+- Open: [ ] Pull and send UK-leg flight + hotel receipts to Tony before his filing deadline (~week of Jun 15).
+- Source: 19eadcf35c1ea1fc — UK flight & hotel receipts? — 2026-06-09
+
+### Cyprus / Lithuania / Latvia (Aug 19-26) — travel & accommodation costs vs promoter contract amends
+- Freya Whitfield (Wasserman/THE TEAM, freya.whitfield@the.team) working contract amends with promoters; needs DOS travel + accom cost figures. Aug 19-26 stretch (Cyprus + Vilnius + Riga; Sziget bracketed separately). Not yet a dated show file each — promote when venues/dates lock. Related advancing via StayLive (Kamila Mirzojanc, kamila@staylive.lt) for LT/LV/CY.
+- Davon's working estimate (05-28): flights party of 9, multi-leg HU→CY→AT→LT→LV→NO ~$18k-25k USD; hotels (figure continues in thread, not fully captured).
+- 06-09 Freya: promoter legal advises only ~1/3 of costs would apply to one show, and unlikely all 3 cancelled by Force Majeure; posed a follow-up question (TRUNCATED in scan, ~"will you be getting [insurance/firm quote]?"). Reply owed but exact ask unconfirmed; NO draft (question text not fully captured).
+- Open: [ ] Re-read Freya's 06-09 question in full; respond re cost apportionment / Force Majeure coverage. [ ] Confirm StayLive merch contact question (Audrey Burnage / Allotment handling official merch?).
+- Sources: 19e692d06ed55f46 — Travel & Accommodation Costs - Cyprus/Lithuania/Latvia — 2026-06-09; 19e4b23785dd019e — Advancing/Rider - Lithuania, Latvia & Cyprus (StayLive) — 2026-05-29
+
 ## 2026-06-08
 
 ### Lollapalooza (Chicago, Aug) — special-guest passes (Gravy)
