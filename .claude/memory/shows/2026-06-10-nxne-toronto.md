@@ -2,7 +2,7 @@
 event: NXNE (Billboard show), Toronto
 date: 2026-06-10
 event_id: TBD
-stage: Day-of
+stage: Settlement
 updated: 2026-06-10
 ---
 # NXNE (Billboard show), Toronto — 2026-06-10
@@ -22,8 +22,7 @@ bbno$ Billboard-presented NXNE (North by Northeast) show, Toronto, Wed Jun 10. V
 - LED wall (PixelIt Rent, Mike Savvin, pixelit-rent.ca): Dan Nudelman confirmed hire 06-08; invoice to BBNO Shows Inc C/O Dan Nudelman, Vancouver. Power = 5x 15A Edison circuits; stair load-in, elevator coordinated ~1pm; PixelIt crew load-in 1:00pm. REIMBURSEMENT RESOLVED 06-10: paid out of pocket, Dan forwards final invoice to Billboard who add it to the post-show settlement. Davon approved; Tony Yacowar (DMCL) handling payment.
 
 ## Open items / next actions
-- [ ] Day-of: confirm any additional editor names from Jess get added to GL.
-- [ ] Reconcile LED-wall invoice into Billboard settlement post-show.
+- [ ] Reconcile LED-wall invoice into Billboard settlement (Dan forwarding final invoice to Billboard).
 
 ## Sources (Gmail thread ids + last seen)
 - 19ea81229d4fb763 — EDITOR TICKETS FOR BILLBOARD NXNE SHOW (editors approved, box-office pickup) — 2026-06-10

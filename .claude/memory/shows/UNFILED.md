@@ -2,6 +2,13 @@
 
 ## 2026-06-10
 
+### DMCL — unknown charges on Alex's credit cards (Partners On Booking + Airbnbs)
+- Tony Yacowar (DMCL) asked 06-10 about unrecognized charges on "Alex's" (Alex Gumuchian, bbno$) USD visa: Partners On Booking hotel charge + two Airbnbs on his CAD visa. Amounts not stated in thread.
+- 06-10 Davon replied: no record of any of these charges; checked email, Airbnb, and booking.com accounts.
+- There is also an unsent draft in the thread (19eb327273c54083) with two codes "HMPQN5JCWA HMYMCQYE54" — may be booking reference numbers Davon was about to send Tony. Davon should check if these codes resolve the question.
+- Open: [ ] Confirm whether Tony resolved the charge identification; if codes in draft are relevant, send them. Watch for Tony follow-up.
+- Source: 19eb2baccfed62ed — charge on Alex USD visa - Partners On Booking (Davon: no record; unsent draft with codes) — 2026-06-10
+
 ### UK dates — flight & hotel receipts for UK tax authority (DMCL)
 - Tony Yacowar, DMCL (tyacowar@dmcl.ca; Roni Gill rgill@dmcl.ca CC) received a UK tax authority letter 06-09; must respond NEXT WEEK. Compiling all UK-date invoices/receipts. Asked Davon for flight & hotel receipts for the UK dates.
 - 06-10 RESPONDED: Davon sent two links (Google Sheet receipts tracker + Dropbox folder of receipts). Davon's deliverable done; DMCL still owes the UK tax authority response next week.
