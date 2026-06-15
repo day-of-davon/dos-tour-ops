@@ -13,6 +13,7 @@ const {
   collectThreadAttachments, dedupFolios,
   fetchAttachmentB64, attachmentFingerprint,
 } = require("./lib/attachments");
+const { storeReceipt } = require("./lib/receiptStore");
 const { TOUR_CONTEXT, buildTourContextBlock, crewDisplayList } = require("./lib/tourContext");
 const {
   buildSynonymBlock, buildConfidenceRubric, buildStopwordRule,
@@ -1074,12 +1075,14 @@ Return this exact JSON:
 
     const docBlocks = [];
     const usedFiles = [];
+    let receiptPath = null; // first PDF stored as the audit-proof receipt copy
     for (const a of t.attachments) {
       if (attachmentsScanned >= PDF_MAX_PER_SCAN) break;
       const b64 = await fetchAttachmentB64(googleToken, a.messageId, a.attachmentId);
       if (!b64) { runErrors.push({ kind: "attachment_fetch_failed", tid: t.id, filename: a.filename }); continue; }
       docBlocks.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: b64 } });
       usedFiles.push(a.filename);
+      if (!receiptPath) receiptPath = await storeReceipt(supabase, { b64, contentType: "application/pdf", filename: a.filename, userId: user.id });
       attachmentsScanned++;
     }
 
@@ -1138,6 +1141,7 @@ Return this exact JSON:
           source: "claude_pdf",
           parseVerified: null, // PDF-backed records skip Haiku verify; PDF is authoritative
           sourceAttachment: usedFiles.length ? { filename: usedFiles[0] } : null,
+          receiptPath: receiptPath || null,
         });
       }
       console.log(`[flights] pdf tid=${t.id} pdfs=${docBlocks.length} rows=${rows.length}`);

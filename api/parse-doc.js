@@ -4,6 +4,7 @@
 const { authenticate } = require("./lib/auth");
 const { extractJson } = require("./lib/gmail");
 const { DEFAULT_MODEL, HEAVY_MODEL, postMessages } = require("./lib/anthropic");
+const { storeReceipt } = require("./lib/receiptStore");
 
 let mammoth, xlsxLib, pdfParse;
 try { mammoth = require("mammoth"); } catch {}
@@ -37,7 +38,7 @@ const PROMPT = (filename, contextDate) => `Classify this document and extract al
 Filename: "${filename}"${contextDate ? `\nCurrent show context date: ${contextDate}` : ""}
 
 Document classes:
-- RECEIPT: hotel, meals, transport, equipment, or expense receipt / invoice for a single purchase
+- RECEIPT: hotel, meals, transport, equipment, or expense receipt / invoice for a single purchase. Rideshare/taxi/car-service receipts (Uber, Lyft, Blacklane, etc.) are RECEIPT with category "Transport" — put the route ("pickup → dropoff") in description.
 - INVOICE: vendor invoice (multiple line items or awaiting payment)
 - FLIGHT_CONFIRMATION: airline booking confirmation, e-ticket, boarding pass
 - TRAVEL_ITINERARY: multi-segment itinerary (flights + possibly hotels)
@@ -130,7 +131,7 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { user, error: authErr } = await authenticate(req);
+  const { user, supabase, error: authErr } = await authenticate(req);
   if (authErr) return res.status(authErr.status).json({ error: authErr.message });
 
   const { fileBase64, mimeType = "", filename = "", contextDate } = req.body || {};
@@ -246,6 +247,18 @@ IMPORTANT: Return ONLY a single valid JSON object. No markdown, no backticks, no
     verified = { ...parsed, parseVerified: null };
   }
 
-  console.log(`[parse-doc] total tokens: in=${inputTokens} out=${outputTokens} cache_read=${cacheReadTokens} cache_create=${cacheCreationTokens}`);
-  return res.json({ ...verified, filename, tokensUsed: inputTokens + outputTokens });
+  // Persist the original file so the ledger keeps an audit-proof copy. Best-effort:
+  // a storage failure must not fail the parse. Skip for empty/UNKNOWN docs.
+  let receiptPath = null;
+  if (verified.docType && verified.docType !== "UNKNOWN") {
+    receiptPath = await storeReceipt(supabase, {
+      b64: fileBase64,
+      contentType: mimeType || (isPdf ? "application/pdf" : isImage ? visionMediaType : "application/octet-stream"),
+      filename,
+      userId: user.id,
+    });
+  }
+
+  console.log(`[parse-doc] total tokens: in=${inputTokens} out=${outputTokens} cache_read=${cacheReadTokens} cache_create=${cacheCreationTokens} receipt=${receiptPath ? "stored" : "none"}`);
+  return res.json({ ...verified, filename, receiptPath, tokensUsed: inputTokens + outputTokens });
 };

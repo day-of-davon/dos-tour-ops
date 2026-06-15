@@ -13,6 +13,7 @@ const {
   collectThreadAttachments, dedupFolios,
   fetchAttachmentB64, attachmentFingerprint,
 } = require("./lib/attachments");
+const { storeReceipt } = require("./lib/receiptStore");
 const { buildTourContextBlock } = require("./lib/tourContext");
 const { buildSynonymBlock, buildConfidenceRubric, buildStopwordRule, validateCommon } = require("./lib/parsePrimitives");
 
@@ -314,6 +315,7 @@ ${returnShape}`;
     // Fetch up to PDF_MAX_PER_THREAD attachments (already dedup+size-filtered).
     const docBlocks = [];
     const usedFiles = [];
+    let receiptPath = null; // first folio/receipt PDF stored as the audit-proof copy
     for (const a of t.attachments) {
       if (attachmentsScanned >= PDF_MAX_PER_SCAN) break;
       const b64 = await fetchAttachmentB64(googleToken, a.messageId, a.attachmentId);
@@ -323,6 +325,7 @@ ${returnShape}`;
         source: { type: "base64", media_type: "application/pdf", data: b64 },
       });
       usedFiles.push(a.filename);
+      if (!receiptPath) receiptPath = await storeReceipt(supabase, { b64, contentType: "application/pdf", filename: a.filename, userId: user.id });
       attachmentsScanned++;
     }
 
@@ -371,6 +374,7 @@ ${returnShape}`;
       const rows = Array.isArray(parsed?.lodgings) ? parsed.lodgings : [];
       for (const h of rows) {
         if (usedFiles.length) h.sourceAttachment = { filename: usedFiles[0] };
+        if (receiptPath) h.receiptPath = receiptPath;
         (perThreadResults[h.tid] ||= []).push(h);
       }
       console.log(`[lodging-scan] pdf tid=${t.id} pdfs=${docBlocks.length} stop=${stopReason} rows=${rows.length}`);
@@ -419,6 +423,7 @@ ${returnShape}`;
         status: "pending",
         rooms: [],
         todos: [],
+        receiptPath: h.receiptPath || "",
       };
     });
 
