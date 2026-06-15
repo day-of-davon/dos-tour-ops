@@ -179,7 +179,7 @@ create policy "insert own audit"
 -- ── Scan runs: per-invocation metadata for intel/flights/lodging scanners ─────
 create table if not exists scan_runs (
   id                  uuid        default gen_random_uuid() primary key,
-  scanner             text        not null,   -- 'intel' | 'flights' | 'lodging'
+  scanner             text        not null,   -- 'intel' | 'flights' | 'lodging' | 'rideshare'
   user_id             uuid        references auth.users on delete cascade not null,
   team_id             text,
   params              jsonb       default '{}',
