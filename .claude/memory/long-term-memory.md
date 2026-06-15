@@ -15,6 +15,8 @@
 
 - [2026-06-14 06:00 UTC] https://supabase.com/changelog/41796-developer-update-january-2026 — Supabase Beta Passkeys (WebAuthn) now available in Supabase Auth (June 2026); passwordless, phishing-resistant sign-in as a first-class Auth option — NOT in prior memory; relevant to dos-platform auth architecture: current plan gates on Google OAuth only; Passkeys could be offered as an alternative for touring professionals who prefer hardware keys or biometric device auth; evaluate against Google OAuth gate before platform scaffolding.
 
+- [2026-05-29 00:00 UTC] https://supabase.com/changelog — Supabase Passkeys beta launched May 28, 2026: WebAuthn-based passwordless auth (biometrics via Face ID/Touch ID/Windows Hello, device PIN, hardware security keys); public key stored in Supabase Auth, private key stays on user's authenticator; configured via CLI and Management API; currently experimental with explicit opt-in required (API may change without notice) — distinct from Google OAuth gate and custom OIDC entries already logged; relevant for dos-platform Phase 9 enterprise auth if customers require phishing-resistant MFA beyond OAuth; not production-ready yet, monitor for GA.
+
 ## promoted
 
 <!-- entries graduate here after being actioned or built against -->
