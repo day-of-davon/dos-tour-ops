@@ -17,6 +17,10 @@
 
 - [2026-05-29 00:00 UTC] https://supabase.com/changelog — Supabase Passkeys beta launched May 28, 2026: WebAuthn-based passwordless auth (biometrics via Face ID/Touch ID/Windows Hello, device PIN, hardware security keys); public key stored in Supabase Auth, private key stays on user's authenticator; configured via CLI and Management API; currently experimental with explicit opt-in required (API may change without notice) — distinct from Google OAuth gate and custom OIDC entries already logged; relevant for dos-platform Phase 9 enterprise auth if customers require phishing-resistant MFA beyond OAuth; not production-ready yet, monitor for GA.
 
+- [2026-06-15 05:00 UTC] https://valueaddvc.com/blog/supabase-500m-series-f-10-billion-valuation-june-2026 — Supabase raised $500M Series F at $10.5B valuation (June 4, 2026), led by GIC with Accel, YC, Coatue, Stripe, Salesforce Ventures; AI agents (Claude Code cited as single largest contributor since Jan 2026) now drive majority of new database creation on the platform; platform health signal: Supabase is well-capitalized at decacorn scale, infrastructure dependency risk remains low.
+
+- [2026-06-15 05:01 UTC] https://www.eventric.com/pricing-plans-tour-management-software/ — Master Tour annual plan confirmed at $64.99/mo (vs $74.99/mo month-to-month); prior context only noted the monthly price; annual option tightens the gap with DOS's $99/mo entry tier — DOS pricing deck should acknowledge and justify the delta vs Master Tour annual.
+
 ## promoted
 
 <!-- entries graduate here after being actioned or built against -->
