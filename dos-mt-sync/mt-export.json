@@ -1,0 +1,2342 @@
+{
+  "exportedAt": "2026-04-23T00:02:16.437Z",
+  "schema": "master-tour-v1",
+  "counts": {
+    "events": 30,
+    "shows": 28,
+    "travelDays": 2,
+    "air": 87,
+    "ground": 0,
+    "orphanAir": 72
+  },
+  "events": [
+    {
+      "date": "2026-04-16",
+      "venue": "Red Rocks Amphitheatre",
+      "city": "Morrison",
+      "country": "US",
+      "type": "show",
+      "promoter": {
+        "company": "AEG",
+        "rep": "Sasha Minkov"
+      },
+      "contacts": [
+        {
+          "name": "Sasha Minkov",
+          "role": "Promoter",
+          "phone": "",
+          "email": "sminkov@aegpresents.com"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-04-29",
+      "venue": "",
+      "city": "Fly to Boston",
+      "country": "",
+      "type": "travel",
+      "promoter": {
+        "company": "",
+        "rep": ""
+      },
+      "contacts": [],
+      "travel": {
+        "air": [
+          {
+            "party": "Ruairi Matthews",
+            "airline": "Air Canada",
+            "flightNo": "AC860",
+            "depAirport": "YVR",
+            "depCity": "Vancouver International Airport, Terminal M",
+            "depDate": "04/29/2026",
+            "depTime": "8:10 PM",
+            "arrAirport": "LHR",
+            "arrCity": "London-Heathrow Airport, Terminal 2",
+            "arrDate": "04/30/2026",
+            "arrTime": "1:20 PM",
+            "confirmNo": "BKOZ9U",
+            "cost": 1248.92,
+            "currency": "CAD",
+            "_id": "fl_a8684f_AC860",
+            "_status": "confirmed"
+          },
+          {
+            "party": "Ruairi Matthews",
+            "airline": "Air Canada",
+            "flightNo": "AC8166",
+            "depAirport": "YYJ",
+            "depCity": "Victoria International Airport",
+            "depDate": "04/29/2026",
+            "depTime": "5:45 PM",
+            "arrAirport": "YVR",
+            "arrCity": "Vancouver International Airport, Terminal M",
+            "arrDate": "04/29/2026",
+            "arrTime": "6:17 PM",
+            "confirmNo": "BKOZ9U",
+            "cost": 1248.92,
+            "currency": "CAD",
+            "_id": "fl_a8684f_AC8166",
+            "_status": "confirmed"
+          },
+          {
+            "party": "Nick Foerster",
+            "airline": "Delta",
+            "flightNo": "DL5978",
+            "depAirport": "LAX",
+            "depCity": "Los Angeles",
+            "depDate": "04/29/2026",
+            "depTime": "3:50 PM",
+            "arrAirport": "LHR",
+            "arrCity": "London Heathrow",
+            "arrDate": "04/30/2026",
+            "arrTime": "10:15 AM",
+            "confirmNo": "0062423302068",
+            "cost": 743.5,
+            "currency": "USD",
+            "_id": "fl_ab80ff_DL5978",
+            "_status": "confirmed"
+          },
+          {
+            "party": "Davon Johnson",
+            "airline": "Korean Air",
+            "flightNo": "KE7848",
+            "depAirport": "ICN",
+            "depCity": "Seoul",
+            "depDate": "04/29/2026",
+            "depTime": "12:25 PM",
+            "arrAirport": "LAX",
+            "arrCity": "Los Angeles",
+            "arrDate": "04/29/2026",
+            "arrTime": "7:35 AM",
+            "confirmNo": "JN6G65",
+            "cost": "",
+            "currency": "USD",
+            "_id": "fl_d25b70_KE7848",
+            "_status": "dismissed"
+          },
+          {
+            "party": "Davon Johnson",
+            "airline": "Korean Air",
+            "flightNo": "KE7873",
+            "depAirport": "DPS",
+            "depCity": "Denpasar-Bali",
+            "depDate": "04/29/2026",
+            "depTime": "1:10 AM",
+            "arrAirport": "ICN",
+            "arrCity": "Seoul",
+            "arrDate": "04/29/2026",
+            "arrTime": "9:25 AM",
+            "confirmNo": "JN6G65",
+            "cost": "",
+            "currency": "USD",
+            "_id": "fl_d25b70_KE7873",
+            "_status": "dismissed"
+          },
+          {
+            "party": "Gabe Greenwood",
+            "airline": "Delta",
+            "flightNo": "DL5964",
+            "depAirport": "SFO",
+            "depCity": "San Francisco",
+            "depDate": "04/29/2026",
+            "depTime": "5:55 PM",
+            "arrAirport": "LHR",
+            "arrCity": "London Heathrow",
+            "arrDate": "04/30/2026",
+            "arrTime": "12:15 PM",
+            "confirmNo": "0062423079359",
+            "cost": 594.5,
+            "currency": "USD",
+            "_id": "fl_ee3d4a_DL5964",
+            "_status": "confirmed"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-04-30",
+      "venue": "",
+      "city": "Fly To Boston",
+      "country": "",
+      "type": "travel",
+      "promoter": {
+        "company": "",
+        "rep": ""
+      },
+      "contacts": [],
+      "travel": {
+        "air": [
+          {
+            "party": "Ruairi Matthews",
+            "airline": "Air Canada",
+            "flightNo": "AC860",
+            "depAirport": "YVR",
+            "depCity": "Vancouver International Airport, Terminal M",
+            "depDate": "04/29/2026",
+            "depTime": "8:10 PM",
+            "arrAirport": "LHR",
+            "arrCity": "London-Heathrow Airport, Terminal 2",
+            "arrDate": "04/30/2026",
+            "arrTime": "1:20 PM",
+            "confirmNo": "BKOZ9U",
+            "cost": 1248.92,
+            "currency": "CAD",
+            "_id": "fl_a8684f_AC860",
+            "_status": "confirmed"
+          },
+          {
+            "party": "Nick Foerster",
+            "airline": "Delta",
+            "flightNo": "DL5978",
+            "depAirport": "LAX",
+            "depCity": "Los Angeles",
+            "depDate": "04/29/2026",
+            "depTime": "3:50 PM",
+            "arrAirport": "LHR",
+            "arrCity": "London Heathrow",
+            "arrDate": "04/30/2026",
+            "arrTime": "10:15 AM",
+            "confirmNo": "0062423302068",
+            "cost": 743.5,
+            "currency": "USD",
+            "_id": "fl_ab80ff_DL5978",
+            "_status": "confirmed"
+          },
+          {
+            "party": "Gabe Greenwood",
+            "airline": "Delta",
+            "flightNo": "DL5964",
+            "depAirport": "SFO",
+            "depCity": "San Francisco",
+            "depDate": "04/29/2026",
+            "depTime": "5:55 PM",
+            "arrAirport": "LHR",
+            "arrCity": "London Heathrow",
+            "arrDate": "04/30/2026",
+            "arrTime": "12:15 PM",
+            "confirmNo": "0062423079359",
+            "cost": 594.5,
+            "currency": "USD",
+            "_id": "fl_ee3d4a_DL5964",
+            "_status": "confirmed"
+          },
+          {
+            "party": "Davon Johnson",
+            "airline": "Delta",
+            "flightNo": "DL507",
+            "depAirport": "LAX",
+            "depCity": "Los Angeles",
+            "depDate": "04/30/2026",
+            "depTime": "9:00 PM",
+            "arrAirport": "BOS",
+            "arrCity": "Boston",
+            "arrDate": "05/01/2026",
+            "arrTime": "5:30 AM",
+            "confirmNo": "0062417857342",
+            "cost": 343.4,
+            "currency": "USD",
+            "_id": "fl_d2ffa3_DL507",
+            "_status": "confirmed"
+          },
+          {
+            "party": "Alexander Gumuchian",
+            "airline": "American",
+            "flightNo": "AA2453",
+            "depAirport": "LAX",
+            "depCity": "Los Angeles",
+            "depDate": "04/30/2026",
+            "depTime": "11:30 PM",
+            "arrAirport": "BOS",
+            "arrCity": "Boston",
+            "arrDate": "05/01/2026",
+            "arrTime": "8:04 AM",
+            "confirmNo": "YBLFDM",
+            "cost": "",
+            "currency": "USD",
+            "_id": "fl_db0c7e_AAAA2453",
+            "_status": "confirmed"
+          },
+          {
+            "party": "Daniel Nudelman",
+            "airline": "WestJet",
+            "flightNo": "WS1606",
+            "depAirport": "YVR",
+            "depCity": "Vancouver",
+            "depDate": "04/30/2026",
+            "depTime": "10:55 PM",
+            "arrAirport": "ATL",
+            "arrCity": "Atlanta",
+            "arrDate": "05/01/2026",
+            "arrTime": "6:55 AM",
+            "confirmNo": "SFZLHC",
+            "cost": 897.31,
+            "currency": "CAD",
+            "_id": "fl_640e56_WS1606",
+            "_status": "confirmed"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-01",
+      "venue": "WPI",
+      "city": "Worcester",
+      "country": "US",
+      "type": "show",
+      "promoter": {
+        "company": "Pretty Polly",
+        "rep": "Tori Pacheco"
+      },
+      "contacts": [
+        {
+          "name": "Dan Saldarini",
+          "role": "Promoter",
+          "phone": "",
+          "email": "dan@prettypolly.com"
+        },
+        {
+          "name": "Tori Pacheco",
+          "role": "Hospo",
+          "phone": "",
+          "email": "tori@prettypolly.com"
+        }
+      ],
+      "travel": {
+        "air": [
+          {
+            "party": "Davon Johnson",
+            "airline": "Delta",
+            "flightNo": "DL507",
+            "depAirport": "LAX",
+            "depCity": "Los Angeles",
+            "depDate": "04/30/2026",
+            "depTime": "9:00 PM",
+            "arrAirport": "BOS",
+            "arrCity": "Boston",
+            "arrDate": "05/01/2026",
+            "arrTime": "5:30 AM",
+            "confirmNo": "0062417857342",
+            "cost": 343.4,
+            "currency": "USD",
+            "_id": "fl_d2ffa3_DL507",
+            "_status": "confirmed"
+          },
+          {
+            "party": "Alexander Gumuchian",
+            "airline": "American",
+            "flightNo": "AA2453",
+            "depAirport": "LAX",
+            "depCity": "Los Angeles",
+            "depDate": "04/30/2026",
+            "depTime": "11:30 PM",
+            "arrAirport": "BOS",
+            "arrCity": "Boston",
+            "arrDate": "05/01/2026",
+            "arrTime": "8:04 AM",
+            "confirmNo": "YBLFDM",
+            "cost": "",
+            "currency": "USD",
+            "_id": "fl_db0c7e_AAAA2453",
+            "_status": "confirmed"
+          },
+          {
+            "party": "Daniel Nudelman",
+            "airline": "WestJet",
+            "flightNo": "WS1606",
+            "depAirport": "YVR",
+            "depCity": "Vancouver",
+            "depDate": "04/30/2026",
+            "depTime": "10:55 PM",
+            "arrAirport": "ATL",
+            "arrCity": "Atlanta",
+            "arrDate": "05/01/2026",
+            "arrTime": "6:55 AM",
+            "confirmNo": "SFZLHC",
+            "cost": 897.31,
+            "currency": "CAD",
+            "_id": "fl_640e56_WS1606",
+            "_status": "confirmed"
+          },
+          {
+            "party": "Andrew Campbell",
+            "airline": "Air Canada",
+            "flightNo": "AC601",
+            "depAirport": "YHZ",
+            "depCity": "Halifax",
+            "depDate": "05/01/2026",
+            "depTime": "5:10 AM",
+            "arrAirport": "YYZ",
+            "arrCity": "Toronto",
+            "arrDate": "05/01/2026",
+            "arrTime": "6:50 AM",
+            "confirmNo": "0142325855796",
+            "cost": 480.09,
+            "currency": "CAD",
+            "_id": "fl_784acf_AC601",
+            "_status": "dismissed"
+          },
+          {
+            "party": "Andrew Campbell",
+            "airline": "Air Canada",
+            "flightNo": "AC766",
+            "depAirport": "YYZ",
+            "depCity": "Toronto",
+            "depDate": "05/01/2026",
+            "depTime": "8:05 AM",
+            "arrAirport": "BOS",
+            "arrCity": "Boston",
+            "arrDate": "05/01/2026",
+            "arrTime": "9:49 AM",
+            "confirmNo": "0142325855796",
+            "cost": 0,
+            "currency": "CAD",
+            "_id": "fl_784acf_AC766",
+            "_status": "dismissed"
+          },
+          {
+            "party": "Mathieu Senechal",
+            "airline": "Air Canada",
+            "flightNo": "AC748",
+            "depAirport": "YUL",
+            "depCity": "Montréal",
+            "depDate": "05/01/2026",
+            "depTime": "8:20 AM",
+            "arrAirport": "BOS",
+            "arrCity": "Boston",
+            "arrDate": "05/01/2026",
+            "arrTime": "9:45 AM",
+            "confirmNo": "BXFBPC",
+            "cost": 344.67,
+            "currency": "CAD",
+            "_id": "fl_db9f4f_AC748",
+            "_status": "confirmed"
+          },
+          {
+            "party": "Olen Quinn Davis",
+            "airline": "Delta",
+            "flightNo": "DL5610",
+            "depAirport": "BNA",
+            "depCity": "Nashville",
+            "depDate": "05/01/2026",
+            "depTime": "6:05 AM",
+            "arrAirport": "BOS",
+            "arrCity": "Boston",
+            "arrDate": "05/01/2026",
+            "arrTime": "9:51 AM",
+            "confirmNo": "0062423592987",
+            "cost": 193.4,
+            "currency": "USD",
+            "_id": "fl_5046ff_DL5610",
+            "_status": "confirmed"
+          },
+          {
+            "party": "Daniel Nudelman",
+            "airline": "WestJet",
+            "flightNo": "WS5404",
+            "depAirport": "ATL",
+            "depCity": "Atlanta",
+            "depDate": "05/01/2026",
+            "depTime": "9:00 AM",
+            "arrAirport": "BOS",
+            "arrCity": "Boston",
+            "arrDate": "05/01/2026",
+            "arrTime": "11:35 AM",
+            "confirmNo": "G3SF2Z",
+            "cost": "",
+            "currency": "USD",
+            "_id": "fl_640e56_WS5404",
+            "_status": "confirmed"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-04",
+      "venue": "National Stadium",
+      "city": "Dublin",
+      "country": "IE",
+      "type": "show",
+      "promoter": {
+        "company": "MCD",
+        "rep": "Zach Desmond"
+      },
+      "contacts": [
+        {
+          "name": "Brian Fluskey",
+          "role": "Production",
+          "phone": "",
+          "email": "brianfluskey@gmail.com"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-05",
+      "venue": "National Stadium",
+      "city": "Dublin",
+      "country": "IE",
+      "type": "show",
+      "promoter": {
+        "company": "MCD",
+        "rep": "Zach Desmond"
+      },
+      "contacts": [
+        {
+          "name": "Brian Fluskey",
+          "role": "Production",
+          "phone": "",
+          "email": "brianfluskey@gmail.com"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-07",
+      "venue": "O2 Victoria Warehouse",
+      "city": "Manchester",
+      "country": "GB",
+      "type": "show",
+      "promoter": {
+        "company": "LN UK",
+        "rep": "Kiarn Eslami"
+      },
+      "contacts": [
+        {
+          "name": "Tyrone",
+          "role": "Production",
+          "phone": "",
+          "email": "tyrone84@gmail.com"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-08",
+      "venue": "O2 Victoria Warehouse",
+      "city": "Manchester",
+      "country": "GB",
+      "type": "show",
+      "promoter": {
+        "company": "LN UK",
+        "rep": ""
+      },
+      "contacts": [
+        {
+          "name": "Tyrone",
+          "role": "Production",
+          "phone": "",
+          "email": "tyrone84@gmail.com"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-10",
+      "venue": "O2 Academy",
+      "city": "Glasgow",
+      "country": "GB",
+      "type": "show",
+      "promoter": {
+        "company": "DF Concerts",
+        "rep": ""
+      },
+      "contacts": [
+        {
+          "name": "Charmaine Hardman",
+          "role": "Production",
+          "phone": "",
+          "email": "charmaine.hardman@dfconcerts.co.uk"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-11",
+      "venue": "O2 Academy",
+      "city": "Glasgow",
+      "country": "GB",
+      "type": "show",
+      "promoter": {
+        "company": "DF Concerts",
+        "rep": ""
+      },
+      "contacts": [
+        {
+          "name": "Charmaine Hardman",
+          "role": "Production",
+          "phone": "",
+          "email": "charmaine.hardman@dfconcerts.co.uk"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-13",
+      "venue": "O2 Brixton Academy",
+      "city": "London",
+      "country": "GB",
+      "type": "show",
+      "promoter": {
+        "company": "LN UK",
+        "rep": ""
+      },
+      "contacts": [
+        {
+          "name": "Tyrone",
+          "role": "Production",
+          "phone": "",
+          "email": "tyrone84@gmail.com"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-15",
+      "venue": "Halle 622",
+      "city": "Zurich",
+      "country": "CH",
+      "type": "show",
+      "promoter": {
+        "company": "Gadget",
+        "rep": "Stefan Wyss"
+      },
+      "contacts": [
+        {
+          "name": "Sarah Blum",
+          "role": "Production",
+          "phone": "",
+          "email": "sarah.blum@gadget.ch"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-16",
+      "venue": "E-Werk",
+      "city": "Cologne",
+      "country": "DE",
+      "type": "show",
+      "promoter": {
+        "company": "LN DE",
+        "rep": ""
+      },
+      "contacts": [
+        {
+          "name": "Oli Zimmermann",
+          "role": "Production",
+          "phone": "",
+          "email": "oliver.zimmermann@livenation-production.de"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-17",
+      "venue": "Palladium",
+      "city": "Cologne",
+      "country": "DE",
+      "type": "show",
+      "promoter": {
+        "company": "LN DE",
+        "rep": ""
+      },
+      "contacts": [
+        {
+          "name": "Oli Zimmermann",
+          "role": "Production",
+          "phone": "",
+          "email": "oliver.zimmermann@livenation-production.de"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-19",
+      "venue": "AFAS Live",
+      "city": "Amsterdam",
+      "country": "NL",
+      "type": "show",
+      "promoter": {
+        "company": "MOJO",
+        "rep": ""
+      },
+      "contacts": [
+        {
+          "name": "John Cameron",
+          "role": "Production",
+          "phone": "",
+          "email": "j.cameron@mojo.nl"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-20",
+      "venue": "Le Bataclan",
+      "city": "Paris",
+      "country": "FR",
+      "type": "show",
+      "promoter": {
+        "company": "LN FR",
+        "rep": ""
+      },
+      "contacts": [
+        {
+          "name": "Cyril Legauffey",
+          "role": "Production",
+          "phone": "",
+          "email": "c.legauffey@gmail.com"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-22",
+      "venue": "Fabrique",
+      "city": "Milan",
+      "country": "IT",
+      "type": "show",
+      "promoter": {
+        "company": "LN IT",
+        "rep": ""
+      },
+      "contacts": [
+        {
+          "name": "Andrea Aurigo",
+          "role": "Production",
+          "phone": "",
+          "email": "andrea.aurigo@livenation.it"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-24",
+      "venue": "SaSaZu",
+      "city": "Prague",
+      "country": "CZ",
+      "type": "show",
+      "promoter": {
+        "company": "Fource",
+        "rep": ""
+      },
+      "contacts": [
+        {
+          "name": "Barbora Rehorova",
+          "role": "Production",
+          "phone": "",
+          "email": "bara@fource.com"
+        }
+      ],
+      "travel": {
+        "air": [
+          {
+            "party": "O'Len Quinn Davis",
+            "airline": "Finnair",
+            "flightNo": "AY1223",
+            "depAirport": "HEL",
+            "depCity": "Helsinki",
+            "depDate": "05/24/2026",
+            "depTime": "9:40 AM",
+            "arrAirport": "PRG",
+            "arrCity": "Prague",
+            "arrDate": "05/24/2026",
+            "arrTime": "10:50 AM",
+            "confirmNo": "9L7N82",
+            "cost": 492,
+            "currency": "EUR",
+            "_id": "fl_5bb59c_AY1223",
+            "_status": "confirmed"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-26",
+      "venue": "Columbiahalle",
+      "city": "Berlin",
+      "country": "DE",
+      "type": "show",
+      "promoter": {
+        "company": "LN DE",
+        "rep": ""
+      },
+      "contacts": [
+        {
+          "name": "Oli Zimmermann",
+          "role": "Production",
+          "phone": "",
+          "email": "oliver.zimmermann@livenation-production.de"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-28",
+      "venue": "Majestic Music Club",
+      "city": "Bratislava",
+      "country": "SK",
+      "type": "show",
+      "promoter": {
+        "company": "LN HU",
+        "rep": ""
+      },
+      "contacts": [
+        {
+          "name": "Peter Lipovsky",
+          "role": "Production",
+          "phone": "",
+          "email": "peter.lipovsky@gmail.com"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-05-30",
+      "venue": "Orange Festival",
+      "city": "Warsaw",
+      "country": "PL",
+      "type": "show",
+      "promoter": {
+        "company": "AlterArt",
+        "rep": ""
+      },
+      "contacts": [],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-06-05",
+      "venue": "",
+      "city": "",
+      "country": "",
+      "type": "show",
+      "promoter": {
+        "company": "",
+        "rep": ""
+      },
+      "contacts": [],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-06-13",
+      "venue": "Medialink Campus",
+      "city": "Chicago",
+      "country": "US",
+      "type": "show",
+      "promoter": {
+        "company": "Insomniac",
+        "rep": "Tectonic"
+      },
+      "contacts": [
+        {
+          "name": "Haley Evans",
+          "role": "AR Manager",
+          "phone": "",
+          "email": "haley@tectonicteam.com"
+        },
+        {
+          "name": "Jaron Drucker",
+          "role": "Transport",
+          "phone": "",
+          "email": "jaron@tectonicteam.com"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-06-26",
+      "venue": "Chambord Live",
+      "city": "Chambord",
+      "country": "FR",
+      "type": "show",
+      "promoter": {
+        "company": "LN SAS",
+        "rep": ""
+      },
+      "contacts": [],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-06-28",
+      "venue": "Le Transbordeur",
+      "city": "Villeurbanne",
+      "country": "FR",
+      "type": "show",
+      "promoter": {
+        "company": "LN SAS",
+        "rep": ""
+      },
+      "contacts": [],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-07-01",
+      "venue": "Celebration Square",
+      "city": "Mississauga",
+      "country": "CA",
+      "type": "show",
+      "promoter": {
+        "company": "TBD",
+        "rep": ""
+      },
+      "contacts": [],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-07-11",
+      "venue": "Mohegan Sun Arena",
+      "city": "Uncasville",
+      "country": "US",
+      "type": "show",
+      "promoter": {
+        "company": "TBD",
+        "rep": ""
+      },
+      "contacts": [],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-07-12",
+      "venue": "Ottawa Bluesfest",
+      "city": "Ottawa",
+      "country": "CA",
+      "type": "show",
+      "promoter": {
+        "company": "TBD",
+        "rep": ""
+      },
+      "contacts": [],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-08-07",
+      "venue": "Lake Harmony",
+      "city": "Long Pond",
+      "country": "US",
+      "type": "show",
+      "promoter": {
+        "company": "Elements Music & Arts",
+        "rep": ""
+      },
+      "contacts": [
+        {
+          "name": "Brett Herman",
+          "role": "Director",
+          "phone": "",
+          "email": "brett@elementsfest.us"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    },
+    {
+      "date": "2026-10-22",
+      "venue": "Mulberry Mountain",
+      "city": "Ozark",
+      "country": "US",
+      "type": "show",
+      "promoter": {
+        "company": "Wakaan",
+        "rep": ""
+      },
+      "contacts": [
+        {
+          "name": "Chloe",
+          "role": "AR Manager",
+          "phone": "",
+          "email": "chloe@wakaan.com"
+        },
+        {
+          "name": "Waylon",
+          "role": "Director",
+          "phone": "",
+          "email": "waylon@wakaan.com"
+        }
+      ],
+      "travel": {
+        "air": [],
+        "ground": []
+      }
+    }
+  ],
+  "orphanFlights": {
+    "air": [
+      {
+        "party": "Taylor Madrigal",
+        "airline": "United Airlines",
+        "flightNo": "UA8451",
+        "depAirport": "LAX",
+        "depCity": "Los Angeles",
+        "depDate": "01/31/2026",
+        "depTime": "6:10 PM",
+        "arrAirport": "YVR",
+        "arrCity": "Vancouver",
+        "arrDate": "01/31/2026",
+        "arrTime": "9:10 PM",
+        "confirmNo": "01623684134170",
+        "cost": 569.2,
+        "currency": "CAD",
+        "_id": "fl_7e3038_UA8451",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Davon Johnson, Taylor Madrigal",
+        "airline": "Air Canada",
+        "flightNo": "AC551",
+        "depAirport": "LAX",
+        "depCity": "Los Angeles",
+        "depDate": "02/01/2026",
+        "depTime": "6:30 AM",
+        "arrAirport": "YVR",
+        "arrCity": "Vancouver",
+        "arrDate": "02/01/2026",
+        "arrTime": "9:32 AM",
+        "confirmNo": "AVIIVS",
+        "cost": 568.3,
+        "currency": "USD",
+        "_id": "fl_63e225_AC551",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Davon Johnson",
+        "airline": "United Airlines",
+        "flightNo": "UA2318",
+        "depAirport": "LAX",
+        "depCity": "Los Angeles",
+        "depDate": "02/01/2026",
+        "depTime": "8:15 AM",
+        "arrAirport": "YVR",
+        "arrCity": "Vancouver",
+        "arrDate": "02/01/2026",
+        "arrTime": "11:30 AM",
+        "confirmNo": "ALGF12",
+        "cost": 391.2,
+        "currency": "CAD",
+        "_id": "fl_d1ef3c_UA2318",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Davon Johnson",
+        "airline": "United Airlines",
+        "flightNo": "UA8061",
+        "depAirport": "LAX",
+        "depCity": "Los Angeles",
+        "depDate": "02/01/2026",
+        "depTime": "6:30 AM",
+        "arrAirport": "YVR",
+        "arrCity": "Vancouver",
+        "arrDate": "02/01/2026",
+        "arrTime": "9:32 AM",
+        "confirmNo": "01623684172681",
+        "cost": 391.2,
+        "currency": "CAD",
+        "_id": "fl_d3dc4c_UA8061",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Mathieu Senechal",
+        "airline": "Air Canada",
+        "flightNo": "AC308",
+        "depAirport": "YVR",
+        "depCity": "Vancouver",
+        "depDate": "02/06/2026",
+        "depTime": "1:10 PM",
+        "arrAirport": "YUL",
+        "arrCity": "Montréal",
+        "arrDate": "02/06/2026",
+        "arrTime": "9:00 PM",
+        "confirmNo": "0142319172745",
+        "cost": 6.55,
+        "currency": "USD",
+        "_id": "fl_8da193_AC308",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Taylor Madrigal",
+        "airline": "United Airlines",
+        "flightNo": "UA8628",
+        "depAirport": "YVR",
+        "depCity": "Vancouver",
+        "depDate": "02/06/2026",
+        "depTime": "1:30 PM",
+        "arrAirport": "LAX",
+        "arrCity": "Los Angeles",
+        "arrDate": "02/06/2026",
+        "arrTime": "4:29 PM",
+        "confirmNo": "01623692924490",
+        "cost": 408.83,
+        "currency": "CAD",
+        "_id": "fl_1c1d20_UA8628",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Mathieu Senechal",
+        "airline": "Air Canada",
+        "flightNo": "AC196",
+        "depAirport": "YYJ",
+        "depCity": "Victoria",
+        "depDate": "02/07/2026",
+        "depTime": "11:40 AM",
+        "arrAirport": "YYZ",
+        "arrCity": "Toronto",
+        "arrDate": "02/07/2026",
+        "arrTime": "7:16 PM",
+        "confirmNo": "0142318917050",
+        "cost": 244.8,
+        "currency": "USD",
+        "_id": "fl_c293d1_AC196",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Mathieu Senechal",
+        "airline": "Air Canada",
+        "flightNo": "AC426",
+        "depAirport": "YYZ",
+        "depCity": "Toronto",
+        "depDate": "02/07/2026",
+        "depTime": "8:30 PM",
+        "arrAirport": "YUL",
+        "arrCity": "Montréal",
+        "arrDate": "02/07/2026",
+        "arrTime": "9:52 PM",
+        "confirmNo": "0142318917050",
+        "cost": 244.8,
+        "currency": "USD",
+        "_id": "fl_c293d1_AC426",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Davon Johnson",
+        "airline": "American Airlines",
+        "flightNo": "AA4909",
+        "depAirport": "LAX",
+        "depCity": "Los Angeles",
+        "depDate": "02/07/2026",
+        "depTime": "3:49 PM",
+        "arrAirport": "TUS",
+        "arrCity": "Tucson",
+        "arrDate": "02/07/2026",
+        "arrTime": "6:21 PM",
+        "confirmNo": "GDILCN",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_3dc419_AA4909",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Cody Leggett",
+        "airline": "United Airlines",
+        "flightNo": "UA2470",
+        "depAirport": "YVR",
+        "depCity": "Vancouver",
+        "depDate": "02/07/2026",
+        "depTime": "12:35 PM",
+        "arrAirport": "DEN",
+        "arrCity": "Denver",
+        "arrDate": "02/07/2026",
+        "arrTime": "4:30 PM",
+        "confirmNo": "01623692729842",
+        "cost": 583.13,
+        "currency": "CAD",
+        "_id": "fl_97ff4d_UA2470",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Guillaume Bessette, Davon Johnson",
+        "airline": "American Airlines",
+        "flightNo": "AA4542",
+        "depAirport": "YYZ",
+        "depCity": "Toronto",
+        "depDate": "02/08/2026",
+        "depTime": "7:00 AM",
+        "arrAirport": "LGA",
+        "arrCity": "New York",
+        "arrDate": "02/08/2026",
+        "arrTime": "8:48 AM",
+        "confirmNo": "0012313865164",
+        "cost": 794.64,
+        "currency": "CAD",
+        "_id": "fl_bef9c6_AA4542",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Guillaume Bessette, Davon Johnson",
+        "airline": "American Airlines",
+        "flightNo": "AA4601",
+        "depAirport": "LGA",
+        "depCity": "New York",
+        "depDate": "02/08/2026",
+        "depTime": "11:13 AM",
+        "arrAirport": "IND",
+        "arrCity": "Indianapolis",
+        "arrDate": "02/08/2026",
+        "arrTime": "1:45 PM",
+        "confirmNo": "0012313865164",
+        "cost": "",
+        "currency": "CAD",
+        "_id": "fl_bef9c6_AA4601",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Ruairi Matthews",
+        "airline": "WestJet",
+        "flightNo": "WS260",
+        "depAirport": "YYJ",
+        "depCity": "Victoria",
+        "depDate": "02/13/2026",
+        "depTime": "5:30 AM",
+        "arrAirport": "YYC",
+        "arrCity": "Calgary",
+        "arrDate": "02/13/2026",
+        "arrTime": "7:59 AM",
+        "confirmNo": "LWWTEL",
+        "cost": 428.2,
+        "currency": "USD",
+        "_id": "fl_4b41c1_WS260",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Ruairi Matthews",
+        "airline": "WestJet",
+        "flightNo": "WS260",
+        "depAirport": "YYJ",
+        "depCity": "Victoria",
+        "depDate": "02/13/2026",
+        "depTime": "5:30 AM",
+        "arrAirport": "SFO",
+        "arrCity": "San Francisco",
+        "arrDate": "02/13/2026",
+        "arrTime": "",
+        "confirmNo": "LWWTEL",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_f93ed4_WS260",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Daniel Nudelman, Brent Kirchner, Jacob Stumph, Kalen Povahfairbanks, Christopher Stark, Kalen Povah-Fairbanks, Davon Johnson",
+        "airline": "United",
+        "flightNo": "UA1083",
+        "depAirport": "YVR",
+        "depCity": "Vancouver",
+        "depDate": "02/13/2026",
+        "depTime": "7:15 PM",
+        "arrAirport": "SFO",
+        "arrCity": "San Francisco",
+        "arrDate": "02/13/2026",
+        "arrTime": "9:44 PM",
+        "confirmNo": "01623693181924",
+        "cost": 769.85,
+        "currency": "CAD",
+        "_id": "fl_18ea2e_UA1083",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Ruairi Matthews",
+        "airline": "WestJet",
+        "flightNo": "WS1500",
+        "depAirport": "YYC",
+        "depCity": "Calgary",
+        "depDate": "02/13/2026",
+        "depTime": "10:05 AM",
+        "arrAirport": "SFO",
+        "arrCity": "San Francisco",
+        "arrDate": "02/13/2026",
+        "arrTime": "12:10 PM",
+        "confirmNo": "LWWTEL",
+        "cost": 428.2,
+        "currency": "USD",
+        "_id": "fl_4b41c1_WS1500",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Cody Leggett",
+        "airline": "United Airlines",
+        "flightNo": "UA1224",
+        "depAirport": "DEN",
+        "depCity": "Denver",
+        "depDate": "02/13/2026",
+        "depTime": "7:43 PM",
+        "arrAirport": "SFO",
+        "arrCity": "San Francisco",
+        "arrDate": "02/13/2026",
+        "arrTime": "9:38 PM",
+        "confirmNo": "01623692972112",
+        "cost": 299.6,
+        "currency": "CAD",
+        "_id": "fl_ced312_UA1224",
+        "_status": "unresolved"
+      },
+      {
+        "party": "O'Len Davis, Olenq Davis",
+        "airline": "United Airlines",
+        "flightNo": "UA1295",
+        "depAirport": "BNA",
+        "depCity": "Nashville",
+        "depDate": "02/13/2026",
+        "depTime": "6:10 PM",
+        "arrAirport": "SFO",
+        "arrCity": "San Francisco",
+        "arrDate": "02/13/2026",
+        "arrTime": "9:21 PM",
+        "confirmNo": "ISM091",
+        "cost": 367.1,
+        "currency": "CAD",
+        "_id": "fl_d1ef3c_UA1295",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Julien Bruce",
+        "airline": "Air Canada",
+        "flightNo": "AC564",
+        "depAirport": "YVR",
+        "depCity": "Vancouver",
+        "depDate": "02/14/2026",
+        "depTime": "9:55 AM",
+        "arrAirport": "SFO",
+        "arrCity": "San Francisco",
+        "arrDate": "02/14/2026",
+        "arrTime": "12:20 PM",
+        "confirmNo": "0142319797692",
+        "cost": 241.87,
+        "currency": "USD",
+        "_id": "fl_4d25a1_AC564",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Turner Frilling",
+        "airline": "Delta",
+        "flightNo": "DL1049",
+        "depAirport": "SLC",
+        "depCity": "Salt Lake City",
+        "depDate": "03/01/2026",
+        "depTime": "10:47 AM",
+        "arrAirport": "YVR",
+        "arrCity": "Vancouver",
+        "arrDate": "03/01/2026",
+        "arrTime": "12:15 PM",
+        "confirmNo": "0062399505342",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_10f06f_DL1049",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Turner Frilling",
+        "airline": "Delta",
+        "flightNo": "DL1068",
+        "depAirport": "BNA",
+        "depCity": "Nashville",
+        "depDate": "03/01/2026",
+        "depTime": "7:15 AM",
+        "arrAirport": "SLC",
+        "arrCity": "Salt Lake City",
+        "arrDate": "03/01/2026",
+        "arrTime": "10:15 AM",
+        "confirmNo": "0062399505342",
+        "cost": 382.1,
+        "currency": "USD",
+        "_id": "fl_10f06f_DL1068",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Brent Kirchner",
+        "airline": "United Airlines",
+        "flightNo": "UA490",
+        "depAirport": "SAT",
+        "depCity": "San Antonio",
+        "depDate": "03/02/2026",
+        "depTime": "1:18 PM",
+        "arrAirport": "DEN",
+        "arrCity": "Denver",
+        "arrDate": "03/02/2026",
+        "arrTime": "2:40 PM",
+        "confirmNo": "01623799285905",
+        "cost": 594.9,
+        "currency": "CAD",
+        "_id": "fl_0cdc7b_UA490",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Brent Kirchner, Davon Johnson",
+        "airline": "United",
+        "flightNo": "UA1651",
+        "depAirport": "IAH",
+        "depCity": "Houston",
+        "depDate": "03/02/2026",
+        "depTime": "12:00 PM",
+        "arrAirport": "BNA",
+        "arrCity": "Nashville",
+        "arrDate": "03/02/2026",
+        "arrTime": "2:02 PM",
+        "confirmNo": "01623799285905",
+        "cost": "",
+        "currency": "CAD",
+        "_id": "fl_09534b_UA1651",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Brent Kirchner, Davon Johnson",
+        "airline": "United",
+        "flightNo": "UA1746",
+        "depAirport": "SAT",
+        "depCity": "San Antonio",
+        "depDate": "03/02/2026",
+        "depTime": "9:58 AM",
+        "arrAirport": "IAH",
+        "arrCity": "Houston",
+        "arrDate": "03/02/2026",
+        "arrTime": "11:05 AM",
+        "confirmNo": "01623799285905",
+        "cost": 13.9,
+        "currency": "CAD",
+        "_id": "fl_09534b_UA1746",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Brent Kirchner",
+        "airline": "United Airlines",
+        "flightNo": "UA1086",
+        "depAirport": "DEN",
+        "depCity": "Denver",
+        "depDate": "03/02/2026",
+        "depTime": "3:56 PM",
+        "arrAirport": "YVR",
+        "arrCity": "Vancouver",
+        "arrDate": "03/02/2026",
+        "arrTime": "6:03 PM",
+        "confirmNo": "01623799285905",
+        "cost": 594.9,
+        "currency": "CAD",
+        "_id": "fl_0cdc7b_UA1086",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Alexander Gumuchian, Olenq Davis",
+        "airline": "Delta",
+        "flightNo": "DL1408",
+        "depAirport": "SAT",
+        "depCity": "San Antonio",
+        "depDate": "03/02/2026",
+        "depTime": "1:34 PM",
+        "arrAirport": "ATL",
+        "arrCity": "Atlanta",
+        "arrDate": "03/02/2026",
+        "arrTime": "4:47 PM",
+        "confirmNo": "0062408764541",
+        "cost": 354.2,
+        "currency": "USD",
+        "_id": "fl_599576_DL1408",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Alexander Gumuchian, Olenq Davis",
+        "airline": "Delta",
+        "flightNo": "DL1594",
+        "depAirport": "ATL",
+        "depCity": "Atlanta",
+        "depDate": "03/02/2026",
+        "depTime": "5:25 PM",
+        "arrAirport": "TPA",
+        "arrCity": "Tampa",
+        "arrDate": "03/02/2026",
+        "arrTime": "6:49 PM",
+        "confirmNo": "0062408764541",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_599576_DL1594",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Jon Lindberg, Davon Johnson",
+        "airline": "American Airlines",
+        "flightNo": "AA28",
+        "depAirport": "LAX",
+        "depCity": "Los Angeles",
+        "depDate": "03/07/2026",
+        "depTime": "12:16 AM",
+        "arrAirport": "JFK",
+        "arrCity": "New York",
+        "arrDate": "03/07/2026",
+        "arrTime": "8:29 AM",
+        "confirmNo": "0012320399475",
+        "cost": 378.4,
+        "currency": "USD",
+        "_id": "fl_3ad401_AA28",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Davon Johnson",
+        "airline": "American Airlines",
+        "flightNo": "AA0028",
+        "depAirport": "LAX",
+        "depCity": "Los Angeles",
+        "depDate": "03/07/2026",
+        "depTime": "12:16 PM",
+        "arrAirport": "JFK",
+        "arrCity": "New York",
+        "arrDate": "03/07/2026",
+        "arrTime": "8:29 AM",
+        "confirmNo": "IMVYIO",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_5329b1_AA0028",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Andrew Sutherland Campbell",
+        "airline": "Air Canada Express - PAL Airlines",
+        "flightNo": "AC7669",
+        "depAirport": "YHZ",
+        "depCity": "Halifax",
+        "depDate": "03/11/2026",
+        "depTime": "4:50 PM",
+        "arrAirport": "BOS",
+        "arrCity": "Boston",
+        "arrDate": "03/11/2026",
+        "arrTime": "5:50 PM",
+        "confirmNo": "0142322362014",
+        "cost": 439.75,
+        "currency": "USD",
+        "_id": "fl_6e60eb_AC7669",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Drew Campbell",
+        "airline": "Air Canada",
+        "flightNo": "AC620",
+        "depAirport": "YYZ",
+        "depCity": "Toronto",
+        "depDate": "03/19/2026",
+        "depTime": "9:40 PM",
+        "arrAirport": "YHZ",
+        "arrCity": "Halifax",
+        "arrDate": "03/20/2026",
+        "arrTime": "12:51 AM",
+        "confirmNo": "0142322752326",
+        "cost": 100.27,
+        "currency": "USD",
+        "_id": "fl_d796a6_AC620",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Jacob Stumph, Mathieu Senechal",
+        "airline": "Air Canada",
+        "flightNo": "AC554",
+        "depAirport": "YVR",
+        "depCity": "Vancouver",
+        "depDate": "04/05/2026",
+        "depTime": "10:25 AM",
+        "arrAirport": "LAX",
+        "arrCity": "Los Angeles",
+        "arrDate": "04/05/2026",
+        "arrTime": "1:24 PM",
+        "confirmNo": "0142323580948",
+        "cost": 438.29,
+        "currency": "CAD",
+        "_id": "fl_b2659c_AC554",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Nicholas Foerster",
+        "airline": "Air Canada",
+        "flightNo": "AC598",
+        "depAirport": "YVR",
+        "depCity": "Vancouver",
+        "depDate": "04/06/2026",
+        "depTime": "8:10 AM",
+        "arrAirport": "SNA",
+        "arrCity": "Orange County",
+        "arrDate": "04/06/2026",
+        "arrTime": "11:15 AM",
+        "confirmNo": "CTTCOZ",
+        "cost": 488.78,
+        "currency": "CAD",
+        "_id": "fl_63e788_unknown",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Mathieu Senechal",
+        "airline": "Air Canada",
+        "flightNo": "AC304",
+        "depAirport": "YVR",
+        "depCity": "Vancouver",
+        "depDate": "04/06/2026",
+        "depTime": "9:20 AM",
+        "arrAirport": "YUL",
+        "arrCity": "Montréal",
+        "arrDate": "04/06/2026",
+        "arrTime": "5:05 PM",
+        "confirmNo": "0142323581054",
+        "cost": 582.18,
+        "currency": "CAD",
+        "_id": "fl_149393_AC304",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Megan Putnam",
+        "airline": "United Airlines",
+        "flightNo": "UA762",
+        "depAirport": "DEN",
+        "depCity": "Denver",
+        "depDate": "04/06/2026",
+        "depTime": "6:15 PM",
+        "arrAirport": "BUF",
+        "arrCity": "Buffalo",
+        "arrDate": "04/06/2026",
+        "arrTime": "11:32 PM",
+        "confirmNo": "EGF9ST",
+        "cost": 28.99,
+        "currency": "USD",
+        "_id": "fl_37c18e_UA762",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Nicholas Foerester, Nick Foerster, Nicholas Foerster",
+        "airline": "Air Canada",
+        "flightNo": "AC598",
+        "depAirport": "YVR",
+        "depCity": "Vancouver",
+        "depDate": "04/06/2026",
+        "depTime": "8:10 AM",
+        "arrAirport": "SNA",
+        "arrCity": "Orange County",
+        "arrDate": "04/06/2026",
+        "arrTime": "11:15 AM",
+        "confirmNo": "0142323783327",
+        "cost": 488.78,
+        "currency": "CAD",
+        "_id": "fl_a7323d_AC598",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Megan Putnam",
+        "airline": "United Airlines",
+        "flightNo": "UA2470",
+        "depAirport": "YVR",
+        "depCity": "Vancouver",
+        "depDate": "04/06/2026",
+        "depTime": "12:40 PM",
+        "arrAirport": "DEN",
+        "arrCity": "Denver",
+        "arrDate": "04/06/2026",
+        "arrTime": "4:34 PM",
+        "confirmNo": "EGF9ST",
+        "cost": 458.42,
+        "currency": "USD",
+        "_id": "fl_37c18e_UA2470",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Nicholas Foerster",
+        "airline": "Air Canada",
+        "flightNo": "ACUNKNOWN",
+        "depAirport": "YVR",
+        "depCity": "Vancouver",
+        "depDate": "04/06/2026",
+        "depTime": "",
+        "arrAirport": "SNA",
+        "arrCity": "Santa Ana",
+        "arrDate": "04/06/2026",
+        "arrTime": "",
+        "confirmNo": "CTTCOZ",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_63e788_ACunknown",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Olenq Davis",
+        "airline": "Air Canada",
+        "flightNo": "AC104",
+        "depAirport": "YVR",
+        "depCity": "Vancouver",
+        "depDate": "04/07/2026",
+        "depTime": "7:55 AM",
+        "arrAirport": "YYZ",
+        "arrCity": "Toronto",
+        "arrDate": "04/07/2026",
+        "arrTime": "3:33 PM",
+        "confirmNo": "0142323871887",
+        "cost": 566.43,
+        "currency": "CAD",
+        "_id": "fl_9ee70d_AC104",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Cody Leggett",
+        "airline": "United Airlines",
+        "flightNo": "UA2470",
+        "depAirport": "YVR",
+        "depCity": "Vancouver",
+        "depDate": "04/08/2026",
+        "depTime": "12:40 PM",
+        "arrAirport": "DEN",
+        "arrCity": "Denver",
+        "arrDate": "04/08/2026",
+        "arrTime": "4:34 PM",
+        "confirmNo": "0162389746034",
+        "cost": 604.93,
+        "currency": "CAD",
+        "_id": "fl_30b7de_UA2470",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Guillaume Bessette",
+        "airline": "United Airlines",
+        "flightNo": "UA3427",
+        "depAirport": "IND",
+        "depCity": "Indianapolis",
+        "depDate": "04/10/2026",
+        "depTime": "1:50 PM",
+        "arrAirport": "ORD",
+        "arrCity": "Chicago",
+        "arrDate": "04/10/2026",
+        "arrTime": "2:11 PM",
+        "confirmNo": "0162392143460",
+        "cost": 1182.6,
+        "currency": "CAD",
+        "_id": "fl_e50cfd_UA3427",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Guillaume Bessette",
+        "airline": "United Airlines",
+        "flightNo": "UA3634",
+        "depAirport": "ORD",
+        "depCity": "Chicago",
+        "depDate": "04/10/2026",
+        "depTime": "2:58 PM",
+        "arrAirport": "YYZ",
+        "arrCity": "Toronto",
+        "arrDate": "04/10/2026",
+        "arrTime": "5:56 PM",
+        "confirmNo": "0162392143460",
+        "cost": 1182.6,
+        "currency": "CAD",
+        "_id": "fl_e50cfd_UA3634",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Gabe Greenwood, Gabriel Greenwood",
+        "airline": "United Airlines",
+        "flightNo": "UA1604",
+        "depAirport": "SFO",
+        "depCity": "San Francisco",
+        "depDate": "04/13/2026",
+        "depTime": "10:50 AM",
+        "arrAirport": "DEN",
+        "arrCity": "Denver",
+        "arrDate": "04/13/2026",
+        "arrTime": "2:34 PM",
+        "confirmNo": "0162392662767",
+        "cost": 463.4,
+        "currency": "USD",
+        "_id": "fl_fb23aa_UA1604",
+        "_status": "confirmed"
+      },
+      {
+        "party": "Nick Foerster, Nicholas Foerster",
+        "airline": "United Airlines",
+        "flightNo": "UA649",
+        "depAirport": "SNA",
+        "depCity": "Orange County",
+        "depDate": "04/14/2026",
+        "depTime": "4:15 PM",
+        "arrAirport": "DEN",
+        "arrCity": "Denver",
+        "arrDate": "04/14/2026",
+        "arrTime": "7:39 PM",
+        "confirmNo": "0162392895929",
+        "cost": 50,
+        "currency": "USD",
+        "_id": "fl_2b6ac8_UA649",
+        "_status": "confirmed"
+      },
+      {
+        "party": "Daniel Nudelman, Daniel Brandao Nudelman",
+        "airline": "Air Canada",
+        "flightNo": "AC4095",
+        "depAirport": "YVR",
+        "depCity": "Vancouver",
+        "depDate": "04/14/2026",
+        "depTime": "8:35 AM",
+        "arrAirport": "DEN",
+        "arrCity": "Denver",
+        "arrDate": "04/14/2026",
+        "arrTime": "12:33 PM",
+        "confirmNo": "0142325172603",
+        "cost": 1443.92,
+        "currency": "CAD",
+        "_id": "fl_987051_AC4095",
+        "_status": "confirmed"
+      },
+      {
+        "party": "",
+        "airline": "Alaska Airlines",
+        "flightNo": "",
+        "depAirport": "Unknown",
+        "depCity": "Unknown",
+        "depDate": "04/15/2026",
+        "depTime": "",
+        "arrAirport": "SEA",
+        "arrCity": "Seattle",
+        "arrDate": "04/15/2026",
+        "arrTime": "",
+        "confirmNo": "ADXOYY",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_f90f28_bzei",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Mat Senechal, Mathieu Senechal",
+        "airline": "Delta",
+        "flightNo": "DL2431",
+        "depAirport": "DTW",
+        "depCity": "Detroit",
+        "depDate": "04/15/2026",
+        "depTime": "4:11 PM",
+        "arrAirport": "DEN",
+        "arrCity": "Denver",
+        "arrDate": "04/15/2026",
+        "arrTime": "5:21 PM",
+        "confirmNo": "0062420555427",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_163c1d_DL2431",
+        "_status": "confirmed"
+      },
+      {
+        "party": "Mat Senechal, Mathieu Senechal",
+        "airline": "Delta",
+        "flightNo": "DL5148",
+        "depAirport": "YUL",
+        "depCity": "Montreal",
+        "depDate": "04/15/2026",
+        "depTime": "12:55 PM",
+        "arrAirport": "DTW",
+        "arrCity": "Detroit",
+        "arrDate": "04/15/2026",
+        "arrTime": "2:57 PM",
+        "confirmNo": "0062420555427",
+        "cost": 1589.02,
+        "currency": "CAD",
+        "_id": "fl_163c1d_DL5148",
+        "_status": "confirmed"
+      },
+      {
+        "party": "O'Len Davis, Olen Davis",
+        "airline": "Air Canada",
+        "flightNo": "AC1041",
+        "depAirport": "YYZ",
+        "depCity": "Toronto",
+        "depDate": "04/15/2026",
+        "depTime": "2:50 PM",
+        "arrAirport": "DEN",
+        "arrCity": "Denver",
+        "arrDate": "04/15/2026",
+        "arrTime": "4:38 PM",
+        "confirmNo": "0142323882990",
+        "cost": 397.47,
+        "currency": "CAD",
+        "_id": "fl_1eac6d_AC1041",
+        "_status": "confirmed"
+      },
+      {
+        "party": "Unknown - email lacks passenger name for this itinerary, Unknown, (Unknown - no passenger name in email body), Davon Johnson",
+        "airline": "Delta",
+        "flightNo": "DL1434",
+        "depAirport": "LAX",
+        "depCity": "Los Angeles",
+        "depDate": "04/15/2026",
+        "depTime": "9:51 AM",
+        "arrAirport": "SLC",
+        "arrCity": "Salt Lake City",
+        "arrDate": "04/15/2026",
+        "arrTime": "12:44 PM",
+        "confirmNo": "GEDC4O",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_e0ace7_DL1434",
+        "_status": "confirmed"
+      },
+      {
+        "party": "Unknown - email lacks passenger name for this itinerary, Unknown, (Unknown - no passenger name in email body), Davon Johnson",
+        "airline": "Delta",
+        "flightNo": "DL1623",
+        "depAirport": "SLC",
+        "depCity": "Salt Lake City",
+        "depDate": "04/15/2026",
+        "depTime": "1:20 PM",
+        "arrAirport": "DEN",
+        "arrCity": "Denver",
+        "arrDate": "04/15/2026",
+        "arrTime": "2:45 PM",
+        "confirmNo": "GEDC4O",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_e0ace7_DL1623",
+        "_status": "confirmed"
+      },
+      {
+        "party": "Mathieu Senechal",
+        "airline": "Delta",
+        "flightNo": "DL",
+        "depAirport": "DEN",
+        "depCity": "Denver",
+        "depDate": "04/17/2026",
+        "depTime": "",
+        "arrAirport": "YUL",
+        "arrCity": "Montreal",
+        "arrDate": "04/17/2026",
+        "arrTime": "",
+        "confirmNo": "GKGUZF",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_fb6e20_DL",
+        "_status": "unresolved"
+      },
+      {
+        "party": "O'Len Davis, Olenq Davis",
+        "airline": "United Airlines",
+        "flightNo": "UA355",
+        "depAirport": "DEN",
+        "depCity": "Denver",
+        "depDate": "04/17/2026",
+        "depTime": "9:45 AM",
+        "arrAirport": "BNA",
+        "arrCity": "Nashville",
+        "arrDate": "04/17/2026",
+        "arrTime": "1:32 PM",
+        "confirmNo": "0162393594719",
+        "cost": 50,
+        "currency": "USD",
+        "_id": "fl_5cded4_UA355",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Daniel Nudelman, Daniel Brandao Nudelman",
+        "airline": "Air Canada",
+        "flightNo": "AC575",
+        "depAirport": "DEN",
+        "depCity": "Denver",
+        "depDate": "04/17/2026",
+        "depTime": "8:45 AM",
+        "arrAirport": "YVR",
+        "arrCity": "Vancouver",
+        "arrDate": "04/17/2026",
+        "arrTime": "10:45 AM",
+        "confirmNo": "0142325172603",
+        "cost": 1443.92,
+        "currency": "CAD",
+        "_id": "fl_987051_AC575",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Unknown, Unknown passenger",
+        "airline": "Delta",
+        "flightNo": "DL197",
+        "depAirport": "SEA",
+        "depCity": "Seattle",
+        "depDate": "04/17/2026",
+        "depTime": "1:00 PM",
+        "arrAirport": "ICN",
+        "arrCity": "Seoul",
+        "arrDate": "04/18/2026",
+        "arrTime": "4:50 PM",
+        "confirmNo": "JN6G65",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_d25b70_DL197",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Mat Senechal, Mathieu Senechal",
+        "airline": "Delta",
+        "flightNo": "DL2177",
+        "depAirport": "DEN",
+        "depCity": "Denver",
+        "depDate": "04/17/2026",
+        "depTime": "2:59 PM",
+        "arrAirport": "DTW",
+        "arrCity": "Detroit",
+        "arrDate": "04/17/2026",
+        "arrTime": "7:29 PM",
+        "confirmNo": "0062420555427",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_656756_DL2177",
+        "_status": "confirmed"
+      },
+      {
+        "party": "Mat Senechal, Mathieu Senechal",
+        "airline": "Delta",
+        "flightNo": "DL5136",
+        "depAirport": "DTW",
+        "depCity": "Detroit",
+        "depDate": "04/17/2026",
+        "depTime": "9:14 PM",
+        "arrAirport": "YUL",
+        "arrCity": "Montreal",
+        "arrDate": "04/17/2026",
+        "arrTime": "11:19 PM",
+        "confirmNo": "0062420555427",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_656756_DL5136",
+        "_status": "confirmed"
+      },
+      {
+        "party": "Nicholas Foerster",
+        "airline": "United",
+        "flightNo": "UA2666",
+        "depAirport": "DEN",
+        "depCity": "Denver",
+        "depDate": "04/17/2026",
+        "depTime": "8:10 AM",
+        "arrAirport": "SNA",
+        "arrCity": "Orange County",
+        "arrDate": "04/17/2026",
+        "arrTime": "9:44 AM",
+        "confirmNo": "0162392895929",
+        "cost": 646.8,
+        "currency": "USD",
+        "_id": "fl_984e06_UA2666",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Unknown, Unknown passenger",
+        "airline": "Delta",
+        "flightNo": "DL1731",
+        "depAirport": "DEN",
+        "depCity": "Denver",
+        "depDate": "04/17/2026",
+        "depTime": "6:55 AM",
+        "arrAirport": "SEA",
+        "arrCity": "Seattle",
+        "arrDate": "04/17/2026",
+        "arrTime": "9:01 AM",
+        "confirmNo": "JN6G65",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_d25b70_DL1731",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Unknown, Unknown passenger",
+        "airline": "Korean Air",
+        "flightNo": "KE7872",
+        "depAirport": "ICN",
+        "depCity": "Seoul",
+        "depDate": "04/18/2026",
+        "depTime": "6:00 PM",
+        "arrAirport": "DPS",
+        "arrCity": "Denpasar-Bali",
+        "arrDate": "04/18/2026",
+        "arrTime": "11:50 PM",
+        "confirmNo": "JN6G65",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_d25b70_KE7872",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Alexander Gumuchian, Andrew Campbell, Davon Lee Johnson, Mathieu Senechal, Olen Quinn Davis, Daniel Nudelman, Davon Johnson, O'Len Davis, Mat Senechal",
+        "airline": "Delta",
+        "flightNo": "DL154",
+        "depAirport": "Unknown",
+        "depCity": "Unknown",
+        "depDate": "05/02/2026",
+        "depTime": "NaN:undefined AM",
+        "arrAirport": "Unknown",
+        "arrCity": "Unknown",
+        "arrDate": "05/03/2026",
+        "arrTime": "NaN:undefined AM",
+        "confirmNo": "JOJQVX",
+        "cost": 4033.5,
+        "currency": "USD",
+        "_id": "fl_32665f_DL154",
+        "_status": "dismissed"
+      },
+      {
+        "party": "Cody Leggett",
+        "airline": "United Airlines",
+        "flightNo": "UA980",
+        "depAirport": "ORD",
+        "depCity": "Chicago",
+        "depDate": "05/02/2026",
+        "depTime": "8:15 PM",
+        "arrAirport": "DUB",
+        "arrCity": "Dublin",
+        "arrDate": "05/03/2026",
+        "arrTime": "9:45 AM",
+        "confirmNo": "0162388696170",
+        "cost": 1005.6,
+        "currency": "CAD",
+        "_id": "fl_661e79_UA980",
+        "_status": "confirmed"
+      },
+      {
+        "party": "Davon Lee Johnson, Daniel Nudelman, Olen Quinn Davis, Mathieu Senechal, Andrew Campbell, Alex Gumuchian, Alexander Gumuchian",
+        "airline": "Delta",
+        "flightNo": "DL154",
+        "depAirport": "BOS",
+        "depCity": "Boston",
+        "depDate": "05/02/2026",
+        "depTime": "11:30 PM",
+        "arrAirport": "DUB",
+        "arrCity": "Dublin",
+        "arrDate": "05/03/2026",
+        "arrTime": "10:45 AM",
+        "confirmNo": "0062414487397",
+        "cost": 648.5,
+        "currency": "USD",
+        "_id": "fl_e3d809_DL154",
+        "_status": "confirmed"
+      },
+      {
+        "party": "Grace Offerdahl",
+        "airline": "JetBlue",
+        "flightNo": "B60841",
+        "depAirport": "JFK",
+        "depCity": "New York",
+        "depDate": "05/02/2026",
+        "depTime": "9:00 PM",
+        "arrAirport": "DUB",
+        "arrCity": "Dublin",
+        "arrDate": "05/03/2026",
+        "arrTime": "9:00 AM",
+        "confirmNo": "CODGXZ",
+        "cost": 504,
+        "currency": "USD",
+        "_id": "fl_14b04d_B60841",
+        "_status": "confirmed"
+      },
+      {
+        "party": "Grace Offerdahl",
+        "airline": "JetBlue",
+        "flightNo": "B62824",
+        "depAirport": "LAX",
+        "depCity": "Los Angeles",
+        "depDate": "05/02/2026",
+        "depTime": "8:00 AM",
+        "arrAirport": "JFK",
+        "arrCity": "New York",
+        "arrDate": "05/02/2026",
+        "arrTime": "4:24 PM",
+        "confirmNo": "CODGXZ",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_14b04d_B62824",
+        "_status": "unresolved"
+      },
+      {
+        "party": "Cody Leggett",
+        "airline": "United Airlines",
+        "flightNo": "UA1023",
+        "depAirport": "DEN",
+        "depCity": "Denver",
+        "depDate": "05/02/2026",
+        "depTime": "3:25 PM",
+        "arrAirport": "ORD",
+        "arrCity": "Chicago",
+        "arrDate": "05/02/2026",
+        "arrTime": "7:04 PM",
+        "confirmNo": "0162388696170",
+        "cost": 1005.6,
+        "currency": "CAD",
+        "_id": "fl_661e79_UA1023",
+        "_status": "confirmed"
+      },
+      {
+        "party": "Alexander Leon Gumuchian, O'Len Quinn Davis",
+        "airline": "Finnair",
+        "flightNo": "AY",
+        "depAirport": "MXP",
+        "depCity": "Milan",
+        "depDate": "05/23/2026",
+        "depTime": "10:20 AM",
+        "arrAirport": "HEL",
+        "arrCity": "Helsinki",
+        "arrDate": "05/23/2026",
+        "arrTime": "2:25 PM",
+        "confirmNo": "",
+        "cost": "",
+        "currency": "USD",
+        "_id": "fl_5bb59c_AY",
+        "_status": "confirmed"
+      },
+      {
+        "party": "O'Len Quinn Davis",
+        "airline": "Finnair",
+        "flightNo": "AY1752",
+        "depAirport": "MXP",
+        "depCity": "Milan",
+        "depDate": "05/23/2026",
+        "depTime": "10:20 AM",
+        "arrAirport": "HEL",
+        "arrCity": "Helsinki",
+        "arrDate": "05/23/2026",
+        "arrTime": "2:25 PM",
+        "confirmNo": "9L7N82",
+        "cost": 492,
+        "currency": "EUR",
+        "_id": "fl_5bb59c_AY1752",
+        "_status": "confirmed"
+      },
+      {
+        "party": "Davon Johnson",
+        "airline": "Austrian Airlines",
+        "flightNo": "OS447",
+        "depAirport": "VIE",
+        "depCity": "Vienna",
+        "depDate": "05/31/2026",
+        "depTime": "3:00 PM",
+        "arrAirport": "IBZ",
+        "arrCity": "Ibiza",
+        "arrDate": "05/31/2026",
+        "arrTime": "5:35 PM",
+        "confirmNo": "7242347998193",
+        "cost": 1509.26,
+        "currency": "PLN",
+        "_id": "fl_5d251e_OS447",
+        "_status": "confirmed"
+      },
+      {
+        "party": "Davon Johnson",
+        "airline": "LOT Polish Airlines",
+        "flightNo": "OS8504",
+        "depAirport": "WAW",
+        "depCity": "Warsaw",
+        "depDate": "05/31/2026",
+        "depTime": "11:55 AM",
+        "arrAirport": "VIE",
+        "arrCity": "Vienna",
+        "arrDate": "05/31/2026",
+        "arrTime": "1:15 PM",
+        "confirmNo": "7242347998193",
+        "cost": 1509.26,
+        "currency": "PLN",
+        "_id": "fl_5d251e_OS8504",
+        "_status": "confirmed"
+      },
+      {
+        "party": "Davon Johnson, Mathieu Senechal",
+        "airline": "KLM",
+        "flightNo": "KL1009",
+        "depAirport": "AMS",
+        "depCity": "Amsterdam",
+        "depDate": "06/04/2026",
+        "depTime": "1:25 PM",
+        "arrAirport": "LHR",
+        "arrCity": "London",
+        "arrDate": "06/04/2026",
+        "arrTime": "1:50 PM",
+        "confirmNo": "ZTBW39",
+        "cost": 143.5,
+        "currency": "USD",
+        "_id": "fl_2b054a_KL1009",
+        "_status": "confirmed"
+      },
+      {
+        "party": "Davon Johnson, Mathieu Senechal",
+        "airline": "KLM",
+        "flightNo": "KL2684",
+        "depAirport": "IBZ",
+        "depCity": "Ibiza",
+        "depDate": "06/04/2026",
+        "depTime": "8:55 AM",
+        "arrAirport": "AMS",
+        "arrCity": "Amsterdam",
+        "arrDate": "06/04/2026",
+        "arrTime": "11:35 AM",
+        "confirmNo": "ZTBW39",
+        "cost": 143.5,
+        "currency": "USD",
+        "_id": "fl_2b054a_KL2684",
+        "_status": "confirmed"
+      }
+    ],
+    "ground": []
+  }
+}
