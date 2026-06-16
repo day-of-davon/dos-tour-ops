@@ -304,6 +304,20 @@
 
 - [2026-05-28 05:00 UTC] https://9to5mac.com/2026/05/07/anthropic-updates-claude-managed-agents-with-three-new-features/ — CORRECTION to 2026-05-25 memory entry: that entry characterizes "dreaming" as "background reasoning between turns" — correct description is a SCHEDULED PROCESS that reviews agent sessions and memory stores, extracts patterns, and curates memories so agents improve over time; dreaming runs on a schedule (not inline during agent turns) — architectural difference matters for dos-platform Phase 4: dreaming is a periodic background job improving agent memory, not a per-turn reasoning mode; design dos-platform agent sessions to produce structured memory artifacts that dreaming can process.
 
+- [2026-06-08 04:00 UTC] https://techcrunch.com/2026/06/05/supabase-doubles-valuation-to-10b-in-8-months/ — Supabase raised $500M Series F at $10.5B valuation (June 4, 2026), doubling from $5B in ~8 months; 600% YoY database growth, ~10M developers, 60%+ databases launched by AI agents — UPDATES 2026-04-21 $5B entry; infrastructure dependency risk further reduced; confirms agentic infrastructure as Supabase's core positioning.
+
+- [2026-06-08 04:00 UTC] https://supabase.com/blog/supabase-agent-skills — Supabase Agent Skills (open-source, released April 9, 2026): set of instructions teaching AI coding agents correct Supabase usage; covers RLS enforcement, security checklist, CLI workflow, schema management; installable in Claude Code via `npx skills add supabase/agent-skills`; prevents common agent errors (skipping RLS, hallucinating CLI commands, creating insecure views) — install before Phase 0 schema work with Josh.
+
+- [2026-06-08 04:00 UTC] https://supabase.com/changelog — Supabase June 2026: Personal Access Tokens for direct database access (no passwords); project admin assigns a specific Postgres role + expiry window up to 90 days per user; revoking project access immediately cuts DB access — relevant for granting Josh scoped database access during Phase 0 without sharing the service_role key.
+
+- [2026-06-08 04:00 UTC] https://supabase.com/changelog — Supabase client libraries now support distributed tracing via W3C Trace Context standard, compatible with OpenTelemetry, Sentry, Datadog, Honeycomb — not in prior memory (Log Drains logged 2026-04-20 is server-side; this is client-side trace propagation); complements Phase 4 observability without additional manual instrumentation.
+
+- [2026-06-08 04:00 UTC] https://supabase.com/changelog — Starting June 3, 2026: new free-tier Supabase projects using the default email provider can NO LONGER modify auth email templates; paid plan required for customization — affects dos-platform dev environment if project is on free tier; use bring-your-own SMTP or upgrade to Pro before customizing any auth email flows.
+
+- [2026-06-08 04:00 UTC] https://supabase.com/changelog — Supabase Schema Visualizer now supports editing tables directly on the page (June 2026) — DISTINCT from Table Editor queue mode (logged 2026-05-25); allows schema design and inline editing while viewing the full entity-relationship diagram; speeds Phase 0 schema iteration with Josh.
+
+- [2026-06-08 04:00 UTC] https://docs.n8n.io/release-notes/ — n8n v2.19 (approx April 2026) added OAuth 2.0 Token Exchange (RFC 8693) as a second authentication mechanism alongside API keys; covers seamless iframe embedding and delegated API access — not in prior memory; relevant for Phase 4 if dos-platform embeds n8n workflows inline or needs delegated OAuth access to third-party services.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
