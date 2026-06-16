@@ -40,6 +40,41 @@ function collectThreadAttachments(thread) {
   return thread.messages.flatMap(m => walkAttachments(m));
 }
 
+// Walk a payload tree for forwarded-email (.eml / message/rfc822) attachments.
+// Reservation confirmations are sometimes forwarded as a .eml file rather than
+// inline; scanners extract their text separately (see api/lib/eml.js).
+function walkEmlAttachments(message) {
+  const out = [];
+  const messageId = message.id;
+  const internalDate = message.internalDate ? Number(message.internalDate) : 0;
+  const queue = [message.payload];
+  while (queue.length) {
+    const p = queue.shift();
+    if (!p) continue;
+    if (p.parts) queue.push(...p.parts);
+    const mime = (p.mimeType || "").toLowerCase();
+    const name = p.filename || "";
+    const isEml = mime === "message/rfc822" || /\.eml$/i.test(name);
+    if (!isEml) continue;
+    if (!p.body?.attachmentId) continue;
+    out.push({
+      messageId,
+      attachmentId: p.body.attachmentId,
+      filename: name || "message.eml",
+      mimeType: mime || "message/rfc822",
+      size: p.body.size || 0,
+      internalDate,
+    });
+  }
+  return out;
+}
+
+// Collect .eml attachments across every message in a thread.
+function collectThreadEmlAttachments(thread) {
+  if (!thread?.messages) return [];
+  return thread.messages.flatMap(m => walkEmlAttachments(m));
+}
+
 // Normalize a filename into a stable "folio key" for grouping.
 // Strips extension, trailing dates, sequence numbers, copy suffixes, timestamps.
 function normalizeFolioKey(filename) {
@@ -110,6 +145,8 @@ function attachmentFingerprint(attachments) {
 module.exports = {
   walkAttachments,
   collectThreadAttachments,
+  walkEmlAttachments,
+  collectThreadEmlAttachments,
   normalizeFolioKey,
   dedupFolios,
   fetchAttachmentB64,
