@@ -32,6 +32,14 @@
 
 - [2026-06-15 05:01 UTC] https://www.eventric.com/pricing-plans-tour-management-software/ — Master Tour annual plan confirmed at $64.99/mo (vs $74.99/mo month-to-month); prior context only noted the monthly price; annual option tightens the gap with DOS's $99/mo entry tier — DOS pricing deck should acknowledge and justify the delta vs Master Tour annual.
 
+- [2026-06-10 02:00 UTC] https://techcrunch.com/2026/06/05/supabase-doubles-valuation-to-10b-in-8-months/ — CONTRADICTS 2026-04-21 memory entry ($5B valuation Oct 2025): Supabase raised $500M Series F at $10.5B post-money valuation (announced June 4, 2026), led by GIC with Stripe and Salesforce Ventures joining; total capital raised exceeds $1B; 600% YoY database creation growth; Claude Code is single largest contributor to new Supabase DB deployments since Jan 2026; agents now deploy the majority of databases on the platform — infrastructure dependency risk for dos-tour-ops and dos-platform is further reduced; Supabase is now a decacorn with a strategic Stripe relationship relevant to Phase 8 Stripe Connect.
+
+- [2026-06-10 02:00 UTC] https://supabase.com/changelog/46458-passkeys-for-supabase-auth-beta — Supabase Passkeys for Auth entered public beta May 28, 2026: passwordless WebAuthn credential; users authenticate via biometrics (Face ID, Touch ID, Windows Hello), device PIN, or hardware security key; Supabase Auth stores only the public key; configurable per Relying Party ID and up to 5 allowed origins via dashboard, CLI, or Management API; API is experimental and may change during beta — not in prior memory; directly relevant as a dos-platform authentication option for Phase 2 auth design; reduces password-reset support surface for touring clients.
+
+- [2026-06-10 02:00 UTC] https://x.com/supabase/article/2063245852026777754 — Supabase became an official ChatGPT app (announced June 2026 developer update): users can manage Supabase projects via ChatGPT natural language prompts including SQL queries, schema changes, security checks, and Edge Function work — not in prior memory; competitive context: Supabase now has first-party ChatGPT + Claude Code IDE integrations (MCP server logged 2026-05-25); dos-platform and dos-tour-ops benefit from both paths; no action required.
+
+- [2026-06-10 02:00 UTC] https://supabase.com/changelog — Supabase free-tier email template restriction (June 3, 2026): new free-tier projects using Supabase's default email provider can no longer modify auth email templates; existing free-tier projects grandfathered; Pro+ plans unaffected — low direct impact (dos-tour-ops and dos-platform are not free-tier), but affects any dev or staging environment created after June 3 on free tier; use a Pro project or custom SMTP for email template testing.
+
 ## promoted
 
 <!-- entries graduate here after being actioned or built against -->
