@@ -40,6 +40,12 @@
 
 - [2026-06-10 02:00 UTC] https://supabase.com/changelog — Supabase free-tier email template restriction (June 3, 2026): new free-tier projects using Supabase's default email provider can no longer modify auth email templates; existing free-tier projects grandfathered; Pro+ plans unaffected — low direct impact (dos-tour-ops and dos-platform are not free-tier), but affects any dev or staging environment created after June 3 on free tier; use a Pro project or custom SMTP for email template testing.
 
+- [2026-06-09 00:00 UTC] https://techcrunch.com/2026/06/05/supabase-doubles-valuation-to-10b-in-8-months/ — Supabase raised $500M Series F at $10.5B valuation (June 4, 2026), led by GIC with Stripe, Georgian, and Salesforce Ventures; CONTRADICTS prior memory entry (2026-04-21, $5B Oct 2025) — valuation doubled in 8 months; 600%+ YoY growth in DB launches, 60%+ launched by AI tools, 250K+ customers; infrastructure dependency risk further reduced; update FINANCIALS.md and investor materials with new valuation data.
+
+- [2026-06-09 00:00 UTC] https://www.prnewswire.com/news-releases/supabase-raises-500m-at-10-5b-to-accelerate-lead-in-agentic-infrastructure-302791787.html — Supabase now supports WebAuthn-based auth: users can sign in with biometrics (Face ID, Touch ID, Windows Hello), device PIN, or hardware security key — not in any prior memory entry; relevant for dos-platform Phase 9 enterprise and festival-client SSO flows where passwordless auth reduces crew/artist onboarding friction.
+
+- [2026-06-09 00:00 UTC] https://www.prnewswire.com/news-releases/supabase-raises-500m-at-10-5b-to-accelerate-lead-in-agentic-infrastructure-302791787.html — Supabase is now an official ChatGPT app: users can manage Supabase projects (queries, schema changes, security checks, function work) via natural language prompts in ChatGPT — not in prior memory (prior Supabase AI entries cover MCP server for Claude Code/Cursor and dashboard AI buttons, which are distinct); opens an alternative AI management surface for dos-tour-ops and dos-platform; no action required but relevant if Josh prefers ChatGPT over Claude Code for Phase 0 schema work.
+
 ## promoted
 
 <!-- entries graduate here after being actioned or built against -->
