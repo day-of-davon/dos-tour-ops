@@ -6508,7 +6508,7 @@ const LEDGER_EDITABLE={
 
 // Expense categories that an uploaded receipt or scanned ride can carry. Used to
 // surface the real category for receipt-backed payouts instead of "Payout".
-const EXPENSE_CATS=new Set(["Hotel","Transport","Ground","Rideshare","Meals","Equipment","Production","Venue","Merch","Other"]);
+const EXPENSE_CATS=new Set(["Hotel","Transport","Ground","Rideshare","Car Rental","Meals","Equipment","Production","Venue","Merch","Other"]);
 
 function FinLedger(){
   const{shows,finance,flights,lodging,uLodging,uFin,uFlight,setUploadOpen,tourStart,tourEnd}=useContext(Ctx);
@@ -6522,6 +6522,7 @@ function FinLedger(){
   const[scanning,setScanning]=useState(false);
   const[scanMsg,setScanMsg]=useState("");
   const[pendingRides,setPendingRides]=useState([]);
+  const[pendingCars,setPendingCars]=useState([]);
 
   const scanRides=async(opts={})=>{
     try{
@@ -6560,6 +6561,43 @@ function FinLedger(){
     setPendingRides(p=>p.filter(x=>x.id!==r.id));
   };
   const importAllRides=()=>pendingRides.forEach(importRide);
+
+  const scanCars=async(opts={})=>{
+    try{
+      const{data:{session}}=await supabase.auth.getSession();
+      if(!session)return;
+      const googleToken=session.provider_token;
+      if(!googleToken){setScanMsg("Gmail access not available — re-login with Google.");return;}
+      setScanning(true);setScanMsg(opts.sweepFrom?"Historical sweep in progress…":"Scanning Gmail for car rentals…");
+      const resp=await fetch("/api/car-rental-scan",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({googleToken,tourStart,tourEnd,sweepFrom:opts.sweepFrom||null})});
+      if(resp.status===402){setScanMsg("Gmail session expired — please re-login.");setScanning(false);return;}
+      if(!resp.ok){setScanMsg(`Scan error ${resp.status} — try again.`);setScanning(false);return;}
+      const data=await resp.json();
+      if(data.error){setScanMsg(`Error: ${data.error}`);setScanning(false);return;}
+      const rentals=data.rentals||[];
+      const existingKeys=new Set();
+      Object.entries(finance).forEach(([d,fin])=>(fin?.ledgerEntries||[]).forEach(le=>existingKeys.add(`${le.date||d}|${parseFloat(le.amount)||0}|${le.currency||"USD"}`)));
+      const novel=rentals.filter(r=>!existingKeys.has(`${r.pickupDate}|${r.amount}|${r.currency}`));
+      if(!novel.length){setScanMsg(`Scanned ${data.threadsFound} threads — no new rentals found.`);setScanning(false);return;}
+      setPendingCars(novel);
+      setScanMsg(`Found ${novel.length} new rental${novel.length>1?"s":""} in ${data.threadsFound} threads.`);
+    }catch(e){setScanMsg(`Scan failed: ${e.message}`);}
+    setScanning(false);
+  };
+  const importCar=r=>{
+    const date=r.pickupDate;
+    const existing=finance[date]?.ledgerEntries||[];
+    const route=[r.pickupLocation,r.dropoffLocation].filter(Boolean).join(" → ");
+    const desc=[route,r.vehicle].filter(Boolean).join(" · ")||r.company||"Car rental";
+    uFin(date,{ledgerEntries:[...existing,{
+      id:r.id||`car_${date}_${Math.round(r.amount*100)}`,
+      date,vendor:r.company||"Car Rental",amount:parseFloat(r.amount),currency:r.currency||"USD",
+      category:"Car Rental",description:desc,
+      source:"car-rental",payee:(r.pax||[]).join(", "),ref:r.confirmNo||"",tid:r.tid||"",
+    }]});
+    setPendingCars(p=>p.filter(x=>x.id!==r.id));
+  };
+  const importAllCars=()=>pendingCars.forEach(importCar);
 
   const openReceipt=async path=>{
     if(!path)return;
@@ -6734,7 +6772,7 @@ function FinLedger(){
     </th>;
   };
 
-  const CAT_COLOR={Flight:{bg:"var(--info-bg)",c:"var(--link)"},Hotel:{bg:"var(--warn-bg)",c:"var(--warn-fg)"},Transport:{bg:"var(--accent-pill-bg)",c:"var(--accent)"},Ground:{bg:"var(--accent-pill-bg)",c:"var(--accent)"},Rideshare:{bg:"var(--accent-pill-bg)",c:"var(--accent)"},Meals:{bg:"var(--warn-bg)",c:"var(--warn-fg)"},Equipment:{bg:"var(--muted-bg)",c:"var(--text-2)"},Production:{bg:"var(--muted-bg)",c:"var(--text-2)"},Venue:{bg:"var(--muted-bg)",c:"var(--text-2)"},Merch:{bg:"var(--info-bg)",c:"var(--link)"},Payout:{bg:"var(--accent-pill-bg)",c:"var(--accent)"},Settlement:{bg:"var(--success-bg)",c:"var(--success-fg)"}};
+  const CAT_COLOR={Flight:{bg:"var(--info-bg)",c:"var(--link)"},Hotel:{bg:"var(--warn-bg)",c:"var(--warn-fg)"},Transport:{bg:"var(--accent-pill-bg)",c:"var(--accent)"},Ground:{bg:"var(--accent-pill-bg)",c:"var(--accent)"},Rideshare:{bg:"var(--accent-pill-bg)",c:"var(--accent)"},"Car Rental":{bg:"var(--info-bg)",c:"var(--link)"},Meals:{bg:"var(--warn-bg)",c:"var(--warn-fg)"},Equipment:{bg:"var(--muted-bg)",c:"var(--text-2)"},Production:{bg:"var(--muted-bg)",c:"var(--text-2)"},Venue:{bg:"var(--muted-bg)",c:"var(--text-2)"},Merch:{bg:"var(--info-bg)",c:"var(--link)"},Payout:{bg:"var(--accent-pill-bg)",c:"var(--accent)"},Settlement:{bg:"var(--success-bg)",c:"var(--success-fg)"}};
 
   return(
     <div style={{flex:1,overflow:"auto",minHeight:0,padding:"14px 20px 30px"}}>
@@ -6748,7 +6786,8 @@ function FinLedger(){
           {Object.entries(totals).map(([cur,amt])=><span key={cur} style={{fontSize:11,fontWeight:800,fontFamily:MN,color:T.text}}>{cur} {amt.toFixed(2)}</span>)}
           {scanMsg&&<span style={{fontSize:9,color:scanning?"var(--accent)":"var(--text-dim)",fontFamily:MN,maxWidth:200}}>{scanMsg}</span>}
           <button onClick={()=>scanRides({sweepFrom:"2026-01-01"})} disabled={scanning} title="Scan all of 2026 for rideshare receipts" style={{fontSize:9,padding:"3px 10px",borderRadius:6,border:"none",background:scanning?"var(--border)":"var(--accent-soft)",color:scanning?"var(--text-dim)":"var(--card)",cursor:scanning?"default":"pointer",fontWeight:700}}>Sweep</button>
-          <button onClick={()=>scanRides()} disabled={scanning} style={{fontSize:9,padding:"3px 10px",borderRadius:6,border:"none",background:scanning?"var(--border)":"var(--accent)",color:scanning?"var(--text-dim)":"#fff",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"🚗 Scan Rides"}</button>
+          <button onClick={()=>scanRides()} disabled={scanning} style={{fontSize:9,padding:"3px 10px",borderRadius:6,border:"none",background:scanning?"var(--border)":"var(--accent)",color:scanning?"var(--text-dim)":"#fff",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"🚗 Rides"}</button>
+          <button onClick={()=>scanCars()} disabled={scanning} style={{fontSize:9,padding:"3px 10px",borderRadius:6,border:"none",background:scanning?"var(--border)":"var(--accent)",color:scanning?"var(--text-dim)":"#fff",cursor:scanning?"default":"pointer",fontWeight:700}}>{scanning?"Scanning…":"🚙 Cars"}</button>
           <button onClick={()=>setUploadOpen(true)} style={{fontSize:9,padding:"3px 10px",borderRadius:6,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>↑ Upload</button>
         </div>
       </div>
@@ -6772,6 +6811,31 @@ function FinLedger(){
                 {r.tid&&<a href={`https://mail.google.com/mail/u/0/#inbox/${r.tid}`} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:T.accent,textDecoration:"none"}}>email ↗</a>}
                 <button onClick={()=>setPendingRides(p=>p.filter(x=>x.id!==r.id))} style={{fontSize:9,padding:"2px 8px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:T.textDim,cursor:"pointer"}}>Skip</button>
                 <button onClick={()=>importRide(r)} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {pendingCars.length>0&&(
+        <div style={{background:"var(--accent-pill-bg)",border:"1px solid var(--accent-pill-border)",borderRadius:10,padding:"10px 12px",marginBottom:12}}>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+            <span style={{fontSize:9,fontWeight:800,color:T.accent,letterSpacing:"0.06em"}}>NEW CAR RENTALS — REVIEW BEFORE IMPORTING</span>
+            <div style={{display:"flex",gap:6}}>
+              <button onClick={()=>setPendingCars([])} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:T.textDim,cursor:"pointer",fontWeight:700}}>Dismiss</button>
+              <button onClick={importAllCars} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>Import All ({pendingCars.length})</button>
+            </div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {pendingCars.map(r=>(
+              <div key={r.id} style={{background:"var(--card)",borderRadius:8,padding:"8px 10px",border:"1px solid var(--accent-pill-bg)",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+                <span style={{fontSize:9,fontWeight:800,padding:"2px 6px",borderRadius:4,background:"var(--link)",color:"#fff"}}>{r.company}</span>
+                <span style={{fontSize:10,color:T.text,flex:1,minWidth:120}}>{[[r.pickupLocation,r.dropoffLocation].filter(Boolean).join(" → "),r.vehicle].filter(Boolean).join(" · ")||r.city||"Rental"}</span>
+                <span style={{fontFamily:MN,fontSize:9,color:T.textDim,whiteSpace:"nowrap"}}>{r.pickupDate}{r.dropoffDate?` → ${r.dropoffDate}`:""}</span>
+                <span style={{fontFamily:MN,fontSize:11,fontWeight:700,color:T.text}}>{r.currency} {r.amount.toFixed(2)}</span>
+                {r.validationFlags?.includes("outside_tour_range")&&<span style={{fontSize:8,color:"var(--warn-fg)"}}>outside tour</span>}
+                {r.tid&&<a href={`https://mail.google.com/mail/u/0/#inbox/${r.tid}`} target="_blank" rel="noopener noreferrer" style={{fontSize:9,color:T.accent,textDecoration:"none"}}>email ↗</a>}
+                <button onClick={()=>setPendingCars(p=>p.filter(x=>x.id!==r.id))} style={{fontSize:9,padding:"2px 8px",borderRadius:6,border:"1px solid var(--border)",background:"transparent",color:T.textDim,cursor:"pointer"}}>Skip</button>
+                <button onClick={()=>importCar(r)} style={{fontSize:9,padding:"3px 9px",borderRadius:6,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",fontWeight:700}}>Import</button>
               </div>
             ))}
           </div>
