@@ -21,6 +21,16 @@
 
 - [2026-06-15 05:01 UTC] https://www.eventric.com/pricing-plans-tour-management-software/ — Master Tour annual plan confirmed at $64.99/mo (vs $74.99/mo month-to-month); prior context only noted the monthly price; annual option tightens the gap with DOS's $99/mo entry tier — DOS pricing deck should acknowledge and justify the delta vs Master Tour annual.
 
+- [2026-06-15 06:30 UTC] https://supabase.com/blog/branching-without-git-is-now-the-default — Supabase branching without Git is now default for all projects (May 4, 2026); full branch/merge workflow via dashboard only, no GitHub connection required; each branch gets isolated instance with schema copy but no production data — changes DOS v7 environment management: can safely preview schema changes before merging to main without CLI setup
+
+- [2026-06-15 06:30 UTC] https://trpc.io/docs/migrate-from-v10-to-v11 — tRPC v11 concrete breaking changes beyond RSC support (not in prior entry): (1) requires TanStack Query v5 — v4 users face double migration; (2) enforces Content-Type header on POST requests — mismatches return 415 Unsupported Media Type; (3) AbortController ponyfill removed; subscription type inference changed for async generators — all must be accounted for before DOS Platform scaffolding
+
+- [2026-06-15 06:30 UTC] https://nextjs.org/blog/next-16 — Next.js 16 (Oct 2025): Turbopack now stable AND default for both dev and production builds (was experimental); "use cache" directive for explicit, granular cache control on pages/components/functions; bundles React 19.2; 16.2 (March 2026) adds AI Agent DevTools and browser log forwarding — prior memory only said "evaluate upgrade path"; these are concrete features that affect DOS Platform build config and caching strategy
+
+- [2026-06-15 06:30 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Supabase Stripe Sync Engine one-click dashboard integration (early 2026): query Stripe customers, subscriptions, invoices, and payments directly via SQL in Supabase dashboard; no custom ETL needed — relevant to DOS Platform billing layer; reduces implementation cost for subscription management visibility
+
+- [2026-06-15 06:30 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Supabase Log Drains launched on Pro plan (March 2026): supported destinations include Datadog, Grafana Loki, Sentry, Axiom, and S3; also object listing is 14.8x faster on 60M+ row datasets — Log Drains relevant to DOS Platform observability stack; object listing improvement relevant if tour media/assets scale
+
 ## promoted
 
 <!-- entries graduate here after being actioned or built against -->
