@@ -1,6 +1,6 @@
 # Shows Roster
 
-Updated 2026-06-15. Newest dates first.
+Updated 2026-06-16. Newest dates first.
 
 | Event | Date | Stage | Open items | Updated |
 |---|---|---|---|---|
@@ -11,9 +11,9 @@ Updated 2026-06-15. Newest dates first.
 | [Mohegan Sun, Uncasville](2026-07-11-mohegan-sun.md) | 2026-07-11 | Travel | **CHARTER AT RISK**: Sam will cancel + drive if unpaid; confirm DMCL payment status; start venue advance | 2026-06-15 |
 | [FEQ (Festival d'été de Québec)](2026-07-10-feq-quebec.md) | 2026-07-10 | Advance | **URGENT 30d out — unanswered 7 wks**: reply to Thomas Lainesse (Bleu Feu); open tech advance | 2026-06-10 |
 | [Mississauga](2026-07-01-mississauga.md) | 2026-07-01 | Advance | L7 send production specs to City of Mississauga (Keynan) | 2026-06-07 |
-| [Le Transbordeur, Villeurbanne](2026-06-28-le-transbordeur.md) | 2026-06-28 | Travel | Lyon advance (Cyril); reply owed re backline list; Sprinter leaning French Driver €8250; **FR immigration (Thibaut Lagarde)** | 2026-06-15 |
-| [Chambord (festival)](2026-06-26-chambord.md) | 2026-06-26 | Travel | Contacts connected (Thomas tech/Jonathan hosp); **supporting Orelsan**; schedule confirmed; **reply owed to Jonathan** (party size 7v8, meals, driver); CL5 vs Quantum 338; **FR immigration** | 2026-06-15 |
-| [Razzmatazz, Barcelona](2026-06-25-sala-apolo-barcelona.md) | 2026-06-25 | Advance | **VENUE CONFIRMED Razzmatazz**; send backline list + riser count; lighting quote; Alan Jaén owes wifi/GL/hospitality (draft sent); Hector intro, Abel OOO (Primavera Porto) | 2026-06-15 |
+| [Le Transbordeur, Villeurbanne](2026-06-28-le-transbordeur.md) | 2026-06-28 | Travel | Replied to Cyril 06-16 (carrying backline; need LED wall); Dan to confirm backline specifics + wall size; Sprinter leaning French Driver €8250; **FR immigration (Thibaut Lagarde)** | 2026-06-16 |
+| [Chambord (festival)](2026-06-26-chambord.md) | 2026-06-26 | Travel | Contacts connected (Thomas tech/Jonathan hosp); **supporting Orelsan**; schedule confirmed; Jonathan answered 06-16 (party 9/cred 8) — owe driver name+plate once Sprinter booked; CL5 vs Quantum 338; **FR immigration** | 2026-06-16 |
+| [Razzmatazz, Barcelona](2026-06-25-sala-apolo-barcelona.md) | 2026-06-25 | Advance | **VENUE CONFIRMED Razzmatazz**; backline list from Dan + riser count (2 risers/1 table/1 kbd stand); lighting quote; Alan Jaén working wifi/runner (mobile 666141529); Hector intro, Abel OOO (Primavera Porto) | 2026-06-16 |
 | [LAV, Lisbon](2026-06-24-lav-lisbon.md) | 2026-06-24 | Advance | Running order sent 06-10; office reopens Jun 11; merch deal set (self-sell free / venue 20%+€10/hr) | 2026-06-10 |
 | [NXNE Billboard show, Toronto](2026-06-10-nxne-toronto.md) | 2026-06-10 | Settlement | Show done; reconcile LED-wall invoice into Billboard settlement | 2026-06-10 |
 | [Bonnaroo, Manchester TN](2026-06-11-bonnaroo-manchester.md) | 2026-06-11 | Travel | **DECIDE ground transport**; answer Spectrum (RF/wedge/mic?); get Spectrum driver/credentials; Julie RED Qs; Helm followspot gap | 2026-06-10 |

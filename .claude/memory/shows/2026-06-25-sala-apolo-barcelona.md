@@ -3,7 +3,7 @@ event: Razzmatazz, Barcelona
 date: 2026-06-25
 event_id: TBD
 stage: Advance
-updated: 2026-06-15
+updated: 2026-06-16
 ---
 # Razzmatazz, Barcelona — 2026-06-25
 
@@ -19,6 +19,8 @@ Euro leg 2. VENUE RESOLVED 06-10: Monica Gasull (Primavera) confirmed "this show
 - 06-10 Monica replied: confirmed Razzmatazz; asked for (a) a backline list (missing from tech rider), (b) whether we reviewed the venue rider, (c) exact riser/table count (rider shows 3 risers + 2 tables max). Schedule approved. Offered to get a quote for the requested lighting floor package. Alan Jaén to send wifi, GL allotment + levels, hospitality budget/buyout, runner availability + rate, his mobile.
 - 06-10 DRAFT created replying to Monica (backline list to follow, confirm riser count via Dan, yes to lighting quote).
 - 06-15 Davon opened a "Hector intro" advance thread; Abel Gonzalez (promoter) auto-replied OOO ("on my way to Porto, full festival mode, expect delays" — Primavera Porto week). New contact Hector being introduced; expect promoter-side delays through Primavera Porto. ~10 days out.
+- 06-15 Davon replied on the main thread recapping open items: backline list to come from Dan Nudelman; riser/table = 2x risers, 1x table, 1x keyboard stand (Dan to confirm exact); house LD operator — Dan to confirm need; lighting floor-package quote Monica offered to pull. Still awaiting from Alan Jaén: wifi, GL allotment + levels, hospitality budget/buyout, runner availability + rate, mobile.
+- 06-15 Alan Jaén replied (thread 19e975d0): wifi credentials being requested (usually provided on DOS); runner availability + rate being sourced; **Alan DOS mobile 666 14 15 29.** Will follow up as items confirm.
 
 ## Open items / next actions
 - [ ] Send standalone backline list to Monica + Alan; confirm exact riser/table count with Dan.
@@ -27,5 +29,5 @@ Euro leg 2. VENUE RESOLVED 06-10: Monica Gasull (Primavera) confirmed "this show
 
 ## Sources
 - 19e6471f1b784631 — Euro leg 2 confirmation
-- 19e975d00f71ea33 — bbno$ @ Razzmatazz, Barcelona - June 25 | Advance (venue confirmed Razzmatazz; Monica Qs; draft sent) — 2026-06-10
+- 19e975d00f71ea33 — bbno$ @ Razzmatazz, Barcelona - June 25 | Advance (venue confirmed Razzmatazz; Davon recapped opens 06-15; Alan Jaén 06-15 working wifi/runner, mobile 666141529) — 2026-06-15
 - 19ecad57c860f320 — Advance - Hector intro (Abel Gonzalez OOO auto-reply, Primavera Porto delays) — 2026-06-15
