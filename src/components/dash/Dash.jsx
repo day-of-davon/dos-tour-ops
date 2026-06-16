@@ -8,7 +8,7 @@ import { T } from "../../styles/tokens";
 import { DashSingle } from "./DashSingle";
 
 export function Dash(){
-  const{sorted,cShows,next,setTab,setSel,advances,finance,aC,mobile,intel,setIntel,addLog,addActLog,labelIntel,allShows,sel,refreshLabelIntel,refreshMsg,role}=useContext(Ctx);
+  const{sorted,cShows,next,setTab,setSel,advances,finance,aC,mobile,intel,setIntel,addLog,addActLog,labelIntel,allShows,sel,refreshLabelIntel,refreshMsg,role,scanAll,scanAllState}=useContext(Ctx);
   const[scanning,setScanning]=useState(false);
   const[scanLastAt,setScanLastAt]=useState(null);
   const[todoSort,setTodoSort]=useState("priority");
@@ -102,6 +102,8 @@ export function Dash(){
         {role!=="viewer"&&scanLastAt&&!scanning&&<span style={{fontSize:9,color:T.textMute,fontFamily:MN}}>scanned {scanLastAt.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</span>}
         {role!=="viewer"&&scanning&&refreshMsg&&<span style={{fontSize:9,color:T.accent,fontFamily:MN}}>{refreshMsg}</span>}
         {role!=="viewer"&&<button onClick={runIntelScan} disabled={scanning} title={`Scan all Gmail threads labeled for ${client.name} across ${cShows.length} shows`} style={{fontSize:10,padding:"4px 11px",borderRadius:6,border:"none",background:scanning?"var(--border)":"var(--accent)",color:scanning?"var(--text-dim)":"var(--card)",cursor:scanning?"default":"pointer",fontWeight:700,whiteSpace:"nowrap"}}>{scanning?"Scanning…":"↻ Scan Intel"}</button>}
+        {role!=="viewer"&&scanAllState?.msg&&<span style={{fontSize:9,color:scanAllState.running?T.accent:T.textMute,fontFamily:MN}}>{scanAllState.msg}</span>}
+        {role!=="viewer"&&<button onClick={()=>{if(!scanAllState?.running)scanAll();}} disabled={scanAllState?.running} title="Run intel + flights + lodging scans across all shows (tour-wide)" style={{fontSize:10,padding:"4px 11px",borderRadius:6,border:"none",background:scanAllState?.running?"var(--border)":"var(--success-fg)",color:scanAllState?.running?"var(--text-dim)":"var(--card)",cursor:scanAllState?.running?"default":"pointer",fontWeight:700,whiteSpace:"nowrap"}}>{scanAllState?.running?"Scanning all…":"⟳ Scan All Shows"}</button>}
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:10,margin:"0 0 12px"}}>
         {[{l:"Next Show",v:next?.city||"--",s:next?nextBus?`${dU(next.date)}d · BUS ${nextBus}`:`${dU(next.date)}d`:"",c:client.color},{l:`${client.name} Shows`,v:cShows.length,s:"total",c:"var(--text)"},{l:"Open Advances",v:upcoming.filter(s=>pendingCount(s.date)>0).length,s:"shows w/ pending",c:upcoming.filter(s=>pendingCount(s.date)>0).length>0?"var(--warn-fg)":"var(--text-mute)"},{l:"Open To-Dos",v:allTodos.length,s:"private",c:allTodos.length>0?"var(--warn-fg)":"var(--text-mute)"},{l:"Follow-Ups",v:allFollowUps.length,s:"across shows",c:allFollowUps.length>0?"var(--link)":"var(--text-mute)"},{l:"Unsettled",v:unsettledCount,s:"past shows",c:unsettledCount>2?"var(--danger-fg)":unsettledCount>0?"var(--warn-fg)":"var(--text-mute)"}].map((s,i)=><div key={i} style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}><div style={{fontSize:9,color:T.textDim,marginBottom:2,fontWeight:600}}>{s.l}</div><div style={{fontSize:20,fontWeight:800,color:s.c,fontFamily:MN}}>{s.v}</div><div style={{fontSize:9,color:T.textMute,fontFamily:MN,marginTop:1}}>{s.s}</div></div>)}

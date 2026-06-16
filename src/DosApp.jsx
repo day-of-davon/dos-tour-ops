@@ -569,6 +569,45 @@ export default function App(){
     })();
   },[loaded]);// eslint-disable-line
 
+  // One-click scan-all: runs intel + flights + lodging across every show, tour-wide,
+  // and distributes results into their stores. Reuses the same merge helpers the tabs use.
+  const[scanAllState,setScanAllState]=useState({running:false,msg:""});
+  const scanAll=useCallback(async()=>{
+    const{data:{session}}=await supabase.auth.getSession();
+    const googleToken=session?.provider_token;
+    if(!googleToken){setScanAllState({running:false,msg:"Gmail access not available — re-login with Google."});return;}
+    const headers={"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`};
+    const showsArr=Object.values(shows||{}).map(s=>({id:s.id||s.date,date:s.date,venue:s.venue,city:s.city,type:s.type}));
+    const errs=[];let addedFlights=0,addedHotels=0;
+    setScanAllState({running:true,msg:"1/3 Scanning email intel…"});
+    try{await refreshLabelIntel(true);}catch(e){errs.push("intel: "+e.message);}
+    setScanAllState({running:true,msg:"2/3 Scanning flights…"});
+    try{
+      const resp=await fetch("/api/flights",{method:"POST",headers,body:JSON.stringify({googleToken,tourStart,tourEnd,focus:FOCUS_CARRIERS,shows:showsArr})});
+      if(resp.status===402)throw new Error("Gmail session expired — re-login.");
+      if(!resp.ok)throw new Error("HTTP "+resp.status);
+      const data=await resp.json();
+      if(data.error)throw new Error(data.error);
+      if(data.scannedAt)setLastFlightScanAt(data.scannedAt);
+      const newF=data.flights||[];
+      addedFlights=newF.filter(f=>!findFlightMatch(flights||{},f)).length;
+      if(newF.length)setFlights(cur=>{const next={...cur};newF.forEach(f=>{const m=findFlightMatch(next,f);if(m){const merged=enrichFlight(m,f);if(JSON.stringify(merged)!==JSON.stringify(m))next[m.id]=merged;}else{next[f.id]={...f,status:"pending",suggestedCrewIds:matchPaxToCrew(f.pax,crew)};}});return next;});
+    }catch(e){errs.push("flights: "+e.message);}
+    setScanAllState({running:true,msg:"3/3 Scanning lodging…"});
+    try{
+      const resp=await fetch("/api/lodging-scan",{method:"POST",headers,body:JSON.stringify({googleToken,tourStart,tourEnd,sweepFrom:null})});
+      if(resp.status===402)throw new Error("Gmail session expired — re-login.");
+      if(!resp.ok)throw new Error("HTTP "+resp.status);
+      const data=await resp.json();
+      if(data.error)throw new Error(data.error);
+      const existingKeys=new Set(Object.values(lodging).map(h=>`${h.name}__${h.checkIn}`));
+      const novel=(data.lodgings||[]).filter(h=>!lodging[h.id]&&!existingKeys.has(`${h.name}__${h.checkIn}`));
+      novel.forEach(h=>uLodging(h.id,{...h,status:"pending",rooms:h.rooms||[],todos:HOTEL_TODOS_DEFAULT.map(t=>({text:t,done:false}))}));
+      addedHotels=novel.length;
+    }catch(e){errs.push("lodging: "+e.message);}
+    setScanAllState({running:false,msg:`Scan-all done · +${addedFlights} flights · +${addedHotels} hotels${errs.length?` · ${errs.length} error(s): ${errs.join("; ")}`:" · intel refreshed"}`});
+  },[shows,crew,flights,lodging,tourStart,tourEnd,setFlights,setLastFlightScanAt,refreshLabelIntel]);// uLodging/setFlights are stable; uLodging omitted from deps to avoid TDZ (declared below)
+
   const uImmigration=useCallback((id,data)=>setImmigration(p=>{if(data===null){const n={...p};delete n[id];return n;}return{...p,[id]:{...(p[id]||{}),...data}};}),[]);
   const uShow=useCallback((d,u)=>setShows(p=>({...p,[d]:{...p[d],...u,lastModified:Date.now()}})),[]);
   const uRos=useCallback((d,b)=>setRos(p=>{const n={...p};if(b)n[d]=b;else delete n[d];return n;}),[]);
@@ -646,8 +685,8 @@ export default function App(){
     const isViewer=role==="viewer";
     const noop=()=>{};
     const g=fn=>isViewer?noop:fn;
-    return{shows,uShow:g(uShow),ros,uRos:g(uRos),gRos,advances,uAdv:g(uAdv),finance,uFin:g(uFin),sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv:g(uNotesPriv),checkPriv,uCheckPriv:g(uCheckPriv),mobile,setExp,intel,setIntel:g(setIntel),addLog,refreshIntel,toggleIntelShare:g(toggleIntelShare),refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew:g(setCrew),showCrew,setShowCrew:g(setShowCrew),dateMenu,setDateMenu,production,uProd:g(uProd),tourDays,tourDaysSorted,orderedTabs,reorderTabs:g(reorderTabs),selEventId,setSelEventId,flights,uFlight:g(uFlight),setFlights:g(setFlights),uploadOpen,setUploadOpen:g(setUploadOpen),lodging,uLodging:g(uLodging),guestlists,uGuestlist:g(uGuestlist),glTemplates,setGlTemplates:g(setGlTemplates),showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart:g(setTourStart),setTourEnd:g(setTourEnd),splitParty,setSplitParty:g(setSplitParty),currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration:g(uImmigration),me,transView,setTransView,perms,uPerms:g(uPerms),actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows,busEdits,uBusEdit:g(uBusEdit),isViewer,userTypes,addUserType,renameUserType,removeUserType,userAssignments,setUserAssignment,removeUserAssignment,groupNotes,uGroupNote:g(uGroupNote)};
-  },[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,perms,actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows,busEdits,uBusEdit,userTypes,addUserType,renameUserType,removeUserType,userAssignments,setUserAssignment,removeUserAssignment,groupNotes,uGroupNote]);// eslint-disable-line
+    return{shows,uShow:g(uShow),ros,uRos:g(uRos),gRos,advances,uAdv:g(uAdv),finance,uFin:g(uFin),sel,setSel,eventKey,role,setRole,tab,setTab,sorted,cShows,next,setCmd,aC,setAC,notesPriv,uNotesPriv:g(uNotesPriv),checkPriv,uCheckPriv:g(uCheckPriv),mobile,setExp,intel,setIntel:g(setIntel),addLog,refreshIntel,toggleIntelShare:g(toggleIntelShare),refreshing,refreshMsg,labelIntel,refreshLabelIntel,pushUndo,undoToast,setUndoToast,crew,setCrew:g(setCrew),showCrew,setShowCrew:g(setShowCrew),dateMenu,setDateMenu,production,uProd:g(uProd),tourDays,tourDaysSorted,orderedTabs,reorderTabs:g(reorderTabs),selEventId,setSelEventId,flights,uFlight:g(uFlight),setFlights:g(setFlights),uploadOpen,setUploadOpen:g(setUploadOpen),lodging,uLodging:g(uLodging),guestlists,uGuestlist:g(uGuestlist),glTemplates,setGlTemplates:g(setGlTemplates),showOffDays,setShowOffDays,sidebarOpen,setSidebarOpen,tourStart,tourEnd,setTourStart:g(setTourStart),setTourEnd:g(setTourEnd),splitParty,setSplitParty:g(setSplitParty),currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration:g(uImmigration),me,transView,setTransView,perms,uPerms:g(uPerms),actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows,busEdits,uBusEdit:g(uBusEdit),isViewer,userTypes,addUserType,renameUserType,removeUserType,userAssignments,setUserAssignment,removeUserAssignment,groupNotes,uGroupNote:g(uGroupNote),scanAll,scanAllState};
+  },[shows,ros,advances,finance,sel,eventKey,role,tab,aC,notesPriv,checkPriv,mobile,intel,labelIntel,refreshing,refreshMsg,sorted,cShows,next,crew,showCrew,production,tourDays,tourDaysSorted,orderedTabs,selEventId,flights,uploadOpen,lodging,guestlists,glTemplates,showOffDays,sidebarOpen,undoToast,dateMenu,tourStart,tourEnd,uShow,uRos,gRos,uAdv,uFin,uNotesPriv,uCheckPriv,addLog,refreshIntel,toggleIntelShare,pushUndo,reorderTabs,uFlight,uLodging,uGuestlist,uProd,refreshLabelIntel,splitParty,setSplitParty,currentSplit,activeSplitPartyId,activeSplitParty,effectiveSplitDays,immigration,uImmigration,me,transView,perms,actLog,addActLog,commentMode,setCommentMode,showPickerOpen,setShowPickerOpen,allShows,setAllShows,busEdits,uBusEdit,userTypes,addUserType,renameUserType,removeUserType,userAssignments,setUserAssignment,removeUserAssignment,groupNotes,uGroupNote,scanAll,scanAllState]);// eslint-disable-line
 
   if(!loaded||!shows)return(<div style={{background:"var(--bg)",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Outfit',system-ui"}}><div style={{textAlign:"center"}}><div style={{fontSize:20,fontWeight:800,color:T.text,letterSpacing:"-0.03em"}}>DOS</div><div style={{fontSize:10,color:T.textDim,marginTop:3,fontFamily:MN}}>v7.0 loading...</div></div></div>);
 
