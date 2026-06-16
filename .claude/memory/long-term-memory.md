@@ -62,6 +62,16 @@
 
 - [2026-06-05 04:00 UTC] https://www.softwareadvice.com/festival-management/ — Eventival: specialized festival management software with scheduling, ticketing, and attendee engagement tools; appearing in multiple 2026 best-of festival software lists — NEW competitor not in CLAUDE.md or prior memory; low public detail; add to monitor list alongside Pollen and YourTempo.
 
+- [2026-06-16 06:00 UTC] https://supabase.com/changelog/29260-upcoming-changes-to-supabase-api-keys — Supabase legacy anon and service_role API keys deprecated by end of 2026; replaced by publishable (sb_publishable_xxx) and secret (sb_secret_xxx) keys; new projects no longer receive legacy keys; projects restored after Nov 1 2025 already use new format; both key types work simultaneously enabling gradual migration — BREAKING for dos-tour-ops v7 (Vite+Supabase): audit env vars and swap to publishable/secret keys before Dec 2026 deadline; migration guide at supabase.com/docs/guides/getting-started/migrating-to-new-api-keys
+
+- [2026-06-16 06:00 UTC] https://supabase.com/changelog/46689-developer-update-june-2026 — Supabase Logs usage now metered: Pro and Team plans include 5 GB ingest + 1,000 GB query/mo; new orgs migrating June 2026, existing orgs July 1, 2026 — NOT in prior memory; cost structure change for dos-tour-ops (active Pro plan) and dos-platform architecture; audit current log volume before July 1 to avoid surprise overage charges
+
+- [2026-06-16 06:00 UTC] https://supabase.com/changelog/46689-developer-update-june-2026 — Supabase Dashboard Branching now on by default for all projects: schema and policy changes can be safely previewed without relying on GitHub branching workflows — NOT in prior memory; useful for dos-tour-ops iterative RLS policy work before platform launch; no action required, opt-out available
+
+- [2026-06-16 06:00 UTC] https://www.festivalpro.com/festival-management/2641/news/2023/4/10/Smart-Artist-Advancing-for-Music-Festivals.html — Artifax: festival management software with defined advancing timelines, automated advancing workflows, and milestone tracking for artist-related data — NEW competitor not in CLAUDE.md or prior memory; overlaps directly with DOS's advancing moat; assess feature depth against dos-platform Phase 4 advancing spec
+
+- [2026-06-16 06:00 UTC] https://robotostudio.com/blog/nextjs-16-2-for-dummies — Next.js 16.2 (no breaking changes from 16.0): Turbopack now defers compilation until browser requests a route, cutting dev server cold start by ~87% vs 16.1 — minor perf note; no architecture impact on dos-platform plan; existing Next.js 16 migration notes (middleware.ts → proxy.ts, etc.) remain the priority
+
 ## promoted
 
 <!-- entries graduate here after being actioned or built against -->
