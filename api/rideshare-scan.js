@@ -295,11 +295,12 @@ ${returnShape}`;
   for (const t of fresh) {
     if (!t.emlAttachments?.length) continue;
     const texts = await fetchEmlTexts(googleToken, t, emlBudget, { maxPerScan: EML_MAX_PER_SCAN });
-    for (let i = 0; i < texts.length; i += EML_PARSE_CHUNK) {
-      const chunk = texts.slice(i, i + EML_PARSE_CHUNK);
+    const chunks = [];
+    for (let i = 0; i < texts.length; i += EML_PARSE_CHUNK) chunks.push({ i, items: texts.slice(i, i + EML_PARSE_CHUNK) });
+    await Promise.all(chunks.map(async ({ i, items }) => {
       const userPrompt = `Extract every rideshare/ground-transport trip from these forwarded receipt emails. Tour date range: ${tourStart} to ${tourEnd}. Skip food delivery (Uber Eats etc.), flights, and hotels.
 
-${chunk.map((e, j) => `[eml ${i + j}] tid:${t.id}
+${items.map((e, j) => `[eml ${i + j}] tid:${t.id}
 File: ${e.filename}
 Subject: ${e.subject}
 Body: ${e.text}`).join("\n\n---\n\n")}
@@ -310,11 +311,11 @@ ${returnShape}`;
         lastStopReason = stopReason;
         const rows = Array.isArray(extractJson(text)?.rides) ? extractJson(text).rides : [];
         for (const r of rows) { r.tid = t.id; (perThreadResults[t.id] ||= []).push(r); }
-        console.log(`[rideshare-scan] eml-batch tid=${t.id} emls=${chunk.length} rows=${rows.length}`);
+        console.log(`[rideshare-scan] eml-batch tid=${t.id} emls=${items.length} rows=${rows.length}`);
       } catch (e) {
         errors.push({ kind: "anthropic_error", phase: "eml_batch", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
       }
-    }
+    }));
   }
 
   // Flatten + cache.
