@@ -25,6 +25,7 @@ import { GuestListTab } from "./components/guestlist/GuestListTab.jsx";
 import { FlightCard } from "./components/flights/FlightCard.jsx";
 import { FinTab } from "./components/finance/FinTab.jsx";
 import { Dash } from "./components/dash/Dash.jsx";
+import { CrossTab } from "./components/cross/CrossTab.jsx";
 import { DailyDriveSessionsView } from "./components/transport/DailyDriveSessionsView.jsx";
 import { CrewTab } from "./components/crew/CrewTab.jsx";
 import { AllShowsDriveSessionsView } from "./components/transport/AllShowsDriveSessionsView.jsx";
@@ -663,9 +664,9 @@ export default function App(){
         <div style={{flex:1,display:"flex",flexDirection:"row",minWidth:0,minHeight:0,width:"100%",overflow:"visible",position:"relative"}}>
           <NavSidebar/>
           <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0,minHeight:0,overflow:"hidden"}}>
-            {tab!=="dash"&&<SplitPartyTabs/>}
-            {tab!=="dash"&&<EventSwitcher show={shows[sel]} sel={sel}/>}
-            {tab==="dash"&&<Dash/>}{tab==="advance"&&<AdvTab/>}{tab==="guestlist"&&<GuestListTab/>}{tab==="ros"&&<ScheduleTab/>}{tab==="transport"&&<TransTab/>}{tab==="finance"&&<FinTab/>}{tab==="crew"&&<CrewTab/>}{tab==="lodging"&&<LodgingTab/>}{tab==="production"&&<ProdTab/>}{tab==="notes"&&<GroupNotesTab/>}{tab==="access"&&<AccessTab/>}
+            {tab!=="dash"&&tab!=="cross"&&<SplitPartyTabs/>}
+            {tab!=="dash"&&tab!=="cross"&&<EventSwitcher show={shows[sel]} sel={sel}/>}
+            {tab==="dash"&&<Dash/>}{tab==="cross"&&<CrossTab/>}{tab==="advance"&&<AdvTab/>}{tab==="guestlist"&&<GuestListTab/>}{tab==="ros"&&<ScheduleTab/>}{tab==="transport"&&<TransTab/>}{tab==="finance"&&<FinTab/>}{tab==="crew"&&<CrewTab/>}{tab==="lodging"&&<LodgingTab/>}{tab==="production"&&<ProdTab/>}{tab==="notes"&&<GroupNotesTab/>}{tab==="access"&&<AccessTab/>}
           </div>
         </div>
         {cmd&&<CmdP/>}

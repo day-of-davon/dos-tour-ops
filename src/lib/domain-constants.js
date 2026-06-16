@@ -25,7 +25,33 @@ export const isClientOwner=(me,clientId)=>!!(me?.primary||[]).includes(clientId)
 
 export const ROLES=[{id:"tm_td",label:"TM/TD",c:"var(--accent)"},{id:"internal",label:"Internal",c:"var(--warn-fg)"},{id:"viewer",label:"Viewer",c:"var(--text-dim)"}];
 
-export const TABS=[{id:"dash",label:"Dashboard",icon:"⊞"},{id:"advance",label:"Advance",icon:"◎"},{id:"guestlist",label:"Guest List",icon:"◉"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"},{id:"notes",label:"Notes",icon:"◫"},{id:"access",label:"Access",icon:"⊙"}];
+export const TABS=[{id:"dash",label:"Dashboard",icon:"⊞"},{id:"cross",label:"Cross-tour",icon:"❖"},{id:"advance",label:"Advance",icon:"◎"},{id:"guestlist",label:"Guest List",icon:"◉"},{id:"ros",label:"Schedule",icon:"▦"},{id:"transport",label:"Logistics",icon:"◈"},{id:"finance",label:"Finance",icon:"◐"},{id:"crew",label:"Crew",icon:"◇"},{id:"lodging",label:"Lodging",icon:"⌂"},{id:"production",label:"Production",icon:"▤"},{id:"notes",label:"Notes",icon:"◫"},{id:"access",label:"Access",icon:"⊙"}];
+
+// ── Touring legs ────────────────────────────────────────────────────────────
+// The per-show `region` tag is unreliable as a leg key: "festival" alone covers
+// Bonnaroo (NA), Sziget/Superbloom (EU) and Wakaan/Elements (standalone). But
+// `country` and `clientId` are clean. So: bbno$ dates split by continent, and
+// every non-bbno$ client (Wakaan, Elements, Beyond Wonderland) is the festival book.
+export const NA_COUNTRIES=new Set(["US","CA","MX"]);
+export const LEG_ORDER=["na","eu","fest"];
+export const LEG_META={
+  na:  {label:"NA summer",short:"NA",  color:"#1D9E75"},
+  eu:  {label:"EU summer",short:"EU",  color:"#378ADD"},
+  fest:{label:"Festivals",short:"FEST",color:"#7F77DD"},
+};
+export const legOf=s=>{
+  if(!s)return"na";
+  if(s.clientId&&s.clientId!=="bbn")return"fest";
+  return NA_COUNTRIES.has(s.country)?"na":"eu";
+};
+// Cross-cutting risks not attached to any single show, so the show-anchored tabs
+// have nowhere to put them. Seeded from TOUR.md.
+// TODO: move to a `dos-v7-portfolio-flags` shared storage key so it stays live.
+export const PORTFOLIO_FLAGS=[
+  {level:"critical",label:"Insurance $0",sub:"blocks all legs — route to Sam/Sandro"},
+  {level:"warn",label:"CRA Reg 105 waivers · 5 CA shows",sub:"Mississauga deadline passed"},
+  {level:"warn",label:"Wasserman UK FEU cert",sub:"holds Glasgow settlement"},
+];
 
 export const COMMENT_TARGETS={
   dash:["Overview cards","Upcoming shows","Open items","Intel panel"],
