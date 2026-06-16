@@ -12,7 +12,7 @@ const {
 const {
   collectThreadAttachments, dedupFolios,
   fetchAttachmentB64, attachmentFingerprint,
-  emlAttachmentsFor, inlineThreadEml,
+  emlAttachmentsFor, fetchEmlTexts,
 } = require("./lib/attachments");
 const { storeReceipt } = require("./lib/receiptStore");
 const { buildTourContextBlock } = require("./lib/tourContext");
@@ -23,8 +23,10 @@ const PDF_MAX_PER_THREAD = 2;
 const PDF_MAX_PER_SCAN   = 20;
 const PDF_MAX_BYTES      = 5 * 1024 * 1024;
 
-// Forwarded-email (.eml) per-scan cap (per-thread + size caps live in attachments.js).
-const EML_MAX_PER_SCAN = 15;
+// Forwarded-email (.eml) per-scan fetch cap. Bundle emails can attach many
+// receipts; each is parsed individually so the cap is generous.
+const EML_MAX_PER_SCAN = 30;
+const EML_PARSE_CHUNK = 4; // .eml receipts parsed per Claude call
 
 function extractHeaders(thread) {
   const last = thread.messages?.[thread.messages.length - 1];
@@ -202,13 +204,6 @@ module.exports = async function handler(req, res) {
     for (const o of t.oversizedAttachments || []) errors.push({ kind: "pdf_oversized", tid: t.id, filename: o.filename, size: o.size });
   }
   console.log(`[lodging-scan] runId=${runId} threads=${threads.length} cached=${threads.length - fresh.length} fresh=${fresh.length}`);
-
-  // Inline forwarded .eml attachments (e.g. Airbnb confirmations attached as a
-  // file) into the thread body so the parser reads them. Fresh threads only; bounded.
-  const emlBudget = { scanned: 0 };
-  for (const t of fresh) {
-    if (t.emlAttachments?.length) await inlineThreadEml(googleToken, t, emlBudget, { errors, maxPerScan: EML_MAX_PER_SCAN });
-  }
 
   let inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheCreationTokens = 0;
   let attachmentsScanned = 0;
@@ -407,6 +402,35 @@ ${returnShape}`;
       console.log(`[lodging-scan] pdf tid=${t.id} pdfs=${docBlocks.length} stop=${stopReason} rows=${rows.length}`);
     } catch (e) {
       errors.push({ kind: "anthropic_error", phase: "pdf_thread", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+    }
+  }
+
+  // ── Forwarded .eml receipts ────────────────────────────────────────────────
+  // Bundle emails attach many receipts as .eml files. Parse each separately (in
+  // small chunks), attributing results to the parent thread so they cache together.
+  const emlBudget = { scanned: 0 };
+  for (const t of fresh) {
+    if (!t.emlAttachments?.length) continue;
+    const texts = await fetchEmlTexts(googleToken, t, emlBudget, { maxPerScan: EML_MAX_PER_SCAN });
+    for (let i = 0; i < texts.length; i += EML_PARSE_CHUNK) {
+      const chunk = texts.slice(i, i + EML_PARSE_CHUNK);
+      const userPrompt = `Extract every hotel/accommodation reservation from these forwarded receipt emails. Tour date range: ${tourStart} to ${tourEnd}. Skip flights, car rentals, rideshare, and meals.
+
+${chunk.map((e, j) => `[eml ${i + j}] tid:${t.id}
+File: ${e.filename}
+Subject: ${e.subject}
+Body: ${e.text}`).join("\n\n---\n\n")}
+
+${returnShape}`;
+      try {
+        const { text, stopReason } = await callClaude([{ type: "text", text: userPrompt }]);
+        lastStopReason = stopReason;
+        const rows = Array.isArray(extractJson(text)?.lodgings) ? extractJson(text).lodgings : [];
+        for (const h of rows) { h.tid = t.id; (perThreadResults[t.id] ||= []).push(h); }
+        console.log(`[lodging-scan] eml-batch tid=${t.id} emls=${chunk.length} rows=${rows.length}`);
+      } catch (e) {
+        errors.push({ kind: "anthropic_error", phase: "eml_batch", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+      }
     }
   }
 
