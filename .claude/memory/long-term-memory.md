@@ -304,6 +304,14 @@
 
 - [2026-05-28 05:00 UTC] https://9to5mac.com/2026/05/07/anthropic-updates-claude-managed-agents-with-three-new-features/ — CORRECTION to 2026-05-25 memory entry: that entry characterizes "dreaming" as "background reasoning between turns" — correct description is a SCHEDULED PROCESS that reviews agent sessions and memory stores, extracts patterns, and curates memories so agents improve over time; dreaming runs on a schedule (not inline during agent turns) — architectural difference matters for dos-platform Phase 4: dreaming is a periodic background job improving agent memory, not a per-turn reasoning mode; design dos-platform agent sessions to produce structured memory artifacts that dreaming can process.
 
+- [2026-06-10 04:00 UTC] https://www.cnbc.com/2026/06/04/database-startup-supabase-raises-500-million-10point5-billion-valuation.html — CONTRADICTS 2026-04-21 memory entry ($5B valuation): Supabase closed $500M Series F at $10.5B valuation on June 4, 2026, led by Singapore's sovereign wealth fund GIC; doubled from $5B in under 8 months — further reduces infrastructure dependency risk; confirms Supabase as a durable long-term bet for both dos-tour-ops and dos-platform.
+
+- [2026-06-10 04:00 UTC] https://github.com/trpc/trpc/security/advisories/GHSA-pj3v-9cm8-gvj8 — tRPC v11 WebSocket DoS vulnerability: CVE-2025-43855, CVSS 8.7 High; affects v11.0.0 only; any server with WebSockets enabled AND a createContext method is crash-able by an unauthenticated attacker sending invalid connectionParams; patched in v11.1.1 — dos-platform must pin tRPC >=11.1.1 if using WebSocket subscriptions (SSE transport logged 2026-04-26 is unaffected).
+
+- [2026-06-10 04:00 UTC] https://supabase.com/changelog — Supabase Schema Visualizer now supports inline table editing: create, rename, and modify columns directly on the visualizer canvas without leaving the diagram view — not in prior memory; speeds Phase 0 schema design sessions with Josh by removing the context-switch to the Table Editor.
+
+- [2026-06-10 04:00 UTC] https://supabase.com/changelog — Supabase client SDKs (JS, Python, Swift, Kotlin) now emit W3C-standard distributed traces compatible with any OpenTelemetry-compliant backend (Sentry, Datadog, Honeycomb, Axiom) — not in prior memory; distinct from Log Drains (server-side logs, logged 2026-04-20); enables end-to-end request tracing through dos-platform tRPC → Supabase without a custom instrumentation layer.
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
