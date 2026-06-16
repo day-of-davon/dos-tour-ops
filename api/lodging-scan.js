@@ -97,6 +97,8 @@ function buildLodgingQueryGroups(after, before) {
     `"confirmation number" (hotel OR inn OR suite OR resort OR lodge OR check-in OR check-out) ${W}`,
     `"reservation number" (hotel OR inn OR suite OR resort OR check-in) ${W}`,
     `(check-in OR "check in") (check-out OR "check out") (hotel OR inn OR suite OR resort OR lodge) (confirmation OR booking OR reservation) ${W}`,
+    // User-curated label — Davon files travel/lodging mail under "Logistics".
+    `label:Logistics ${W}`,
     // Touring-specific
     `"room block" (confirmation OR booking OR reservation) ${W}`,
     `"room list" (hotel OR confirmation OR reservation) ${W}`,
