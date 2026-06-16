@@ -90,6 +90,10 @@ function buildLodgingQueryGroups(after, before) {
     `"group reservation" (hotel OR inn OR resort OR lodge) ${W}`,
     `"tour accommodation" OR "band hotel" OR "crew hotel" (confirmation OR booking) ${W}`,
     `"promoter accommodation" OR "artist accommodation" (hotel OR inn OR confirmation) ${W}`,
+    // Short-term rentals — Airbnb/VRBO emails don't use hotel/check-in language, so
+    // the subject sweeps above miss them. Match by sender and by their own subjects.
+    `(from:airbnb.com OR from:vrbo.com OR from:homeaway.com) (reservation OR confirmed OR itinerary OR "your trip" OR booking OR "reservation reminder") ${W}`,
+    `subject:(airbnb OR vrbo OR "entire home" OR "entire place" OR "your trip to") (reservation OR confirmed OR itinerary OR booking) ${W}`,
   ];
   const low = [
     // Hotel brand name sweep — includes loyalty program names (Bonvoy) and
@@ -206,7 +210,8 @@ Rules:
 - cost: total cost as number only, no currency symbol. null if not found. When a folio PDF is attached, prefer the PDF's final total (post-tax, post-incidentals) over body estimates.
 - pax: array of guest full names. Empty array if not found
 - When a PDF is attached: trust it over the body text for cost, dates, confirmation numbers, and room type. Body text often shows the initial reservation; folios show actual charges.
-- Skip flight, car rental, or non-accommodation confirmations
+- Short-term rentals (Airbnb, VRBO, HomeAway, Vacasa) ARE accommodation — include them. Use the listing title or "Airbnb · <city/neighborhood>" as name; put the host name in notes; stars=null; roomType=the listing type if stated (e.g. "Entire home", "Private room"); confirmNo=the reservation/itinerary code; cost=the total trip price. checkIn/checkOut are the trip dates.
+- Skip flight, car rental, restaurant, experience/activity, and other non-accommodation confirmations
 - validationFlags: leave as [] — the server fills this post-parse`;
 
   const returnShape = `Return this exact JSON:
