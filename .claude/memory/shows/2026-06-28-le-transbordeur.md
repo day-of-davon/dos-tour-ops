@@ -9,6 +9,7 @@ updated: 2026-06-16
 
 ## Booking / Confirm
 - bbno$ at Le Transbordeur (Villeurbanne / Lyon), 28 Jun. Second of two FR shows; paired with [[2026-06-26-chambord]].
+- 06-16 CONTRACTS RETURNED: Davon returned signed artist + production contracts for the 3 FR shows (incl. Le Transbordeur 28.06) to Freya Whitfield (Wasserman); awaiting Box e-sign link for LN countersignature (thread 19eb66dd). See [[2026-06-26-chambord]].
 
 ## Advance (tech, hospitality, production, day sheet, contacts)
 - 8 pax band+crew, hotels each night, no tour bus. Some local running around in Lyon on show day.
@@ -34,6 +35,7 @@ updated: 2026-06-16
 - [ ] CONFIRM FR immigration/work-permit status with Thibaut Lagarde (Chambord + Lyon).
 
 ## Sources (Gmail thread ids + last seen)
+- 19eb66dd7a30e593 — Artist & Production Contracts - Paris/Chambord/Villeurbanne (signed contracts returned 06-16) — 2026-06-16
 - 19eb08f0496fdf89 — bbno$ @ Le Transbordeur, Lyon - June 28 | Advance (Cyril sent tech specs; Davon replied 06-16 — carrying backline, need LED wall, Dan to confirm size) — 2026-06-16
 - 19e5b66866b5fc11 — RIDERS - BBNO$ Chambord (rider also covers Le Transbordeur; LN FR advance requested) — 2026-06-09
 - 19e977828eed1ffd — Europe Bus - Sprinter + driver, France 26–29 Jun — 2026-06-05

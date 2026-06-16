@@ -1,5 +1,12 @@
 # UNFILED — ops items not matched to a dated show file
 
+## 2026-06-16
+
+### bbno$ expense/receipt batches (self-forwarded to DOS inbox)
+- 06-16 Davon forwarded himself three receipt batches from davon.l.johnson@gmail.com → d.johnson@dayofshow.net: "bbno$ airbnb receipts", "bbno$ airbnb receipts pt 2", "bbno$ receipts pt 3" (all filed under Logistics label). Expense/receipt compilation — likely feeding the UK tax-authority receipt request (DMCL, see 06-10 below) and/or general tour expense reconciliation. No reply owed; informational.
+- Open: [ ] None on Davon; ensure these land in the receipts tracker / DMCL package if relevant.
+- Sources: 19ecf51e8fa51050 / 19ecf6051e97952f / 19ecf643cdf65535 — bbno$ (airbnb) receipts pt 1–3 — 2026-06-16
+
 ## 2026-06-15
 
 ### Lollapalooza (Chicago, Aug) — crew hotel rooms
