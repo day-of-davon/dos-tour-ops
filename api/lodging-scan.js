@@ -92,6 +92,9 @@ function buildLodgingQueryGroups(after, before) {
     `"promoter accommodation" OR "artist accommodation" (hotel OR inn OR confirmation) ${W}`,
     // Short-term rentals — Airbnb/VRBO emails don't use hotel/check-in language, so
     // the subject sweeps above miss them. Match by sender and by their own subjects.
+    // automated@airbnb.com is Airbnb's transactional sender (confirmations, itineraries,
+    // reminders, receipts); sweep it with a light filter so wording variations still land.
+    `from:automated@airbnb.com (reservation OR confirmed OR itinerary OR trip OR check-in OR booking OR receipt OR reminder) ${W}`,
     `(from:airbnb.com OR from:vrbo.com OR from:homeaway.com) (reservation OR confirmed OR itinerary OR "your trip" OR booking OR "reservation reminder") ${W}`,
     `subject:(airbnb OR vrbo OR "entire home" OR "entire place" OR "your trip to") (reservation OR confirmed OR itinerary OR booking) ${W}`,
   ];
