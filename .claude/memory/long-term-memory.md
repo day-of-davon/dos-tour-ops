@@ -54,6 +54,14 @@
 
 - [2026-06-06 05:00 UTC] https://supabase.com/changelog — Supabase email template customization disabled for free-tier projects using default SMTP effective June 3, 2026; existing pre-June-3 free projects are grandfathered; paid plans (Pro+) unaffected; workaround is configuring custom SMTP (Resend, Postmark, SES) to restore customization — low direct impact (dos-platform targets Pro plan), but any free-tier dev/test Supabase projects created after June 3 will send default Supabase-branded auth emails; plan for custom SMTP in local dev environments.
 
+- [2026-06-05 04:00 UTC] https://www.cnbc.com/2026/06/04/database-startup-supabase-raises-500-million-10point5-billion-valuation.html — Supabase raised $500M Series F at $10.5B valuation (June 4, 2026); CONTRADICTS/EXTENDS 2026-04-21 memory entry ($5B Oct 2025 Series E); 250,000+ customers, Supabase for Platforms at 370% customer growth in 6 months — infrastructure dependency risk on Supabase further reduced; confirms safe long-term bet for both v7 and dos-platform.
+
+- [2026-06-05 04:00 UTC] https://www.pymnts.com/news/investment-tracker/2026/supabase-raises-500-million-dollars-ai-agents-spark-database-explosion/ — Supabase Passkeys beta released May 28, 2026: passwordless, phishing-resistant WebAuthn credential for Supabase Auth — not in any prior memory entry; relevant for dos-platform Phase 9 enterprise auth where passwordless login is increasingly a procurement requirement.
+
+- [2026-06-05 04:00 UTC] https://www.softwareadvice.com/festival-management/ — Eventeny: event and festival management platform combining ticketing, vendor/exhibitor booth management, event registration, and attendee comms in one system; supporting multi-event management — NEW competitor not in CLAUDE.md or prior memory; limited advancing/ROS overlap with DOS moat but covers festival logistics; monitor for feature expansion into artist workflow.
+
+- [2026-06-05 04:00 UTC] https://www.softwareadvice.com/festival-management/ — Eventival: specialized festival management software with scheduling, ticketing, and attendee engagement tools; appearing in multiple 2026 best-of festival software lists — NEW competitor not in CLAUDE.md or prior memory; low public detail; add to monitor list alongside Pollen and YourTempo.
+
 ## promoted
 
 <!-- entries graduate here after being actioned or built against -->
