@@ -6501,6 +6501,7 @@ const LEDGER_EDITABLE={
   event:new Set(["date","desc","amount","currency","status","ref","bookedDate","paidDate"]),
   payout:new Set(["payee","amount","currency","status","ref","bookedDate","paidDate"]),
   ledgerEntry:new Set(["date","desc","payee","amount","currency","ref","bookedDate","paidDate"]),
+  lodgingHotel:new Set(["amount","currency"]),
   flightExpense:new Set(["desc","amount","currency","ref","bookedDate","paidDate"]),
   legacySettlement:new Set(["amount","ref"]),
 };
@@ -6510,7 +6511,7 @@ const LEDGER_EDITABLE={
 const EXPENSE_CATS=new Set(["Hotel","Transport","Ground","Rideshare","Meals","Equipment","Production","Venue","Merch","Other"]);
 
 function FinLedger(){
-  const{shows,finance,flights,uFin,uFlight,setUploadOpen,tourStart,tourEnd}=useContext(Ctx);
+  const{shows,finance,flights,lodging,uLodging,uFin,uFlight,setUploadOpen,tourStart,tourEnd}=useContext(Ctx);
   const[filterCat,setFilterCat]=useState("all");
   const[filterCur,setFilterCur]=useState("all");
   const[sortCol,setSortCol]=useState("date");
@@ -6594,6 +6595,9 @@ function FinLedger(){
       });
       (fin.ledgerEntries||[]).forEach(le=>{
         if(!le.amount&&le.amount!==0)return;
+        // Hotels are derived live from `lodging` below; skip their snapshot entries
+        // so manually-added/edited hotels aren't missed and costs never double-count.
+        if(le.source==="lodging"||le.hotelId)return;
         const cat=EXPENSE_CATS.has(le.category)?le.category:"Hotel";
         out.push({id:le.id||`le_${date}_${Math.random()}`,date:le.date||date,show:showLabel,cat,desc:le.description||"",payee:le.vendor||"—",amount:parseFloat(le.amount||0),currency:le.currency||"USD",status:"confirmed",ref:le.source||"",payMethod:le.payMethod||"",bookedDate:le.bookedDate||le.checkIn||"",paidDate:le.paidDate||"",receiptPath:le.receiptPath||"",_src:{type:"ledgerEntry",date,srcId:le.id}});
       });
@@ -6613,6 +6617,18 @@ function FinLedger(){
       const show=shows[showDate];
       const showLabel=show?`${show.city||""} — ${show.venue||""}`.replace(/^ — |—\s*$/,"").trim():f.depDate||"";
       out.push({id:f.id,date:f.depDate||"",show:showLabel,cat:"Flight",desc:`${f.flightNo||f.carrier||"Flight"} · ${f.fromCity||f.from||""} → ${f.toCity||f.to||""}`,payee:(f.pax||[]).join(", ")||"—",amount:f.cost!=null?parseFloat(f.cost):null,currency:f.currency||"USD",status:"confirmed",ref:f.carrier||f.flightNo||"",payMethod:f.payMethod||"",bookedDate:f.bookedDate||"",paidDate:f.paidDate||"",receiptPath:f.receiptPath||"",_src:{type:"confirmedFlight",date:f.depDate||"",srcId:f.id}});
+    });
+    // Hotels: derive every lodging expense directly from live `lodging` state so
+    // manually-added or later-edited hotels appear (the snapshot ledgerEntries miss
+    // those). Effective cost = booking cost, else sum of per-room costs.
+    Object.values(lodging||{}).forEach(h=>{
+      const roomSum=(h.rooms||[]).reduce((s,r)=>s+(parseFloat(r.cost)||0),0);
+      const cost=(h.cost!=null&&!isNaN(parseFloat(h.cost)))?parseFloat(h.cost):roomSum;
+      if(!cost)return;
+      const date=h.checkIn||"";
+      const show=shows[date];
+      const showLabel=show?`${show.city||""} — ${show.venue||""}`.replace(/^ — |—\s*$/,"").trim():(date?fD(date):"—");
+      out.push({id:`lodging_${h.id}`,date,show:showLabel,cat:"Hotel",desc:h.checkOut?`${h.checkIn}–${h.checkOut} · ${h.name||"Hotel"}`:(h.name||"Hotel"),payee:h.name||"—",amount:cost,currency:h.currency||"USD",status:h.status==="confirmed"?"confirmed":"pending",ref:"lodging",payMethod:h.payMethod||"",bookedDate:h.checkIn||"",paidDate:"",receiptPath:h.receiptPath||"",_src:{type:"lodgingHotel",date,srcId:h.id}});
     });
     // Deduplicate: id first, then per-category content hash (handles same entity
     // arriving from multiple sources with different synthetic ids).
@@ -6637,7 +6653,7 @@ function FinLedger(){
       if(k){if(seenKeys.has(k))return false;seenKeys.add(k);}
       return true;
     });
-  },[finance,flights,shows]);
+  },[finance,flights,shows,lodging]);
 
   const commit=()=>{
     if(!ec)return;
@@ -6666,6 +6682,10 @@ function FinLedger(){
       const fin=finance[date]||{};
       const FK={desc:"label",ref:"carrier"};
       uFin(date,{flightExpenses:(fin.flightExpenses||[]).map(fe=>fe.flightId===srcId?{...fe,[FK[ec.field]||ec.field]:ec.field==="amount"?num:val}:fe)});
+    }else if(type==="lodgingHotel"){
+      const h=lodging[srcId];if(!h){setEc(null);return;}
+      const key=ec.field==="amount"?"cost":ec.field; // amount→cost, currency→currency
+      uLodging(srcId,{...h,[key]:ec.field==="amount"?num:val});
     }else if(type==="legacySettlement"){
       const FK={amount:"settlementAmount",ref:"wireRef",paidDate:"wireDate"};
       const fk=FK[ec.field];
