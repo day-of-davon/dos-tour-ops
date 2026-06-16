@@ -12,7 +12,9 @@ const {
 const {
   collectThreadAttachments, dedupFolios,
   fetchAttachmentB64, attachmentFingerprint,
+  collectThreadEmlAttachments,
 } = require("./lib/attachments");
+const { extractEmlText } = require("./lib/eml");
 const { storeReceipt } = require("./lib/receiptStore");
 const { buildTourContextBlock } = require("./lib/tourContext");
 const { buildSynonymBlock, buildConfidenceRubric, buildStopwordRule, validateCommon } = require("./lib/parsePrimitives");
@@ -21,6 +23,11 @@ const { buildSynonymBlock, buildConfidenceRubric, buildStopwordRule, validateCom
 const PDF_MAX_PER_THREAD = 2;
 const PDF_MAX_PER_SCAN   = 20;
 const PDF_MAX_BYTES      = 5 * 1024 * 1024;
+
+// Forwarded-email (.eml) attachment caps.
+const EML_MAX_PER_THREAD = 2;
+const EML_MAX_PER_SCAN   = 15;
+const EML_MAX_BYTES      = 5 * 1024 * 1024;
 
 function extractHeaders(thread) {
   const last = thread.messages?.[thread.messages.length - 1];
@@ -46,11 +53,17 @@ function extractHeaders(thread) {
     console.log(`[lodging] folio_dedup_dropped tid=${thread.id}: ${droppedAttachments.map(d => d.filename).join(", ")}`);
   }
   const oversized = allAttachments.filter(a => a.size > PDF_MAX_BYTES).map(a => ({ filename: a.filename, size: a.size }));
+  // Forwarded .eml attachments (e.g. Airbnb confirmations attached as a file).
+  const emlAttachments = collectThreadEmlAttachments(thread)
+    .filter(a => a.size <= EML_MAX_BYTES)
+    .slice(0, EML_MAX_PER_THREAD);
   return {
     id: thread.id, subject: get("Subject"), from: get("From"), date: get("Date"),
     body, lastMsgMs, footerStripSaved,
     attachments,
-    attachmentFingerprints: attachmentFingerprint(attachments),
+    emlAttachments,
+    // Fold .eml into the fingerprint so a thread that gains one re-parses.
+    attachmentFingerprints: attachmentFingerprint([...attachments, ...emlAttachments]),
     droppedAttachments,
     oversizedAttachments: oversized,
   };
@@ -192,6 +205,29 @@ module.exports = async function handler(req, res) {
     for (const o of t.oversizedAttachments || []) errors.push({ kind: "pdf_oversized", tid: t.id, filename: o.filename, size: o.size });
   }
   console.log(`[lodging-scan] runId=${runId} threads=${threads.length} cached=${threads.length - fresh.length} fresh=${fresh.length}`);
+
+  // Inline forwarded .eml attachments (e.g. Airbnb confirmations attached as a
+  // file) into the thread body so the parser reads them. Fresh threads only; bounded.
+  let emlScanned = 0;
+  for (const t of fresh) {
+    if (!t.emlAttachments?.length || emlScanned >= EML_MAX_PER_SCAN) continue;
+    for (const a of t.emlAttachments) {
+      if (emlScanned >= EML_MAX_PER_SCAN) break;
+      const b64 = await fetchAttachmentB64(googleToken, a.messageId, a.attachmentId);
+      if (!b64) { errors.push({ kind: "attachment_fetch_failed", tid: t.id, filename: a.filename }); continue; }
+      emlScanned++;
+      try {
+        const raw = Buffer.from(b64, "base64").toString("utf8");
+        const { subject, text } = extractEmlText(raw);
+        if (text) {
+          t.body = `${t.body || ""}\n\n--- Attached email: ${a.filename} ---\nSubject: ${subject || ""}\n${text}`.slice(0, 12000);
+          console.log(`[lodging-scan] inlined eml tid=${t.id} file=${a.filename} chars=${text.length}`);
+        }
+      } catch (e) {
+        errors.push({ kind: "eml_parse_failed", tid: t.id, filename: a.filename, detail: (e.message || "").slice(0, 200) });
+      }
+    }
+  }
 
   let inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheCreationTokens = 0;
   let attachmentsScanned = 0;
