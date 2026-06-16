@@ -96,7 +96,9 @@ function buildLodgingQueryGroups(after, before) {
     // reminders, receipts); sweep it with a light filter so wording variations still land.
     `from:automated@airbnb.com (reservation OR confirmed OR itinerary OR trip OR check-in OR booking OR receipt OR reminder) ${W}`,
     `(from:airbnb.com OR from:vrbo.com OR from:homeaway.com) (reservation OR confirmed OR itinerary OR "your trip" OR booking OR "reservation reminder") ${W}`,
-    `subject:(airbnb OR vrbo OR "entire home" OR "entire place" OR "your trip to") (reservation OR confirmed OR itinerary OR booking) ${W}`,
+    // Any email with "airbnb" in the subject — high recall; the parser drops non-stays.
+    `subject:airbnb ${W}`,
+    `subject:(vrbo OR "entire home" OR "entire place" OR "your trip to") (reservation OR confirmed OR itinerary OR booking) ${W}`,
   ];
   const low = [
     // Hotel brand name sweep — includes loyalty program names (Bonvoy) and
