@@ -3,7 +3,7 @@ event: Le Transbordeur, Villeurbanne (Lyon), France
 date: 2026-06-28
 event_id: TBD
 stage: Travel
-updated: 2026-06-10
+updated: 2026-06-15
 ---
 # Le Transbordeur — 2026-06-28
 
@@ -18,7 +18,7 @@ updated: 2026-06-10
 - 06-10 Cyril replied with venue tech specs (attached). Cyril notes: **backline list not found in the rider** — asks Davon to send so he can get a quote. **No LED wall at venue**; if needed, Cyril will source one.
 
 ## Travel / Logistics (flights, ground, hotels, visa/immigration)
-- Covered by same 4-day Sprinter RFQ as Chambord (26–29 Jun). Lyon hotel night 27th; drop 29th in Lyon or Paris depending on price. Quotes pending from Europe Bus / French Driver / NP Sprinters.
+- Covered by same 4-day Sprinter RFQ as Chambord (26–29 Jun). Lyon hotel night 27th; drop 29th in Lyon or Paris depending on price. 06-15: Davon forwarded French Driver €8250 TTC quote to mgmt/DMCL to confirm and sent Europe Bus the itinerary for a competing quote (see [[2026-06-26-chambord]] travel). Decision leaning French Driver.
 - Billing entity: bbno$ Shows Inc., Vancouver BC.
 - IMMIGRATION (CRITICAL): 06-10 Davon flagged FR work-permit paperwork for Chambord + Lyon still outstanding with Thibaut Lagarde; asked LN FR to confirm status. Standing watch item (Villeurbanne ~Jun 28). ~18 days out.
 

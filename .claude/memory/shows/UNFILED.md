@@ -1,5 +1,23 @@
 # UNFILED — ops items not matched to a dated show file
 
+## 2026-06-15
+
+### Lollapalooza (Chicago, Aug) — crew hotel rooms
+- 06-12 Maya Partha (THE TEAM) re-forwarded the Lolla 2026 hotel block info (links may have expired after the May 26 cutoff); CC Sandro Lipari + Sam Alavi. Sam: already spent ~$5K on a non-refundable Airbnb. **Sandro to Davon: "We should try to see if we can get rooms for crew still, Davon can you please reach out asap?"** Direct ask to Davon, time-sensitive (block may be closed). Separate from the Lolla special-guest passes item (06-08 below).
+- 06-15 DRAFT created (reply to internal thread): will chase the room block today; asked for final crew headcount + nights.
+- Open: [ ] Chase Lolla hotel block for crew rooms; need crew count + check-in/out dates. Block likely past May 26 cutoff — may need to overflow to Airbnb like Sam.
+- Source: 19d6910a7069e6d8 — IMPORTANT: Lollapalooza Chicago 2026 Hotels (Sandro asks Davon to secure crew rooms) — 2026-06-15
+
+### WMF / Wakaan Music Festival 2026 (Mulberry Mtn, AR; Sept 28–Oct 4) — COI requirements
+- 06-15 Davon (CC Olivia) emailed Wakaan (festivaladmin@wakaan.com) + Cara (cara@calfinancialgroup.com) to confirm DOS's COI requirements against Wakaan's Vendor Payment Procurement Checklist, "so our certificates are right the first time." Proactive; awaiting Wakaan/Cara confirmation of required limits/additional insureds. Ties to the company insurance gap below and to the standing Wakaan 2026 engagement (proposal under Wakaan review; GL done via Next Insurance, WC still the open gap). Gmail labels "Wakaan" / "Wakaan/Advance" exist.
+- Open: [ ] Get Wakaan COI spec back (limits, additional insured wording, deadline); issue certificates via broker. Watch for festivaladmin/Cara reply.
+- Source: 19ecaa78db082d12 — Procurement - Day of Show, LLC - COI requirement confirmation (WMF 2026) — 2026-06-15
+
+### Elements Festival 2026 — performer transportation (DOS performer-ops, non-bbno$)
+- 06-14 performers@elementsfest.us asked the team (To: Nick Coalition, Davon, Olivia, advance@) for the 2026 transport request form; ~19 people need pickup/transport. 06-14 Nick (nick@coalitione.com / Cerene) replied "Minus Davon and Olivia, will be in touch soon" — i.e. DOS/Davon+Olivia excluded from this transport thread. Appears to be a separate DOS engagement (Elements performer ops via Coalition), not a bbno$ date. Gmail labels "Elements" / "Elements/Local" exist. No action owed by Davon (Nick handling).
+- Open: [ ] None on Davon; monitor if DOS is re-looped.
+- Source: 19ec7bba37b6cdf3 — 2026 Performer Transportation Requests (Elements) — 2026-06-14
+
 ## 2026-06-10
 
 ### DMCL — unknown charges on Alex's credit cards (Partners On Booking + Airbnbs)
@@ -20,8 +38,9 @@
 - Davon's estimate (05-28): flights party of 9, multi-leg HU→CY→AT→LT→LV→NO ~$18k-25k; hotels 8 nights x 9 rooms ~$11k-15k; ground across CY/LT/LV ~$3k-4.5k. Total FM-relevant ~$32k-44k USD. Suggested FM cap $50k (hard floor $45k).
 - 06-09 Freya: promoter legal advises only ~1/3 of costs apply to one show, and all 3 cancelling by Force Majeure is unlikely. ASK: "Will you be getting cancellation insurance for your costs? If so it's not worth pushing the promoter to increase the cap."
 - 06-10 DRAFT created: agree with 1/3 read, don't push the cap; we're arranging cancellation/non-appearance cover via DMCL broker ([NEEDS: confirm broker can bind before Aug 19 + sum insured]). Ties to the company insurance gap below.
-- Open: [ ] Confirm cancellation cover is being bound (DMCL broker) for the Aug dates, then send the reply. [ ] Confirm StayLive merch contact question (Audrey Burnage / Allotment handling official merch?).
-- Sources: 19e692d06ed55f46 — Travel & Accommodation Costs - Cyprus/Lithuania/Latvia (Freya asks re cancellation insurance; draft sent) — 2026-06-10; 19e4b23785dd019e — Advancing/Rider - Lithuania, Latvia & Cyprus (StayLive) — 2026-05-29
+- **06-11 Freya followed up again** ("Following up here, will you be getting cancellation insurance for your costs?"). Reply now owed (>4 days). The 06-10 draft is still unsent, blocked on confirming the DMCL broker can bind. No new draft created (existing draft in thread). Send once broker status is known.
+- Open: [ ] Confirm cancellation cover is being bound (DMCL broker) for the Aug dates, then SEND the existing draft (Freya waiting since 06-11). [ ] Confirm StayLive merch contact question (Audrey Burnage / Allotment handling official merch?).
+- Sources: 19e692d06ed55f46 — Travel & Accommodation Costs - Cyprus/Lithuania/Latvia (Freya 2nd follow-up 06-11; draft still unsent) — 2026-06-11; 19e4b23785dd019e — Advancing/Rider - Lithuania, Latvia & Cyprus (StayLive) — 2026-05-29
 
 ## 2026-06-08
 
