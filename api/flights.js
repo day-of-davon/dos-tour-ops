@@ -12,7 +12,7 @@ const {
 const {
   collectThreadAttachments, dedupFolios,
   fetchAttachmentB64, attachmentFingerprint,
-  emlAttachmentsFor, inlineThreadEml,
+  emlAttachmentsFor, fetchEmlTexts,
 } = require("./lib/attachments");
 const { storeReceipt } = require("./lib/receiptStore");
 const { TOUR_CONTEXT, buildTourContextBlock, crewDisplayList } = require("./lib/tourContext");
@@ -27,6 +27,11 @@ const {
 const PDF_MAX_PER_THREAD = 2;
 const PDF_MAX_PER_SCAN   = 20;
 const PDF_MAX_BYTES      = 5 * 1024 * 1024;
+
+// Forwarded-email (.eml) per-scan fetch cap. Bundle emails attach many receipts;
+// each is parsed individually so the cap is generous.
+const EML_MAX_PER_SCAN = 30;
+const EML_PARSE_CHUNK  = 4;
 const SCAN_PDFS = process.env.SCAN_PDFS_FLIGHTS === "1";
 
 // Map a sender address/domain to a carrier label. Used for telemetry
@@ -679,11 +684,6 @@ module.exports = async function handler(req, res) {
   }
   console.log(`[flights] cache: hit=${threads.length - freshThreads.length} fresh=${freshThreads.length} runId=${runId}`);
 
-  // Inline forwarded .eml attachments into the body so JSON-LD/Claude parsing reads them.
-  const emlBudget = { scanned: 0 };
-  for (const t of freshThreads) {
-    if (t.emlAttachments?.length) await inlineThreadEml(googleToken, t, emlBudget, { errors: runErrors });
-  }
 
   // ── JSON-LD fast path ───────────────────────────────────────────────────────
   // Major carriers (UA, AA, DL, LH, BA, AF, KLM, Iberia) emit schema.org
@@ -1162,6 +1162,26 @@ Return this exact JSON:
       console.log(`[flights] pdf tid=${t.id} pdfs=${docBlocks.length} rows=${rows.length}`);
     } catch (e) {
       runErrors.push({ kind: "anthropic_error", phase: "pdf_thread", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+    }
+  }
+
+  // ── Forwarded .eml receipts ────────────────────────────────────────────────
+  // Bundle emails attach many receipts (e.g. a dozen Expedia itineraries) as .eml
+  // files. Parse each as its own email (chunked), attributing to the parent thread.
+  const emlBudget = { scanned: 0 };
+  for (const t of freshThreads) {
+    if (!t.emlAttachments?.length) continue;
+    const texts = await fetchEmlTexts(googleToken, t, emlBudget, { maxPerScan: EML_MAX_PER_SCAN });
+    for (let i = 0; i < texts.length; i += EML_PARSE_CHUNK) {
+      const batch = texts.slice(i, i + EML_PARSE_CHUNK)
+        .map(e => ({ id: t.id, subject: e.subject, from: t.from, date: t.date, body: e.text }));
+      try {
+        const flights = await parseAndVerifyBatch(batch, 0);
+        for (const f of flights) { f.tid = f.tid || t.id; f.source = f.source || "claude_eml"; claudeFlights.push(f); }
+        console.log(`[flights] eml-batch tid=${t.id} emls=${batch.length} flights=${flights.length}`);
+      } catch (e) {
+        runErrors.push({ kind: "anthropic_error", phase: "eml_batch", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+      }
     }
   }
 

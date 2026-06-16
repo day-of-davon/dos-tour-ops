@@ -80,10 +80,33 @@ const EML_MAX_BYTES = 5 * 1024 * 1024;
 
 // Size-filtered, capped list of a thread's .eml attachments. Scanners stash this
 // on the thread (as `emlAttachments`) and fold it into the cache fingerprint.
-function emlAttachmentsFor(thread, { maxPerThread = 2 } = {}) {
+// Cap is high to support "receipt bundle" emails that attach many .eml files;
+// the actual fetch/parse is bounded per-scan by the caller's budget.
+function emlAttachmentsFor(thread, { maxPerThread = 40 } = {}) {
   return collectThreadEmlAttachments(thread)
     .filter(a => a.size <= EML_MAX_BYTES)
     .slice(0, maxPerThread);
+}
+
+// Fetch + extract text from a thread's .eml attachments. Returns
+// [{ filename, subject, text }] for extraction scanners that parse each receipt
+// separately (vs. inlineThreadEml, which concatenates into one field for
+// classifiers). `budget` = { scanned } enforces the per-scan cap. Best-effort.
+async function fetchEmlTexts(token, thread, budget, { maxPerScan = 30, bodyCap = 4000 } = {}) {
+  const { extractEmlText } = require("./eml");
+  const out = [];
+  for (const a of thread?.emlAttachments || []) {
+    if (budget.scanned >= maxPerScan) break;
+    const b64 = await fetchAttachmentB64(token, a.messageId, a.attachmentId);
+    if (!b64) continue;
+    budget.scanned++;
+    try {
+      const raw = Buffer.from(b64, "base64").toString("utf8");
+      const { subject, text } = extractEmlText(raw, bodyCap);
+      if (text) out.push({ filename: a.filename, subject, text });
+    } catch { /* best-effort */ }
+  }
+  return out;
 }
 
 // Fetch a thread's .eml attachments, extract their text (see api/lib/eml.js), and
@@ -184,6 +207,7 @@ module.exports = {
   collectThreadEmlAttachments,
   emlAttachmentsFor,
   inlineThreadEml,
+  fetchEmlTexts,
   normalizeFolioKey,
   dedupFolios,
   fetchAttachmentB64,
