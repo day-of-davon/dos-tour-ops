@@ -3,7 +3,7 @@ import { Ctx } from "../../context/DosContext";
 import { MN } from "../../lib/domain-constants";
 import { supabase } from "../../lib/supabase";
 import { T } from "../../styles/tokens";
-import { DOC_TYPE_META } from "../../lib/files";
+import { DOC_TYPE_META, arrayBufferToBase64 } from "../../lib/files";
 
 export function FileUploadModal({onClose}){
   const{uFin,uFlight,uShow,uProd,setSel,setTab,sel,eventKey,aC,shows,flights,finance}=useContext(Ctx);
@@ -34,7 +34,7 @@ export function FileUploadModal({onClose}){
       const{data:{session}}=await supabase.auth.getSession();
       if(!session){setError("No session.");setParsing(false);return;}
       const buf=await f.arrayBuffer();
-      const b64=btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const b64=arrayBufferToBase64(buf);
       const resp=await fetch("/api/parse-doc",{
         method:"POST",
         headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},

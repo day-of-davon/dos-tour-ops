@@ -2,6 +2,7 @@ import { useCallback, useContext, useMemo, useRef, useState } from "react";
 import { Ctx } from "../../context/DosContext";
 import { MN, UI } from "../../lib/domain-constants";
 import { supabase } from "../../lib/supabase";
+import { arrayBufferToBase64 } from "../../lib/files";
 import { T } from "../../styles/tokens";
 import { VenueBrief } from "../lodging/VenueBrief";
 import { DESIGN_RIG, MANIFEST_SEED, POS_STYLES, PROD_DEPTS, SEV_STYLES, VENUE_GRID, checkRigVsVenue } from "../../lib/production";
@@ -32,7 +33,7 @@ export function ProdTab(){
       const{data:{session}}=await supabase.auth.getSession();
       if(!session){setUploadMsg("No session");return;}
       const buf=await file.arrayBuffer();
-      const b64=btoa(String.fromCharCode(...new Uint8Array(buf)));
+      const b64=arrayBufferToBase64(buf);
       const resp=await fetch("/api/production",{
         method:"POST",
         headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},
