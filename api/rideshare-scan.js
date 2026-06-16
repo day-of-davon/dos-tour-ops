@@ -14,7 +14,7 @@ const {
 const {
   collectThreadAttachments, dedupFolios,
   fetchAttachmentB64, attachmentFingerprint,
-  emlAttachmentsFor, inlineThreadEml,
+  emlAttachmentsFor, fetchEmlTexts,
 } = require("./lib/attachments");
 const { buildTourContextBlock } = require("./lib/tourContext");
 
@@ -22,6 +22,11 @@ const { buildTourContextBlock } = require("./lib/tourContext");
 const PDF_MAX_PER_THREAD = 2;
 const PDF_MAX_PER_SCAN   = 12;
 const PDF_MAX_BYTES      = 5 * 1024 * 1024;
+
+// Forwarded-email (.eml) per-scan fetch cap. Bundle emails attach many receipts;
+// each is parsed individually so the cap is generous.
+const EML_MAX_PER_SCAN = 30;
+const EML_PARSE_CHUNK  = 4;
 
 // Drop food-delivery, promos, and account noise that share the rideshare senders.
 const RIDESHARE_DROP = /uber\s*eats|eats\s*order|food\s*order|grubhub|doordash|% off|promo|discount|credits?\b|rate your|how was your trip\?|sign\s*up|invite|referr|newsletter|survey|receipt is ready to rate|update your|password|security/i;
@@ -63,6 +68,8 @@ function buildRideshareQueryGroups(after, before) {
     `subject:("your ride with Lyft" OR "ride with Lyft" OR "Lyft receipt") ${W}`,
     `subject:("trip receipt" OR "ride receipt" OR "your fare" OR "trip with") ${W}`,
     `(Uber OR Lyft) subject:(receipt OR trip OR ride OR fare) ${W}`,
+    // User-curated label — Davon files travel mail (incl. forwarded ride receipts) under "Logistics".
+    `label:Logistics ${W}`,
   ];
   const low = [
     // Long-tail rideshare + taxi + chauffeur/car-service brands, one Gmail call.
@@ -154,12 +161,6 @@ module.exports = async function handler(req, res) {
     }
   }
   console.log(`[rideshare-scan] runId=${runId} threads=${threads.length} cached=${threads.length - fresh.length} fresh=${fresh.length}`);
-
-  // Inline forwarded .eml attachments into the body so the parser reads them.
-  const emlBudget = { scanned: 0 };
-  for (const t of fresh) {
-    if (t.emlAttachments?.length) await inlineThreadEml(googleToken, t, emlBudget, { errors });
-  }
 
   let inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheCreationTokens = 0;
   let attachmentsScanned = 0;
@@ -284,6 +285,35 @@ ${returnShape}`;
       }
     } catch (e) {
       errors.push({ kind: "anthropic_error", phase: "pdf_thread", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+    }
+  }
+
+  // ── Forwarded .eml receipts ────────────────────────────────────────────────
+  // Bundle emails attach many ride receipts as .eml files. Parse each separately
+  // (chunked), attributing results to the parent thread so they cache together.
+  const emlBudget = { scanned: 0 };
+  for (const t of fresh) {
+    if (!t.emlAttachments?.length) continue;
+    const texts = await fetchEmlTexts(googleToken, t, emlBudget, { maxPerScan: EML_MAX_PER_SCAN });
+    for (let i = 0; i < texts.length; i += EML_PARSE_CHUNK) {
+      const chunk = texts.slice(i, i + EML_PARSE_CHUNK);
+      const userPrompt = `Extract every rideshare/ground-transport trip from these forwarded receipt emails. Tour date range: ${tourStart} to ${tourEnd}. Skip food delivery (Uber Eats etc.), flights, and hotels.
+
+${chunk.map((e, j) => `[eml ${i + j}] tid:${t.id}
+File: ${e.filename}
+Subject: ${e.subject}
+Body: ${e.text}`).join("\n\n---\n\n")}
+
+${returnShape}`;
+      try {
+        const { text, stopReason } = await callClaude([{ type: "text", text: userPrompt }]);
+        lastStopReason = stopReason;
+        const rows = Array.isArray(extractJson(text)?.rides) ? extractJson(text).rides : [];
+        for (const r of rows) { r.tid = t.id; (perThreadResults[t.id] ||= []).push(r); }
+        console.log(`[rideshare-scan] eml-batch tid=${t.id} emls=${chunk.length} rows=${rows.length}`);
+      } catch (e) {
+        errors.push({ kind: "anthropic_error", phase: "eml_batch", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+      }
     }
   }
 
