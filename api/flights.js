@@ -12,6 +12,7 @@ const {
 const {
   collectThreadAttachments, dedupFolios,
   fetchAttachmentB64, attachmentFingerprint,
+  emlAttachmentsFor, inlineThreadEml,
 } = require("./lib/attachments");
 const { storeReceipt } = require("./lib/receiptStore");
 const { TOUR_CONTEXT, buildTourContextBlock, crewDisplayList } = require("./lib/tourContext");
@@ -179,11 +180,16 @@ function extractHeaders(thread) {
     }
   }
 
+  // Forwarded .eml attachments are parsed regardless of the PDF gate (they're just
+  // text). Fold into the fingerprint so a thread that gains one re-parses.
+  const emlAttachments = emlAttachmentsFor(thread);
+  attachmentFingerprints = attachmentFingerprint([...attachments, ...emlAttachments]);
+
   return {
     id: thread.id, subject: get("Subject"), from, date: get("Date"),
     lastMsgMs, body, htmlRaw, forwardedSender,
     carrierGuess: carrierFromSender(from),
-    attachments, attachmentFingerprints, droppedAttachments, oversizedAttachments,
+    attachments, emlAttachments, attachmentFingerprints, droppedAttachments, oversizedAttachments,
   };
 }
 
@@ -672,6 +678,12 @@ module.exports = async function handler(req, res) {
     for (const o of t.oversizedAttachments || []) runErrors.push({ kind: "pdf_oversized", tid: t.id, filename: o.filename, size: o.size });
   }
   console.log(`[flights] cache: hit=${threads.length - freshThreads.length} fresh=${freshThreads.length} runId=${runId}`);
+
+  // Inline forwarded .eml attachments into the body so JSON-LD/Claude parsing reads them.
+  const emlBudget = { scanned: 0 };
+  for (const t of freshThreads) {
+    if (t.emlAttachments?.length) await inlineThreadEml(googleToken, t, emlBudget, { errors: runErrors });
+  }
 
   // ── JSON-LD fast path ───────────────────────────────────────────────────────
   // Major carriers (UA, AA, DL, LH, BA, AF, KLM, Iberia) emit schema.org

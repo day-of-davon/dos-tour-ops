@@ -1,5 +1,6 @@
-// attachments.js — Gmail PDF attachment discovery, fetch, and folio dedup.
-// Used by scanners that feed PDFs into Claude's document content block.
+// attachments.js — Gmail PDF + .eml attachment discovery, fetch, and folio dedup.
+// Used by scanners that feed PDFs into Claude's document content block, and that
+// inline forwarded .eml attachments into the thread text they parse.
 //
 // Dedup is Marriott-folio-shaped: hotels routinely send multiple folio
 // receipts in the same thread (Folio_5526.pdf, Folio_5534.pdf, ...); only
@@ -75,6 +76,40 @@ function collectThreadEmlAttachments(thread) {
   return thread.messages.flatMap(m => walkEmlAttachments(m));
 }
 
+const EML_MAX_BYTES = 5 * 1024 * 1024;
+
+// Size-filtered, capped list of a thread's .eml attachments. Scanners stash this
+// on the thread (as `emlAttachments`) and fold it into the cache fingerprint.
+function emlAttachmentsFor(thread, { maxPerThread = 2 } = {}) {
+  return collectThreadEmlAttachments(thread)
+    .filter(a => a.size <= EML_MAX_BYTES)
+    .slice(0, maxPerThread);
+}
+
+// Fetch a thread's .eml attachments, extract their text (see api/lib/eml.js), and
+// append Subject + body to thread[bodyField] so the parser/classifier reads them.
+// Mutates the thread. `budget` = { scanned } is shared across the whole scan so the
+// per-scan cap holds. Best-effort: failures are logged to `errors`, never thrown.
+async function inlineThreadEml(token, thread, budget, { errors, bodyField = "body", maxPerScan = 15, bodyCap = 12000 } = {}) {
+  const { extractEmlText } = require("./eml"); // lazy to avoid load-order coupling
+  for (const a of thread?.emlAttachments || []) {
+    if (budget.scanned >= maxPerScan) break;
+    const b64 = await fetchAttachmentB64(token, a.messageId, a.attachmentId);
+    if (!b64) { errors?.push({ kind: "attachment_fetch_failed", tid: thread.id, filename: a.filename }); continue; }
+    budget.scanned++;
+    try {
+      const raw = Buffer.from(b64, "base64").toString("utf8");
+      const { subject, text } = extractEmlText(raw);
+      if (text) {
+        const cur = thread[bodyField] || "";
+        thread[bodyField] = `${cur}\n\n--- Attached email: ${a.filename} ---\nSubject: ${subject || ""}\n${text}`.slice(0, bodyCap);
+      }
+    } catch (e) {
+      errors?.push({ kind: "eml_parse_failed", tid: thread.id, filename: a.filename, detail: (e.message || "").slice(0, 200) });
+    }
+  }
+}
+
 // Normalize a filename into a stable "folio key" for grouping.
 // Strips extension, trailing dates, sequence numbers, copy suffixes, timestamps.
 function normalizeFolioKey(filename) {
@@ -147,6 +182,8 @@ module.exports = {
   collectThreadAttachments,
   walkEmlAttachments,
   collectThreadEmlAttachments,
+  emlAttachmentsFor,
+  inlineThreadEml,
   normalizeFolioKey,
   dedupFolios,
   fetchAttachmentB64,
