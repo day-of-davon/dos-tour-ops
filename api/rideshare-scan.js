@@ -14,6 +14,7 @@ const {
 const {
   collectThreadAttachments, dedupFolios,
   fetchAttachmentB64, attachmentFingerprint,
+  emlAttachmentsFor, inlineThreadEml,
 } = require("./lib/attachments");
 const { buildTourContextBlock } = require("./lib/tourContext");
 
@@ -37,11 +38,12 @@ function extractHeaders(thread) {
   const allAttachments = collectThreadAttachments(thread);
   const { kept } = dedupFolios(allAttachments.filter(a => a.size <= PDF_MAX_BYTES));
   const attachments = kept.slice(0, PDF_MAX_PER_THREAD);
+  const emlAttachments = emlAttachmentsFor(thread);
   return {
     id: thread.id, subject: get("Subject"), from: get("From"), date: get("Date"),
     body, lastMsgMs,
-    attachments,
-    attachmentFingerprints: attachmentFingerprint(attachments),
+    attachments, emlAttachments,
+    attachmentFingerprints: attachmentFingerprint([...attachments, ...emlAttachments]),
   };
 }
 
@@ -152,6 +154,12 @@ module.exports = async function handler(req, res) {
     }
   }
   console.log(`[rideshare-scan] runId=${runId} threads=${threads.length} cached=${threads.length - fresh.length} fresh=${fresh.length}`);
+
+  // Inline forwarded .eml attachments into the body so the parser reads them.
+  const emlBudget = { scanned: 0 };
+  for (const t of fresh) {
+    if (t.emlAttachments?.length) await inlineThreadEml(googleToken, t, emlBudget, { errors });
+  }
 
   let inputTokens = 0, outputTokens = 0, cacheReadTokens = 0, cacheCreationTokens = 0;
   let attachmentsScanned = 0;

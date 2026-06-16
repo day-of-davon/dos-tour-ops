@@ -3,7 +3,19 @@ const { authenticate } = require("./lib/auth");
 const { gmailSearch, gmailGetThread, decodeB64, extractBody, stripMarketingFooter, extractJson } = require("./lib/gmail");
 const { ANTHROPIC_URL, ANTHROPIC_HEADERS, DEFAULT_MODEL, HEAVY_MODEL } = require("./lib/anthropic");
 const { startScanRun, finishScanRun, bumpStopReason } = require("./lib/scanMemory");
+const { emlAttachmentsFor, inlineThreadEml } = require("./lib/attachments");
 const { withTimeout } = require("./lib/utils");
+
+// Inline forwarded .eml attachments into each thread's bodySnippet so the
+// classifier sees forwarded reservations/receipts. Bounded; best-effort.
+async function inlineEmlForThreads(token, threads) {
+  const budget = { scanned: 0 };
+  for (const t of threads || []) {
+    if (t.emlAttachments?.length) {
+      await inlineThreadEml(token, t, budget, { bodyField: "bodySnippet", maxPerScan: 8, bodyCap: 1600 });
+    }
+  }
+}
 const { TOUR_CONTEXT, buildTourContextBlock } = require("./lib/tourContext");
 const { buildSynonymBlock, buildStopwordRule } = require("./lib/parsePrimitives");
 
@@ -57,6 +69,7 @@ function extractHeaders(thread) {
     date: get("Date"),
     messageCount: thread.messages?.length || 1,
     bodySnippet: body,
+    emlAttachments: emlAttachmentsFor(thread),
   };
 }
 
@@ -362,6 +375,7 @@ async function handleBulkFetch(req, res, user, supabase) {
       const h = extractHeaders(t);
       return { ...h, bodySnippet: (h.bodySnippet || "").slice(0, 800) };
     });
+    await inlineEmlForThreads(googleToken, rawThreads);
   } catch (e) {
     console.error("[bulkFetch] thread fetch error:", e.message);
     return res.status(502).json({ error: e.message });
@@ -462,6 +476,7 @@ async function handleLabelScan(req, res, user, supabase) {
       const h = extractHeaders(t);
       return { ...h, bodySnippet: (h.bodySnippet || "").slice(0, 800) };
     });
+    await inlineEmlForThreads(googleToken, rawThreads);
   } catch (e) {
     console.error("[labelScan] thread fetch error:", e.message);
     return res.status(502).json({ error: `Gmail thread fetch failed: ${e.message}` });
@@ -648,6 +663,7 @@ module.exports = async function handler(req, res) {
       threads = (await Promise.all(ids.map((id) => gmailGetThread(googleToken, id).catch(() => null))))
         .filter(Boolean)
         .map(extractHeaders);
+      await inlineEmlForThreads(googleToken, threads);
     } catch (e) {
       return res.status(502).json({ error: `Gmail thread fetch failed: ${e.message}` });
     }
