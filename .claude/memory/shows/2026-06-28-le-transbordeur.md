@@ -18,9 +18,10 @@ updated: 2026-06-16
 - 06-10 Alex Applegate replied: Cyril (c.legauffey@gmail.com, CC) is again the advance contact; Cyril cannot be in Lyon on show day, a separate show-day POC to follow. Cyril mobile +33 6 21 29 17 95 (Applegate's listed cell).
 - 06-10 Cyril replied with venue tech specs (attached). Cyril notes: **backline list not found in the rider** — asks Davon to send so he can get a quote. **No LED wall at venue**; if needed, Cyril will source one.
 - 06-16 Davon REPLIED to Cyril (thread 19eb08f0): we are **carrying almost all backline** — Dan Nudelman to confirm specific needs; **we WILL need an LED wall** — Dan to confirm the size (venue has none, Cyril sources locally). Awaiting Cyril's quote once Dan sends specifics.
+- 06-16 14:04 Cyril ESCALATED directly to Dan: needs the tech needs ASAP — "busiest time of the year, difficult to find an LED wall, should not waste time." Ball is in Dan's court to send backline specifics + wall size. Davon nudge to Dan if no movement.
 
 ## Travel / Logistics (flights, ground, hotels, visa/immigration)
-- Covered by same 4-day Sprinter RFQ as Chambord (26–29 Jun). Lyon hotel night 27th; drop 29th in Lyon or Paris depending on price. 06-15: Davon forwarded French Driver €8250 TTC quote to mgmt/DMCL to confirm and sent Europe Bus the itinerary for a competing quote (see [[2026-06-26-chambord]] travel). Decision leaning French Driver.
+- Covered by same 4-day Sprinter RFQ as Chambord (26–29 Jun). Lyon hotel night 27th; drop 29th in Lyon or Paris depending on price. 06-15: Davon forwarded French Driver €8250 TTC quote to mgmt/DMCL. **06-16 REVERSED: Davon told French Driver "standby — just received a much better offer."** Europe Bus Reservation (Anthony, anthonym@europebusreservation.com) sent a Sprinter offer from Orly 06-16 (thread 19ed02ac, attachment). Decision now leaning Europe Bus; Davon to review offer + book. See [[2026-06-26-chambord]] travel.
 - Billing entity: bbno$ Shows Inc., Vancouver BC.
 - IMMIGRATION (CRITICAL): 06-10 Davon flagged FR work-permit paperwork for Chambord + Lyon still outstanding with Thibaut Lagarde; asked LN FR to confirm status. Standing watch item (Villeurbanne ~Jun 28). ~18 days out.
 
@@ -36,7 +37,8 @@ updated: 2026-06-16
 
 ## Sources (Gmail thread ids + last seen)
 - 19eb66dd7a30e593 — Artist & Production Contracts - Paris/Chambord/Villeurbanne (signed contracts returned 06-16) — 2026-06-16
-- 19eb08f0496fdf89 — bbno$ @ Le Transbordeur, Lyon - June 28 | Advance (Cyril sent tech specs; Davon replied 06-16 — carrying backline, need LED wall, Dan to confirm size) — 2026-06-16
+- 19eb08f0496fdf89 — bbno$ @ Le Transbordeur, Lyon - June 28 | Advance (Davon replied 06-16; Cyril escalated to Dan 06-16 14:04 — LED wall ASAP) — 2026-06-16
+- 19ed02ac01d9cd93 — Europe Bus Reservation "Your Bus Service Offer from Orly" (better Sprinter offer; Davon to book) — 2026-06-16
 - 19e5b66866b5fc11 — RIDERS - BBNO$ Chambord (rider also covers Le Transbordeur; LN FR advance requested) — 2026-06-09
 - 19e977828eed1ffd — Europe Bus - Sprinter + driver, France 26–29 Jun — 2026-06-05
 - 19e9774305b1734b — French Driver - Sprinter + driver, France 26–29 Jun — 2026-06-05
