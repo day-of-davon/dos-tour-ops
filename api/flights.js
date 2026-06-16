@@ -1172,9 +1172,11 @@ Return this exact JSON:
   for (const t of freshThreads) {
     if (!t.emlAttachments?.length) continue;
     const texts = await fetchEmlTexts(googleToken, t, emlBudget, { maxPerScan: EML_MAX_PER_SCAN });
-    for (let i = 0; i < texts.length; i += EML_PARSE_CHUNK) {
-      const batch = texts.slice(i, i + EML_PARSE_CHUNK)
-        .map(e => ({ id: t.id, subject: e.subject, from: t.from, date: t.date, body: e.text }));
+    const chunks = [];
+    for (let i = 0; i < texts.length; i += EML_PARSE_CHUNK) chunks.push(texts.slice(i, i + EML_PARSE_CHUNK));
+    // Parse the thread's chunks concurrently to keep multi-bundle scans in budget.
+    await Promise.all(chunks.map(async items => {
+      const batch = items.map(e => ({ id: t.id, subject: e.subject, from: t.from, date: t.date, body: e.text }));
       try {
         const flights = await parseAndVerifyBatch(batch, 0);
         for (const f of flights) { f.tid = f.tid || t.id; f.source = f.source || "claude_eml"; claudeFlights.push(f); }
@@ -1182,7 +1184,7 @@ Return this exact JSON:
       } catch (e) {
         runErrors.push({ kind: "anthropic_error", phase: "eml_batch", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
       }
-    }
+    }));
   }
 
   // Dedup BEFORE validation — a JSON-LD leg and a Claude leg for the same

@@ -94,19 +94,21 @@ function emlAttachmentsFor(thread, { maxPerThread = 40 } = {}) {
 // classifiers). `budget` = { scanned } enforces the per-scan cap. Best-effort.
 async function fetchEmlTexts(token, thread, budget, { maxPerScan = 30, bodyCap = 4000 } = {}) {
   const { extractEmlText } = require("./eml");
-  const out = [];
-  for (const a of thread?.emlAttachments || []) {
-    if (budget.scanned >= maxPerScan) break;
+  // Downloads are independent GETs — fetch the budgeted slice in parallel rather
+  // than serially (30 sequential Gmail fetches was a big chunk of the scan's time).
+  const remaining = Math.max(0, maxPerScan - budget.scanned);
+  const take = (thread?.emlAttachments || []).slice(0, remaining);
+  budget.scanned += take.length;
+  const results = await Promise.all(take.map(async a => {
     const b64 = await fetchAttachmentB64(token, a.messageId, a.attachmentId);
-    if (!b64) continue;
-    budget.scanned++;
+    if (!b64) return null;
     try {
       const raw = Buffer.from(b64, "base64").toString("utf8");
       const { subject, text } = extractEmlText(raw, bodyCap);
-      if (text) out.push({ filename: a.filename, subject, text });
-    } catch { /* best-effort */ }
-  }
-  return out;
+      return text ? { filename: a.filename, subject, text } : null;
+    } catch { return null; }
+  }));
+  return results.filter(Boolean);
 }
 
 // Fetch a thread's .eml attachments, extract their text (see api/lib/eml.js), and
