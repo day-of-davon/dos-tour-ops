@@ -8,7 +8,7 @@ Email-lifecycle show memory lives in `shows/`. See [shows/INDEX.md](shows/INDEX.
 - [shows/2026-07-31-hob-chicago.md](shows/2026-07-31-hob-chicago.md) — HOB Chicago, advance opened
 - [shows/2026-07-12-ottawa-bluesfest.md](shows/2026-07-12-ottawa-bluesfest.md) — Ottawa Bluesfest, CHARTER AT RISK (pay or drive); immigration becomes blocking if driving
 - [shows/2026-07-11-mohegan-sun.md](shows/2026-07-11-mohegan-sun.md) — Mohegan Sun, CHARTER AT RISK (Sam: cancel + drive if unpaid; confirm DMCL payment)
-- [shows/2026-07-10-feq-quebec.md](shows/2026-07-10-feq-quebec.md) — FEQ Quebec City, URGENT advance unanswered 7 wks (30d out); reply Thomas Lainesse (Bleu Feu)
+- [shows/2026-07-10-feq-quebec.md](shows/2026-07-10-feq-quebec.md) — FEQ Quebec City, URGENT advance unanswered (24d out); reply Thomas Lainesse; FEQ extranet artist-info form due (immigration/creds/ground, Dan owns); ack draft staged to Sophie Lambert
 - [shows/2026-07-01-mississauga.md](shows/2026-07-01-mississauga.md) — Mississauga (City of Mississauga), advance active (L7 specs owed)
 - [shows/2026-06-28-le-transbordeur.md](shows/2026-06-28-le-transbordeur.md) — Le Transbordeur/Lyon, Lyon advance (Cyril); Sprinter leaning French Driver €8250; FR immigration (Thibaut Lagarde)
 - [shows/2026-06-11-bonnaroo-manchester.md](shows/2026-06-11-bonnaroo-manchester.md) — Bonnaroo (Manchester TN), ground-transport decision owed; Spectrum DiGiCo (driver/credentials owed) + Julie RED Qs + Helm followspot gap
