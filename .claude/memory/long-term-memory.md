@@ -72,6 +72,10 @@
 
 - [2026-06-16 06:00 UTC] https://robotostudio.com/blog/nextjs-16-2-for-dummies — Next.js 16.2 (no breaking changes from 16.0): Turbopack now defers compilation until browser requests a route, cutting dev server cold start by ~87% vs 16.1 — minor perf note; no architecture impact on dos-platform plan; existing Next.js 16 migration notes (middleware.ts → proxy.ts, etc.) remain the priority
 
+- [2026-06-17 06:00 UTC] https://github.com/trpc/trpc/security/advisories/GHSA-pj3v-9cm8-gvj8 — tRPC 11 WebSocket DoS vulnerability (CVE-2025-43855, CVSS 8.7 HIGH): any tRPC 11.x server with WebSocket enabled and a createContext method is crashable by an unauthenticated user via malformed connectionParams; fixed in v11.1.1 — dos-platform must target @trpc/server >=11.1.1 in starter template; if DOS ever enables WebSocket transport (real-time ROS updates), this is a hard prerequisite
+- [2026-06-17 06:00 UTC] https://www.aifire.co/p/n8n-s-new-ai-workflow-builder-the-future-of-ai-automation — n8n AI Workflow Builder (beta Oct 13, 2025): natural language → production-ready workflows, Cloud-only feature, 20-150 credits/mo by plan — NOT available on self-hosted Railway deploys; DOS's current n8n on Railway (self-hosted) does not have access to this; evaluate whether any DOS automation workflows would benefit enough to justify a Cloud plan upgrade or hybrid approach
+- [2026-06-17 06:00 UTC] https://github.com/VROOM-Project/vroom/blob/master/docs/API.md — VROOM added per-vehicle max_distance constraint: triggers error if vehicle travel distance exceeds limit; aimed at EV routing but generically useful — not yet relevant to bbno$ transport (ICE vehicles), but available if DOS adds distance-budget routing to platform Phase VRP work
+
 ## promoted
 
 <!-- entries graduate here after being actioned or built against -->
