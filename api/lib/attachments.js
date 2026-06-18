@@ -1,5 +1,6 @@
-// attachments.js — Gmail PDF attachment discovery, fetch, and folio dedup.
-// Used by scanners that feed PDFs into Claude's document content block.
+// attachments.js — Gmail PDF + .eml attachment discovery, fetch, and folio dedup.
+// Used by scanners that feed PDFs into Claude's document content block, and that
+// inline forwarded .eml attachments into the thread text they parse.
 //
 // Dedup is Marriott-folio-shaped: hotels routinely send multiple folio
 // receipts in the same thread (Folio_5526.pdf, Folio_5534.pdf, ...); only
@@ -38,6 +39,100 @@ function walkAttachments(message) {
 function collectThreadAttachments(thread) {
   if (!thread?.messages) return [];
   return thread.messages.flatMap(m => walkAttachments(m));
+}
+
+// Walk a payload tree for forwarded-email (.eml / message/rfc822) attachments.
+// Reservation confirmations are sometimes forwarded as a .eml file rather than
+// inline; scanners extract their text separately (see api/lib/eml.js).
+function walkEmlAttachments(message) {
+  const out = [];
+  const messageId = message.id;
+  const internalDate = message.internalDate ? Number(message.internalDate) : 0;
+  const queue = [message.payload];
+  while (queue.length) {
+    const p = queue.shift();
+    if (!p) continue;
+    if (p.parts) queue.push(...p.parts);
+    const mime = (p.mimeType || "").toLowerCase();
+    const name = p.filename || "";
+    const isEml = mime === "message/rfc822" || /\.eml$/i.test(name);
+    if (!isEml) continue;
+    if (!p.body?.attachmentId) continue;
+    out.push({
+      messageId,
+      attachmentId: p.body.attachmentId,
+      filename: name || "message.eml",
+      mimeType: mime || "message/rfc822",
+      size: p.body.size || 0,
+      internalDate,
+    });
+  }
+  return out;
+}
+
+// Collect .eml attachments across every message in a thread.
+function collectThreadEmlAttachments(thread) {
+  if (!thread?.messages) return [];
+  return thread.messages.flatMap(m => walkEmlAttachments(m));
+}
+
+const EML_MAX_BYTES = 5 * 1024 * 1024;
+
+// Size-filtered, capped list of a thread's .eml attachments. Scanners stash this
+// on the thread (as `emlAttachments`) and fold it into the cache fingerprint.
+// Cap is high to support "receipt bundle" emails that attach many .eml files;
+// the actual fetch/parse is bounded per-scan by the caller's budget.
+function emlAttachmentsFor(thread, { maxPerThread = 40 } = {}) {
+  return collectThreadEmlAttachments(thread)
+    .filter(a => a.size <= EML_MAX_BYTES)
+    .slice(0, maxPerThread);
+}
+
+// Fetch + extract text from a thread's .eml attachments. Returns
+// [{ filename, subject, text }] for extraction scanners that parse each receipt
+// separately (vs. inlineThreadEml, which concatenates into one field for
+// classifiers). `budget` = { scanned } enforces the per-scan cap. Best-effort.
+async function fetchEmlTexts(token, thread, budget, { maxPerScan = 30, bodyCap = 4000 } = {}) {
+  const { extractEmlText } = require("./eml");
+  // Downloads are independent GETs — fetch the budgeted slice in parallel rather
+  // than serially (30 sequential Gmail fetches was a big chunk of the scan's time).
+  const remaining = Math.max(0, maxPerScan - budget.scanned);
+  const take = (thread?.emlAttachments || []).slice(0, remaining);
+  budget.scanned += take.length;
+  const results = await Promise.all(take.map(async a => {
+    const b64 = await fetchAttachmentB64(token, a.messageId, a.attachmentId);
+    if (!b64) return null;
+    try {
+      const raw = Buffer.from(b64, "base64").toString("utf8");
+      const { subject, text } = extractEmlText(raw, bodyCap);
+      return text ? { filename: a.filename, subject, text } : null;
+    } catch { return null; }
+  }));
+  return results.filter(Boolean);
+}
+
+// Fetch a thread's .eml attachments, extract their text (see api/lib/eml.js), and
+// append Subject + body to thread[bodyField] so the parser/classifier reads them.
+// Mutates the thread. `budget` = { scanned } is shared across the whole scan so the
+// per-scan cap holds. Best-effort: failures are logged to `errors`, never thrown.
+async function inlineThreadEml(token, thread, budget, { errors, bodyField = "body", maxPerScan = 15, bodyCap = 12000 } = {}) {
+  const { extractEmlText } = require("./eml"); // lazy to avoid load-order coupling
+  for (const a of thread?.emlAttachments || []) {
+    if (budget.scanned >= maxPerScan) break;
+    const b64 = await fetchAttachmentB64(token, a.messageId, a.attachmentId);
+    if (!b64) { errors?.push({ kind: "attachment_fetch_failed", tid: thread.id, filename: a.filename }); continue; }
+    budget.scanned++;
+    try {
+      const raw = Buffer.from(b64, "base64").toString("utf8");
+      const { subject, text } = extractEmlText(raw);
+      if (text) {
+        const cur = thread[bodyField] || "";
+        thread[bodyField] = `${cur}\n\n--- Attached email: ${a.filename} ---\nSubject: ${subject || ""}\n${text}`.slice(0, bodyCap);
+      }
+    } catch (e) {
+      errors?.push({ kind: "eml_parse_failed", tid: thread.id, filename: a.filename, detail: (e.message || "").slice(0, 200) });
+    }
+  }
 }
 
 // Normalize a filename into a stable "folio key" for grouping.
@@ -110,6 +205,11 @@ function attachmentFingerprint(attachments) {
 module.exports = {
   walkAttachments,
   collectThreadAttachments,
+  walkEmlAttachments,
+  collectThreadEmlAttachments,
+  emlAttachmentsFor,
+  inlineThreadEml,
+  fetchEmlTexts,
   normalizeFolioKey,
   dedupFolios,
   fetchAttachmentB64,

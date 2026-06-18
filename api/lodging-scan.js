@@ -12,7 +12,9 @@ const {
 const {
   collectThreadAttachments, dedupFolios,
   fetchAttachmentB64, attachmentFingerprint,
+  emlAttachmentsFor, fetchEmlTexts,
 } = require("./lib/attachments");
+const { storeReceipt } = require("./lib/receiptStore");
 const { buildTourContextBlock } = require("./lib/tourContext");
 const { buildSynonymBlock, buildConfidenceRubric, buildStopwordRule, validateCommon } = require("./lib/parsePrimitives");
 
@@ -20,6 +22,11 @@ const { buildSynonymBlock, buildConfidenceRubric, buildStopwordRule, validateCom
 const PDF_MAX_PER_THREAD = 2;
 const PDF_MAX_PER_SCAN   = 20;
 const PDF_MAX_BYTES      = 5 * 1024 * 1024;
+
+// Forwarded-email (.eml) per-scan fetch cap. Bundle emails can attach many
+// receipts; each is parsed individually so the cap is generous.
+const EML_MAX_PER_SCAN = 30;
+const EML_PARSE_CHUNK = 4; // .eml receipts parsed per Claude call
 
 function extractHeaders(thread) {
   const last = thread.messages?.[thread.messages.length - 1];
@@ -45,11 +52,15 @@ function extractHeaders(thread) {
     console.log(`[lodging] folio_dedup_dropped tid=${thread.id}: ${droppedAttachments.map(d => d.filename).join(", ")}`);
   }
   const oversized = allAttachments.filter(a => a.size > PDF_MAX_BYTES).map(a => ({ filename: a.filename, size: a.size }));
+  // Forwarded .eml attachments (e.g. Airbnb confirmations attached as a file).
+  const emlAttachments = emlAttachmentsFor(thread);
   return {
     id: thread.id, subject: get("Subject"), from: get("From"), date: get("Date"),
     body, lastMsgMs, footerStripSaved,
     attachments,
-    attachmentFingerprints: attachmentFingerprint(attachments),
+    emlAttachments,
+    // Fold .eml into the fingerprint so a thread that gains one re-parses.
+    attachmentFingerprints: attachmentFingerprint([...attachments, ...emlAttachments]),
     droppedAttachments,
     oversizedAttachments: oversized,
   };
@@ -83,12 +94,23 @@ function buildLodgingQueryGroups(after, before) {
     `"confirmation number" (hotel OR inn OR suite OR resort OR lodge OR check-in OR check-out) ${W}`,
     `"reservation number" (hotel OR inn OR suite OR resort OR check-in) ${W}`,
     `(check-in OR "check in") (check-out OR "check out") (hotel OR inn OR suite OR resort OR lodge) (confirmation OR booking OR reservation) ${W}`,
+    // User-curated label — Davon files travel/lodging mail under "Logistics".
+    `label:Logistics ${W}`,
     // Touring-specific
     `"room block" (confirmation OR booking OR reservation) ${W}`,
     `"room list" (hotel OR confirmation OR reservation) ${W}`,
     `"group reservation" (hotel OR inn OR resort OR lodge) ${W}`,
     `"tour accommodation" OR "band hotel" OR "crew hotel" (confirmation OR booking) ${W}`,
     `"promoter accommodation" OR "artist accommodation" (hotel OR inn OR confirmation) ${W}`,
+    // Short-term rentals — Airbnb/VRBO emails don't use hotel/check-in language, so
+    // the subject sweeps above miss them. Match by sender and by their own subjects.
+    // automated@airbnb.com is Airbnb's transactional sender (confirmations, itineraries,
+    // reminders, receipts); sweep it with a light filter so wording variations still land.
+    `from:automated@airbnb.com (reservation OR confirmed OR itinerary OR trip OR check-in OR booking OR receipt OR reminder) ${W}`,
+    `(from:airbnb.com OR from:vrbo.com OR from:homeaway.com) (reservation OR confirmed OR itinerary OR "your trip" OR booking OR "reservation reminder") ${W}`,
+    // Any email with "airbnb" in the subject — high recall; the parser drops non-stays.
+    `subject:airbnb ${W}`,
+    `subject:(vrbo OR "entire home" OR "entire place" OR "your trip to") (reservation OR confirmed OR itinerary OR booking) ${W}`,
   ];
   const low = [
     // Hotel brand name sweep — includes loyalty program names (Bonvoy) and
@@ -205,7 +227,8 @@ Rules:
 - cost: total cost as number only, no currency symbol. null if not found. When a folio PDF is attached, prefer the PDF's final total (post-tax, post-incidentals) over body estimates.
 - pax: array of guest full names. Empty array if not found
 - When a PDF is attached: trust it over the body text for cost, dates, confirmation numbers, and room type. Body text often shows the initial reservation; folios show actual charges.
-- Skip flight, car rental, or non-accommodation confirmations
+- Short-term rentals (Airbnb, VRBO, HomeAway, Vacasa) ARE accommodation — include them. Use the listing title or "Airbnb · <city/neighborhood>" as name; put the host name in notes; stars=null; roomType=the listing type if stated (e.g. "Entire home", "Private room"); confirmNo=the reservation/itinerary code; cost=the total trip price. checkIn/checkOut are the trip dates.
+- Skip flight, car rental, restaurant, experience/activity, and other non-accommodation confirmations
 - validationFlags: leave as [] — the server fills this post-parse`;
 
   const returnShape = `Return this exact JSON:
@@ -314,6 +337,7 @@ ${returnShape}`;
     // Fetch up to PDF_MAX_PER_THREAD attachments (already dedup+size-filtered).
     const docBlocks = [];
     const usedFiles = [];
+    let receiptPath = null; // first folio/receipt PDF stored as the audit-proof copy
     for (const a of t.attachments) {
       if (attachmentsScanned >= PDF_MAX_PER_SCAN) break;
       const b64 = await fetchAttachmentB64(googleToken, a.messageId, a.attachmentId);
@@ -323,6 +347,7 @@ ${returnShape}`;
         source: { type: "base64", media_type: "application/pdf", data: b64 },
       });
       usedFiles.push(a.filename);
+      if (!receiptPath) receiptPath = await storeReceipt(supabase, { b64, contentType: "application/pdf", filename: a.filename, userId: user.id });
       attachmentsScanned++;
     }
 
@@ -371,12 +396,45 @@ ${returnShape}`;
       const rows = Array.isArray(parsed?.lodgings) ? parsed.lodgings : [];
       for (const h of rows) {
         if (usedFiles.length) h.sourceAttachment = { filename: usedFiles[0] };
+        if (receiptPath) h.receiptPath = receiptPath;
         (perThreadResults[h.tid] ||= []).push(h);
       }
       console.log(`[lodging-scan] pdf tid=${t.id} pdfs=${docBlocks.length} stop=${stopReason} rows=${rows.length}`);
     } catch (e) {
       errors.push({ kind: "anthropic_error", phase: "pdf_thread", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
     }
+  }
+
+  // ── Forwarded .eml receipts ────────────────────────────────────────────────
+  // Bundle emails attach many receipts as .eml files. Parse each separately (in
+  // small chunks), attributing results to the parent thread so they cache together.
+  const emlBudget = { scanned: 0 };
+  for (const t of fresh) {
+    if (!t.emlAttachments?.length) continue;
+    const texts = await fetchEmlTexts(googleToken, t, emlBudget, { maxPerScan: EML_MAX_PER_SCAN });
+    const chunks = [];
+    for (let i = 0; i < texts.length; i += EML_PARSE_CHUNK) chunks.push({ i, items: texts.slice(i, i + EML_PARSE_CHUNK) });
+    // Parse the thread's chunks concurrently — a 30-receipt bundle is ~8 calls;
+    // running them in parallel keeps a multi-bundle scan inside the time budget.
+    await Promise.all(chunks.map(async ({ i, items }) => {
+      const userPrompt = `Extract every hotel/accommodation reservation from these forwarded receipt emails. Tour date range: ${tourStart} to ${tourEnd}. Skip flights, car rentals, rideshare, and meals.
+
+${items.map((e, j) => `[eml ${i + j}] tid:${t.id}
+File: ${e.filename}
+Subject: ${e.subject}
+Body: ${e.text}`).join("\n\n---\n\n")}
+
+${returnShape}`;
+      try {
+        const { text, stopReason } = await callClaude([{ type: "text", text: userPrompt }]);
+        lastStopReason = stopReason;
+        const rows = Array.isArray(extractJson(text)?.lodgings) ? extractJson(text).lodgings : [];
+        for (const h of rows) { h.tid = t.id; (perThreadResults[t.id] ||= []).push(h); }
+        console.log(`[lodging-scan] eml-batch tid=${t.id} emls=${items.length} rows=${rows.length}`);
+      } catch (e) {
+        errors.push({ kind: "anthropic_error", phase: "eml_batch", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+      }
+    }));
   }
 
   // Flatten + cache + enhancement log.
@@ -419,6 +477,7 @@ ${returnShape}`;
         status: "pending",
         rooms: [],
         todos: [],
+        receiptPath: h.receiptPath || "",
       };
     });
 

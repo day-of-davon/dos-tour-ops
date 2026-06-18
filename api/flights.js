@@ -12,7 +12,9 @@ const {
 const {
   collectThreadAttachments, dedupFolios,
   fetchAttachmentB64, attachmentFingerprint,
+  emlAttachmentsFor, fetchEmlTexts,
 } = require("./lib/attachments");
+const { storeReceipt } = require("./lib/receiptStore");
 const { TOUR_CONTEXT, buildTourContextBlock, crewDisplayList } = require("./lib/tourContext");
 const {
   buildSynonymBlock, buildConfidenceRubric, buildStopwordRule,
@@ -25,6 +27,11 @@ const {
 const PDF_MAX_PER_THREAD = 2;
 const PDF_MAX_PER_SCAN   = 20;
 const PDF_MAX_BYTES      = 5 * 1024 * 1024;
+
+// Forwarded-email (.eml) per-scan fetch cap. Bundle emails attach many receipts;
+// each is parsed individually so the cap is generous.
+const EML_MAX_PER_SCAN = 30;
+const EML_PARSE_CHUNK  = 4;
 const SCAN_PDFS = process.env.SCAN_PDFS_FLIGHTS === "1";
 
 // Map a sender address/domain to a carrier label. Used for telemetry
@@ -178,11 +185,16 @@ function extractHeaders(thread) {
     }
   }
 
+  // Forwarded .eml attachments are parsed regardless of the PDF gate (they're just
+  // text). Fold into the fingerprint so a thread that gains one re-parses.
+  const emlAttachments = emlAttachmentsFor(thread);
+  attachmentFingerprints = attachmentFingerprint([...attachments, ...emlAttachments]);
+
   return {
     id: thread.id, subject: get("Subject"), from, date: get("Date"),
     lastMsgMs, body, htmlRaw, forwardedSender,
     carrierGuess: carrierFromSender(from),
-    attachments, attachmentFingerprints, droppedAttachments, oversizedAttachments,
+    attachments, emlAttachments, attachmentFingerprints, droppedAttachments, oversizedAttachments,
   };
 }
 
@@ -485,7 +497,10 @@ function buildFlightQueryGroups(after) {
   const W = `after:${after}`;
   const primary = `(subject:(confirmation OR confirmed OR itinerary OR "e-ticket" OR booked OR "booking confirmation" OR "flight receipt" OR "your flight" OR "your trip" OR "your booking" OR "your stay" OR "your reservation") OR "booking reference" OR "confirmation number" OR "record locator" OR "reservation number" OR "ticket number" OR "flight receipt" OR PNR) AND (Delta OR "United Airlines" OR "American Airlines" OR Southwest OR Ryanair OR easyJet OR Emirates OR Lufthansa OR "British Airways" OR "Air France" OR KLM OR "Turkish Airlines" OR "Qatar Airways" OR Etihad OR "Singapore Airlines" OR "Cathay Pacific" OR JetBlue OR "Alaska Airlines" OR "Air Canada" OR Iberia OR Qantas OR LATAM OR ANA OR "Korean Air" OR "Japan Airlines" OR "Flight DL" OR "Flight UA" OR "Flight AA" OR "Flight WN" OR "Flight FR" OR "Flight U2" OR "Flight EK" OR "Flight LH" OR "Flight BA" OR "Flight AF" OR "Flight KL" OR "Flight TK" OR "Flight QR" OR "Flight EY" OR "Flight SQ" OR "Flight CX" OR "Flight B6" OR "Flight AS" OR "Flight AC" OR "Flight IB" OR "Flight QF" OR "Flight LA" OR "Flight NH" OR "Flight KE" OR "Flight JL" OR Marriott OR Bonvoy OR Hilton OR Hyatt OR IHG OR Sheraton OR Westin OR "Ritz-Carlton" OR "Four Seasons" OR "W Hotels" OR "Crowne Plaza" OR "Holiday Inn" OR InterContinental OR Novotel OR Sofitel OR Radisson OR "Best Western" OR Wyndham OR "Hampton Inn" OR DoubleTree OR Kimpton OR Aloft OR Andaz OR Pullman OR Booking.com OR Expedia OR Airbnb OR Hotels.com OR Vrbo OR Agoda OR Trip.com OR Priceline OR Kayak OR Hopper) -subject:(reminder OR review OR survey OR feedback OR promotion OR promotional OR deal OR sale OR newsletter OR "price drop" OR "fare alert" OR welcome OR offer OR "limited time" OR "last chance" OR earn OR points OR miles OR status OR upgrade OR "check in" OR "check-in" OR "tips for" OR "ways to") -unsubscribe -"manage preferences" ${W}`;
   const destinations = `(DUB OR Dublin OR MAN OR Manchester OR GLA OR Glasgow OR LHR OR LGW OR LTN OR STN OR LCY OR Heathrow OR Gatwick OR ZRH OR Zurich OR CGN OR Cologne OR AMS OR Amsterdam OR CDG OR ORY OR Paris OR MXP OR Milan OR LYS OR Lyon OR Villeurbanne OR PRG OR Prague OR BER OR Berlin OR BTS OR Bratislava OR WAW OR Warsaw OR BOS OR Boston OR DEN OR Denver OR YYZ OR Toronto OR Mississauga OR YOW OR Ottawa) (confirmation OR receipt OR itinerary OR "e-ticket" OR "booking reference") (flight OR airline OR airways) ${W}`;
-  return { high: [primary, destinations], low: [] };
+  // User-curated label — Davon files travel mail under "Logistics". Sweep it for
+  // flights too; the parser keeps only actual flight segments.
+  const logistics = `label:Logistics ${W}`;
+  return { high: [primary, destinations, logistics], low: [] };
 }
 
 // ── Airport → show-city map ───────────────────────────────────────────────────
@@ -668,6 +683,7 @@ module.exports = async function handler(req, res) {
     for (const o of t.oversizedAttachments || []) runErrors.push({ kind: "pdf_oversized", tid: t.id, filename: o.filename, size: o.size });
   }
   console.log(`[flights] cache: hit=${threads.length - freshThreads.length} fresh=${freshThreads.length} runId=${runId}`);
+
 
   // ── JSON-LD fast path ───────────────────────────────────────────────────────
   // Major carriers (UA, AA, DL, LH, BA, AF, KLM, Iberia) emit schema.org
@@ -1074,12 +1090,14 @@ Return this exact JSON:
 
     const docBlocks = [];
     const usedFiles = [];
+    let receiptPath = null; // first PDF stored as the audit-proof receipt copy
     for (const a of t.attachments) {
       if (attachmentsScanned >= PDF_MAX_PER_SCAN) break;
       const b64 = await fetchAttachmentB64(googleToken, a.messageId, a.attachmentId);
       if (!b64) { runErrors.push({ kind: "attachment_fetch_failed", tid: t.id, filename: a.filename }); continue; }
       docBlocks.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: b64 } });
       usedFiles.push(a.filename);
+      if (!receiptPath) receiptPath = await storeReceipt(supabase, { b64, contentType: "application/pdf", filename: a.filename, userId: user.id });
       attachmentsScanned++;
     }
 
@@ -1138,12 +1156,35 @@ Return this exact JSON:
           source: "claude_pdf",
           parseVerified: null, // PDF-backed records skip Haiku verify; PDF is authoritative
           sourceAttachment: usedFiles.length ? { filename: usedFiles[0] } : null,
+          receiptPath: receiptPath || null,
         });
       }
       console.log(`[flights] pdf tid=${t.id} pdfs=${docBlocks.length} rows=${rows.length}`);
     } catch (e) {
       runErrors.push({ kind: "anthropic_error", phase: "pdf_thread", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
     }
+  }
+
+  // ── Forwarded .eml receipts ────────────────────────────────────────────────
+  // Bundle emails attach many receipts (e.g. a dozen Expedia itineraries) as .eml
+  // files. Parse each as its own email (chunked), attributing to the parent thread.
+  const emlBudget = { scanned: 0 };
+  for (const t of freshThreads) {
+    if (!t.emlAttachments?.length) continue;
+    const texts = await fetchEmlTexts(googleToken, t, emlBudget, { maxPerScan: EML_MAX_PER_SCAN });
+    const chunks = [];
+    for (let i = 0; i < texts.length; i += EML_PARSE_CHUNK) chunks.push(texts.slice(i, i + EML_PARSE_CHUNK));
+    // Parse the thread's chunks concurrently to keep multi-bundle scans in budget.
+    await Promise.all(chunks.map(async items => {
+      const batch = items.map(e => ({ id: t.id, subject: e.subject, from: t.from, date: t.date, body: e.text }));
+      try {
+        const flights = await parseAndVerifyBatch(batch, 0);
+        for (const f of flights) { f.tid = f.tid || t.id; f.source = f.source || "claude_eml"; claudeFlights.push(f); }
+        console.log(`[flights] eml-batch tid=${t.id} emls=${batch.length} flights=${flights.length}`);
+      } catch (e) {
+        runErrors.push({ kind: "anthropic_error", phase: "eml_batch", tid: t.id, status: e.status, detail: (e.detail || "").slice(0, 300) });
+      }
+    }));
   }
 
   // Dedup BEFORE validation — a JSON-LD leg and a Claude leg for the same
