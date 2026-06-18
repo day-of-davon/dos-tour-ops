@@ -58,7 +58,7 @@ export function LodgingTab(){
     if(h.cost&&h.cost>0&&h.checkIn){
       const dateKey=h.checkIn;
       const existing=(finance[dateKey]?.ledgerEntries||[]).filter(e=>e.hotelId!==h.id);
-      uFin(dateKey,{ledgerEntries:[...existing,{id:`lodging_${h.id}`,date:dateKey,vendor:h.name||"Hotel",amount:parseFloat(h.cost),currency:h.currency||"USD",category:"Hotel",description:h.checkOut?`${h.checkIn}–${h.checkOut} · ${h.name||"Hotel"}`:h.name||"Hotel",source:"lodging",hotelId:h.id}]});
+      uFin(dateKey,{ledgerEntries:[...existing,{id:`lodging_${h.id}`,date:dateKey,vendor:h.name||"Hotel",amount:parseFloat(h.cost),currency:h.currency||"USD",category:"Hotel",description:h.checkOut?`${h.checkIn}–${h.checkOut} · ${h.name||"Hotel"}`:h.name||"Hotel",source:"lodging",hotelId:h.id,receiptPath:h.receiptPath||""}]});
     }
   };
   const importAll=()=>{pendingImport.forEach(h=>importHotel(h));};

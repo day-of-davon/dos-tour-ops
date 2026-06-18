@@ -54,7 +54,7 @@ export function FileUploadModal({onClose}){
     if(!result?.receipt)return;
     const r=result.receipt;
     const targetDate=showDateOverride||r.date||sel;
-    const entry={id:`upload_${Date.now()}`,name:r.vendor||"Unknown vendor",role:r.description||"",dept:r.category||"Other",amount:r.amount!=null?String(r.amount):"",currency:r.currency||"USD",method:"Upload",status:"pending",date:r.date||targetDate,referenceNo:r.referenceNo||"",payee:r.payee||""};
+    const entry={id:`upload_${Date.now()}`,name:r.vendor||"Unknown vendor",role:r.description||"",dept:r.category||"Other",amount:r.amount!=null?String(r.amount):"",currency:r.currency||"USD",method:"Upload",status:"pending",date:r.date||targetDate,referenceNo:r.referenceNo||"",payee:r.payee||"",kind:"expense",receiptPath:result.receiptPath||""};
     const existing=finance[targetDate]?.payouts||[];
     uFin(targetDate,{payouts:[...existing,entry]});
     setApplied(`Added to ledger for ${targetDate}`);setApplying(false);
@@ -65,7 +65,7 @@ export function FileUploadModal({onClose}){
     let count=0;
     (result.expenses).forEach((e,i)=>{
       const targetDate=e.date||sel;
-      const entry={id:`upload_${Date.now()}_${i}`,name:e.vendor||"Unknown",role:e.description||"",dept:e.category||"Other",amount:e.amount!=null?String(e.amount):"",currency:e.currency||"USD",method:"Upload",status:"pending",date:e.date||sel,payee:e.payee||""};
+      const entry={id:`upload_${Date.now()}_${i}`,name:e.vendor||"Unknown",role:e.description||"",dept:e.category||"Other",amount:e.amount!=null?String(e.amount):"",currency:e.currency||"USD",method:"Upload",status:"pending",date:e.date||sel,payee:e.payee||"",kind:"expense",receiptPath:result.receiptPath||""};
       const existing=finance[targetDate]?.payouts||[];
       uFin(targetDate,{payouts:[...existing,entry]});
       count++;
