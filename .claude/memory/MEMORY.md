@@ -2,6 +2,9 @@
 
 Email-lifecycle show memory lives in `shows/`. See [shows/INDEX.md](shows/INDEX.md) for the roster.
 
+## Project
+- [project-davon-bbno-handoff.md](project-davon-bbno-handoff.md) — 2026-06-17: Davon winding down bbno$ engagement; advances handing to Dan/Mike/Sam/Sandro — affects whether routine keeps drafting
+
 ## Show files
 - [shows/2026-08-30-ape-london.md](shows/2026-08-30-ape-london.md) — All Points East, London, advance opened
 - [shows/2026-08-29-superbloom-munich.md](shows/2026-08-29-superbloom-munich.md) — Superbloom Munich, guest day passes (pending comps)

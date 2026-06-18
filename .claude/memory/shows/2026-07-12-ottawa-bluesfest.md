@@ -3,7 +3,7 @@ event: Ottawa Bluesfest, Ottawa ON
 date: 2026-07-12
 event_id: TBD
 stage: Travel
-updated: 2026-06-15
+updated: 2026-06-17
 ---
 # Ottawa Bluesfest — 2026-07-12
 
@@ -12,6 +12,7 @@ updated: 2026-06-15
 
 ## Advance (tech, hospitality, production, day sheet, contacts)
 - Immigration coordinator: Claire Morris (cmorris@ottawabluesfest.ca) handles artist immigration for Bluesfest. Sent Canada entry process Apr 20. Davon acknowledged Apr 23 ("will get this back asap"). Claire followed up May 28 and again Jun 5 ("getting close to Festival time, let me know if my help is needed"). No substantive reply from DOS since Apr 23.
+- Hospitality: Jamie Kendall (hospitalitymanager@ottawabluesfest.ca, 647-278-0265). Sent hospitality offerings Jun 1 (Hard Rock Hotel & Casino Stage). **2026-06-17: Jamie followed up ("Following up this") — reply still owed** (thread 19e84de1). DOS reply draft staged 2026-06-16 per TOUR.md; not yet sent — do not re-draft.
 
 ## Travel / Logistics (flights, ground, hotels, visa/immigration)
 - Same KingAir350i charter as Jul 11 (STA Jets / Jared Bodner). Cross-border US→Canada leg — watch passport/immigration for the touring party (unverified this scan).
@@ -26,7 +27,9 @@ updated: 2026-06-15
 - [ ] **URGENT charter decision** (see [[2026-07-11-mohegan-sun]]): pay/finalize or cancel-and-drive. If driving, border crossing makes Claire Morris immigration filing blocking.
 - [ ] **REPLY OWED** to Claire Morris: confirm whether Bluesfest handles the Canada entry filing or our own counsel does; send party list + passports. 3rd follow-up unanswered; 37 days out.
 - [ ] Begin festival advance (Bluesfest production/hospitality).
+- [ ] **REPLY OWED to Jamie Kendall (hospitality)** — followed up 06-17; staged 06-16 draft not yet sent. May transfer to mgmt per handoff (see [[project-davon-bbno-handoff]]).
 
 ## Sources (Gmail thread ids + last seen)
 - 19e908aeaed710be — bbno$ - Private Charter July 11/12 (Sam: cancel + drive if unpaid) — 2026-06-14
 - 19dabe4d2a97717c — bbno$ - Ottawa Bluesfest Immigration Process (Claire Morris) — 2026-06-05
+- 19e84de1b63821fc — Hospitality Adv // Ottawa Bluesfest // July 12 (Jamie Kendall; offerings Jun 1, follow-up Jun 17; reply owed; staged draft unsent) — 2026-06-17

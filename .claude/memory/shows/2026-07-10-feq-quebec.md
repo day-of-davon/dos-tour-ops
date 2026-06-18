@@ -3,7 +3,7 @@ event: Festival d'été de Québec (FEQ) — Loto-Québec Stage, Quebec City
 date: 2026-07-10
 event_id: TBD
 stage: Advance
-updated: 2026-06-16
+updated: 2026-06-17
 ---
 # FEQ (Festival d'été de Québec) — 2026-07-10
 
@@ -23,6 +23,7 @@ bbno$ at Festival d'été de Québec, Loto-Québec Stage at Place George-V, Queb
 ## Travel / Logistics (flights, ground, hotels, visa/immigration)
 - Quebec City (YQB). Pairs with Mohegan Sun Jul 11 (same KingAir charter day after). Logistics TBD.
 - Canadian show — standard Canadian entry, no work permit issues expected.
+- 2026-06-17: **FEQ transportation team (Léa & Guy, Transport@bleufeu.com) intro** (thread 19ed78a5, to Davon + Dan). Festival provides free local ground in Quebec City: accommodation↔venue on show day, plus arrival/departure transfers from YQB airport or train/bus station. They request: passenger count, gear/equipment, arrival+departure airport/flight#/date/time, destination, on-site contact (name+cell). YQB departure lead: 3h intl / 2h domestic.
 
 ## Day-of (schedule/ROS, guest list, settlement prep)
 
@@ -33,7 +34,9 @@ bbno$ at Festival d'été de Québec, Loto-Québec Stage at Place George-V, Queb
 - [ ] **Complete FEQ extranet artist-info form** (login above) — drives immigration formality + credentials + ground; Dan/mgmt to fill. Send/dispatch one of the 2 staged ack drafts to Sophie Lambert (skip the duplicate).
 - [ ] Confirm show format, party size, backline, lighting/production requirements.
 - [ ] Ground, hotel (Quebec City night before or same-day fly-in from prior city TBD; festival provides no lodging).
+- [ ] **Reply to FEQ transport (Léa & Guy)** with pax count, gear, arrival/departure flights (YQB), destination, on-site contact. Blocked on confirmed flight/party info from mgmt. NOTE: Davon staged a **handoff draft 06-18 00:06Z** passing this advance to Dan/Mike/Sam/Sandro (see [[project-davon-bbno-handoff]]); thread now has 2 unsent DOS drafts (ack + handoff) — do not re-draft.
 
 ## Sources (Gmail thread ids + last seen)
 - 19eb2f615b9d6255 — RE: FEQ 2026 - July 10th - BBNO$ @ Loto-Québec (Thomas follow-up; tech rider + schedule attached in original Apr 22 email) — 2026-06-10
 - 19ed16caaff83373 — Logistics Information to be completed - bbno$ (Sophie Lambert; FEQ extranet artist-info form; immigration/credentials/ground; 2 unsent DOS ack drafts) — 2026-06-16
+- 19ed78a5956f0395 — FEQ 2026 - advance transportation - bbno$ (Léa & Guy, Transport@bleufeu.com; free local ground; needs pax/gear/flights/contact; 2 unsent DOS drafts incl. handoff) — 2026-06-17
