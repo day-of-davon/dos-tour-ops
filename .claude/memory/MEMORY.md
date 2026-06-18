@@ -6,7 +6,7 @@ Email-lifecycle show memory lives in `shows/`. See [shows/INDEX.md](shows/INDEX.
 - [project-davon-bbno-handoff.md](project-davon-bbno-handoff.md) — 2026-06-17: Davon winding down bbno$ engagement; advances handing to Dan/Mike/Sam/Sandro — affects whether routine keeps drafting
 
 ## Show files
-- [shows/2026-08-30-ape-london.md](shows/2026-08-30-ape-london.md) — All Points East, London, advance opened
+- [shows/2026-08-30-ape-london.md](shows/2026-08-30-ape-london.md) — All Points East, London, advance opened; UK working-visa PFF form due 2026-07-30
 - [shows/2026-08-29-superbloom-munich.md](shows/2026-08-29-superbloom-munich.md) — Superbloom Munich, guest day passes (pending comps)
 - [shows/2026-07-31-hob-chicago.md](shows/2026-07-31-hob-chicago.md) — HOB Chicago, advance opened
 - [shows/2026-07-12-ottawa-bluesfest.md](shows/2026-07-12-ottawa-bluesfest.md) — Ottawa Bluesfest, CHARTER AT RISK (pay or drive); immigration becomes blocking if driving
