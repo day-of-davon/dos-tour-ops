@@ -70,6 +70,19 @@
 
 - [2026-06-16 06:00 UTC] https://releasebot.io/updates/n8n — n8n added OAuth 2.0 Token Exchange (RFC 8693) support in April 2026 as a second auth mechanism alongside API keys; covers iframe embedding and delegated API access — not in prior memory; relevant if Phase 4 DOS n8n workflows need to be embedded in third-party systems with delegated credentials.
 
+
+- [2026-06-16 05:00 UTC] https://mlq.ai/news/supabase-raises-500m-series-f-at-105b-valuation-doubles-in-8-months/ — Supabase raised $500M Series F at $10.5B valuation (led by GIC, June 2026), doubling from Series E; infrastructure dependency risk now very low, but enterprise-first trajectory may pressure free tier over time
+
+- [2026-06-16 05:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Supabase branching is now the dashboard default, no GitHub integration required; schema and policy changes can be tested on branches without Git wiring, relevant to DOS v7 and dos-platform dev workflow
+
+- [2026-06-16 05:00 UTC] https://github.com/supabase/supabase/pull/45121 — Supabase RLS Tester shipped as dashboard preview (April 2026): impersonate users, inspect row visibility, review policies in-dashboard; eliminates manual RLS debugging friction during Josh's schema audit
+
+- [2026-06-16 05:00 UTC] https://github.com/trpc/trpc/security/advisories/GHSA-pj3v-9cm8-gvj8 — CVE-2025-43855, CVSS 8.7: tRPC v11 WebSocket DoS — any unauthenticated user crashes server via invalid connectionParams when createContext is set; affects v11.0.0-11.1.0, patched in 11.1.1; dos-platform must pin @trpc/server >= 11.1.1 before enabling WebSocket subscriptions
+
+- [2026-06-16 05:00 UTC] https://tech.eu/2026/01/21/tourmanagement-bv-acquires-beatswitch-in-live-music-software-deal/ — Prior memory noted "BeatSwitch acquired Jan 2026" without naming acquirer; acquirer is Tourmanagement.com (Belgium, 400+ customers, 10K users), touring-ops advancing platform; combined entity now covers touring ops + festival management end-to-end, directly challenging DOS moat; monitor for product integration announcements
+
+- [2026-06-16 05:00 UTC] https://nextjs.org/blog/next-16 — Next.js 16 released Oct 2025; current stable is 16.2.7 (June 2026); prior memory (2026-04-21) noted v16 in RC, it is now stable; dos-platform spec references v15, evaluate upgrade to v16 before Josh scaffolding begins to avoid a mid-build major version migration
+
 ## promoted
 
 <!-- entries graduate here after being actioned or built against -->
