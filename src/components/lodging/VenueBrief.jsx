@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { MN, UI } from "../../lib/domain-constants";
 import { T } from "../../styles/tokens";
+import { supabase } from "../../lib/supabase";
+import { arrayBufferToBase64 } from "../../lib/files";
 import { VBRow } from "./VBRow";
 import { VBSection } from "./VBSection";
 import { SEV_STYLES, checkRigVsVenue } from "../../lib/production";
@@ -9,6 +11,41 @@ export function VenueBrief({vg,sel,data,upd}){
   const[newLinkLabel,setNewLinkLabel]=useState("");
   const[newLinkUrl,setNewLinkUrl]=useState("");
   const links=data.venueLinks||[];
+  const vdocs=data.venueDocs||[];
+  const fileRef=useRef(null);
+  const[uploadingDoc,setUploadingDoc]=useState(false);
+  const[uploadDocMsg,setUploadDocMsg]=useState("");
+
+  // Upload a venue tech pack / document: store it via /api/parse-doc (which
+  // persists the file and returns a receiptPath), then keep a reference on the
+  // production record for this show. View via a short-lived signed URL.
+  const uploadDoc=async file=>{
+    if(!file)return;
+    setUploadingDoc(true);setUploadDocMsg(`Uploading ${file.name}…`);
+    try{
+      const{data:{session}}=await supabase.auth.getSession();
+      if(!session){setUploadDocMsg("No session — re-login.");setUploadingDoc(false);return;}
+      const b64=arrayBufferToBase64(await file.arrayBuffer());
+      const resp=await fetch("/api/parse-doc",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({fileBase64:b64,mimeType:file.type,filename:file.name,contextDate:sel})});
+      const result=await resp.json();
+      if(!resp.ok){setUploadDocMsg(result.error||"Upload failed");setUploadingDoc(false);return;}
+      upd({venueDocs:[...vdocs,{id:`vdoc_${Date.now()}`,fileName:file.name,receiptPath:result.receiptPath||null,docType:result.docType||"DOCUMENT",uploadedAt:new Date().toISOString()}]});
+      setUploadDocMsg(result.receiptPath?`Uploaded ${file.name}`:`Parsed ${file.name} (not stored)`);
+      setTimeout(()=>setUploadDocMsg(""),4000);
+    }catch(e){setUploadDocMsg(`Error: ${e.message}`);}
+    setUploadingDoc(false);
+    if(fileRef.current)fileRef.current.value="";
+  };
+  const viewDoc=async d=>{
+    if(!d.receiptPath)return;
+    const{data:{session}}=await supabase.auth.getSession();
+    if(!session)return;
+    const resp=await fetch("/api/receipt-url",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({path:d.receiptPath})});
+    const result=await resp.json().catch(()=>({}));
+    const url=result.url||result.signedUrl;
+    if(url)window.open(url,"_blank","noopener");
+  };
+  const removeDoc=id=>upd({venueDocs:vdocs.filter(d=>d.id!==id)});
   const addLink=()=>{
     if(!newLinkLabel.trim()||!newLinkUrl.trim())return;
     const url=newLinkUrl.trim().startsWith("http")?newLinkUrl.trim():`https://${newLinkUrl.trim()}`;
@@ -19,18 +56,29 @@ export function VenueBrief({vg,sel,data,upd}){
 
   const LinkBlock=({compact})=>(
     <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:12,marginBottom:compact?0:10,textAlign:"left"}}>
-      <div style={{...UI.sectionLabel,marginBottom:8}}>Document Links</div>
-      {links.length>0&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
+      <div style={{...UI.sectionLabel,marginBottom:8}}>Documents & Links</div>
+      {(vdocs.length>0||links.length>0)&&<div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:8}}>
+        {vdocs.map(d=><div key={d.id} style={{display:"flex",alignItems:"center",gap:4,background:"var(--success-bg)",borderRadius:6,padding:"3px 8px"}}>
+          <button onClick={()=>viewDoc(d)} disabled={!d.receiptPath} title={d.receiptPath?"Open stored document":"Stored copy unavailable"} style={{fontSize:10,color:T.successFg,background:"none",border:"none",cursor:d.receiptPath?"pointer":"default",fontWeight:600,padding:0,opacity:d.receiptPath?1:0.6}}>📎 {d.fileName}{d.receiptPath?" ↗":""}</button>
+          {!compact&&<button onClick={()=>removeDoc(d.id)} style={{fontSize:11,color:T.textMute,background:"none",border:"none",cursor:"pointer",padding:"0 2px",lineHeight:1}}>×</button>}
+        </div>)}
         {links.map(lnk=><div key={lnk.id} style={{display:"flex",alignItems:"center",gap:4,background:"var(--accent-pill-bg)",borderRadius:6,padding:"3px 8px"}}>
           <a href={lnk.url} target="_blank" rel="noopener noreferrer" style={{fontSize:10,color:T.accent,textDecoration:"none",fontWeight:600}}>{lnk.label} ↗</a>
           {!compact&&<button onClick={()=>removeLink(lnk.id)} style={{fontSize:11,color:T.textMute,background:"none",border:"none",cursor:"pointer",padding:"0 2px",lineHeight:1}}>×</button>}
         </div>)}
       </div>}
-      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-        <input value={newLinkLabel} onChange={e=>setNewLinkLabel(e.target.value)} placeholder="Label (e.g. Venue Tech Pack)" style={{...UI.input,flex:1,minWidth:120}} onKeyDown={e=>e.key==="Enter"&&addLink()}/>
-        <input value={newLinkUrl} onChange={e=>setNewLinkUrl(e.target.value)} placeholder="Paste URL" style={{...UI.input,flex:2,minWidth:160}} onKeyDown={e=>e.key==="Enter"&&addLink()}/>
-        <button onClick={addLink} disabled={!newLinkLabel.trim()||!newLinkUrl.trim()} style={{fontSize:10,fontWeight:700,padding:"4px 10px",borderRadius:6,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",opacity:(!newLinkLabel.trim()||!newLinkUrl.trim())?0.4:1}}>Add</button>
-      </div>
+      {!compact&&<>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginBottom:6}}>
+          <input ref={fileRef} type="file" accept=".pdf,.docx,.xlsx,.xls,image/*" onChange={e=>uploadDoc(e.target.files?.[0])} style={{display:"none"}} disabled={uploadingDoc}/>
+          <button onClick={()=>fileRef.current?.click()} disabled={uploadingDoc} style={{fontSize:10,fontWeight:700,padding:"4px 10px",borderRadius:6,border:"1px dashed var(--border)",background:"var(--card-2)",color:T.text,cursor:uploadingDoc?"default":"pointer"}}>{uploadingDoc?"Uploading…":"↑ Upload tech pack / document"}</button>
+          {uploadDocMsg&&<span style={{fontSize:9,color:uploadDocMsg.startsWith("Error")||uploadDocMsg.includes("fail")?"var(--danger-fg)":T.textMute,fontFamily:MN}}>{uploadDocMsg}</span>}
+        </div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          <input value={newLinkLabel} onChange={e=>setNewLinkLabel(e.target.value)} placeholder="Label (e.g. Venue Tech Pack)" style={{...UI.input,flex:1,minWidth:120}} onKeyDown={e=>e.key==="Enter"&&addLink()}/>
+          <input value={newLinkUrl} onChange={e=>setNewLinkUrl(e.target.value)} placeholder="Or paste a link URL" style={{...UI.input,flex:2,minWidth:160}} onKeyDown={e=>e.key==="Enter"&&addLink()}/>
+          <button onClick={addLink} disabled={!newLinkLabel.trim()||!newLinkUrl.trim()} style={{fontSize:10,fontWeight:700,padding:"4px 10px",borderRadius:6,border:"none",background:"var(--accent)",color:"#fff",cursor:"pointer",opacity:(!newLinkLabel.trim()||!newLinkUrl.trim())?0.4:1}}>Add</button>
+        </div>
+      </>}
     </div>
   );
 
