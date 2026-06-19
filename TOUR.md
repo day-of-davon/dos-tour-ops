@@ -1,7 +1,8 @@
 # TOUR — Active Touring Context
 
-**Last refresh:** 2026-05-28.
+**Last refresh:** 2026-06-16 (advance-draft staging pass; prior 2026-05-28).
 **Current tour:** bbno$ Internet Explorer Tour (`team_id = dos-bbno-2026`).
+**Advance legend:** 📝 = Gmail draft staged (unsent), needs Davon fill/send · Active = thread live, often run by Dan/Mike · ✅ = show complete.
 **Sources:** EU dashboard `bbno-eu-2026-dashboard.vercel.app/eu`, NA dashboard `/na`, Coda + Wasserman contract refs.
 
 ---
@@ -72,26 +73,26 @@
 
 | Date | City | Venue | Promoter | Production contact | Advance status |
 |---|---|---|---|---|---|
-| Jun 24 | Lisbon | LAV | Everything Is New / Alvaro Covoes (alvarocovoes@everythingisnew.pt) | TBD | Not started |
-| Jun 25 | Barcelona | Sala Apolo | Primavera Sound / Pablo Soler Soler (ivone.lesan@primaverasound.com) | TBD | Not started — venue moved from Razzmatazz per Sandro 2026-05-26 |
-| Jun 26 | Chambord | Chambord Live Festival | LN FR / Damien Chamard Boudet | TBD | ⚠ FR immigration outstanding |
-| Jun 28 | Lyon | Le Transbordeur | LN FR / Damien Chamard Boudet | TBD | ⚠ FR immigration outstanding |
+| Jun 24 | Lisbon | LAV | Everything Is New / Alvaro Covoes (alvarocovoes@everythingisnew.pt) | TBD | 📝 Reply draft staged 2026-06-16 into Freya/EIN advancing thread — request LAV prod contact + tech pack |
+| Jun 25 | Barcelona | Sala Apolo | Primavera Sound / Pablo Soler Soler (ivone.lesan@primaverasound.com) | TBD | 📝 Draft staged 2026-06-16 (to Freya) — request Apolo/Primavera advancing contact. Venue moved from Razzmatazz, date moved to Jun 25 per Sandro |
+| Jun 26 | Chambord | Chambord Live Festival | LN FR / Damien Chamard Boudet (Damien.ChamardBoudet@livenation.fr) + Alex Applegate (alexandre.applegate@livenation.fr) | TBD | 📝 Reply draft staged 2026-06-16 into Alex 'RIDERS Chambord' thread — send rider + request prod contact. ⚠ FR immigration outstanding (Thibaut) |
+| Jun 28 | Lyon | Le Transbordeur | LN FR / Damien Chamard Boudet + Alex Applegate (alexandre.applegate@livenation.fr) | TBD | 📝 Covered in Chambord reply draft 2026-06-16 — request Le Transbordeur prod contact. ⚠ FR immigration outstanding |
 
 ### August festival cluster (11 shows)
 
 | Date | City | Venue | Promoter | Production contact | Advance status |
 |---|---|---|---|---|---|
-| Aug 7 | Cluj-Napoca | Untold Festival | Untold Live SRL / Sebastian Ferent (sebastian.ferent@untold.com) | TBD | Counter-sign in progress (MM/163336 + MM/163539-P); deposit pending RCM signature |
-| Aug 9 | Helsinki | House of Culture (Kulttuuritalo, 1750 cap) | TBD — source via Wasserman | TBD | Not started — confirmed 2026-05-28 per Coda calendar |
-| Aug 12 | Copenhagen | Vega | All Things Live DK / Frederikke Brockdorff (frederikke@allthingslive.com) | TBD | Not started |
-| Aug 15 | Budapest | Sziget Festival | FST Superstruct / Virag Csiszar (csiszar.virag@sziget.hu) | TBD | Not started |
-| Aug 20 | Paralimni (CY) | Nava Seaside Protaras | Stay Live / Silvija Jurgeleviciene (giedrius@staylive.lt) | TBD | Not started |
-| Aug 22 | St. Pölten | Frequency Festival | Musicnet / Richard Petz (richard@cuteconcerts.com) | TBD | Not started |
-| Aug 24 | Vilnius | Lukiškės Prison | Bravo Events / Vaidas Zdancevicius (giedrius@staylive.lt) | TBD | Not started — confirm €12k production contract counterparty |
-| Aug 25 | Rīga | Palladium | Stay Live / Silvija Jurgeleviciene (giedrius@staylive.lt) | TBD | Not started (combo deal with Cyprus) |
-| Aug 27 | Tromsø | Rakettnatt Festival | All Things Live NO / Toffen Gunnufsen (toffen@allthingslive.com) | TBD | Deposit $18,062.50 received Feb 17. Advance not started. |
-| Aug 28 | Stavanger | Utopia Stavanger | All Things Live NO / Toffen Gunnufsen | TBD | Deposit $18,062.50 received Feb 17. Advance not started. |
-| Aug 29 | Munich | Superbloom Festival | LN DE / Marko Hegner + Annika Hintz (annika.hintz@goodliveartists.com) | TBD | Not started |
+| Aug 7 | Cluj-Napoca | Untold Festival | Untold Live SRL / Krisztián Kálló (krisztian.kallo@untold.com) | TBD | 📝 Advance draft staged 2026-06-16 — ⚠ recipient sebastian.ferent UNVERIFIED, reroute to Krisztián Kálló or reply into counter-sign thread. Counter-sign in progress (MM/163336 + MM/163539-P) |
+| Aug 9 | Helsinki | House of Culture (Kulttuuritalo, 1750 cap) | TBD — source via Wasserman | TBD | 📝 Draft staged 2026-06-16 (to Freya) to source promoter contact. Confirmed 2026-05-28 per Coda |
+| Aug 12 | Copenhagen | Vega | All Things Live DK / Frederikke Brockdorff (frederikke@allthingslive.com) | TBD | 📝 Advance draft staged 2026-06-16 (to Frederikke) |
+| Aug 15 | Budapest | Sziget Festival | FST Superstruct / Virag Csiszar (csiszar.virag@sziget.hu) | TBD | 📝 Advance draft staged 2026-06-16 (to Virag) |
+| Aug 20 | Paralimni (CY) | Nava Seaside Protaras | Stay Live / Kamila Mirzojanc (kamila@staylive.lt) | TBD | Active — advancing thread live w/ Kamila (Freya cc); reply draft staged 2026-06-16 (rider, tech pack, merch). One thread covers CY + Vilnius + Riga |
+| Aug 22 | St. Pölten | Frequency Festival | Musicnet / Richard Petz (richard@cuteconcerts.com) | TBD | 📝 Advance draft staged 2026-06-16 (to Richard). Merch handled separately (Freya/Sandro) |
+| Aug 24 | Vilnius | Lukiškės Prison | Bravo Events / Vaidas Zdancevicius (giedrius@staylive.lt) | TBD | Active — covered in Stay Live/Kamila reply draft 2026-06-16. Confirm €12k production contract counterparty |
+| Aug 25 | Rīga | Palladium | Stay Live / Kamila Mirzojanc (kamila@staylive.lt) | TBD | Active — covered in Stay Live/Kamila reply draft 2026-06-16 (combo deal with Cyprus) |
+| Aug 27 | Tromsø | Rakettnatt Festival | Moho AS / Holger Hansen (holger@moho.as) + Rakettnatt (Stian, Elisabeth) | TBD | Active — advancing live, run by Dan w/ Holger + Rakettnatt. Deposit $18,062.50 received Feb 17. [Toffen cold draft misrouted — discard] |
+| Aug 28 | Stavanger | Utopia Stavanger | Utopia / Espen Knoph (espen@utopia.no) | TBD | Active — Espen connecting Rakettnatt/Utopia advancing team. Deposit $18,062.50 received Feb 17. [Toffen cold draft misrouted — discard] |
+| Aug 29 | Munich | Superbloom Festival | LN DE / Marko Hegner + Annika Hintz (annika.hintz@goodliveartists.com) | TBD | 📝 Advance draft staged 2026-06-16 (to Annika). Existing thread is comps-only; open ask: add Tatjana Seyfarth + Daniel Dietzmann to guest passes (Tina Rodloff) |
 | Aug 30 | London | All Points East | AEG Presents / Oscar Tuttiett (oscar.tuttiett@aegpresents.co.uk) | Proper Productions (assistant@properproductions.org) | Advance opened 2026-05-28 by Proper Productions |
 
 ### EU summer routing risks
@@ -109,15 +110,15 @@
 
 | Date | City | Venue | Promoter | Production contact | Advance status |
 |---|---|---|---|---|---|
-| Jun 5 | Toronto | RBC Amphitheatre | LN Canada / Stephen Riff (stephenriff@livenation.com) | Lianne Fox (LianneFox@livenation.com) / Solotech Mark Desloges + Christian Cesario | Active — advance Zoom 2026-05-27; hospitality intro (Shaire/Doris, Capers) 2026-05-28 |
-| Jun 12 | Manchester TN | Bonnaroo | C3 Presents / Bryan Benson (bryanbenson@livenation.com) | Tyler Crain (tcrain@c3presents.com) | Not started |
-| Jul 1 | Mississauga ON | Celebration Square | City of Mississauga / Jennifer Perrault (jennifer.perrault@mississauga.ca) | TBD | Not started (Canada Day, free public) |
-| Jul 10 | Quebec City | FEQ Loto-Québec Stage | FEQ / Louis Bellavance (lbellavance@bleufeu.com) | Alain Gagnon (agagnon@bleufeu.com) | Pending — Florence Bergeron contact noted earlier |
-| Jul 11 | Uncasville CT | Mohegan Sun Arena | Live Nation | TBD | Not started |
-| Jul 12 | Ottawa | Ottawa Bluesfest | Ottawa Bluesfest | Steve Johnston video (steve@ablyproductions.ca) / Claire Morris immigration (cmorris@ottawabluesfest.ca) | Initiated Apr 23, immigration forms outstanding |
-| Jul 23 | Edmonton | K Days | Explore Edmonton Corp | TBD | Not started — 15% non-resident WHT unless CRA waiver 30d prior |
-| Jul 31 | Chicago | House of Blues | Live Nation | TBD | Not started — tight margin headline before Lolla |
-| Aug 1 | Chicago | Lollapalooza | C3 Presents | TBD | Not started — 5:45–6:45 PM Tito's Stage; Mike Sheck flagged advance thread missing 2026-05-28 |
+| Jun 5 | Toronto | RBC Amphitheatre | LN Canada / Stephen Riff (stephenriff@livenation.com) | Lianne Fox (LianneFox@livenation.com) / Solotech Mark Desloges + Christian Cesario | ✅ Show complete Jun 5. Hospitality replied 2026-06-05 (DR assignments; B15/L35/D35) |
+| Jun 12 | Manchester TN | Bonnaroo | C3 Presents / Bryan Benson (bryanbenson@livenation.com) | Tyler Crain (tcrain@c3presents.com) | ✅ Show complete Jun 12. Was heavily advanced by Dan/Mike (That Tent switch, HELM floor pkg, AMP, merch) |
+| Jul 1 | Mississauga ON | Celebration Square | City of Mississauga / Jennifer Perrault (jennifer.perrault@mississauga.ca) | Keynan McFedries (keynan.mcfedries@mississauga.ca) | Active — tech advance live; call offered to Mike 2026-06-03. No new draft needed (Canada Day, free public) |
+| Jul 10 | Quebec City | FEQ Loto-Québec Stage | FEQ / Louis Bellavance (lbellavance@bleufeu.com) | Kateri Bédard hospitality (hospitalite@bleufeu.com); Alain Gagnon tech | Active — hospitality advance in 2026-06-02; 📝 reply draft staged 2026-06-16 (DOS contact, comps, rider, party size). Video/tech active |
+| Jul 11 | Uncasville CT | Mohegan Sun Arena | Live Nation | TBD | 📝 Advance draft staged 2026-06-16 (to Lianne Fox + Stephen Riff) — request venue PM |
+| Jul 12 | Ottawa | Ottawa Bluesfest | Ottawa Bluesfest | Jamie Kendall hospitality / Micheline Ayoub SM / Steve Johnston video / Claire Morris immigration | Active — hospitality 📝 reply draft staged 2026-06-16 (Jamie Kendall); tech live (Micheline/Mike). ⚠ immigration forms outstanding (Claire Morris) |
+| Jul 23 | Edmonton | K Days | Explore Edmonton Corp | TBD | 📝 Promoter advance draft staged 2026-06-16 (holding — needs K Days contact sourced). CRA waiver reply to Tony staged (deadline ~Jun 23). 15% WHT exposure |
+| Jul 31 | Chicago | House of Blues | Live Nation | TBD | 📝 PRIORITY advance draft staged 2026-06-16 (to Lianne Fox + Stephen Riff) — request HoB Chicago PM. Tight margin headline before Lolla |
+| Aug 1 | Chicago | Lollapalooza | C3 Presents / Brandon Sossamon (bsossamon@c3presents.com) | Kira McCabe (kmccabe@c3presents.com) | Active — production advance thread open 2026-05-28; advance going out via AMP. 5:45–6:45 PM Tito's Stage. Monitor (no draft needed) |
 
 **NA routing note:** Chicago HoB Jul 31 → Lolla Aug 1 is a two-night Chicago hold. Treat HoB as marketing for Lolla, not a profit center (walkout ≈ guar at full sell-through per dashboard).
 
@@ -144,11 +145,11 @@ Four Canadian shows trigger 15% non-resident performer WHT unless CRA Reg 105 wa
 
 | Show | Date | CRA waiver deadline | Status |
 |---|---|---|---|
-| Toronto RBC Amphitheatre | Jun 5 | May 6 (passed) | **At-risk — confirm filing** |
-| Mississauga Canada Day | Jul 1 | Jun 1 | Not filed |
-| FEQ Quebec City | Jul 10 | Jun 10 | Not filed |
-| Ottawa Bluesfest | Jul 12 | Jun 12 | Not filed |
-| K Days Edmonton | Jul 23 | Jun 23 | Not filed |
+| Toronto RBC Amphitheatre | Jun 5 | May 6 (passed) | **Deadline passed — confirm late-filing/exposure w/ Tony** |
+| Mississauga Canada Day | Jul 1 | Jun 1 (passed) | **Deadline passed — confirm w/ Tony** |
+| FEQ Quebec City | Jul 10 | Jun 10 (passed) | **Deadline passed — confirm w/ Tony** |
+| Ottawa Bluesfest | Jul 12 | Jun 12 (passed) | **Deadline passed — confirm w/ Tony** |
+| K Days Edmonton | Jul 23 | Jun 23 | ⚠ **Open window — waiver reply to Tony staged 2026-06-16; file before Jun 23** |
 
 ---
 
@@ -158,12 +159,12 @@ Four Canadian shows trigger 15% non-resident performer WHT unless CRA Reg 105 wa
 - **FR immigration:** Paris (May 20) settled. Chambord (Jun 26) + Lyon (Jun 28) outstanding via Thibaut Lagarde at LN FR.
 - **Wasserman UK form:** Outstanding since Apr 9. UK FEU cert (Glasgow settlement hold) blocked downstream. CodaCRM accessible 2026-05-28.
 - **Warsaw advance contact:** Resolved — Małgorzata Klos media, Martyna Skoczylas hospitality, Julia Krasnowska GT, Małgorzata Staniszewska production costs.
-- **EU summer advances (15 shows):** Most "Not started." Batch-initiate post-Toronto Jun 8. Untold counter-sign in progress.
-- **NA advances (9 shows):** Toronto Jun 5 active. Bluesfest immigration follow-up open. Others not started.
-- **CRA Reg 105 waivers (5 CA shows):** Toronto deadline passed (May 6). Mississauga Jun 1 deadline imminent. Remaining 3 still in window.
+- **EU summer advances:** Advance drafts staged 2026-06-16 for Lisbon, Barcelona, Chambord/Lyon, Helsinki, Copenhagen, Sziget, St. Pölten, Munich. Stay Live (CY/Vilnius/Riga) reply staged into live Kamila thread. Tromsø/Stavanger already advancing in-thread (Dan). ⚠ Untold/Cluj draft recipient needs reroute to Krisztián Kálló.
+- **NA advances:** Toronto + Bonnaroo complete. FEQ/Ottawa/Mississauga active (FEQ + Ottawa hospitality replies staged). Mohegan Sun + Chicago HoB advance drafts staged 2026-06-16. Lolla via AMP (Sossamon). Edmonton draft is a holding draft — still needs K Days contact.
+- **CRA Reg 105 waivers:** As of Jun 16, **4 of 5 deadlines passed** (Toronto, Mississauga, FEQ, Ottawa) — confirm exposure/late-filing with Tony. Only Edmonton (Jun 23) still in window; waiver reply to Tony staged.
 - **Vilnius Aug 24:** Confirm €12k production contract (MM/161970-P) counterparty — currently assumed third-party (not artist income). If artist-side, guarantee bumps €8k → €20k.
 - **Neversea Festival Bucharest (Jul 5):** In Coda export with $0 fees, possibly cancelled. Confirm with Adam Brill before treating as dead.
-- **Helsinki Aug 9:** Promoter contact needs sourcing via Wasserman; show confirmed in calendar but no advance opened.
+- **Helsinki Aug 9:** Promoter contact needs sourcing via Wasserman; draft to Freya staged 2026-06-16 to source it.
 - **Bratislava May 28:** Mate Horvath (LN HU settlement rep) sick tonight. Alternate rep TBD before doors.
 - **All Points East Aug 30:** Proper Productions opened advance 2026-05-28; confirm show with RCM and add to TOUR.md detail.
-- **Lollapalooza Aug 1:** Mike Sheck flagged no advance thread exists; raise on Friday May 29 call.
+- **Lollapalooza Aug 1:** Resolved — advance thread open w/ Brandon Sossamon (C3), going out via AMP. Monitor for arrival.
