@@ -3,7 +3,7 @@ event: Ottawa Bluesfest, Ottawa ON
 date: 2026-07-12
 event_id: TBD
 stage: Travel
-updated: 2026-06-17
+updated: 2026-06-18
 ---
 # Ottawa Bluesfest — 2026-07-12
 
@@ -22,8 +22,10 @@ updated: 2026-06-17
 ## Day-of (schedule/ROS, guest list, settlement prep)
 
 ## Settlement / Post (payment, reconciliation)
+- **2026-06-18: Settlement opened by Janessa Chalifour, Senior Accountant (jchalifour@ottawabluesfest.ca, 613-247-1188 x228).** Asks: provide wire/direct-deposit info for settlement, OR wire balance to Wasserman? Payment confirmation + settlement sheet emailed day-of-show; credited next business day. Confirm payee name "BBNO SHOWS, Inc" if certified cheque needed. Guarantee $85k flat (CRA Reg 105 15% WHT exposure if waiver unfiled — deadline passed Jun 12, see compliance). Reply OWED — money-routing decision for Davon/DMCL; not auto-drafted.
 
 ## Open items / next actions
+- [ ] **REPLY OWED to Janessa Chalifour (settlement):** confirm payment routing (DOS/artist account vs wire to Wasserman) + payee name. Decision w/ DMCL (Tony Yacowar/Rajdeep Gill). Watch CRA WHT — guarantee may net 15% lower if waiver not filed.
 - [ ] **URGENT charter decision** (see [[2026-07-11-mohegan-sun]]): pay/finalize or cancel-and-drive. If driving, border crossing makes Claire Morris immigration filing blocking.
 - [ ] **REPLY OWED** to Claire Morris: confirm whether Bluesfest handles the Canada entry filing or our own counsel does; send party list + passports. 3rd follow-up unanswered; 37 days out.
 - [ ] Begin festival advance (Bluesfest production/hospitality).
@@ -33,3 +35,4 @@ updated: 2026-06-17
 - 19e908aeaed710be — bbno$ - Private Charter July 11/12 (Sam: cancel + drive if unpaid) — 2026-06-14
 - 19dabe4d2a97717c — bbno$ - Ottawa Bluesfest Immigration Process (Claire Morris) — 2026-06-05
 - 19e84de1b63821fc — Hospitality Adv // Ottawa Bluesfest // July 12 (Jamie Kendall; offerings Jun 1, follow-up Jun 17; reply owed; staged draft unsent) — 2026-06-17
+- 19edc3de650a8fab — bbno$ @ Ottawa Bluesfest (Janessa Chalifour settlement; payment routing + payee question; reply owed) — 2026-06-18

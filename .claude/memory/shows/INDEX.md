@@ -1,13 +1,13 @@
 # Shows Roster
 
-Updated 2026-06-18. Newest dates first.
+Updated 2026-06-18 (evening). Newest dates first.
 
 | Event | Date | Stage | Open items | Updated |
 |---|---|---|---|---|
 | [Superbloom, Munich](2026-08-29-superbloom-munich.md) | 2026-08-29 | Advance | Add Tatjana Seyfarth + Daniel Dietzmann to guest day passes (pending comps) | 2026-06-08 |
 | [All Points East, London](2026-08-30-ape-london.md) | 2026-08-30 | Advance | Send tech rider/stage plot/input list; **UK working-visa PFF form due 2026-07-30** (letter of invitation) + flag Visa National List names; confirm owner per handoff | 2026-06-18 |
 | [House of Blues, Chicago](2026-07-31-hob-chicago.md) | 2026-07-31 | Advance | Neil replied: no in-room rehearsal (early show same day); review house tech; get contact list | 2026-06-08 |
-| [Ottawa Bluesfest](2026-07-12-ottawa-bluesfest.md) | 2026-07-12 | Travel | **CHARTER AT RISK** (pay or drive); Claire Morris immigration (3rd ask); Jamie Kendall hospitality follow-up 06-17 (reply owed, staged draft unsent) | 2026-06-17 |
+| [Ottawa Bluesfest](2026-07-12-ottawa-bluesfest.md) | 2026-07-12 | Travel | **CHARTER AT RISK** (pay or drive); Claire Morris immigration (3rd ask); Jamie Kendall hospitality (reply owed, staged draft unsent); **settlement opened 06-18 (Janessa Chalifour) — payment-routing reply owed (DOS vs Wasserman, w/ DMCL)** | 2026-06-18 |
 | [Mohegan Sun, Uncasville](2026-07-11-mohegan-sun.md) | 2026-07-11 | Travel | **CHARTER AT RISK**: Sam will cancel + drive if unpaid; confirm DMCL payment status; start venue advance | 2026-06-15 |
 | [FEQ (Festival d'été de Québec)](2026-07-10-feq-quebec.md) | 2026-07-10 | Advance | **URGENT — advance still unanswered**: reply Thomas Lainesse + open tech advance; FEQ extranet artist-info form (Dan owns); transport intro 06-17 (Léa & Guy) needs pax/flights; Davon staged FEQ handoff draft to mgmt | 2026-06-17 |
 | [Mississauga](2026-07-01-mississauga.md) | 2026-07-01 | Advance | L7 send production specs to City of Mississauga (Keynan) | 2026-06-07 |
