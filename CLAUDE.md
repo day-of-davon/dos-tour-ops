@@ -10,7 +10,9 @@ This file is **identity + communication rules + anti-patterns + pointers**. When
 
 | Topic | Canonical file |
 |---|---|
-| Architecture, tech stack, storage keys, tabs (was §3/§5/§6) | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| Architecture, tech stack, storage keys, tabs, API surface (was §3/§5/§6) | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| Hosted-app setup (Google/Supabase/Vercel), env vars | [SETUP.md](SETUP.md) |
+| Daily sitreps + scan-flow + module design notes | [docs/](docs/) |
 | Team roster + external contacts (was §2) | [TEAM.md](TEAM.md) |
 | Active tour snapshot (was §12) | [TOUR.md](TOUR.md) |
 | Weekly KPIs | [METRICS.md](METRICS.md) |
@@ -34,11 +36,15 @@ This file is **identity + communication rules + anti-patterns + pointers**. When
 
 DOS is two things built by one team:
 
-1. **DOS Tour Ops v7** — Internal operations dashboard for Davon and Olivia. Vite + React 18 + Supabase. Live at `dos-tour-ops.vercel.app`. Used daily to run bbno$'s Internet Explorer Tour. This is the active build target.
+1. **DOS Tour Ops v7** — Internal operations dashboard for Davon and Olivia. Vite + React 18 + Supabase, with Vercel serverless `/api/*` functions that call Claude. Live at `dos-tour-ops.vercel.app`. Used daily to run bbno$'s Internet Explorer Tour. This is the active build target. Main UI is one file (`src/DosApp.jsx`); shared scope/keys live in `src/lib/constants.js`; the serverless layer (Gmail scanners for flights, lodging, rideshare, car rental, food, plus intel/comms/route) lives in `api/` with shared helpers in `api/lib/`. See [ARCHITECTURE.md](ARCHITECTURE.md).
 
 2. **DOS Platform** — B2B tour operations SaaS (Next.js 15, tRPC v11, Supabase). Customer-facing product. Not yet scaffolded. No platform feature code until Josh delivers schema audit.
 
+3. **dos-mt-sync** — Companion Node CLI (`dos-mt-sync/`) that pushes v7 data into Master Tour via Playwright. Standalone, not part of the Vercel deploy.
+
 The artifact informs the platform. Features are prototyped manually in v7, then automated in the platform. They share domain knowledge but are separate codebases.
+
+**Working in v7:** edits are CommonJS in `api/`, ESM/JSX in `src/`. Add storage keys to `SK`/`PK` in `constants.js`, never inline. Anthropic calls go through `api/lib/anthropic.js` (models are env-overridable; do not hardcode). New tables go in `supabase/migrations/` as idempotent SQL. No build/lint/test scripts beyond `npm run dev|build|preview`; Vercel auto-deploys from `main`.
 
 ---
 
@@ -73,4 +79,4 @@ Davon profile + team roster live in [TEAM.md](TEAM.md).
 
 *Day of Show, LLC | d.johnson@dayofshow.net | 337.326.0041*
 *Los Angeles, CA | San Juan, PR*
-*CLAUDE.md v3.0 | 2026-04-23*
+*CLAUDE.md v3.1 | 2026-06-21*
