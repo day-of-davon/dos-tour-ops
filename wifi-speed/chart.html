@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Orbi device link rates</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root { color-scheme: dark; }
+  body { font: 14px/1.4 system-ui, sans-serif; margin: 0; background: #0d1117; color: #e6edf3; }
+  header { padding: 14px 18px; border-bottom: 1px solid #30363d; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  select, button { background: #21262d; color: #e6edf3; border: 1px solid #30363d; border-radius: 6px; padding: 6px 10px; font: inherit; }
+  button { cursor: pointer; }
+  main { display: grid; grid-template-columns: 220px 1fr; gap: 0; height: calc(100vh - 53px); }
+  #devices { border-right: 1px solid #30363d; overflow-y: auto; padding: 10px 12px; }
+  #devices label { display: flex; gap: 8px; align-items: center; padding: 4px 0; cursor: pointer; }
+  #devices .sw { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  #chartwrap { padding: 16px; position: relative; }
+  .muted { color: #8b949e; }
+  .empty { padding: 40px; color: #8b949e; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Orbi device speeds</h1>
+  <label>Metric
+    <select id="metric">
+      <option value="linkRateMbps">Link rate (Mbps)</option>
+      <option value="downMbps">Download (Mbps)</option>
+      <option value="upMbps">Upload (Mbps)</option>
+      <option value="signalPct">Signal (%)</option>
+    </select>
+  </label>
+  <label>Range
+    <select id="range">
+      <option value="0">All</option>
+      <option value="1">1h</option>
+      <option value="6">6h</option>
+      <option value="24" selected>24h</option>
+      <option value="168">7d</option>
+    </select>
+  </label>
+  <button id="poll">Poll now</button>
+  <button id="refresh">Refresh</button>
+  <span id="status" class="muted"></span>
+</header>
+<main>
+  <div id="devices"></div>
+  <div id="chartwrap"><canvas id="chart"></canvas><div id="empty" class="empty" hidden>No data yet. Run a poll.</div></div>
+</main>
+<script>
+const COLORS = ["#58a6ff","#3fb950","#d29922","#f85149","#bc8cff","#ff7b72","#39c5cf","#db61a2","#a5d6ff","#7ee787","#ffa657","#e3b341"];
+let snapshots = [];
+let hidden = new Set();
+const $ = (id) => document.getElementById(id);
+let chart;
+
+function macColor(mac, i) { return COLORS[i % COLORS.length]; }
+
+function deviceLabel(d) { return d.name || d.mac; }
+
+async function load() {
+  const hours = $("range").value;
+  $("status").textContent = "loading...";
+  const res = await fetch("/api/data?hours=" + hours);
+  snapshots = await res.json();
+  $("status").textContent = snapshots.length + " snapshots";
+  render();
+}
+
+function render() {
+  const metric = $("metric").value;
+  // Collect device identity (by MAC) and a time series per device.
+  const devices = new Map(); // mac -> {label, series: Map(ts->value)}
+  const labels = [];
+  for (const snap of snapshots) {
+    labels.push(snap.ts);
+    for (const d of snap.devices || []) {
+      if (!d.mac) continue;
+      if (!devices.has(d.mac)) devices.set(d.mac, { label: deviceLabel(d), series: {} });
+      const v = d[metric];
+      if (v != null) devices.get(d.mac).series[snap.ts] = v;
+    }
+  }
+  renderDeviceList(devices);
+
+  const macs = [...devices.keys()];
+  const datasets = macs
+    .filter((m) => !hidden.has(m))
+    .map((mac, i) => {
+      const dev = devices.get(mac);
+      return {
+        label: dev.label,
+        data: labels.map((ts) => (ts in dev.series ? dev.series[ts] : null)),
+        borderColor: macColor(mac, i),
+        backgroundColor: macColor(mac, i),
+        spanGaps: true,
+        tension: 0.25,
+        pointRadius: 2,
+      };
+    });
+
+  $("empty").hidden = labels.length > 0;
+  const fmt = labels.map((ts) => new Date(ts).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }));
+  if (chart) chart.destroy();
+  chart = new Chart($("chart"), {
+    type: "line",
+    data: { labels: fmt, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      interaction: { mode: "nearest", intersect: false },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: "#8b949e", maxRotation: 0, autoSkip: true, maxTicksLimit: 10 }, grid: { color: "#21262d" } },
+        y: { ticks: { color: "#8b949e" }, grid: { color: "#21262d" }, title: { display: true, text: $("metric").selectedOptions[0].text, color: "#8b949e" } },
+      },
+    },
+  });
+}
+
+function renderDeviceList(devices) {
+  const el = $("devices");
+  el.innerHTML = "";
+  let i = 0;
+  for (const [mac, dev] of devices) {
+    const idx = i++;
+    const wrap = document.createElement("label");
+    const cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = !hidden.has(mac);
+    cb.onchange = () => { cb.checked ? hidden.delete(mac) : hidden.add(mac); render(); };
+    const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = macColor(mac, idx);
+    const txt = document.createElement("span"); txt.textContent = dev.label;
+    wrap.append(cb, sw, txt);
+    el.append(wrap);
+  }
+}
+
+$("metric").onchange = render;
+$("range").onchange = load;
+$("refresh").onclick = load;
+$("poll").onclick = async () => {
+  $("status").textContent = "polling router...";
+  const r = await fetch("/api/poll");
+  if (!r.ok) { $("status").textContent = "poll failed"; return; }
+  await load();
+};
+load();
+</script>
+</body>
+</html>

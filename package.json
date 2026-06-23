@@ -8,7 +8,10 @@
     "preview": "vite preview",
     "lint": "eslint \"src/**/*.{js,jsx}\"",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "wifi:poll": "node wifi-speed/cli.js poll",
+    "wifi:watch": "node wifi-speed/cli.js watch",
+    "wifi:serve": "node wifi-speed/cli.js serve"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.43.0",

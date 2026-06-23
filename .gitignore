@@ -9,6 +9,10 @@ dist/
 .env.local
 .env.*.local
 
+# wifi-speed tool: local data + creds
+wifi-speed/data/
+wifi-speed/.env
+
 # OS
 .DS_Store
 Thumbs.db
