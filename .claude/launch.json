@@ -7,6 +7,12 @@
       "runtimeArgs": ["vite", "--port", "3000"],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "relgraph",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/davon/claude/dos-relationship-graph"],
+      "port": 5290
     }
   ]
 }
