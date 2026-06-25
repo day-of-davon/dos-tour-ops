@@ -24,6 +24,11 @@ This file is **identity + communication rules + anti-patterns + pointers**. When
 | Active bets | [HYPOTHESES.md](HYPOTHESES.md) |
 | Competitive map (was §9) | [COMPETITORS.md](COMPETITORS.md) |
 | Projections | [FINANCIALS.md](FINANCIALS.md) |
+| Product redesign, spine, P0-P4 phases | [../REDESIGN.md](../REDESIGN.md) |
+| Productization, asset map, packaging, GTM | [../PRODUCT.md](../PRODUCT.md) |
+| Multi-event ops intelligence map | [../OPS-INTELLIGENCE.md](../OPS-INTELLIGENCE.md) |
+| Voice + intelligences master index | [../INTELLIGENCE.md](../INTELLIGENCE.md) |
+| Cross-project preferences (DOS DS v4, eng defaults) | [../PREFERENCES.md](../PREFERENCES.md) |
 
 **Cadence:** Sunday 8pm, 20 min — update METRICS.md + JOURNAL.md. Monthly 1st Sunday — review HYPOTHESES + RISKS + FINANCIALS.
 **Tier:** LOW (manual, $0 API overhead). Revisit Aug 2026 for MEDIUM.
@@ -36,7 +41,7 @@ DOS is two things built by one team:
 
 1. **DOS Tour Ops v7** — Internal operations dashboard for Davon and Olivia. Vite + React 18 + Supabase. Live at `dos-tour-ops.vercel.app`. Used daily to run bbno$'s Internet Explorer Tour. This is the active build target.
 
-2. **DOS Platform** — B2B tour operations SaaS (Next.js 15, tRPC v11, Supabase). Customer-facing product. Not yet scaffolded. No platform feature code until Josh delivers schema audit.
+2. **DOS Platform** (../dos-platform): the unified touring product, B2B SaaS (Next.js 15 + tRPC v11 + Supabase). Stack locked 2026-05-29; design canonical in ../REDESIGN.md + ../PRODUCT.md. Davon solo-ships it. The Laravel festival platform is a separate product (../dos-festival; Chris Cole's repo colecut/dos-platform). The earlier "gated on Josh's schema audit" framing is stale.
 
 The artifact informs the platform. Features are prototyped manually in v7, then automated in the platform. They share domain knowledge but are separate codebases.
 
@@ -62,7 +67,7 @@ Davon profile + team roster live in [TEAM.md](TEAM.md).
 
 - Do NOT explain basics (SaaS, RLS, tRPC, VRP, festival workflows).
 - Do NOT interrupt build mode with strategy or vice versa.
-- Do NOT build platform features before Josh's schema audit.
+- Do NOT implement DOS Platform features in this repo. The platform is the separate Next.js product in ../dos-platform (design: ../REDESIGN.md). v7 prototypes behavior; the platform automates it.
 - Do NOT suggest infrastructure beyond current Revenue Gate.
 - Do NOT pad responses. End on substance.
 - Do NOT use em dashes.
@@ -73,4 +78,57 @@ Davon profile + team roster live in [TEAM.md](TEAM.md).
 
 *Day of Show, LLC | d.johnson@dayofshow.net | 337.326.0041*
 *Los Angeles, CA | San Juan, PR*
-*CLAUDE.md v3.0 | 2026-04-23*
+*CLAUDE.md v3.1 | 2026-04-23; routing table + platform status refreshed 2026-06-22*
+
+---
+
+## GBrain Configuration (configured by /setup-gbrain)
+- Mode: local-stdio
+- Engine: postgres (Supabase, ref: smlhekrkyverillbkraa, us-east-1)
+- Config file: ~/.gbrain/config.json (mode 0600)
+- Setup date: 2026-06-25
+- MCP registered: yes (user scope, /Users/davon/.bun/bin/gbrain serve)
+- Embedding: voyage:voyage-code-3 (1024d)
+- Artifacts sync: full → https://github.com/day-of-davon/gstack-artifacts-davon
+- Current repo policy: read-write
+- Note: GBRAIN_DISABLE_DIRECT_POOL=1 required (IPv6 not available); baked into MCP config. Add to ~/.zshrc for CLI use.
+
+## GBrain Search Guidance (configured by /sync-gbrain)
+<!-- gstack-gbrain-search-guidance:start -->
+
+GBrain is set up and synced on this machine. Prefer gbrain over Grep when the question is semantic or when you don't know the exact identifier yet. Two indexed corpora:
+- This repo's code (registered as `gstack-code-day-of-davon-dos-tour-ops` source).
+- `~/.gstack/` curated memory (registered as `gstack-artifacts-davon` source).
+
+Prefer gbrain when:
+- "Where is X handled?" / semantic intent, no exact string yet:
+    `gbrain search "<terms>"` or `gbrain query "<question>"`
+- "Where is symbol Y defined?" / symbol-based code questions:
+    `gbrain code-def <symbol>` or `gbrain code-refs <symbol>`
+- "What calls Y?" / "What does Y depend on?":
+    `gbrain code-callers <symbol>` / `gbrain code-callees <symbol>`
+- "What did we decide last time?" / past plans, retros, learnings:
+    `gbrain search "<terms>" --source gstack-artifacts-davon`
+
+Grep is still right for known exact strings, regex, multiline patterns, and file globs. The brain auto-syncs incrementally on every gstack skill start. Run `/sync-gbrain` to force-refresh.
+
+<!-- gstack-gbrain-search-guidance:end -->
+
+## Skill routing
+
+When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
+
+Key routing rules:
+- Product ideas/brainstorming → invoke /office-hours
+- Strategy/scope → invoke /plan-ceo-review
+- Architecture → invoke /plan-eng-review
+- Design system/plan review → invoke /design-consultation or /plan-design-review
+- Full review pipeline → invoke /autoplan
+- Bugs/errors → invoke /investigate
+- QA/testing site behavior → invoke /qa or /qa-only
+- Code review/diff check → invoke /review
+- Visual polish → invoke /design-review
+- Ship/deploy/PR → invoke /ship or /land-and-deploy
+- Save progress → invoke /context-save
+- Resume context → invoke /context-restore
+- Author a backlog-ready spec/issue → invoke /spec
