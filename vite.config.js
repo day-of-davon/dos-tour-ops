@@ -19,6 +19,9 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./test/setup.js"],
     include: ["src/**/*.test.{js,jsx}"],
+    // The smoke test renders every tab; that's heavy. CI runners are ~2x slower
+    // than local, so the 5s default is too tight. Give it real headroom.
+    testTimeout: 20000,
     // Supabase env is mocked in tests; provide harmless defaults so any stray
     // import.meta.env read does not blow up module init.
     env: {
