@@ -4,6 +4,11 @@ import App from "./DosApp.jsx";
 import AuthGate from "./components/AuthGate.jsx";
 import { storage, getShared, setShared, deleteShared, getPrivate, setPrivate, deletePrivate, isSharedKey } from "./lib/storage";
 import { initAnalytics } from "./lib/analytics";
+import { initSentry, captureError } from "./lib/sentry";
+
+// Error monitoring first, so it can catch crashes during the rest of boot.
+// No-op unless VITE_SENTRY_DSN is set. See lib/sentry.js.
+initSentry();
 
 // PII-safe product analytics. No-op unless VITE_POSTHOG_KEY is set. See lib/analytics.js.
 initAnalytics();
@@ -23,7 +28,8 @@ class ErrorBoundary extends Component {
   static getDerivedStateFromError(error) { return { error }; }
   componentDidCatch(error, info) {
     this.setState({ info });
-    // Log too, in case devtools is open
+    // Report to Sentry (no-op unless DSN is set), then log for devtools.
+    captureError(error, info?.componentStack);
     // eslint-disable-next-line no-console
     console.error("[ErrorBoundary]", error, info);
   }
