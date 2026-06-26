@@ -3,6 +3,10 @@ import { createRoot } from "react-dom/client";
 import App from "./DosApp.jsx";
 import AuthGate from "./components/AuthGate.jsx";
 import { storage, getShared, setShared, deleteShared, getPrivate, setPrivate, deletePrivate, isSharedKey } from "./lib/storage";
+import { initAnalytics } from "./lib/analytics";
+
+// PII-safe product analytics. No-op unless VITE_POSTHOG_KEY is set. See lib/analytics.js.
+initAnalytics();
 
 window.storage = {
   get: (k) => isSharedKey(k) ? getShared(k) : storage.get(k),
