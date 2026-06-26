@@ -37,8 +37,12 @@ export function initSentry() {
     dsn: DSN,
     environment: ENV,
     sendDefaultPii: false,
-    // error-only: no tracing, no replay. The cockpit must never be recorded.
-    integrations: [],
+    // Keep Sentry's DEFAULT integrations — they include GlobalHandlers, which is
+    // what auto-captures uncaught errors and promise rejections. Do NOT pass
+    // `integrations: []`: that replaces the defaults and silently disables capture.
+    // Replay and tracing are opt-in (not in the defaults), so "error-only" is
+    // achieved simply by not adding them + tracesSampleRate 0. The cockpit is
+    // never recorded because replayIntegration() is never added.
     tracesSampleRate: 0,
     beforeSend(event) {
       // Scrub URLs everywhere they appear so the OAuth access-token in the hash
