@@ -17,6 +17,7 @@
     "api/food-scan.js": { "maxDuration": 180 },
     "api/receipt-url.js": { "maxDuration": 15 },
     "api/comms.js": { "maxDuration": 30 },
-    "api/route.js": { "maxDuration": 30 }
+    "api/route.js": { "maxDuration": 30 },
+    "api/monitoring.js": { "maxDuration": 10 }
   }
 }

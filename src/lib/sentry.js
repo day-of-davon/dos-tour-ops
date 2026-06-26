@@ -37,6 +37,11 @@ export function initSentry() {
     dsn: DSN,
     environment: ENV,
     sendDefaultPii: false,
+    // Route events through our own same-origin endpoint instead of straight to
+    // ingest.sentry.io, which ad/privacy blockers block. See api/monitoring.js.
+    // Without this, real users' crash reports are silently dropped by their
+    // blockers — which is exactly what happened in testing.
+    tunnel: "/api/monitoring",
     // Keep Sentry's DEFAULT integrations — they include GlobalHandlers, which is
     // what auto-captures uncaught errors and promise rejections. Do NOT pass
     // `integrations: []`: that replaces the defaults and silently disables capture.
