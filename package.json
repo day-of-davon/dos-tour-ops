@@ -11,6 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@sentry/react": "^10.62.0",
     "@supabase/supabase-js": "^2.43.0",
     "mammoth": "^1.8.0",
     "pdf-parse": "^2.4.5",
