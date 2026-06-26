@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { identifyUser, resetUser } from "../lib/analytics";
 
 const AuthCtx = createContext(null);
 export const useAuth = () => useContext(AuthCtx);
@@ -8,8 +9,15 @@ export default function AuthGate({ children }) {
   const [session, setSession] = useState(undefined);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session ?? null));
-    const { data: sub } = supabase.auth.onAuthStateChange((_evt, s) => setSession(s));
+    supabase.auth.getSession().then(({ data }) => {
+      const s = data.session ?? null;
+      setSession(s);
+      if (s?.user?.id) identifyUser(s.user.id);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_evt, s) => {
+      setSession(s);
+      if (s?.user?.id) identifyUser(s.user.id); else resetUser();
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 

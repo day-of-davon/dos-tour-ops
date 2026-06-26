@@ -85,6 +85,7 @@ import { hhmmToMin, toM, fmt, pM, dU, fD, fW, fFull, fmt24, fmtDur, subtractMinu
 import { Ctx } from "./context/DosContext.jsx";
 import React, { useState, useEffect, useRef, useCallback, useMemo, createContext, useContext } from "react";
 import { useAuth } from "./components/AuthGate.jsx";
+import { track, EVENTS } from "./lib/analytics";
 import { Button, Pill } from "./components/ui.jsx";
 import { supabase } from "./lib/supabase";
 import { T } from "./styles/tokens";
@@ -394,6 +395,8 @@ export default function App(){
         console.error("[intel] debug:",data.debug);
         return;
       }
+      // H-004 signal: scan count per user per week. Counts/enums only — no venue, no content.
+      track(EVENTS.INTEL_SCAN,{trigger:force?"manual":"background",mode:"single",thread_count:(ni.threads||[]).length});
       setIntel(p=>{
         const existing=p[sid]||{};
         const seenT=new Set();
