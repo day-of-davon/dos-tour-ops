@@ -39,10 +39,23 @@ exactly the failures that matter most. Lazy-loading would miss them. The cost is
    (`VITE_*` is build-time — the env change is inert until a fresh build).
 3. Trigger a test error and confirm it appears in Sentry > Issues.
 
+## Tunnel (ad-blocker resistance)
+
+`src/lib/sentry.js` sets `tunnel: "/api/monitoring"`, and `api/monitoring.js`
+forwards envelopes to Sentry. Why: ad/privacy blockers (uBlock, Brave, Ghostery,
+Safari ITP) block `*.ingest.sentry.io` at the network layer, so client-side
+errors silently never arrive — verified in testing (the server-side test event
+landed; browser throws did not). Routing through our own same-origin domain is
+unblockable, so real users' crash reports actually reach Sentry.
+
+The tunnel validates the envelope's DSN against our host + project id before
+forwarding, so it can't be abused as an open relay. Host/project are public
+(already in the client bundle).
+
 ## Follow-up
 
 - **Source maps:** stack traces are minified without them. Add
   `@sentry/vite-plugin` with a `SENTRY_AUTH_TOKEN` to upload source maps on
   build for readable traces. Deferred — needs an org auth token.
-- **Sentry MCP:** add the Sentry MCP server so Claude can triage issues
-  in-session (read a stack trace, map it to the line, propose the fix).
+- **Sentry MCP:** wired (user scope). Claude can triage issues in-session — read
+  a stack trace, map it to the line, resolve/assign.
