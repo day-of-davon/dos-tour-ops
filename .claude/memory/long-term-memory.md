@@ -23,6 +23,15 @@
 - [2026-07-13 03:00 UTC] https://www.accessallareas.net.au/blog/2026-05-01-touring-logistics-software-2026/ — Master Tour 2026 mobile update polarizing: some users call it "LEAGUES beyond" prior version, others call it "horrible with too many redundant tabs"; UX weakness is a differentiation angle for DOS
 - [2026-07-13 03:00 UTC] https://starterpick.com/guides/trpc-v11-vs-orpc-vs-ts-rest-type-safe-rpc-saas-boilerplates-2026 — oRPC emerging as lightweight tRPC alternative in 2026 SaaS boilerplate comparisons; DOS Platform is tRPC-committed but worth monitoring as the ecosystem fragments
 
+- [2026-07-19 03:00 UTC] https://pypi.org/project/pyvroom/ — VROOM active: pyvroom 1.15.2 released April 22, 2026 (1.15.0 March 2026); vroom-express also updated March 2026; confirms VROOM VRP solver is under active maintenance, not stale
+- [2026-07-19 03:00 UTC] https://supabase.com/changelog/44713-developer-update-april-2026 — Supabase Postgres 17 available as opt-in since April 2026 on hosted; default to flip in next self-hosted release; DOS Platform should plan for PG17 (already past PG14 drop)
+- [2026-07-19 03:00 UTC] https://supabase.com/changelog/46689-developer-update-june-2026 — supabase-js client libraries now emit W3C-compatible OpenTelemetry traces (Sentry, Datadog, Honeycomb); zero-config observability option for DOS Platform
+- [2026-07-19 03:00 UTC] https://supabase.com/changelog/46689-developer-update-june-2026 — ChatGPT + Supabase integration GA: 29 MCP tools (SQL execution, schema changes, branching); signals Supabase MCP tooling standardizing beyond Claude, DOS Platform AI Agent Plugin stays relevant
+- [2026-07-19 03:00 UTC] https://nextjs.org/support-policy — Next.js 14 officially legacy as of June 2026; recommended migration path is 14→15 first (async request APIs, fetch caching), then 15→16 (Node 20.9+, proxy.ts); DOS Platform spec on 15 is correct holding position
+- [2026-07-19 03:00 UTC] https://railway.com/deploy/n8n-mcp-2 — n8n-MCP Railway one-click template (czlonkowski/n8n-mcp, live since Jan 21, 2026): MCP server exposing 1,084+ n8n nodes + 2,700+ workflow templates to Claude Desktop/Code/Cursor; direct bridge between DOS's Claude integration and n8n automation layer
+- [2026-07-19 03:00 UTC] https://news.ycombinator.com/item?id=47536210 — Convene (Show HN, March 27, 2026): marketplace + management software for event organizers; adjacent to DOS festival space, worth monitoring for feature overlap with DOS Platform festival module
+- [2026-07-19 03:00 UTC] https://supabase.com/changelog/44713-developer-update-april-2026 — Supabase app in Stripe Marketplace now GA; simplifies billing integration path for DOS Platform's subscription tiers
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
