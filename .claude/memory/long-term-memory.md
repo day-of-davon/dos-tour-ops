@@ -32,6 +32,13 @@
 - [2026-07-19 03:00 UTC] https://news.ycombinator.com/item?id=47536210 — Convene (Show HN, March 27, 2026): marketplace + management software for event organizers; adjacent to DOS festival space, worth monitoring for feature overlap with DOS Platform festival module
 - [2026-07-19 03:00 UTC] https://supabase.com/changelog/44713-developer-update-april-2026 — Supabase app in Stripe Marketplace now GA; simplifies billing integration path for DOS Platform's subscription tiers
 
+- [2026-07-20 03:00 UTC] https://github.com/topics/vroom?o=desc&s=updated — VROOM algorithm improvement: solution gap to optimal narrowed from 1.81% to 1.63%, calc time halved to ~360ms for 100 stops; new max_distance parameter added for EV fleet constraints; repos updated May 11, 2026; DOS routing layer can advertise measurable quality gains
+- [2026-07-20 03:00 UTC] https://www.capterra.com/p/151939/FestivalPro/ — FestivalPro 2026 confirmed GBP pricing: £45/mo Entry (1 user) to £330/mo Ultimate; DOS Platform's $1K-15K festival tier is well above this range — positioning is premium/ops-first vs. FestivalPro's lightweight tier structure
+- [2026-07-20 03:00 UTC] https://hello.eventotron.com/ — Eventotron 2026 full platform relaunch: festival + venue management (artist registration → ticketing), billed as simpler/more intuitive; new entrant to monitor in DOS festival module space
+- [2026-07-20 03:00 UTC] https://www.toursmart.io/software/ — TourSmart: agentic AI tour routing, crawls venue capacities, maps fuel-efficient routes, cross-references local media/radio by city; first AI-native competitor directly overlapping DOS's routing + intelligence moat
+- [2026-07-20 03:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Supabase Studio May 2026: "Fix with Assistant" buttons across dashboard (Claude or ChatGPT dropdown); Schema Visualizer supports in-page table editing; incremental DX improvements relevant to DOS dev workflow
+- [2026-07-20 03:00 UTC] https://supabase.com/changelog/46689-developer-update-june-2026 — Supabase available as connector on Perplexity Computer (read/write Postgres tables); signals Supabase expanding data-layer integrations beyond Claude and ChatGPT ecosystems
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
