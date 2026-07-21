@@ -39,6 +39,11 @@
 - [2026-07-20 03:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Supabase Studio May 2026: "Fix with Assistant" buttons across dashboard (Claude or ChatGPT dropdown); Schema Visualizer supports in-page table editing; incremental DX improvements relevant to DOS dev workflow
 - [2026-07-20 03:00 UTC] https://supabase.com/changelog/46689-developer-update-june-2026 — Supabase available as connector on Perplexity Computer (read/write Postgres tables); signals Supabase expanding data-layer integrations beyond Claude and ChatGPT ecosystems
 
+- [2026-07-21 03:00 UTC] https://supabase.com/changelog/47796-developer-update-july-2026 — Supabase PG17 is now the default for self-hosted as of July 2026 (prior: opt-in on hosted since April); DOS Platform self-hosted consideration must target PG17 from the start
+- [2026-07-21 03:00 UTC] https://supabase.com/changelog/47796-developer-update-july-2026 — Supabase OpenCode (July 2026): new tool that auto-configures MCP setup so Claude/agents connect to Supabase DB, Edge Functions, and logs in one step; complements AI Agent Plugin for DOS Platform intelligence layer
+- [2026-07-21 03:00 UTC] https://supabase.com/changelog/47796-developer-update-july-2026 — Supabase Wrappers v0.6.2: MongoDB collections queryable and joinable directly from Postgres via FDW; new data-layer option if DOS Platform needs cross-DB joins or external data federation
+- [2026-07-21 03:00 UTC] https://docs.n8n.io/changelog/release-notes-2.x — n8n v2.20 added AI Agent telemetry (v2.19.2 was prior known version on DOS Railway stack); upgrade Railway template to pick up agent-level observability for DOS automation workflows
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
