@@ -39,6 +39,9 @@
 - [2026-07-20 03:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Supabase Studio May 2026: "Fix with Assistant" buttons across dashboard (Claude or ChatGPT dropdown); Schema Visualizer supports in-page table editing; incremental DX improvements relevant to DOS dev workflow
 - [2026-07-20 03:00 UTC] https://supabase.com/changelog/46689-developer-update-june-2026 — Supabase available as connector on Perplexity Computer (read/write Postgres tables); signals Supabase expanding data-layer integrations beyond Claude and ChatGPT ecosystems
 
+- [2026-07-21 03:00 UTC] https://www.digitalapplied.com/blog/supabase-self-hosted-envoy-gateway-migration-2026 — Supabase self-hosted default API gateway switches Kong to Envoy week of Aug 9, 2026; breaking for anyone using Kong :8443 HTTPS listener, customized kong.yml, or tooling referencing "kong" by name; no impact on hosted Supabase Cloud (DOS v7 + planned DOS Platform both use hosted, no action needed)
+- [2026-07-21 03:00 UTC] https://news.marketersmedia.com/toursyncer-announces-launch-of-all-in-one-tour-management-platform-toursyncercom-to-streamline-post-booking-operations-for-tour-operators/89194497 — TourSyncer.com launched June 2026 (Dallas TX): all-in-one post-booking tour ops (staff scheduling, itinerary, group coordination, invoicing); targets travel/sightseeing operators not live music, low competitive threat to DOS
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
