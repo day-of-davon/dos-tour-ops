@@ -44,6 +44,15 @@
 - [2026-07-21 03:00 UTC] https://supabase.com/changelog/47796-developer-update-july-2026 — Supabase Wrappers v0.6.2: MongoDB collections queryable and joinable directly from Postgres via FDW; new data-layer option if DOS Platform needs cross-DB joins or external data federation
 - [2026-07-21 03:00 UTC] https://docs.n8n.io/changelog/release-notes-2.x — n8n v2.20 added AI Agent telemetry (v2.19.2 was prior known version on DOS Railway stack); upgrade Railway template to pick up agent-level observability for DOS automation workflows
 
+- [2026-07-22 03:00 UTC] https://supabase.com/changelog/47796-developer-update-july-2026 — Supabase Pipelines (July 21, 2026): managed CDC service streaming Postgres changes to BigQuery in near real-time, public alpha on all paid plans; new data egress path for DOS Platform analytics if BigQuery is ever added
+- [2026-07-22 03:00 UTC] https://www.digitalapplied.com/blog/supabase-self-hosted-envoy-gateway-migration-2026 — Supabase self-hosted Envoy gateway became default API gateway (July 17, 2026, breaking change); any DOS Platform self-hosted Supabase deployment must update gateway config before upgrading
+- [2026-07-22 03:00 UTC] https://nextjs.org/blog/july-2026-security-release — Next.js July 2026 security release: four high-severity + five medium-severity CVEs patched; update targets are 15.5.21 (Maintenance LTS) or 16.2.11 (Active LTS); DOS Platform spec on Next.js 15 must pin 15.5.21 at minimum
+- [2026-07-22 03:00 UTC] https://community.vercel.com/t/vercel-weekly-2026-07-06/45111 — Vercel Services launched July 1, 2026: microservices first-class on Vercel, frontend+backend deploy together in full preview, services communicate without touching public internet; relevant for DOS Platform multi-service architecture (Next.js + tRPC + n8n)
+- [2026-07-22 03:00 UTC] https://vercel.com/blog/vercel-ship-2026-recap — Vercel AI SDK 7 announced: agent-first toolkit for multi-turn, tool-calling, multi-file agents; could complement or partially displace direct Claude API usage in DOS Platform intelligence layer
+- [2026-07-22 03:00 UTC] https://techglock.com/blog/react-19-in-mid-2026-what-we-ship-what-we-removed-what-we-watch — React 19 is now the universal greenfield default (Next.js, Remix, TanStack Start, Vite) by mid-2026; DOS v7 on React 18 is a full generation behind and the gap is widening
+- [2026-07-22 03:00 UTC] https://github.com/supabase/ssr/issues/96 — @supabase/ssr v0.6.0 breaking change: auth cookies immediately deleted if set outside a Server Action or Route Handler; DOS Platform SSR auth middleware must be updated when adopting this version
+- [2026-07-22 03:00 UTC] https://www.lenndapp.com/ — Lennd positioning updated with OnTrack partnership ("grows stronger with OnTrack to revolutionize global event management"); signals Lennd expanding global event ops coverage; monitor for feature overlap with DOS Platform festival module
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
