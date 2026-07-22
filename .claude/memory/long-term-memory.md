@@ -44,6 +44,12 @@
 - [2026-07-21 03:00 UTC] https://supabase.com/changelog/47796-developer-update-july-2026 — Supabase Wrappers v0.6.2: MongoDB collections queryable and joinable directly from Postgres via FDW; new data-layer option if DOS Platform needs cross-DB joins or external data federation
 - [2026-07-21 03:00 UTC] https://docs.n8n.io/changelog/release-notes-2.x — n8n v2.20 added AI Agent telemetry (v2.19.2 was prior known version on DOS Railway stack); upgrade Railway template to pick up agent-level observability for DOS automation workflows
 
+- [2026-07-22 03:00 UTC] https://www.digitalapplied.com/blog/supabase-self-hosted-envoy-gateway-migration-2026 — Supabase self-hosted switching default API gateway from Kong to Envoy on Aug 9, 2026; custom kong.yml, :8443 HTTPS listener, and scripts referencing "kong" service break silently; DOS Platform self-hosted path must account for this before that date
+- [2026-07-22 03:00 UTC] https://supabase.com/changelog/45329-breaking-change-tables-not-exposed-to-data-and-graphql-api-automatically — Supabase Oct 30, 2026 breaking change: new tables in public schema no longer auto-exposed to Data API / GraphQL; explicit GRANT required for each new table; existing tables unaffected but all new DOS Platform schema migrations must include grants post-Oct 30
+- [2026-07-22 03:00 UTC] https://nextjs.org/blog/july-2026-security-release — Next.js launches monthly security release program; v15.5.21 (Maintenance LTS) patches 4 high + 5 medium CVEs; DOS Platform on Next.js 15 must track this monthly patch cadence
+- [2026-07-22 03:00 UTC] https://musically.com/2026/02/17/music-mogul-ai-brings-automation-to-the-tour-booking-process/ — Music Mogul AI (launched Feb 2026): agentic AI automating tour-booking workflows (travel bookings, schedule changes, guest comms); direct overlap with DOS intelligence layer for advancing and ops — new competitor to track
+- [2026-07-22 03:00 UTC] https://docs.n8n.io/changelog/release-notes-2.x — n8n reached v2.21.8 (released May 27, 2026); prior DOS Railway stack was on v2.19.2 via March 2026 template; Railway n8n template should be updated to pick up v2.21 fixes (AI node validation, scheduled poll, webhook user-id population)
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
