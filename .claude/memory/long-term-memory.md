@@ -59,6 +59,11 @@
 - [2026-07-23 04:00 UTC] https://learnwebcraft.com/learn/react/migrate-vite-react-react-19-compiler — CORRECTION to prior entry: Vite scaffold still generates React 18 by default in 2026; React 19 requires a manual upgrade step; DOS v7 on React 18 + Vite 5 is not as behind the Vite default scaffold as the prior "universal greenfield default" framing implied
 - [2026-07-23 04:00 UTC] https://www.toursmart.io/ — TourSmart scope wider than previously noted: beyond routing, also generates legal contracts, invoices, manages artist contacts/emails, and surfaces gig histories of similar artists; competitive overlap with DOS extends into tour admin and advancing workflows, not just routing
 
+- [2026-07-23 05:30 UTC] https://www.digitalapplied.com/blog/supabase-self-hosted-envoy-gateway-migration-2026 — CORRECTION to 2026-07-22 entry: Supabase Envoy becoming default was announced July 17, 2026, but the breaking change deploys the week of August 9, 2026; any DOS Platform self-hosted Supabase evaluation still has ~2 weeks to prepare; Kong moves to optional override, gateway service renames to api-gw in docker-compose.yml
+- [2026-07-23 05:30 UTC] https://entertainment.toolsinfo.com/tool/master-tour — CORRECTION to DOS context: Master Tour starting price confirmed at $59.99/mo in multiple 2026 sources, not $74.99/mo single-user as documented; either plan restructuring occurred or the $74.99 figure is stale; competitive positioning vs DOS pricing tiers needs re-verification
+- [2026-07-23 05:30 UTC] https://vercel.com/changelog/realtime-voice-speech-and-transcription-now-supported-on-ai-gateway — Vercel AI Gateway now routes realtime voice, STT, and TTS (beta, via AI SDK 7), supporting OpenAI and xAI Grok audio; creates unified AI infrastructure layer on Vercel beyond text; relevant if DOS Platform adds voice-driven briefings or ops features; does not yet route Claude Sonnet audio directly
+- [2026-07-23 05:30 UTC] https://nextjs.org/blog/next-security-release-program — Next.js formally adopts monthly security release program as of July 2026; patches ship on a ~monthly cadence (previously ad hoc); DOS Platform on Next.js 15 Maintenance LTS must track monthly 15.5.x releases; v15.5.21 was the inaugural patch in this program
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
