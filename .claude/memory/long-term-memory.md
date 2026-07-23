@@ -53,6 +53,12 @@
 - [2026-07-22 03:00 UTC] https://github.com/supabase/ssr/issues/96 — @supabase/ssr v0.6.0 breaking change: auth cookies immediately deleted if set outside a Server Action or Route Handler; DOS Platform SSR auth middleware must be updated when adopting this version
 - [2026-07-22 03:00 UTC] https://www.lenndapp.com/ — Lennd positioning updated with OnTrack partnership ("grows stronger with OnTrack to revolutionize global event management"); signals Lennd expanding global event ops coverage; monitor for feature overlap with DOS Platform festival module
 
+- [2026-07-23 04:00 UTC] https://tracxn.com/d/companies/ontrack/__FfG03AtvSefkz1Px0cAORvpL27gz81WF-8Rl1UArZLI — CORRECTION to prior entry: OnTrack did not partner with Lennd; OnTrack *acquired* Lennd outright; Lennd is now absorbed and no longer an independent competitor in festival advancing/credentialing ops
+- [2026-07-23 04:00 UTC] https://releasebot.io/updates/supabase — Supabase Pipelines (public alpha) expanded destinations beyond BigQuery: ClickHouse, Snowflake, and DuckLake now on destination request form; also added schema change support and faster initial sync
+- [2026-07-23 04:00 UTC] https://supabase.com/changelog/47796-developer-update-july-2026 — Supabase Multigres detail: preserves Postgres LISTEN/NOTIFY semantics even when connections are pooled away from clients; relevant to DOS real-time transport/ROS pub-sub patterns under connection pooling
+- [2026-07-23 04:00 UTC] https://learnwebcraft.com/learn/react/migrate-vite-react-react-19-compiler — CORRECTION to prior entry: Vite scaffold still generates React 18 by default in 2026; React 19 requires a manual upgrade step; DOS v7 on React 18 + Vite 5 is not as behind the Vite default scaffold as the prior "universal greenfield default" framing implied
+- [2026-07-23 04:00 UTC] https://www.toursmart.io/ — TourSmart scope wider than previously noted: beyond routing, also generates legal contracts, invoices, manages artist contacts/emails, and surfaces gig histories of similar artists; competitive overlap with DOS extends into tour admin and advancing workflows, not just routing
+
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
