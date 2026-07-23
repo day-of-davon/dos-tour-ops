@@ -4,66 +4,47 @@
 
 <!-- Scout entries appended here -->
 
-- [2026-06-29 02:00 UTC] https://mlq.ai/news/supabase-raises-500m-series-f-at-105b-valuation-doubles-in-8-months/ — Supabase raised $500M Series F at $10.5B valuation (doubled in 8 months); over $1B total raised; platform maturity de-risks DOS's Supabase dependency
-- [2026-06-29 02:00 UTC] https://supabase.com/changelog — Supabase shipped Multigres: scalable Postgres OS with sharding, connection pooling, automatic failover, and backup orchestration; relevant if DOS Platform hits multi-tenant scale limits
-- [2026-06-29 02:00 UTC] https://supabase.com/changelog — Supabase Auth now has Passkeys beta (WebAuthn; Face ID, Touch ID, Windows Hello, hardware keys); alternative to current Google OAuth gate
-- [2026-06-29 02:00 UTC] https://supabase.com/changelog — Supabase AI Agent Plugin ships: bundles MCP server + agent skills so Claude/coding agents can query DBs, manage migrations, deploy Edge Functions; directly usable in DOS Platform Claude integration
-- [2026-06-29 02:00 UTC] https://supabase.com/changelog — Supabase Realtime now supports binary Broadcast payloads (in addition to JSON); useful for high-frequency transport/ROS state updates in DOS
-- [2026-06-29 02:00 UTC] https://supabase.com/changelog — Supabase branching without Git is now the default; branches can be created from dashboard without GitHub integration, lowers friction for DOS Platform staging environments
-- [2026-06-29 02:00 UTC] https://nextjs.org/blog/next-16 — Next.js 16 is current stable (16.2.7 as of June 2026); DOS Platform is specced on Next.js 15 — key breaking changes: middleware.ts replaced by proxy.ts with different runtime, Turbopack default, async-only params/cookies/headers (sync access removed), legacy AMP and runtime configs removed; plan migration or lock at 15
-- [2026-06-29 02:00 UTC] https://tech.eu/2026/01/21/tourmanagement-bv-acquires-beatswitch-in-live-music-software-deal/ — BeatSwitch acquirer is Tourmanagement.com (Leuven, Belgium): a touring mgmt platform that now also owns BeatSwitch's festival advancing product; combined, they cover touring ops + festival artist advancing in one company — closer direct competitor to DOS moat than previously framed
-- [2026-06-29 02:00 UTC] https://railway.com/deploy/n8n — n8n on Railway latest template (March 2026) uses n8nio/n8n:2.19.2 in queue mode with dedicated worker pool, Redis (BullMQ), and PostgreSQL; cost ~$5-14/month; confirms current DOS n8n/Railway stack is up to date
-
-- [2026-07-13 03:00 UTC] https://supabase.com/changelog/45827-deprecation-notice-support-for-postgres-14-ending-on-1st-july-2026 — Supabase dropped Postgres 14 support July 1, 2026; v7 Supabase project and DOS Platform must be on PG15+ — verify both projects' Postgres version
-- [2026-07-13 03:00 UTC] https://supabase.com/changelog — Supabase self-hosted API_EXTERNAL_URL config changes week of July 6, 2026: must include /auth/v1 path prefix; SAML SSO routes move from /sso/saml/* to /auth/v1/sso/saml/*; affects DOS Platform if self-hosted Supabase is considered
-- [2026-07-13 03:00 UTC] https://supabase.com/changelog — @supabase-labs/tanstack-db alpha: syncs TanStack DB collections with Supabase tables over PostgREST + Realtime; alternative real-time state layer worth evaluating for DOS Platform transport/ROS live state
-- [2026-07-13 03:00 UTC] https://www.digitalapplied.com/blog/supabase-js-typescript-5-minimum-migration-checklist-2026 — supabase-js now requires TypeScript 5.0+ minimum; migration concern for v7 (Vite + React 18) if pinned on TS4
-- [2026-07-13 03:00 UTC] https://github.com/trpc/trpc/releases — tRPC v11.16.0 (March 28, 2026) + v11.18.0 (June 18, 2026) released; no breaking changes from v11.0; v11.18 adds OpenAPI server URL support; DOS Platform tRPC dependency is current and stable
-- [2026-07-13 03:00 UTC] https://nextjs.org/docs/app/guides/upgrading/version-16 — Next.js 16 additional breaking details not in prior entry: Node.js 20.9+ minimum (Node 18 dropped); revalidateTag now requires second cacheLife argument; next lint fully removed from CLI (CI can pass silently without linting)
-- [2026-07-13 03:00 UTC] https://www.accessallareas.net.au/blog/2026-05-01-touring-logistics-software-2026/ — Master Tour 2026 mobile update polarizing: some users call it "LEAGUES beyond" prior version, others call it "horrible with too many redundant tabs"; UX weakness is a differentiation angle for DOS
-- [2026-07-13 03:00 UTC] https://starterpick.com/guides/trpc-v11-vs-orpc-vs-ts-rest-type-safe-rpc-saas-boilerplates-2026 — oRPC emerging as lightweight tRPC alternative in 2026 SaaS boilerplate comparisons; DOS Platform is tRPC-committed but worth monitoring as the ecosystem fragments
-
 - [2026-07-19 03:00 UTC] https://pypi.org/project/pyvroom/ — VROOM active: pyvroom 1.15.2 released April 22, 2026 (1.15.0 March 2026); vroom-express also updated March 2026; confirms VROOM VRP solver is under active maintenance, not stale
-- [2026-07-19 03:00 UTC] https://supabase.com/changelog/44713-developer-update-april-2026 — Supabase Postgres 17 available as opt-in since April 2026 on hosted; default to flip in next self-hosted release; DOS Platform should plan for PG17 (already past PG14 drop)
-- [2026-07-19 03:00 UTC] https://supabase.com/changelog/46689-developer-update-june-2026 — supabase-js client libraries now emit W3C-compatible OpenTelemetry traces (Sentry, Datadog, Honeycomb); zero-config observability option for DOS Platform
-- [2026-07-19 03:00 UTC] https://supabase.com/changelog/46689-developer-update-june-2026 — ChatGPT + Supabase integration GA: 29 MCP tools (SQL execution, schema changes, branching); signals Supabase MCP tooling standardizing beyond Claude, DOS Platform AI Agent Plugin stays relevant
-- [2026-07-19 03:00 UTC] https://nextjs.org/support-policy — Next.js 14 officially legacy as of June 2026; recommended migration path is 14→15 first (async request APIs, fetch caching), then 15→16 (Node 20.9+, proxy.ts); DOS Platform spec on 15 is correct holding position
-- [2026-07-19 03:00 UTC] https://railway.com/deploy/n8n-mcp-2 — n8n-MCP Railway one-click template (czlonkowski/n8n-mcp, live since Jan 21, 2026): MCP server exposing 1,084+ n8n nodes + 2,700+ workflow templates to Claude Desktop/Code/Cursor; direct bridge between DOS's Claude integration and n8n automation layer
-- [2026-07-19 03:00 UTC] https://news.ycombinator.com/item?id=47536210 — Convene (Show HN, March 27, 2026): marketplace + management software for event organizers; adjacent to DOS festival space, worth monitoring for feature overlap with DOS Platform festival module
-- [2026-07-19 03:00 UTC] https://supabase.com/changelog/44713-developer-update-april-2026 — Supabase app in Stripe Marketplace now GA; simplifies billing integration path for DOS Platform's subscription tiers
-
-- [2026-07-20 03:00 UTC] https://github.com/topics/vroom?o=desc&s=updated — VROOM algorithm improvement: solution gap to optimal narrowed from 1.81% to 1.63%, calc time halved to ~360ms for 100 stops; new max_distance parameter added for EV fleet constraints; repos updated May 11, 2026; DOS routing layer can advertise measurable quality gains
-- [2026-07-20 03:00 UTC] https://www.capterra.com/p/151939/FestivalPro/ — FestivalPro 2026 confirmed GBP pricing: £45/mo Entry (1 user) to £330/mo Ultimate; DOS Platform's $1K-15K festival tier is well above this range — positioning is premium/ops-first vs. FestivalPro's lightweight tier structure
-- [2026-07-20 03:00 UTC] https://hello.eventotron.com/ — Eventotron 2026 full platform relaunch: festival + venue management (artist registration → ticketing), billed as simpler/more intuitive; new entrant to monitor in DOS festival module space
-- [2026-07-20 03:00 UTC] https://www.toursmart.io/software/ — TourSmart: agentic AI tour routing, crawls venue capacities, maps fuel-efficient routes, cross-references local media/radio by city; first AI-native competitor directly overlapping DOS's routing + intelligence moat
-- [2026-07-20 03:00 UTC] https://supabase.com/changelog/45702-developer-update-may-2026 — Supabase Studio May 2026: "Fix with Assistant" buttons across dashboard (Claude or ChatGPT dropdown); Schema Visualizer supports in-page table editing; incremental DX improvements relevant to DOS dev workflow
-- [2026-07-20 03:00 UTC] https://supabase.com/changelog/46689-developer-update-june-2026 — Supabase available as connector on Perplexity Computer (read/write Postgres tables); signals Supabase expanding data-layer integrations beyond Claude and ChatGPT ecosystems
-
-- [2026-07-21 03:00 UTC] https://supabase.com/changelog/47796-developer-update-july-2026 — Supabase PG17 is now the default for self-hosted as of July 2026 (prior: opt-in on hosted since April); DOS Platform self-hosted consideration must target PG17 from the start
-- [2026-07-21 03:00 UTC] https://supabase.com/changelog/47796-developer-update-july-2026 — Supabase OpenCode (July 2026): new tool that auto-configures MCP setup so Claude/agents connect to Supabase DB, Edge Functions, and logs in one step; complements AI Agent Plugin for DOS Platform intelligence layer
-- [2026-07-21 03:00 UTC] https://supabase.com/changelog/47796-developer-update-july-2026 — Supabase Wrappers v0.6.2: MongoDB collections queryable and joinable directly from Postgres via FDW; new data-layer option if DOS Platform needs cross-DB joins or external data federation
-- [2026-07-21 03:00 UTC] https://docs.n8n.io/changelog/release-notes-2.x — n8n v2.20 added AI Agent telemetry (v2.19.2 was prior known version on DOS Railway stack); upgrade Railway template to pick up agent-level observability for DOS automation workflows
-
-- [2026-07-22 03:00 UTC] https://supabase.com/changelog/47796-developer-update-july-2026 — Supabase Pipelines (July 21, 2026): managed CDC service streaming Postgres changes to BigQuery in near real-time, public alpha on all paid plans; new data egress path for DOS Platform analytics if BigQuery is ever added
-- [2026-07-22 03:00 UTC] https://www.digitalapplied.com/blog/supabase-self-hosted-envoy-gateway-migration-2026 — Supabase self-hosted Envoy gateway became default API gateway (July 17, 2026, breaking change); any DOS Platform self-hosted Supabase deployment must update gateway config before upgrading
-- [2026-07-22 03:00 UTC] https://nextjs.org/blog/july-2026-security-release — Next.js July 2026 security release: four high-severity + five medium-severity CVEs patched; update targets are 15.5.21 (Maintenance LTS) or 16.2.11 (Active LTS); DOS Platform spec on Next.js 15 must pin 15.5.21 at minimum
-- [2026-07-22 03:00 UTC] https://community.vercel.com/t/vercel-weekly-2026-07-06/45111 — Vercel Services launched July 1, 2026: microservices first-class on Vercel, frontend+backend deploy together in full preview, services communicate without touching public internet; relevant for DOS Platform multi-service architecture (Next.js + tRPC + n8n)
-- [2026-07-22 03:00 UTC] https://vercel.com/blog/vercel-ship-2026-recap — Vercel AI SDK 7 announced: agent-first toolkit for multi-turn, tool-calling, multi-file agents; could complement or partially displace direct Claude API usage in DOS Platform intelligence layer
-- [2026-07-22 03:00 UTC] https://techglock.com/blog/react-19-in-mid-2026-what-we-ship-what-we-removed-what-we-watch — React 19 is now the universal greenfield default (Next.js, Remix, TanStack Start, Vite) by mid-2026; DOS v7 on React 18 is a full generation behind and the gap is widening
-- [2026-07-22 03:00 UTC] https://github.com/supabase/ssr/issues/96 — @supabase/ssr v0.6.0 breaking change: auth cookies immediately deleted if set outside a Server Action or Route Handler; DOS Platform SSR auth middleware must be updated when adopting this version
-- [2026-07-22 03:00 UTC] https://www.lenndapp.com/ — Lennd positioning updated with OnTrack partnership ("grows stronger with OnTrack to revolutionize global event management"); signals Lennd expanding global event ops coverage; monitor for feature overlap with DOS Platform festival module
-
-- [2026-07-23 04:00 UTC] https://tracxn.com/d/companies/ontrack/__FfG03AtvSefkz1Px0cAORvpL27gz81WF-8Rl1UArZLI — CORRECTION to prior entry: OnTrack did not partner with Lennd; OnTrack *acquired* Lennd outright; Lennd is now absorbed and no longer an independent competitor in festival advancing/credentialing ops
-- [2026-07-23 04:00 UTC] https://releasebot.io/updates/supabase — Supabase Pipelines (public alpha) expanded destinations beyond BigQuery: ClickHouse, Snowflake, and DuckLake now on destination request form; also added schema change support and faster initial sync
-- [2026-07-23 04:00 UTC] https://supabase.com/changelog/47796-developer-update-july-2026 — Supabase Multigres detail: preserves Postgres LISTEN/NOTIFY semantics even when connections are pooled away from clients; relevant to DOS real-time transport/ROS pub-sub patterns under connection pooling
-- [2026-07-23 04:00 UTC] https://learnwebcraft.com/learn/react/migrate-vite-react-react-19-compiler — CORRECTION to prior entry: Vite scaffold still generates React 18 by default in 2026; React 19 requires a manual upgrade step; DOS v7 on React 18 + Vite 5 is not as behind the Vite default scaffold as the prior "universal greenfield default" framing implied
-- [2026-07-23 04:00 UTC] https://www.toursmart.io/ — TourSmart scope wider than previously noted: beyond routing, also generates legal contracts, invoices, manages artist contacts/emails, and surfaces gig histories of similar artists; competitive overlap with DOS extends into tour admin and advancing workflows, not just routing
-
-- [2026-07-23 05:30 UTC] https://www.digitalapplied.com/blog/supabase-self-hosted-envoy-gateway-migration-2026 — CORRECTION to 2026-07-22 entry: Supabase Envoy becoming default was announced July 17, 2026, but the breaking change deploys the week of August 9, 2026; any DOS Platform self-hosted Supabase evaluation still has ~2 weeks to prepare; Kong moves to optional override, gateway service renames to api-gw in docker-compose.yml
-- [2026-07-23 05:30 UTC] https://entertainment.toolsinfo.com/tool/master-tour — CORRECTION to DOS context: Master Tour starting price confirmed at $59.99/mo in multiple 2026 sources, not $74.99/mo single-user as documented; either plan restructuring occurred or the $74.99 figure is stale; competitive positioning vs DOS pricing tiers needs re-verification
-- [2026-07-23 05:30 UTC] https://vercel.com/changelog/realtime-voice-speech-and-transcription-now-supported-on-ai-gateway — Vercel AI Gateway now routes realtime voice, STT, and TTS (beta, via AI SDK 7), supporting OpenAI and xAI Grok audio; creates unified AI infrastructure layer on Vercel beyond text; relevant if DOS Platform adds voice-driven briefings or ops features; does not yet route Claude Sonnet audio directly
-- [2026-07-23 05:30 UTC] https://nextjs.org/blog/next-security-release-program — Next.js formally adopts monthly security release program as of July 2026; patches ship on a ~monthly cadence (previously ad hoc); DOS Platform on Next.js 15 Maintenance LTS must track monthly 15.5.x releases; v15.5.21 was the inaugural patch in this program
 
 ## promoted
 
 <!-- Weekly consolidation moves validated patterns here -->
+
+### [PROMOTED 2026-07-19] Supabase
+
+- [2026-06-29] Supabase raised $500M Series F at $10.5B valuation; platform maturity de-risks DOS Supabase dependency → supabase-updates.md
+- [2026-06-29] Supabase shipped Multigres: sharding, connection pooling, automatic failover, backup orchestration → supabase-updates.md
+- [2026-06-29] Supabase Auth Passkeys beta (WebAuthn; Face ID, Touch ID, Windows Hello, hardware keys) → supabase-updates.md
+- [2026-06-29] Supabase AI Agent Plugin: MCP server + agent skills for Claude/coding agents → supabase-updates.md
+- [2026-06-29] Supabase Realtime binary Broadcast payloads (in addition to JSON) → supabase-updates.md
+- [2026-06-29] Supabase branching without Git now default → supabase-updates.md
+- [2026-07-13] Supabase dropped Postgres 14 support July 1, 2026; v7 and DOS Platform must be on PG15+ → supabase-updates.md
+- [2026-07-13] Supabase self-hosted API_EXTERNAL_URL must include /auth/v1 path prefix (breaking, week of July 6) → supabase-updates.md
+- [2026-07-13] @supabase-labs/tanstack-db alpha: syncs TanStack DB with Supabase over PostgREST + Realtime → supabase-updates.md
+- [2026-07-13] supabase-js requires TypeScript 5.0+ minimum → supabase-updates.md
+- [2026-07-19] Supabase Postgres 17 available as opt-in since April 2026 on hosted → supabase-updates.md
+- [2026-07-19] supabase-js client libraries emit W3C-compatible OpenTelemetry traces → supabase-updates.md
+- [2026-07-19] ChatGPT + Supabase integration GA: 29 MCP tools → supabase-updates.md
+- [2026-07-19] Supabase app in Stripe Marketplace GA → supabase-updates.md
+
+### [PROMOTED 2026-07-19] Next.js
+
+- [2026-06-29] Next.js 16 current stable (16.2.7); middleware.ts replaced by proxy.ts, Turbopack default, async-only params/cookies/headers, legacy AMP removed → nextjs-updates.md
+- [2026-07-13] Next.js 16 additional breaking: Node.js 20.9+ required, revalidateTag needs cacheLife arg, next lint removed from CLI → nextjs-updates.md
+- [2026-07-19] Next.js 14 officially legacy June 2026; migration path 14→15→16; DOS Platform spec on 15 is correct holding position → nextjs-updates.md
+
+### [PROMOTED 2026-07-19] Competitors
+
+- [2026-06-29] BeatSwitch acquired by Tourmanagement.com (Leuven, Belgium); combined entity covers touring ops + festival advancing; closer direct competitor than previously framed → competitor-intel.md
+- [2026-07-13] Master Tour 2026 mobile update polarizing; UX weakness is DOS differentiation angle → competitor-intel.md
+- [2026-07-19] Convene (Show HN, March 2026): marketplace + management for event organizers; adjacent to DOS festival space → competitor-intel.md
+
+### [PROMOTED 2026-07-19] tRPC
+
+- [2026-07-13] tRPC v11.16.0 + v11.18.0 released; no breaking changes from v11.0; v11.18 adds OpenAPI server URL support → trpc-updates.md
+- [2026-07-13] oRPC emerging as lightweight tRPC alternative; DOS Platform tRPC-committed but monitor → trpc-updates.md
+
+### [PROMOTED 2026-07-19] n8n / Railway
+
+- [2026-06-29] n8n Railway template (n8nio/n8n:2.19.2, queue mode, Redis/BullMQ, PostgreSQL, ~$5-14/mo) confirmed up to date → n8n-railway-updates.md
+- [2026-07-19] n8n-MCP Railway one-click template (czlonkowski/n8n-mcp): exposes 1,084+ n8n nodes + 2,700+ workflow templates to Claude; direct bridge between DOS Claude integration and n8n → n8n-railway-updates.md
