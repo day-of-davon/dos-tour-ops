@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Intel Scan — Query & Logic Flow</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0e0f12;
+    --card: #16181d;
+    --border: #2a2d35;
+    --text: #e6e8ec;
+    --text-dim: #8a8f99;
+    --accent: #f5a524;
+    --green: #4ade80;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --purple: #a78bfa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 32px 24px 64px;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; }
+  header { margin-bottom: 24px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--text-dim); font-size: 13px; }
+  .sub code { color: var(--accent); background: rgba(245,165,36,0.08); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  @media (min-width: 1100px) {
+    .grid.two { grid-template-columns: 1fr 1fr; }
+  }
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px 22px;
+  }
+  .panel h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin: 0 0 14px;
+    font-weight: 600;
+  }
+  .mermaid { background: transparent; }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 12px;
+  }
+  .swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    margin-right: 6px;
+    vertical-align: -2px;
+  }
+  pre {
+    background: #0a0b0e;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 12px;
+    overflow-x: auto;
+    color: #d0d4dc;
+    margin: 8px 0 0;
+  }
+  .kv { display: grid; grid-template-columns: 140px 1fr; gap: 6px 14px; font-size: 13px; }
+  .kv dt { color: var(--text-dim); }
+  .kv dd { margin: 0; }
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(245,165,36,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(245,165,36,0.3);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Intel Scan — Query & Logic Flow</h1>
+  <div class="sub">
+    <code>api/intel.js</code> — primary query is now <code>subject:bbno newer_than:180d</code>; per-user cache, opt-in share.
+  </div>
+</header>
+
+<div class="grid">
+  <div class="panel">
+    <h2>End-to-end flow</h2>
+    <div class="mermaid">
+flowchart TD
+  C["Frontend<br/>session.provider_token"] --> API["POST /api/intel<br/>authenticate user"]
+  API --> R{"action?"}
+  R -->|toggleShare| TS["flip is_shared flag<br/>on intel_cache row"]
+  R -->|labelScan| LS["handleLabelScan"]
+  R -->|bulkFetch| BF["handleBulkFetch"]
+  R -->|default per-show| PS["per-show scan"]
+
+  subgraph BULK["Bulk / Label scan"]
+    direction TB
+    LS --> CH1{"cache fresh<br/>under 60 min?"}
+    BF --> CH1
+    CH1 -->|hit| RC1["return cached<br/>fromCache=true"]
+    CH1 -->|miss or force| GM["Gmail queries"]
+    GM --> P1["PRIMARY 60 results<br/>subject:bbno newer_than:180d"]
+    GM --> P2["EXTRA_QUERIES 25 each<br/>airlines, settlement, vendors<br/>label:bbno$, EU hubs, carnet"]
+    P1 --> DD["dedupe thread IDs"]
+    P2 --> DD
+    DD --> FT["gmailGetThread per ID<br/>extractHeaders + stripFooter"]
+    FT --> CT["classifyThread<br/>SETTLEMENT, CREW_FLIGHT<br/>ADVANCE, PRODUCTION, LEGAL<br/>LOGISTICS, FINANCE, MERCH<br/>GUEST_LIST, MISC"]
+    CT --> MS["matchShow<br/>venue+city+promoter+country<br/>plus temporal proximity, score ≥ 4"]
+    MS --> DF["deduplicateFlights<br/>PNR or name+date+route"]
+    DF --> BK["buckets<br/>settlements, crewFlights<br/>advanceItems, actionRequired"]
+    BK --> SIG["detectActionSignal<br/>urgent, input, standing_by<br/>fresh, active"]
+    SIG --> AI1["classifyActionItems<br/>Claude Haiku batch<br/>complete / ignore / action"]
+    AI1 --> SV1["upsert intel_cache<br/>user_id + show_id<br/>__bulk__ or __label_scan"]
+  end
+
+  subgraph SHOW["Per-show scan"]
+    direction TB
+    PS --> CH2{"cache fresh<br/>under 60 min?"}
+    CH2 -->|hit| RC2["return cached<br/>plus sharedByOthers"]
+    CH2 -->|miss| BC{"bulk cache hit<br/>for this show?"}
+    BC -->|yes| RT["reuse bulk threads<br/>cap 8"]
+    BC -->|no| SQ["per-show queries<br/>venue, city, bbno+venue<br/>Internet Explorer, promoter<br/>date, country, 45-90d"]
+    SQ --> FT2["fetch threads"]
+    RT --> AI2
+    FT2 --> AI2["Claude Opus<br/>tour-context system prompt<br/>cache_control ephemeral"]
+    AI2 --> OUT["threads, followUps<br/>showContacts, schedule"]
+    OUT --> SV2["upsert intel_cache<br/>preserves is_shared"]
+    SV2 --> SH["fetch sharedByOthers<br/>is_shared=true<br/>and user_id != caller"]
+  end
+
+  classDef entry fill:#1f2937,stroke:#60a5fa,color:#dbeafe
+  classDef cache fill:#1f2937,stroke:#a78bfa,color:#ede9fe
+  classDef gmail fill:#1c1917,stroke:#f5a524,color:#fef3c7
+  classDef ai fill:#1f2937,stroke:#4ade80,color:#dcfce7
+  classDef store fill:#1f2937,stroke:#f87171,color:#fee2e2
+
+  class C,API,R entry
+  class CH1,CH2,BC,RC1,RC2,RT cache
+  class GM,P1,P2,DD,FT,FT2,SQ gmail
+  class AI1,AI2,CT,MS,DF,BK,SIG ai
+  class SV1,SV2,SH,TS store
+    </div>
+    <div class="legend">
+      <span><span class="swatch" style="background:#60a5fa"></span>entry / routing</span>
+      <span><span class="swatch" style="background:#a78bfa"></span>cache layer</span>
+      <span><span class="swatch" style="background:#f5a524"></span>gmail i/o</span>
+      <span><span class="swatch" style="background:#4ade80"></span>parse / AI</span>
+      <span><span class="swatch" style="background:#f87171"></span>persistence</span>
+    </div>
+  </div>
+
+  <div class="grid two">
+    <div class="panel">
+      <h2>Gmail queries fired</h2>
+      <dl class="kv">
+        <dt>Primary</dt>
+        <dd><span class="pill">NEW</span> <code>subject:bbno newer_than:180d</code> · 60 results</dd>
+        <dt>Airline receipts</dt>
+        <dd>Delta · United · AA · Air Canada · BA · Aer Lingus · Ryanair · easyJet · Lufthansa · Air France · KLM (90d)</dd>
+        <dt>Vendors / EU</dt>
+        <dd>Pieter Smit · Fly By Nite · Neg Earth · TSL Lighting (180d)</dd>
+        <dt>Legal</dt>
+        <dd>immigration · work permit · carnet (90d)</dd>
+        <dt>Generic</dt>
+        <dd>settlement · flight receipt · booking confirmation · travel itinerary · EU hub airports</dd>
+        <dt>Fallback</dt>
+        <dd><code>label:bbno$ newer_than:180d</code> (catches labeled threads with off-topic subjects)</dd>
+        <dt>Per-show only</dt>
+        <dd><code>"venue" newer_than:45d</code> · <code>"city" "bbno$"</code> · <code>"Internet Explorer" "city"</code> · promoter · date · country</dd>
+      </dl>
+    </div>
+
+    <div class="panel">
+      <h2>Per-user scoping</h2>
+      <dl class="kv">
+        <dt>Auth</dt>
+        <dd>Supabase JWT (<code>session.access_token</code>) → resolves <code>user.id</code></dd>
+        <dt>Gmail</dt>
+        <dd><code>session.provider_token</code> = caller's own Google OAuth · queries that user's mailbox only</dd>
+        <dt>Cache key</dt>
+        <dd><code>intel_cache(user_id, show_id)</code> · TTL 60 min</dd>
+        <dt>Special show_ids</dt>
+        <dd><code>__bulk__</code> · <code>__label_scan</code> · <code>{venue}__{date}</code></dd>
+        <dt>Sharing</dt>
+        <dd>opt-in <code>is_shared</code> flag · readers see <code>sharedByOthers[]</code> from peers on same show</dd>
+        <dt>Stale token</dt>
+        <dd>401/403 from Gmail → <code>402 gmail_token_expired</code> → frontend prompts re-sign-in</dd>
+      </dl>
+    </div>
+
+    <div class="panel">
+      <h2>Classification taxonomy</h2>
+      <dl class="kv">
+        <dt>Categories</dt>
+        <dd>SETTLEMENT · CREW_FLIGHT · ADVANCE · PRODUCTION · LEGAL · LOGISTICS · FINANCE · MERCH · GUEST_LIST · MISC</dd>
+        <dt>Action signals</dt>
+        <dd>please sign · awaiting · following up · bumping · deadline · urgent · ASAP · time-sensitive</dd>
+        <dt>Buckets</dt>
+        <dd>urgent (LEGAL+) · input (sign/fill/return) · standing_by (followups) · fresh (&lt;60h) · active</dd>
+        <dt>Flight dedup</dt>
+        <dd>PNR (6-char alnum) preferred → fallback name + date + route</dd>
+        <dt>Show match</dt>
+        <dd>venue (10) · promoter words (3) · city (4) · country (1) · date proximity (1–3)</dd>
+        <dt>Threshold</dt>
+        <dd>min score ≥ 4 to attach a thread to a show</dd>
+      </dl>
+    </div>
+
+    <div class="panel">
+      <h2>AI calls</h2>
+      <dl class="kv">
+        <dt>Bulk / Label</dt>
+        <dd><code>classifyActionItems</code> · Haiku · cap 50 items · cached system prompt · returns suggestion + suggestedAction + confidence</dd>
+        <dt>Per-show</dt>
+        <dd>Opus (HEAVY_MODEL) · 8192 max_tokens · ephemeral cache · retries on 429/500/503/529</dd>
+        <dt>Output salvage</dt>
+        <dd>on <code>stop_reason=max_tokens</code>, walk JSON arrays object-by-object to recover partials</dd>
+        <dt>Telemetry</dt>
+        <dd><code>startScanRun</code> / <code>finishScanRun</code> tracks input/output/cache tokens, stop reasons, parse errors</dd>
+      </dl>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      background: '#16181d',
+      primaryColor: '#1f2937',
+      primaryTextColor: '#e6e8ec',
+      primaryBorderColor: '#2a2d35',
+      lineColor: '#4b5563',
+      secondaryColor: '#1c1917',
+      tertiaryColor: '#0e0f12',
+      fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+      fontSize: '13px',
+      clusterBkg: '#11131780',
+      clusterBorder: '#2a2d35',
+      edgeLabelBackground: '#16181d'
+    },
+    flowchart: { curve: 'basis', padding: 14, nodeSpacing: 36, rankSpacing: 50 }
+  });
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 // api/flight-status.js — Vercel serverless: AeroDataBox live flight status
-const { createClient } = require("@supabase/supabase-js");
+const { authenticate } = require("./lib/auth");
 
 const AERODATABOX_KEY = process.env.AERODATABOX_API_KEY;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 min — don't hammer the API
@@ -67,12 +67,8 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Missing auth token" });
-
-  const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) return res.status(401).json({ error: "Invalid token" });
+  const { user, error: authErr } = await authenticate(req);
+  if (authErr) return res.status(authErr.status).json({ error: authErr.message });
 
   if (!AERODATABOX_KEY) return res.status(503).json({ error: "Flight status API not configured" });
 

@@ -22,3 +22,6 @@ Thumbs.db
 
 # Vercel
 .vercel
+src/DosApp.jsx.bak
+.claude/memory/
+.gstack/
