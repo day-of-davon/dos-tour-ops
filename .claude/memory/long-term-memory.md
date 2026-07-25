@@ -5,6 +5,13 @@
 <!-- Scout entries appended here -->
 
 - [2026-07-19 03:00 UTC] https://pypi.org/project/pyvroom/ — VROOM active: pyvroom 1.15.2 released April 22, 2026 (1.15.0 March 2026); vroom-express also updated March 2026; confirms VROOM VRP solver is under active maintenance, not stale
+- [2026-07-25 03:00 UTC] https://supabase.com/changelog/47796-developer-update-july-2026 — Supabase Pipelines now in public alpha with schema change support, faster initial sync, and new destination request form for ClickHouse, Snowflake, DuckLake; actionable for DOS Platform analytics pipeline
+- [2026-07-25 03:00 UTC] https://www.digitalapplied.com/blog/supabase-self-hosted-envoy-gateway-migration-2026 — Supabase self-hosted Docker stack switches default API gateway from Kong to Envoy week of August 9, 2026; Kong becomes opt-in override; breaking for any self-hosted DOS infra
+- [2026-07-25 03:00 UTC] https://supabase.com/changelog/47796-developer-update-july-2026 — Supabase Wrappers v0.6.2 adds MongoDB foreign data wrapper; can query/join MongoDB collections directly from Postgres
+- [2026-07-25 03:00 UTC] https://supabase.com/changelog/47796-developer-update-july-2026 — Supabase Postgres log_connections now defaults to off for new projects as of July 9, 2026; existing Free/Pro projects being migrated; minor ops/debugging impact
+- [2026-07-25 03:00 UTC] https://nodesify.com/blog/n8n-workflow-automation-guide-2026 — n8n 2.x (self-hosted Community Edition) ships full AI Agent node with native tool-calling across Claude, GPT-4o, Gemini, Groq; multi-agent orchestration, RAG, human-in-the-loop controls, spatial Canvas UI, autosave/versioned publishing; no execution limits in CE; significantly expands DOS n8n utility beyond basic workflows
+- [2026-07-25 03:00 UTC] https://blog.lennd.com/monterey-jazz-festival-lennd-partnership — Lennd announced acquisition of OnTrack ("Lennd grows stronger with OnTrack to revolutionize global event management"); competitive consolidation in festival ops space; Lennd now covers more of the advancing+ops surface
+- [2026-07-25 03:00 UTC] https://www.streetinsider.com/Press+Releases/TourSyncer+Announces+Launch+of+All+in+One+Tour+Management+Platform+TourSyncer.com+to+Streamline+Post+Booking+Operations+for+Tour+Operators/26623042.html — TourSyncer.com launched June 9, 2026 (Dallas TX); all-in-one tour management platform targeting post-booking ops, staff scheduling, itinerary, invoicing, analytics; focused on travel/tourism operators but adjacent; monitor for music touring pivot
 
 ## promoted
 
