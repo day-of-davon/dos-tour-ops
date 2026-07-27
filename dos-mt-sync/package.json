@@ -1,0 +1,16 @@
+{
+  "name": "dos-mt-sync",
+  "version": "1.0.0",
+  "description": "Sync DOS Tour Ops → Master Tour via Playwright Electron",
+  "type": "module",
+  "bin": { "dos-mt": "./cli.js" },
+  "scripts": {
+    "sync": "node cli.js sync all",
+    "dry-run": "node cli.js sync all --dry-run"
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.5",
+    "playwright": "^1.44.1"
+  }
+}

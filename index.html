@@ -10,8 +10,76 @@
     <title>DOS Tour Ops</title>
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { background: #0a0a0f; color: #e4e4ef; }
+      :root, html[data-theme="dark"] {
+        /* Obsidian + Electric Violet dark */
+        --bg: #0B0912;
+        --card: #110E1C;
+        --card-2: #1A1628;
+        --card-3: #231D38;
+        --card-4: #2E2848;
+        --text: #F5F3FF;
+        --text-2: #C4BFDF;
+        --text-3: #9E97C0;
+        --text-dim: #7A72A0;
+        --text-mute: #5B5678;
+        --text-faint: #3E3A52;
+        --border: #302A50;
+        --accent: #8B5CF6;
+        --accent-soft: #A78BFA;
+        --navy: #1A1628;
+        --link: #38BDF8;
+        --accent-pill-bg: #1E1540;
+        --accent-pill-border: #4C35A0;
+        --success-bg: #052E1F;
+        --success-fg: #34D399;
+        --warn-bg: #231400;
+        --warn-fg: #FBBF24;
+        --danger-bg: #3A0909;
+        --danger-fg: #F87171;
+        --info-bg: #0D1E3C;
+        --info-fg: #60A5FA;
+        --muted-bg: #1A1628;
+      }
+      html[data-theme="light"] {
+        /* Obsidian + Electric Violet light */
+        --bg: #F7F5FF;
+        --card: #FFFFFF;
+        --card-2: #F3EFFF;
+        --card-3: #EAE4FF;
+        --card-4: #DDD4FF;
+        --text: #160D38;
+        --text-2: #2E2060;
+        --text-3: #4A3A8A;
+        --text-dim: #6B5FA8;
+        --text-mute: #9488C2;
+        --text-faint: #BAB3D8;
+        --border: #C8BFEF;
+        --accent: #6D28D9;
+        --accent-soft: #7C3AED;
+        --navy: #160D38;
+        --link: #2563EB;
+        --accent-pill-bg: #EDE9FE;
+        --accent-pill-border: #A78BFA;
+        --success-bg: #D1FAE5;
+        --success-fg: #059669;
+        --warn-bg: #FEF3C7;
+        --warn-fg: #92400E;
+        --danger-bg: #FEE2E2;
+        --danger-fg: #B91C1C;
+        --info-bg: #DBEAFE;
+        --info-fg: #1D4ED8;
+        --muted-bg: #F3EFFF;
+      }
+      body { background: var(--bg); color: var(--text); transition: background 120ms ease, color 120ms ease; }
     </style>
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem("dos-theme") || "dark";
+          document.documentElement.setAttribute("data-theme", t);
+        } catch(e) { document.documentElement.setAttribute("data-theme", "dark"); }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
