@@ -16,6 +16,8 @@
 - [2026-07-26 03:00 UTC] https://hello.eventotron.com/ — Eventotron launching full revamp in 2026 (current platform stays live during transition); new version targets simpler UX while preserving power; new adjacent competitor in festival management to watch
 - [2026-07-26 03:00 UTC] https://supabase.com/changelog — Supabase July 2026 developer update includes OpenCode (AI coding assistant) integration with Supabase; not previously captured; relevant to DOS dev workflow
 - [2026-07-26 03:00 UTC] https://medium.com/@factman60/next-js-server-actions-vs-trpc-a-2026-architects-guide-85cc4953bae4 — 2026 consensus: tRPC remains superior to Server Actions for complex multi-client SaaS dashboards; Server Actions recommended only for form-heavy content/e-commerce; validates DOS Platform tRPC-first architecture
+- [2026-07-27 03:00 UTC] https://nextjs.org/blog/july-2026-security-release — Next.js launched monthly security release program; July patch (July 20, 2026) released 15.5.21 (Maintenance LTS) and 16.2.11 (Active LTS); 4 high-severity + 5 medium-severity vulns including Server Actions CPU exhaustion (DoS) and Turbopack middleware bypass with single i18n.locales entry; DOS Platform on Next.js 15 should target 15.5.21
+- [2026-07-27 03:00 UTC] https://www.yourtempo.com/touring-pro — Touring Pro: existing music touring software (day-sheets, calendar, crew sync, guest lists); lower-tier competitor not previously in memory; no AI/ops intelligence layer; simpler than Master Tour; not a new 2026 launch but untracked
 
 ## promoted
 
