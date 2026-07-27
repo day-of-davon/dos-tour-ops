@@ -10,6 +10,7 @@ import { useAuth } from "../AuthGate";
 import { IntelPanel } from "../intel/IntelPanel";
 import { NotesPanel } from "../notes/NotesPanel";
 import { ImmigrationPanel } from "../production/ImmigrationPanel";
+import { PortalGrantPanel } from "./PortalGrantPanel";
 import { StatusBtn } from "../shared/StatusBtn";
 
 export function AdvTab(){
@@ -270,6 +271,7 @@ export function AdvTab(){
               );
             })}
             <NotesPanel/>
+            <PortalGrantPanel show={show} eventKey={eventKey} clientId={aC}/>
             <div style={{background:"var(--card)",border:"1px solid var(--border)",borderRadius:10,padding:"12px 14px"}}>
               <div style={{fontSize:9,fontWeight:700,color:T.textDim,marginBottom:6,letterSpacing:"0.06em"}}>THREAD & NOTES</div>
               <div style={{display:"flex",flexDirection:"column",gap:5}}>

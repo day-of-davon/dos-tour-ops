@@ -25,6 +25,8 @@ vi.mock("../lib/supabase", () => {
       signInWithOAuth: async () => ({ error: null }),
     },
     from: () => builder,
+    // AdvTab mounts PortalGrantPanel, which calls rpc() to list portal grants.
+    rpc: async () => ({ data: [], error: null }),
     channel: () => ({ on: () => ({ subscribe: () => ({}) }), subscribe: () => ({}) }),
     removeChannel: () => {},
   };

@@ -2,9 +2,17 @@ import { StrictMode, Component } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./DosApp.jsx";
 import AuthGate from "./components/AuthGate.jsx";
+import PortalAuthGate from "./portal/PortalAuthGate.jsx";
+import PortalApp from "./portal/PortalApp.jsx";
 import { storage, getShared, setShared, deleteShared, getPrivate, setPrivate, deletePrivate, isSharedKey } from "./lib/storage";
 import { initAnalytics } from "./lib/analytics";
 import { initSentry, captureError } from "./lib/sentry";
+
+// venue/promoter advance portal lives at /portal, entirely separate auth
+// (Email OTP, not Google OAuth) and component tree from the internal cockpit.
+// vercel.json's SPA fallback already serves this path with no routing
+// dependency needed.
+const isPortal = window.location.pathname.startsWith("/portal");
 
 // Error monitoring first, so it can catch crashes during the rest of boot.
 // No-op unless VITE_SENTRY_DSN is set. See lib/sentry.js.
@@ -75,7 +83,9 @@ class ErrorBoundary extends Component {
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <ErrorBoundary>
-      <AuthGate><App /></AuthGate>
+      {isPortal
+        ? <PortalAuthGate><PortalApp /></PortalAuthGate>
+        : <AuthGate><App /></AuthGate>}
     </ErrorBoundary>
   </StrictMode>
 );
