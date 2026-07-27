@@ -17,6 +17,9 @@
 - [2026-07-26 03:00 UTC] https://supabase.com/changelog — Supabase July 2026 developer update includes OpenCode (AI coding assistant) integration with Supabase; not previously captured; relevant to DOS dev workflow
 - [2026-07-26 03:00 UTC] https://medium.com/@factman60/next-js-server-actions-vs-trpc-a-2026-architects-guide-85cc4953bae4 — 2026 consensus: tRPC remains superior to Server Actions for complex multi-client SaaS dashboards; Server Actions recommended only for form-heavy content/e-commerce; validates DOS Platform tRPC-first architecture
 - [2026-07-27 03:00 UTC] https://nextjs.org/blog/july-2026-security-release — Next.js July 2026 security release (July 21): v16.2.11 / v15.5.21 patch 9 CVEs (4 HIGH, 5 MEDIUM); key: CVE-2026-64641 CVSS 8.2 Server Actions DoS via CPU exhaustion, CVE-2026-64642 CVSS 8.3 middleware bypass (Turbopack + single-locale i18n), CVE-2026-64645 CVSS 8.3 SSRF via request-controlled rewrites; DOS Platform on Next.js 15 must apply `npm install next@15.5.21`
+- [2026-07-27 03:00 UTC] https://www.ycombinator.com/companies/industry/entertainment — Gigwell (YC-backed) building end-to-end OS for concert/live events industry: booking, offers, contracts, advancing, tour logistics, payments, reporting, communication; direct overlap with DOS Platform feature surface; not previously in competitor map
+- [2026-07-27 03:00 UTC] https://github.com/trpc/trpc/releases — tRPC latest patch (post-v11.18) adds subscription inference helpers and fixes React 19 proxy coercion; streaming error unwrapping improved; actionable for DOS Platform if on React 19
+- [2026-07-27 03:00 UTC] https://github.com/VROOM-Project/vroom — VROOM C++ core added max_distance per-vehicle parameter (caps route distance per driver, useful for EV/budget routing); main repo last commit May 11, 2026; new API capability beyond pyvroom maintenance note already in memory
 
 ## promoted
 
